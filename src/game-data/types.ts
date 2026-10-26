@@ -1,0 +1,201 @@
+// Contratos dos dados de conteúdo. Os arquivos em `generated/` são produzidos por
+// `npm run data:fetch` a partir de scripts/world.mjs e da PokéAPI.
+
+export type TypeName = string;
+
+export interface BaseStats {
+  hp: number;
+  atk: number;
+  def: number;
+  spAtk: number;
+  spDef: number;
+  spe: number;
+}
+
+export type StatKey = keyof BaseStats;
+
+export type GrowthRate =
+  'slow' | 'medium' | 'fast' | 'medium-slow' | 'slow-then-very-fast' | 'fast-then-very-slow';
+
+export type TimeOfDay = 'day' | 'night';
+
+/** Evolução por nível ou por item (com período do dia opcional, como Espeon/Umbreon). */
+export type Evolution =
+  | { to: number; trigger: 'level'; minLevel: number; time?: TimeOfDay }
+  | { to: number; trigger: 'item'; item: string; time?: TimeOfDay };
+
+export interface LearnsetEntry {
+  level: number;
+  move: string;
+}
+
+export interface SpeciesSprites {
+  front?: string;
+  back?: string;
+  frontShiny?: string;
+  backShiny?: string;
+  icon?: string;
+}
+
+export interface Species {
+  id: number;
+  slug: string;
+  name: string;
+  genus: string;
+  types: TypeName[];
+  baseStats: BaseStats;
+  baseExp: number;
+  captureRate: number;
+  growthRate: GrowthRate;
+  /** Lendário ou mítico (não se reproduz na creche). */
+  legendary: boolean;
+  baby: boolean;
+  /** Ciclos de ovo da PokéAPI (define o tempo de chocar). */
+  hatchCounter: number;
+  eggGroups: string[];
+  evolutions: Evolution[];
+  learnset: LearnsetEntry[];
+  /** Golpes de dano que a espécie aprende por máquina/tutor (Black 2/White 2). */
+  tmMoves: string[];
+  /** Geração de origem (1 a 5). */
+  generation: number;
+  sprites: SpeciesSprites;
+  /** Tamanho natural (largura, altura) dos sprites de batalha, para manter a escala. */
+  spriteSize?: { front?: [number, number]; back?: [number, number] };
+  /** Grito da espécie (arquivo .ogg da PokéAPI). */
+  cry?: string;
+}
+
+export interface Move {
+  id: string;
+  name: string;
+  type: TypeName;
+  power: number;
+  accuracy: number;
+  category: 'physical' | 'special';
+  priority: number;
+}
+
+export interface ItemData {
+  id: string;
+  name: string;
+  sprite: string;
+}
+
+export interface Encounter {
+  speciesId: number;
+  weight: number;
+  minLevel: number;
+  maxLevel: number;
+  /** Só aparece de dia ou só à noite. */
+  time?: TimeOfDay;
+}
+
+/** Membro do time de um chefe: espécie fixa ou o inicial do rival (estágio 1–3). */
+export type BossMember = { speciesId: number; level: number } | { rivalStage: number; level: number };
+
+export interface BossData {
+  name: string;
+  title: string;
+  /** Sprite do treinador (public/sprites/trainers/<id>.png). */
+  trainer: string;
+  /** Insígnia entregue pelo líder de ginásio (se houver). */
+  badge?: { id: string; name: string };
+  team: BossMember[];
+  reward: { coins: number; items?: Record<string, number>; tm?: string };
+  /** Rival: fica mais forte a cada ciclo de prestígio. */
+  rival?: boolean;
+  /** Campeão: a vitória registra o time no Hall da Fama e libera a próxima região. */
+  champion?: boolean;
+  /** Multiplicador de atributos (chefes de nível 100). */
+  boost?: number;
+}
+
+export type SceneKey =
+  | 'meadow'
+  | 'route'
+  | 'forest'
+  | 'mountain'
+  | 'cave'
+  | 'river'
+  | 'beach'
+  | 'desert'
+  | 'city'
+  | 'icecave'
+  | 'volcano'
+  | 'plains'
+  | 'dampcave'
+  | 'sea';
+
+export interface Route {
+  id: string;
+  name: string;
+  /** Nome da região, para exibição. */
+  region: string;
+  regionId: string;
+  description: string;
+  /** Vitórias necessárias para liberar o chefe (ou a próxima rota, se não houver chefe). */
+  killsRequired: number;
+  encounters: Encounter[];
+  boss?: BossData;
+  scene: SceneKey;
+  /** Posição no mapa da região (0–100 em cada eixo). */
+  map: [number, number];
+  /** 'trial' = sala da Liga: sem encontros selvagens, só o desafio. */
+  kind: 'wild' | 'trial';
+  /** Rota onde o jogador treina enquanto está numa sala de desafio. */
+  farm?: string;
+  /** Zona Safari: captura facilitada. */
+  safari?: boolean;
+}
+
+export interface Region {
+  id: string;
+  name: string;
+  routes: string[];
+}
+
+export interface RoamerDef {
+  speciesId: number;
+  /** Rota que precisa estar concluída para o errante começar a aparecer. */
+  requires: string;
+  bonusLevel: number;
+}
+
+export interface FossilDef {
+  item: string;
+  speciesId: number;
+  hours: number;
+}
+
+export type ExpeditionReward =
+  | { w: number; coins: [number, number] }
+  | { w: number; item: string; qty: [number, number] }
+  | { w: number; speciesId: number; level: [number, number] }
+  | { w: number; tm: true }
+  | { w: number; research: [number, number] };
+
+export interface ExpeditionDef {
+  id: string;
+  name: string;
+  description: string;
+  requires: string;
+  types: TypeName[];
+  rewards: ExpeditionReward[];
+}
+
+export type PrizeDef =
+  | { kind: 'pokemon'; speciesId: number; level: number; tokens: number }
+  | { kind: 'tm'; move: string; tokens: number }
+  | { kind: 'item'; item: string; qty: number; tokens: number };
+
+export interface WorldData {
+  starters: { generation: number; region: string; ids: number[] }[];
+  regions: Region[];
+  routes: Route[];
+  roamers: RoamerDef[];
+  fossils: FossilDef[];
+  tmPool: string[];
+  expeditions: ExpeditionDef[];
+  prizes: PrizeDef[];
+}

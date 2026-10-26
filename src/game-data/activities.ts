@@ -1,0 +1,302 @@
+// Conteúdo das atividades: berries, missões, recompensas da Pokédex, Torre de Batalha e
+// Game Corner. Só dados — as regras ficam em src/core.
+
+import type { TypeName } from './types';
+
+// --- Jardim de berries ---------------------------------------------------------------
+
+export type BuffKind = 'damage' | 'exp' | 'coins' | 'capture' | 'heal' | 'speed' | 'shiny';
+
+export interface BerryDef {
+  id: string;
+  /** Tempo real até a colheita. */
+  growMinutes: number;
+  /** Quantas berries a planta rende. */
+  yield: [number, number];
+  /** Efeito ao comer: um bônus temporário (em tempo de jogo). */
+  buff: { kind: BuffKind; value: number; minutes: number };
+  /** Preço no Poké Mart (0 = não vende). */
+  price: number;
+}
+
+export const BERRIES: BerryDef[] = [
+  {
+    id: 'oran-berry',
+    growMinutes: 30,
+    yield: [2, 4],
+    buff: { kind: 'heal', value: 0.15, minutes: 20 },
+    price: 60,
+  },
+  {
+    id: 'pecha-berry',
+    growMinutes: 60,
+    yield: [2, 4],
+    buff: { kind: 'coins', value: 0.25, minutes: 30 },
+    price: 90,
+  },
+  {
+    id: 'cheri-berry',
+    growMinutes: 120,
+    yield: [2, 4],
+    buff: { kind: 'damage', value: 0.15, minutes: 30 },
+    price: 150,
+  },
+  {
+    id: 'leppa-berry',
+    growMinutes: 180,
+    yield: [2, 3],
+    buff: { kind: 'exp', value: 0.25, minutes: 30 },
+    price: 220,
+  },
+  {
+    id: 'razz-berry',
+    growMinutes: 240,
+    yield: [2, 3],
+    buff: { kind: 'capture', value: 0.3, minutes: 30 },
+    price: 260,
+  },
+  {
+    id: 'persim-berry',
+    growMinutes: 360,
+    yield: [2, 3],
+    buff: { kind: 'speed', value: 0.15, minutes: 45 },
+    price: 0,
+  },
+  {
+    id: 'sitrus-berry',
+    growMinutes: 480,
+    yield: [1, 3],
+    buff: { kind: 'heal', value: 0.3, minutes: 60 },
+    price: 0,
+  },
+  {
+    id: 'lum-berry',
+    growMinutes: 720,
+    yield: [1, 2],
+    buff: { kind: 'shiny', value: 1, minutes: 30 },
+    price: 0,
+  },
+];
+
+// --- Missões -------------------------------------------------------------------------
+
+export type MissionKind =
+  | 'kills'
+  | 'captures'
+  | 'capture-type'
+  | 'evolutions'
+  | 'bosses'
+  | 'hatch'
+  | 'harvest'
+  | 'expeditions'
+  | 'tower-floors'
+  | 'slots';
+
+export interface MissionTemplate {
+  kind: MissionKind;
+  /** Alvos possíveis (o sorteio escolhe um). */
+  targets: number[];
+  /** Recompensa por unidade de alvo (multiplicada pelo alvo). */
+  reward: { coins?: number; research?: number; items?: Record<string, number>; tokens?: number };
+  /** Atividade que precisa estar liberada para a missão ser sorteada. */
+  requires?: 'daycare' | 'expeditions' | 'garden' | 'tower' | 'gamecorner';
+}
+
+export const DAILY_MISSIONS: MissionTemplate[] = [
+  { kind: 'kills', targets: [80, 120, 200], reward: { coins: 4 } },
+  { kind: 'captures', targets: [3, 5, 8], reward: { items: { 'great-ball': 1 } } },
+  { kind: 'capture-type', targets: [2, 3, 4], reward: { items: { 'ultra-ball': 1 } } },
+  { kind: 'evolutions', targets: [1, 2], reward: { research: 3 } },
+  { kind: 'bosses', targets: [1, 2], reward: { coins: 400 } },
+  { kind: 'hatch', targets: [1, 2], reward: { research: 3 }, requires: 'daycare' },
+  { kind: 'harvest', targets: [4, 8], reward: { coins: 60 }, requires: 'garden' },
+  { kind: 'expeditions', targets: [1, 2], reward: { research: 2 }, requires: 'expeditions' },
+  { kind: 'tower-floors', targets: [5, 10], reward: { tokens: 20 }, requires: 'tower' },
+  { kind: 'slots', targets: [10, 20], reward: { tokens: 6 }, requires: 'gamecorner' },
+];
+
+export const WEEKLY_MISSIONS: MissionTemplate[] = [
+  { kind: 'kills', targets: [1500, 2500], reward: { coins: 6, research: 0 } },
+  { kind: 'captures', targets: [25, 40], reward: { items: { 'ultra-ball': 1 }, research: 1 } },
+  { kind: 'evolutions', targets: [5, 8], reward: { research: 4, items: { 'rare-candy': 1 } } },
+  { kind: 'bosses', targets: [5, 8], reward: { coins: 1500 } },
+  { kind: 'hatch', targets: [5, 10], reward: { research: 4 }, requires: 'daycare' },
+  {
+    kind: 'expeditions',
+    targets: [6, 10],
+    reward: { research: 3, items: { 'rare-candy': 1 } },
+    requires: 'expeditions',
+  },
+  { kind: 'tower-floors', targets: [40, 60], reward: { tokens: 30 }, requires: 'tower' },
+];
+
+// --- Recompensas da Pokédex --------------------------------------------------------------
+
+export interface DexMilestone {
+  id: string;
+  /** Espécies capturadas necessárias. */
+  caught: number;
+  reward: { coins?: number; research?: number; items?: Record<string, number> };
+  /** Bônus permanentes. */
+  bonus?: { exp?: number; coins?: number; capture?: number; shiny?: number };
+}
+
+export const DEX_MILESTONES: DexMilestone[] = [
+  { id: 'dex-10', caught: 10, reward: { items: { 'great-ball': 10 } }, bonus: { capture: 0.05 } },
+  { id: 'dex-25', caught: 25, reward: { research: 10 }, bonus: { exp: 0.05 } },
+  { id: 'dex-50', caught: 50, reward: { items: { 'ultra-ball': 10 } }, bonus: { coins: 0.1 } },
+  { id: 'dex-75', caught: 75, reward: { items: { 'rare-candy': 3 } }, bonus: { exp: 0.1 } },
+  { id: 'dex-100', caught: 100, reward: { research: 25 }, bonus: { capture: 0.1, shiny: 0.25 } },
+  { id: 'dex-150', caught: 150, reward: { items: { 'master-ball': 1 } }, bonus: { coins: 0.15 } },
+  { id: 'dex-200', caught: 200, reward: { research: 40 }, bonus: { exp: 0.15 } },
+  {
+    id: 'dex-300',
+    caught: 300,
+    reward: { items: { 'master-ball': 1, 'rare-candy': 10 } },
+    bonus: { shiny: 0.5 },
+  },
+  { id: 'dex-400', caught: 400, reward: { research: 80 }, bonus: { exp: 0.2, coins: 0.2 } },
+];
+
+/** Completar todas as espécies de um tipo dá dano extra com golpes desse tipo. */
+export const TYPE_MEDAL_BONUS = 0.1;
+export const TYPE_MEDAL_TYPES: TypeName[] = [
+  'normal',
+  'fire',
+  'water',
+  'grass',
+  'electric',
+  'ice',
+  'fighting',
+  'poison',
+  'ground',
+  'flying',
+  'psychic',
+  'bug',
+  'rock',
+  'ghost',
+  'dragon',
+  'dark',
+  'steel',
+];
+
+// --- Torre de Batalha -----------------------------------------------------------------------
+
+export interface TowerShopEntry {
+  id: string;
+  name: string;
+  price: number;
+  give: { items?: Record<string, number>; research?: number; tm?: true };
+}
+
+export const TOWER_SHOP: TowerShopEntry[] = [
+  { id: 'tm', name: 'TM aleatória', price: 25, give: { tm: true } },
+  { id: 'ultra', name: '10 Ultra Balls', price: 15, give: { items: { 'ultra-ball': 10 } } },
+  { id: 'candy', name: '3 Rare Candies', price: 20, give: { items: { 'rare-candy': 3 } } },
+  { id: 'research', name: '10 pontos de pesquisa', price: 30, give: { research: 10 } },
+  { id: 'master', name: 'Master Ball', price: 300, give: { items: { 'master-ball': 1 } } },
+];
+
+// --- Game Corner ---------------------------------------------------------------------------------
+
+export interface SlotSymbol {
+  id: string;
+  /** Ícone: item da PokéAPI ou espécie. */
+  icon: { item?: string; speciesId?: number };
+  weight: number;
+  /** Prêmio (em fichas) para três iguais. */
+  three: number;
+  /** Prêmio para os dois primeiros iguais (o terceiro diferente). */
+  two: number;
+}
+
+/** Aposta por giro e prêmio para uma cereja só no primeiro rolo. */
+export const SLOT_BET = 3;
+export const SLOT_SINGLE_CHERRY = 2;
+
+export const SLOT_SYMBOLS: SlotSymbol[] = [
+  { id: 'seven', icon: { item: 'star-piece' }, weight: 2, three: 600, two: 40 },
+  { id: 'bar', icon: { item: 'nugget' }, weight: 4, three: 250, two: 20 },
+  { id: 'pikachu', icon: { speciesId: 25 }, weight: 7, three: 80, two: 12 },
+  { id: 'marill', icon: { speciesId: 183 }, weight: 9, three: 40, two: 8 },
+  { id: 'cherry', icon: { item: 'cheri-berry' }, weight: 14, three: 20, two: 6 },
+  { id: 'replay', icon: { item: 'poke-ball' }, weight: 18, three: 9, two: 3 },
+];
+
+// --- Lendários ------------------------------------------------------------------------------------
+
+export interface LegendaryDef {
+  /** 'pseudo' = quase lendário (mais fácil de capturar). */
+  tier?: 'legendary' | 'pseudo';
+  /** Número na Pokédex nacional. */
+  speciesId: number;
+  regionId: string;
+  level: number;
+  /** Multiplicador de atributos. */
+  boost: number;
+}
+
+/** Rota cujo chefe (o Campeão) precisa ter sido vencido para liberar os lendários da região. */
+export const LEGENDARY_REGION_UNLOCK: Record<string, string> = {
+  kanto: 'liga-campeao',
+  johto: 'johto-liga-campeao',
+  hoenn: 'hoenn-liga-campeao',
+  sinnoh: 'sinnoh-liga-campeao',
+  unova: 'unova-liga-campeao',
+};
+
+export const LEGENDARIES: LegendaryDef[] = [
+  { speciesId: 149, regionId: 'kanto', level: 60, boost: 1.05, tier: 'pseudo' }, // Dragonite
+  { speciesId: 248, regionId: 'johto', level: 78, boost: 1.05, tier: 'pseudo' }, // Tyranitar
+  { speciesId: 373, regionId: 'hoenn', level: 86, boost: 1.05, tier: 'pseudo' }, // Salamence
+  { speciesId: 376, regionId: 'hoenn', level: 86, boost: 1.05, tier: 'pseudo' }, // Metagross
+  { speciesId: 445, regionId: 'sinnoh', level: 90, boost: 1.05, tier: 'pseudo' }, // Garchomp
+  { speciesId: 635, regionId: 'unova', level: 96, boost: 1.05, tier: 'pseudo' }, // Hydreigon
+  { speciesId: 144, regionId: 'kanto', level: 62, boost: 1.1 }, // Articuno
+  { speciesId: 145, regionId: 'kanto', level: 62, boost: 1.1 }, // Zapdos
+  { speciesId: 146, regionId: 'kanto', level: 62, boost: 1.1 }, // Moltres
+  { speciesId: 150, regionId: 'kanto', level: 70, boost: 1.25 }, // Mewtwo
+  { speciesId: 151, regionId: 'kanto', level: 65, boost: 1.15 }, // Mew
+  { speciesId: 243, regionId: 'johto', level: 80, boost: 1.1 }, // Raikou
+  { speciesId: 244, regionId: 'johto', level: 80, boost: 1.1 }, // Entei
+  { speciesId: 245, regionId: 'johto', level: 80, boost: 1.1 }, // Suicune
+  { speciesId: 249, regionId: 'johto', level: 85, boost: 1.2 }, // Lugia
+  { speciesId: 250, regionId: 'johto', level: 85, boost: 1.2 }, // Ho-Oh
+  { speciesId: 251, regionId: 'johto', level: 80, boost: 1.1 }, // Celebi
+  { speciesId: 377, regionId: 'hoenn', level: 88, boost: 1.1 }, // Regirock
+  { speciesId: 378, regionId: 'hoenn', level: 88, boost: 1.1 }, // Regice
+  { speciesId: 379, regionId: 'hoenn', level: 88, boost: 1.1 }, // Registeel
+  { speciesId: 380, regionId: 'hoenn', level: 90, boost: 1.15 }, // Latias
+  { speciesId: 381, regionId: 'hoenn', level: 90, boost: 1.15 }, // Latios
+  { speciesId: 382, regionId: 'hoenn', level: 92, boost: 1.2 }, // Kyogre
+  { speciesId: 383, regionId: 'hoenn', level: 92, boost: 1.2 }, // Groudon
+  { speciesId: 384, regionId: 'hoenn', level: 95, boost: 1.25 }, // Rayquaza
+  { speciesId: 385, regionId: 'hoenn', level: 88, boost: 1.1 }, // Jirachi
+  { speciesId: 386, regionId: 'hoenn', level: 90, boost: 1.15 }, // Deoxys
+  { speciesId: 480, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Uxie
+  { speciesId: 481, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Mesprit
+  { speciesId: 482, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Azelf
+  { speciesId: 485, regionId: 'sinnoh', level: 95, boost: 1.2 }, // Heatran
+  { speciesId: 483, regionId: 'sinnoh', level: 96, boost: 1.2 }, // Dialga
+  { speciesId: 484, regionId: 'sinnoh', level: 96, boost: 1.2 }, // Palkia
+  { speciesId: 487, regionId: 'sinnoh', level: 97, boost: 1.2 }, // Giratina
+  { speciesId: 488, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Cresselia
+  { speciesId: 489, regionId: 'sinnoh', level: 90, boost: 1.05 }, // Phione
+  { speciesId: 490, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Manaphy
+  { speciesId: 491, regionId: 'sinnoh', level: 94, boost: 1.15 }, // Darkrai
+  { speciesId: 492, regionId: 'sinnoh', level: 94, boost: 1.1 }, // Shaymin
+  { speciesId: 493, regionId: 'sinnoh', level: 100, boost: 1.3 }, // Arceus
+  { speciesId: 638, regionId: 'unova', level: 98, boost: 1.1 }, // Cobalion
+  { speciesId: 639, regionId: 'unova', level: 98, boost: 1.1 }, // Terrakion
+  { speciesId: 640, regionId: 'unova', level: 98, boost: 1.1 }, // Virizion
+  { speciesId: 641, regionId: 'unova', level: 100, boost: 1.2 }, // Tornadus
+  { speciesId: 642, regionId: 'unova', level: 100, boost: 1.2 }, // Thundurus
+  { speciesId: 645, regionId: 'unova', level: 100, boost: 1.2 }, // Landorus
+  { speciesId: 494, regionId: 'unova', level: 98, boost: 1.1 }, // Victini
+  { speciesId: 643, regionId: 'unova', level: 100, boost: 1.25 }, // Reshiram
+  { speciesId: 644, regionId: 'unova', level: 100, boost: 1.25 }, // Zekrom
+  { speciesId: 646, regionId: 'unova', level: 100, boost: 1.2 }, // Kyurem
+  { speciesId: 647, regionId: 'unova', level: 98, boost: 1.1 }, // Keldeo
+  { speciesId: 648, regionId: 'unova', level: 99, boost: 1.1 }, // Meloetta
+  { speciesId: 649, regionId: 'unova', level: 100, boost: 1.15 }, // Genesect
+];

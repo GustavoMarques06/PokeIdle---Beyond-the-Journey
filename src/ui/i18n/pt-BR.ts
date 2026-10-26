@@ -1,0 +1,388 @@
+// Textos da interface em um só lugar, prontos para localização futura.
+
+import { ACHIEVEMENTS, getItem, getMove, getRoute, getSpecies, type BonusKind } from '../../game-data';
+import type { GameEvent } from '../../core/game';
+
+export const TYPE_NAMES: Record<string, string> = {
+  normal: 'Normal',
+  fire: 'Fogo',
+  water: 'Água',
+  grass: 'Planta',
+  electric: 'Elétrico',
+  ice: 'Gelo',
+  fighting: 'Lutador',
+  poison: 'Venenoso',
+  ground: 'Terra',
+  flying: 'Voador',
+  psychic: 'Psíquico',
+  bug: 'Inseto',
+  rock: 'Pedra',
+  ghost: 'Fantasma',
+  dragon: 'Dragão',
+  dark: 'Sombrio',
+  steel: 'Aço',
+  fairy: 'Fada',
+};
+
+export const STAT_NAMES = {
+  hp: 'HP',
+  atk: 'Ataque',
+  def: 'Defesa',
+  spAtk: 'At. Esp.',
+  spDef: 'Def. Esp.',
+  spe: 'Velocidade',
+} as const;
+
+export const BONUS_NAMES: Record<BonusKind, string> = {
+  damage: 'Dano',
+  defense: 'Redução de dano',
+  speed: 'Velocidade de ataque',
+  exp: 'EXP',
+  coins: 'Moedas',
+  capture: 'Captura',
+  heal: 'Cura pós-vitória',
+};
+
+export const formatPercent = (v: number) => `${Math.round(v * 100)}%`;
+
+export const achievementName = (id: string) => ACHIEVEMENTS.find((a) => a.id === id)?.name ?? id;
+
+export const UPGRADE_TEXT: Record<string, { name: string; description: string }> = {
+  'auto-capture': {
+    name: 'Captura automática',
+    description:
+      'Lança bolas sozinho em espécies ainda não capturadas (e shinies) quando o HP do alvo cai pela metade.',
+  },
+};
+
+export const ITEM_DESCRIPTIONS: Record<string, string> = {
+  'poke-ball': 'Bola básica para capturar Pokémon selvagens.',
+  'great-ball': 'Taxa de captura 1,5× maior que a Poké Ball.',
+  'moon-stone': 'Evolui Nidorina, Nidorino, Clefairy e Jigglypuff.',
+  'thunder-stone': 'Evolui Pikachu.',
+  'water-stone': 'Evolui Staryu.',
+  'leaf-stone': 'Evolui Gloom.',
+  'fire-stone': 'Pedra de evolução de fogo.',
+  'ultra-ball': 'Taxa de captura 2× maior. A captura automática só a usa em shinies e errantes.',
+  'master-ball': 'Captura qualquer Pokémon sem falhar.',
+  'rare-candy': 'Sobe o Pokémon 1 nível na hora (use na tela POKéMON).',
+  'soothe-bell': 'Faz evoluir Pokémon que evoluem por amizade (alguns só de dia ou à noite).',
+  everstone: 'Com ela na Mochila, você pode travar a evolução de um Pokémon (tela POKéMON).',
+  nugget: 'Uma pepita de ouro puro. Vale muito para colecionadores.',
+  'oran-berry': 'Planta no Jardim. Comer: +15% de cura por vitória por 20 min.',
+  'pecha-berry': 'Planta no Jardim. Comer: +25% de moedas por 30 min.',
+  'cheri-berry': 'Planta no Jardim. Comer: +15% de dano por 30 min.',
+  'leppa-berry': 'Planta no Jardim. Comer: +25% de EXP por 30 min.',
+  'razz-berry': 'Planta no Jardim. Comer: +30% de captura por 30 min.',
+  'persim-berry': 'Planta no Jardim. Comer: +15% de velocidade por 45 min.',
+  'sitrus-berry': 'Planta no Jardim. Comer: +30% de cura por vitória por 1 h.',
+  'lum-berry': 'Rara. Comer: chance de shiny dobrada por 30 min.',
+  'helix-fossil': 'Fóssil de concha. Leve ao Laboratório (ATIVIDADES → FÓSSEIS).',
+  'dome-fossil': 'Fóssil de carapaça. Leve ao Laboratório (ATIVIDADES → FÓSSEIS).',
+  'old-amber': 'Âmbar com DNA antigo. Leve ao Laboratório (ATIVIDADES → FÓSSEIS).',
+};
+
+export const T = {
+  appTitle: 'PokéIdle',
+  appSubtitle: 'Beyond the Journey',
+  chooseStarter: 'Escolha seu primeiro parceiro',
+  chooseStarterHint:
+    'A escolha define seu estilo inicial — os outros iniciais podem ser encontrados mais tarde.',
+  start: 'Começar jornada',
+  tabs: {
+    team: 'Equipe',
+    dex: 'Pokédex',
+    shop: 'Loja',
+    upgrades: 'Melhorias',
+    achievements: 'Conquistas',
+    settings: 'Config.',
+  },
+  trainer: 'Treinador',
+  researchPoints: 'Pontos de pesquisa',
+  prestigePoints: 'Pontos de prestígio',
+  team: {
+    formation: 'Formação',
+    activeSlot: 'Ativo',
+    passiveSlot: (n: number) => `Vaga passiva ${n}`,
+    empty: 'Vazia — selecione um Pokémon abaixo e use “Passivo”.',
+    lockedSlot: (route: string) => `Libera ao concluir ${route}`,
+    addPassive: 'Passivo',
+    removePassive: 'Tirar da equipe',
+    transfer: (pts: number) => `Transferir (+${pts} pesquisa)`,
+    totals: 'Bônus totais da equipe',
+    vsTypes: 'contra',
+    duplicateIgnored: 'Espécie repetida — não conta',
+    stacking: 'Bônus iguais acumulam com 50% do valor anterior e têm teto.',
+    mastery: 'Maestria',
+    masteryBonus: (pct: string) => `+${pct} dano e −${pct} dano recebido quando ativo`,
+  },
+  lab: {
+    title: 'Laboratório',
+    hint: 'Transfira duplicatas e registre espécies novas para ganhar pontos de pesquisa.',
+    transferAll: (n: number, pts: number) => `Transferir ${n} duplicatas (+${pts})`,
+    noDuplicates: 'Nenhuma duplicata sobrando.',
+    level: (l: number, max: number) => `Nv. ${l}/${max}`,
+    maxed: 'Máximo',
+  },
+  prestige: {
+    title: 'Nova jornada (prestígio)',
+    locked: 'Vença Misty, Líder de Cerulean, para poder recomeçar a jornada com bônus permanentes.',
+    explain:
+      'Volta à Rota 1 com moedas, itens e níveis zerados. Mantém a coleção (espécies e evoluções), a Pokédex, a pesquisa, a maestria, as conquistas e as melhorias da loja.',
+    gain: (n: number) => `Recomeçar e ganhar ${n} pontos de prestígio`,
+    confirm: (n: number) => `Recomeçar a jornada e ganhar ${n} pontos de prestígio?`,
+    count: (n: number) => `Jornadas concluídas: ${n}`,
+  },
+  achievementsDone: (n: number, total: number) => `${n}/${total} concluídas`,
+  coins: 'Moedas',
+  route: 'Rota',
+  map: 'Mapa',
+  locked: 'Bloqueada',
+  cleared: 'Concluída',
+  boss: 'Chefe',
+  challenge: 'Desafiar',
+  retreat: 'Recuar',
+  bossReady: 'Chefe disponível!',
+  victoriesNeeded: (n: number, total: number) => `${n}/${total} vitórias`,
+  throwBall: 'Lançar',
+  noBalls: 'Sem bolas — compre na Loja',
+  active: 'Ativo',
+  setActive: 'Usar',
+  evolve: 'Evoluir',
+  level: 'Nv.',
+  potential: 'Potencial',
+  moves: 'Golpes',
+  caughtOn: 'Capturado em',
+  seen: 'vistos',
+  caught: 'capturados',
+  buy: 'Comprar',
+  owned: 'Adquirido',
+  youHave: 'Você tem',
+  settings: {
+    autoEvolve: 'Evoluir automaticamente',
+    damageNumbers: 'Mostrar números de dano',
+    autoCapture: 'Captura automática ligada',
+    reducedMotion: 'Reduzir animações',
+    audio: 'Áudio',
+    volume: 'Volume',
+    sfx: 'Efeitos sonoros',
+    cries: 'Gritos dos Pokémon',
+    music: 'Música',
+    export: 'Exportar save',
+    import: 'Importar save',
+    importPlaceholder: 'Cole aqui o texto do save exportado…',
+    copied: 'Copiado para a área de transferência.',
+    reset: 'Apagar save e recomeçar',
+    resetConfirm: 'Tem certeza? Todo o progresso será perdido.',
+    importOk: 'Save importado com sucesso.',
+    stats: 'Estatísticas',
+    totalKills: 'Vitórias',
+    totalCaptures: 'Capturas',
+    playTime: 'Tempo de jogo',
+  },
+  offline: {
+    title: 'Bem-vindo de volta!',
+    away: (t: string) => `Você ficou fora por ${t}.`,
+    counted: (t: string) => `Tempo contabilizado: ${t}`,
+    capped: (h: number) => `(limite de ${h} h de progresso offline)`,
+    clockBackwards:
+      'O relógio do sistema parece ter voltado no tempo; nenhum progresso offline foi concedido.',
+    clockInvalid: 'O horário do último save é inválido; nenhum progresso offline foi concedido.',
+    nothing: 'Seu Pokémon não conseguiu vencer na rota atual enquanto você esteve fora.',
+    victories: 'Vitórias',
+    exp: 'EXP',
+    coins: 'Moedas',
+    continue: 'Continuar',
+  },
+  phase: {
+    spawning: 'Procurando Pokémon…',
+    victory: 'Vitória!',
+    defeat: 'Seu Pokémon desmaiou — recuperando…',
+  },
+};
+
+export const speciesName = (id: number) => getSpecies(id).name;
+export const moveName = (id: string) => getMove(id).name;
+export const itemName = (id: string) => getItem(id)?.name ?? UPGRADE_TEXT[id]?.name ?? id;
+
+export function formatDuration(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h} h ${m} min`;
+  if (m > 0) return `${m} min ${s} s`;
+  return `${s} s`;
+}
+
+export function formatNumber(n: number): string {
+  return Math.floor(n).toLocaleString('pt-BR');
+}
+
+/** Mensagem do registro de batalha para um evento (ou null se não deve aparecer). */
+export function describeEvent(e: GameEvent): string | null {
+  switch (e.type) {
+    case 'spawn':
+      return e.boss
+        ? `${speciesName(e.speciesId)} (Nv. ${e.level}) entrou na batalha!`
+        : `Um ${speciesName(e.speciesId)} selvagem${e.shiny ? ' brilhante' : ''} (Nv. ${e.level}) apareceu!`;
+    case 'attack': {
+      const r = e.result;
+      const who = e.side === 'player' ? 'Você' : 'Inimigo';
+      if (r.missed) return `${who}: ${moveName(r.moveId)} errou.`;
+      let s = `${who}: ${moveName(r.moveId)} causou ${r.damage}`;
+      if (r.crit) s += ' (crítico!)';
+      if (r.effectiveness === 0) s = `${who}: ${moveName(r.moveId)} não teve efeito.`;
+      else if (r.effectiveness > 1) s += ' — super efetivo!';
+      else if (r.effectiveness < 1) s += ' — pouco efetivo.';
+      return s;
+    }
+    case 'enemyFainted':
+      return `${speciesName(e.speciesId)} desmaiou. +${e.exp} EXP, +${e.coins} moedas.`;
+    case 'playerFainted':
+      return `${speciesName(e.speciesId)} desmaiou!`;
+    case 'levelUp':
+      return `${speciesName(e.speciesId)} subiu para o nível ${e.level}!`;
+    case 'learnedMove':
+      return `${speciesName(e.speciesId)} aprendeu ${moveName(e.move)}!`;
+    case 'evolved':
+      return `${speciesName(e.from)} evoluiu para ${speciesName(e.to)}!`;
+    case 'evolutionReady':
+      return `${speciesName(e.speciesId)} está pronto para evoluir em ${speciesName(e.to)}.`;
+    case 'captureAttempt':
+      return e.success
+        ? null
+        : `${itemName(e.ball)}: ${speciesName(e.speciesId)} escapou! (${Math.round(e.chance * 100)}%)`;
+    case 'captured':
+      return `${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''}${e.perfect ? ' PERFEITO' : ''} foi capturado!${e.isNew ? ' Novo registro na Pokédex.' : ''}`;
+    case 'bossAvailable':
+      return `O chefe de ${getRoute(e.routeId).name} está disponível!`;
+    case 'bossDefeated':
+      return `Você venceu ${getRoute(e.routeId).boss?.name}! +${e.coins} moedas.`;
+    case 'routeUnlocked':
+      return `Nova área desbloqueada: ${getRoute(e.routeId).name}.`;
+    case 'masteryUp':
+      return `Maestria de ${speciesName(e.speciesId)} subiu para o nível ${e.level}!`;
+    case 'achievement': {
+      const a = ACHIEVEMENTS.find((x) => x.id === e.id);
+      const reward = [
+        a?.reward.coins ? `+${a.reward.coins} moedas` : '',
+        a?.reward.research ? `+${a.reward.research} pesquisa` : '',
+      ]
+        .filter(Boolean)
+        .join(', ');
+      return `Conquista: ${a?.name ?? e.id}${reward ? ` (${reward})` : ''}`;
+    }
+    case 'hallOfFame':
+      return `Hall da Fama: campeão de ${REGION_NAMES[e.regionId] ?? e.regionId}!`;
+    case 'hatched':
+      return `O ovo chocou: ${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''}!`;
+    case 'berryReady':
+      return `Jardim: ${itemName(e.berry)} pronta para colher.`;
+    case 'fossilReady':
+      return `Laboratório: ${speciesName(e.speciesId)} foi revivido!`;
+    case 'expeditionDone':
+      return 'Uma expedição voltou! Veja as recompensas.';
+    case 'roamerAppeared':
+      return `${speciesName(e.speciesId)} foi visto em ${getRoute(e.routeId).name}!`;
+    case 'roamerFled':
+      return `${speciesName(e.speciesId)} fugiu para outra rota.`;
+    case 'roamerLeft':
+      return `${speciesName(e.speciesId)} deixou a região por enquanto.`;
+    case 'rocketAppeared':
+      return `Equipe Rocket em ${getRoute(e.routeId).name}! Vá até lá para enfrentá-los.`;
+    case 'rocketLeft':
+      return 'A Equipe Rocket foi embora.';
+    case 'legendaryEnded':
+      return e.reason === 'caught'
+        ? `${speciesName(e.speciesId)} foi capturado! Uma lenda agora é sua.`
+        : e.reason === 'fled'
+          ? `${speciesName(e.speciesId)} fugiu! Ele só volta a aceitar um desafio depois de um tempo.`
+          : `${speciesName(e.speciesId)} escapou. Tente de novo mais tarde.`;
+    case 'rocketDefeated':
+      return `Equipe Rocket derrotada! +${e.coins} moedas.`;
+    case 'towerFloor':
+      return `Torre de Batalha: andar ${e.floor} vencido (+${e.points} BP).`;
+    case 'towerEnded':
+      return `Torre de Batalha: subida encerrada no andar ${e.floor}.`;
+    case 'missionDone':
+      return 'Missão concluída! Resgate a recompensa em MISSÕES.';
+    case 'missionsRefreshed':
+      return e.scope === 'daily' ? 'Novas missões diárias!' : 'Novas missões semanais!';
+    case 'weatherChanged':
+      return `O tempo mudou: ${WEATHER_NAMES[e.weather] ?? e.weather}.`;
+  }
+}
+
+export const REGION_NAMES: Record<string, string> = {
+  kanto: 'Kanto',
+  johto: 'Johto',
+  hoenn: 'Hoenn',
+  sinnoh: 'Sinnoh',
+  unova: 'Unova',
+};
+
+export const WEATHER_NAMES: Record<string, string> = {
+  clear: 'céu limpo',
+  sun: 'sol forte',
+  rain: 'chuva',
+  sand: 'tempestade de areia',
+};
+
+export const WEATHER_EFFECTS: Record<string, string> = {
+  clear: 'Sem efeitos.',
+  sun: 'Golpes de Fogo +30%, de Água −30%. Mais Pokémon de Fogo e Planta.',
+  rain: 'Golpes de Água +30%, de Fogo −30%. Mais Pokémon de Água.',
+  sand: 'Golpes de Pedra, Terra e Aço +15%. Mais Pokémon de Pedra e Terra.',
+};
+
+export const BUFF_NAMES: Record<string, string> = {
+  damage: 'Dano',
+  exp: 'EXP',
+  coins: 'Moedas',
+  capture: 'Captura',
+  heal: 'Cura por vitória',
+  speed: 'Velocidade',
+  shiny: 'Chance de shiny',
+};
+
+export const MISSION_TEXT: Record<string, (target: number, type?: string) => string> = {
+  kills: (n) => `Vença ${n} batalhas`,
+  captures: (n) => `Capture ${n} Pokémon`,
+  'capture-type': (n, t) => `Capture ${n} Pokémon do tipo ${TYPE_NAMES[t ?? ''] ?? t}`,
+  evolutions: (n) => `Evolua ${n} Pokémon`,
+  bosses: (n) => `Vença ${n} treinador${n > 1 ? 'es' : ''} (chefes ou Rocket)`,
+  hatch: (n) => `Choque ${n} ovo${n > 1 ? 's' : ''}`,
+  harvest: (n) => `Colha ${n} berries`,
+  expeditions: (n) => `Conclua ${n} expedição${n > 1 ? 'ões' : ''}`,
+  'tower-floors': (n) => `Vença ${n} andares na Torre de Batalha`,
+  slots: (n) => `Jogue ${n} vezes no caça-níqueis`,
+};
+
+/** Eventos importantes o bastante para virar notificação. */
+export const TOAST_EVENTS = new Set<GameEvent['type']>([
+  'levelUp',
+  'learnedMove',
+  'evolved',
+  'evolutionReady',
+  'captured',
+  'bossAvailable',
+  'bossDefeated',
+  'routeUnlocked',
+  'masteryUp',
+  'achievement',
+  'hallOfFame',
+  'hatched',
+  'berryReady',
+  'fossilReady',
+  'expeditionDone',
+  'roamerAppeared',
+  'roamerFled',
+  'rocketAppeared',
+  'rocketDefeated',
+  'legendaryEnded',
+  'towerEnded',
+  'missionDone',
+  'missionsRefreshed',
+  'weatherChanged',
+]);

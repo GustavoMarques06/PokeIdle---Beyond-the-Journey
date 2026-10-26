@@ -1,0 +1,6 @@
+dist
+node_modules
+public
+src/game-data/generated
+scripts/.cache
+src-tauri
