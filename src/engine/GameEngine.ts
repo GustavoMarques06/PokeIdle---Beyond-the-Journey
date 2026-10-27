@@ -8,6 +8,7 @@ import { checkAchievements } from '../core/meta';
 import { applyOffline, offlineWindow, type OfflineReport } from '../core/offline';
 import { clearSave, loadGame, saveGame, type SaveStorage } from '../core/save';
 import { updateTimers } from '../core/timers';
+import { measureTraining } from '../core/training';
 
 type Listener = () => void;
 type EventListener = (events: GameEvent[]) => void;
@@ -87,7 +88,8 @@ export class GameEngine {
       const window = offlineWindow(result.file.meta.savedAt, this.clock(), maxHours);
       const report = applyOffline(this.state, window);
       if (report.countedMs > 0 || report.clockIssue !== 'none') this.offlineReport = report;
-      updateTimers(this.state, this.clock());
+      const gains = measureTraining(this.state, () => void updateTimers(this.state!, this.clock()));
+      if (this.offlineReport) this.offlineReport.training = gains;
       this.save();
     }
     this.emit();

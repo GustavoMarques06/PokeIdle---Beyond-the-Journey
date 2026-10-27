@@ -1,21 +1,27 @@
 // MAPA: a arte oficial do mapa de cada região, com as áreas marcadas no lugar onde ficam
-// nos jogos, abas por região, marcadores de errantes e da Equipe Rocket, e o painel da
-// área escolhida. O botão Ampliar abre o mapa grande numa janela.
+// nos jogos, abas por região, marcadores (errante, Equipe Rocket, raide, árvore de berry pronta,
+// pesca/surf e o acompanhante na sua área) e o painel da área escolhida. O botão Ampliar abre o
+// mapa grande numa janela.
 
 import { useState } from 'react';
-import { DEPT_STORE, REGIONS, assetUrl, getRoute, type Route } from '../../game-data';
+import { DEPT_STORE, REGIONS, WATER_SPOTS, assetUrl, getRoute, type Route } from '../../game-data';
 import {
   canChallengeBoss,
   challengeBoss,
+  bestRod,
+  canSurf,
   encounterRoute,
+  modeEncounters,
   routeCleared,
   selectRoute,
+  treeBerry,
+  treeReady,
   type GameState,
 } from '../../core/game';
 import { Badges } from '../components/Hud';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { useHotkeys } from '../hotkeys';
-import { speciesName } from '../i18n/pt-BR';
+import { formatDuration, itemName, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
 const MAX_ICONS = 9;
@@ -174,6 +180,11 @@ function RegionMap({
         const ready = canChallengeBoss(state, r.id) && r.kind === 'wild';
         const roamer = state.roamer && state.roamer.routeId === encounterRoute(r).id && r.kind === 'wild';
         const rocket = state.rocket?.routeId === r.id;
+        const raid = state.raid?.routeId === r.id;
+        const water = WATER_SPOTS[r.id];
+        const tree = prog.unlocked && treeBerry(r.id) && treeReady(state, r.id, state.lastTimerAt);
+        const companion =
+          here && state.companion ? state.collection.find((p) => p.uid === state.companion!.uid) : undefined;
         return (
           <button
             key={r.id}
@@ -207,6 +218,38 @@ function RegionMap({
                 <PixelIcon name="rocket" scale={1} />
               </span>
             )}
+            {companion && (
+              <span className="node-companion" title={`${speciesName(companion.speciesId)} acompanha você`}>
+                <PokemonSprite speciesId={companion.speciesId} kind="icon" />
+              </span>
+            )}
+            {(raid || tree || (water && prog.unlocked)) && (
+              <span className="node-marks">
+                {raid && (
+                  <span className="mark-raid" title={`Raide: ${speciesName(state.raid!.speciesId)}`}>
+                    <PixelIcon name="boss" scale={2} />
+                  </span>
+                )}
+                {tree && (
+                  <span
+                    className="mark-tree"
+                    title={`Árvore de ${itemName(treeBerry(r.id)!)} pronta para colher`}
+                  >
+                    <PixelIcon name="tree" scale={2} />
+                  </span>
+                )}
+                {water?.fish && prog.unlocked && (
+                  <span title="Dá para pescar aqui" className={`mark-water ${bestRod(state) ? '' : 'off'}`}>
+                    <ItemIcon id="old-rod" size={16} />
+                  </span>
+                )}
+                {water?.surf && prog.unlocked && (
+                  <span title="Dá para surfar aqui" className={`mark-water ${canSurf(state) ? '' : 'off'}`}>
+                    <ItemIcon id="surf" size={16} />
+                  </span>
+                )}
+              </span>
+            )}
           </button>
         );
       })}
@@ -215,6 +258,44 @@ function RegionMap({
         <button className="pbtn small map-enlarge" onClick={onEnlarge} title="Ver o mapa grande">
           Ampliar
         </button>
+      )}
+    </div>
+  );
+}
+
+/** Pesca, surf e árvore de berry da área (no painel do mapa). */
+function WaterAndTree({ state, route }: { state: GameState; route: Route }) {
+  const fish = modeEncounters(state, route.id, 'fish');
+  const surf = modeEncounters(state, route.id, 'surf');
+  const spot = WATER_SPOTS[route.id];
+  const tree = treeBerry(route.id);
+  if (!spot && !tree) return null;
+  const readyAt = state.berryTrees[route.id] ?? 0;
+  const row = (label: string, icon: string, list: { speciesId: number }[] | null, lockedText: string) => (
+    <div className="node-water">
+      <ItemIcon id={icon} size={18} /> <strong>{label}</strong>
+      {list ? (
+        [...new Set(list.map((e) => e.speciesId))].map((id) => (
+          <PokemonSprite key={id} speciesId={id} kind="icon" silhouette={!state.pokedex[id]?.seen} />
+        ))
+      ) : (
+        <small>{lockedText}</small>
+      )}
+    </div>
+  );
+  return (
+    <div className="node-extra">
+      {spot?.fish && row('PESCA', bestRod(state) ?? 'old-rod', fish, 'compre uma vara no Poké Mart')}
+      {spot?.surf && row('SURF', 'surf', surf, 'compre a HM Surf no Poké Mart')}
+      {tree && (
+        <div className="node-water">
+          <PixelIcon name="tree" scale={2} /> <strong>ÁRVORE</strong> <ItemIcon id={tree} size={18} />{' '}
+          <small>
+            {readyAt <= state.lastTimerAt
+              ? 'pronta — vá até a área e colha na batalha (tecla B)'
+              : `dá frutos em ${formatDuration(readyAt - state.lastTimerAt)}`}
+          </small>
+        </div>
       )}
     </div>
   );
@@ -282,6 +363,7 @@ function RouteDetails({
               <span className="more">+{encounters.length - MAX_ICONS} raros</span>
             )}
           </div>
+          <WaterAndTree state={state} route={wild} />
           <div className="node-actions">
             {!here && (
               <button className="pbtn small" onClick={onGo}>

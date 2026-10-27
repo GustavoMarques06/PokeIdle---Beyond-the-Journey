@@ -260,7 +260,7 @@ export const CHALLENGES: ChallengeDef[] = [
   },
 ];
 
-// --- Conquistas ----------------------------------------------------------------
+// --- Conquistas e medalhas ------------------------------------------------------
 
 export type AchievementGoal =
   | { kind: 'kills'; n: number }
@@ -269,13 +269,50 @@ export type AchievementGoal =
   | { kind: 'evolutions'; n: number }
   | { kind: 'boss'; routeId: string }
   | { kind: 'shiny' }
+  | { kind: 'shinies'; n: number }
   | { kind: 'level'; n: number }
   | { kind: 'mastery'; n: number }
   | { kind: 'prestige'; n: number }
-  | { kind: 'passives'; n: number };
+  | { kind: 'passives'; n: number }
+  | { kind: 'badges'; n: number }
+  | { kind: 'champions'; n: number }
+  | { kind: 'raids'; n: number }
+  | { kind: 'rematches'; n: number }
+  | { kind: 'tower'; n: number }
+  | { kind: 'water'; n: number }
+  | { kind: 'sold'; n: number }
+  | { kind: 'merchant'; n: number }
+  | { kind: 'tournaments'; n: number }
+  | { kind: 'safari'; n: number }
+  | { kind: 'research'; n: number }
+  | { kind: 'forms'; speciesId: number; n: number }
+  | { kind: 'wildBerries'; n: number };
+
+/** Cada conquista vira uma medalha; o metal diz o quanto ela é difícil. */
+export type MedalTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export const MEDAL_TIERS: { id: MedalTier; name: string; points: number }[] = [
+  { id: 'bronze', name: 'Bronze', points: 1 },
+  { id: 'silver', name: 'Prata', points: 2 },
+  { id: 'gold', name: 'Ouro', points: 4 },
+  { id: 'platinum', name: 'Platina', points: 8 },
+];
+
+/** Molduras do cartão de treinador, liberadas pelos pontos de medalha. */
+export const CARD_FRAMES: { id: string; name: string; points: number }[] = [
+  { id: 'basic', name: 'Clássica', points: 0 },
+  { id: 'bronze', name: 'Bronze', points: 10 },
+  { id: 'silver', name: 'Prata', points: 30 },
+  { id: 'gold', name: 'Ouro', points: 60 },
+  { id: 'platinum', name: 'Platina', points: 100 },
+];
+
+/** Medalhas expostas no cartão de treinador. */
+export const SHOWCASE_SLOTS = 3;
 
 export interface AchievementDef {
   id: string;
+  tier: MedalTier;
   name: string;
   description: string;
   goal: AchievementGoal;
@@ -285,6 +322,7 @@ export interface AchievementDef {
 export const ACHIEVEMENTS: AchievementDef[] = [
   {
     id: 'kills-50',
+    tier: 'bronze',
     name: 'Primeiros passos',
     description: 'Vença 50 batalhas.',
     goal: { kind: 'kills', n: 50 },
@@ -292,6 +330,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'kills-500',
+    tier: 'silver',
     name: 'Treinador dedicado',
     description: 'Vença 500 batalhas.',
     goal: { kind: 'kills', n: 500 },
@@ -299,6 +338,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'kills-5000',
+    tier: 'gold',
     name: 'Incansável',
     description: 'Vença 5.000 batalhas.',
     goal: { kind: 'kills', n: 5000 },
@@ -306,6 +346,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'capture-1',
+    tier: 'bronze',
     name: 'Pego!',
     description: 'Capture seu primeiro Pokémon.',
     goal: { kind: 'captures', n: 1 },
@@ -313,6 +354,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'capture-50',
+    tier: 'silver',
     name: 'Colecionador',
     description: 'Capture 50 Pokémon.',
     goal: { kind: 'captures', n: 50 },
@@ -320,6 +362,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'species-10',
+    tier: 'bronze',
     name: 'Pesquisador de campo',
     description: 'Registre 10 espécies capturadas.',
     goal: { kind: 'species', n: 10 },
@@ -327,6 +370,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'species-25',
+    tier: 'silver',
     name: 'Enciclopédia ambulante',
     description: 'Registre 25 espécies capturadas.',
     goal: { kind: 'species', n: 25 },
@@ -334,6 +378,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'species-50',
+    tier: 'gold',
     name: 'Mestre da Pokédex',
     description: 'Registre 50 espécies capturadas.',
     goal: { kind: 'species', n: 50 },
@@ -341,6 +386,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'evolve-1',
+    tier: 'bronze',
     name: 'Algo está acontecendo…',
     description: 'Evolua um Pokémon.',
     goal: { kind: 'evolutions', n: 1 },
@@ -348,6 +394,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'evolve-10',
+    tier: 'silver',
     name: 'Darwin ficaria orgulhoso',
     description: 'Evolua 10 Pokémon.',
     goal: { kind: 'evolutions', n: 10 },
@@ -355,6 +402,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'boss-brock',
+    tier: 'bronze',
     name: 'Insígnia da Rocha',
     description: 'Vença Brock.',
     goal: { kind: 'boss', routeId: 'floresta-viridian' },
@@ -362,6 +410,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'boss-rocket',
+    tier: 'bronze',
     name: 'Fora, Equipe Rocket!',
     description: 'Vença o Recruta Rocket no Mt. Moon.',
     goal: { kind: 'boss', routeId: 'mt-moon' },
@@ -369,6 +418,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'boss-misty',
+    tier: 'bronze',
     name: 'Insígnia da Cascata',
     description: 'Vença Misty.',
     goal: { kind: 'boss', routeId: 'rota-4' },
@@ -376,6 +426,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'shiny',
+    tier: 'gold',
     name: 'Brilho raro',
     description: 'Capture um Pokémon shiny.',
     goal: { kind: 'shiny' },
@@ -383,6 +434,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'level-30',
+    tier: 'bronze',
     name: 'Parceiro forte',
     description: 'Tenha um Pokémon no nível 30.',
     goal: { kind: 'level', n: 30 },
@@ -390,6 +442,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'level-60',
+    tier: 'silver',
     name: 'Lenda local',
     description: 'Tenha um Pokémon no nível 60.',
     goal: { kind: 'level', n: 60 },
@@ -397,6 +450,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'mastery-5',
+    tier: 'silver',
     name: 'Sintonia',
     description: 'Atinja maestria 5 com uma linha evolutiva.',
     goal: { kind: 'mastery', n: 5 },
@@ -404,6 +458,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'passives-4',
+    tier: 'silver',
     name: 'Time completo',
     description: 'Preencha 4 vagas passivas.',
     goal: { kind: 'passives', n: 4 },
@@ -411,9 +466,226 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'prestige-1',
+    tier: 'gold',
     name: 'Além da jornada',
     description: 'Comece uma nova jornada (prestígio).',
     goal: { kind: 'prestige', n: 1 },
     reward: { research: 10 },
+  },
+  {
+    id: 'kills-50000',
+    tier: 'platinum',
+    name: 'Lenda das rotas',
+    description: 'Vença 50.000 batalhas.',
+    goal: { kind: 'kills', n: 50_000 },
+    reward: { research: 50 },
+  },
+  {
+    id: 'capture-500',
+    tier: 'gold',
+    name: 'Arca de Noé',
+    description: 'Capture 500 Pokémon.',
+    goal: { kind: 'captures', n: 500 },
+    reward: { research: 20 },
+  },
+  {
+    id: 'species-150',
+    tier: 'platinum',
+    name: 'Professor honorário',
+    description: 'Registre 150 espécies capturadas.',
+    goal: { kind: 'species', n: 150 },
+    reward: { research: 50 },
+  },
+  {
+    id: 'shinies-5',
+    tier: 'platinum',
+    name: 'Caçador de brilho',
+    description: 'Capture 5 espécies shiny diferentes.',
+    goal: { kind: 'shinies', n: 5 },
+    reward: { research: 40 },
+  },
+  {
+    id: 'level-100',
+    tier: 'gold',
+    name: 'No topo',
+    description: 'Tenha um Pokémon no nível 100.',
+    goal: { kind: 'level', n: 100 },
+    reward: { research: 25 },
+  },
+  {
+    id: 'badges-8',
+    tier: 'silver',
+    name: 'Oito insígnias',
+    description: 'Ganhe 8 insígnias de ginásio.',
+    goal: { kind: 'badges', n: 8 },
+    reward: { research: 10 },
+  },
+  {
+    id: 'badges-24',
+    tier: 'gold',
+    name: 'Colecionador de insígnias',
+    description: 'Ganhe 24 insígnias de ginásio.',
+    goal: { kind: 'badges', n: 24 },
+    reward: { research: 25 },
+  },
+  {
+    id: 'champion-1',
+    tier: 'gold',
+    name: 'Campeão',
+    description: 'Vença o Campeão de uma região.',
+    goal: { kind: 'champions', n: 1 },
+    reward: { research: 20 },
+  },
+  {
+    id: 'champion-5',
+    tier: 'platinum',
+    name: 'Mestre Pokémon',
+    description: 'Seja campeão nas cinco regiões.',
+    goal: { kind: 'champions', n: 5 },
+    reward: { research: 60 },
+  },
+  {
+    id: 'raids-1',
+    tier: 'bronze',
+    name: 'Caçador de gigantes',
+    description: 'Vença uma raide.',
+    goal: { kind: 'raids', n: 1 },
+    reward: { coins: 2000 },
+  },
+  {
+    id: 'raids-25',
+    tier: 'gold',
+    name: 'Terror das raides',
+    description: 'Vença 25 raides.',
+    goal: { kind: 'raids', n: 25 },
+    reward: { research: 25 },
+  },
+  {
+    id: 'rematch-10',
+    tier: 'silver',
+    name: 'Freguês',
+    description: 'Vença 10 revanches contra chefes.',
+    goal: { kind: 'rematches', n: 10 },
+    reward: { research: 10 },
+  },
+  {
+    id: 'tower-25',
+    tier: 'silver',
+    name: 'Escalador',
+    description: 'Chegue ao andar 25 da Torre de Batalha.',
+    goal: { kind: 'tower', n: 25 },
+    reward: { research: 10 },
+  },
+  {
+    id: 'tower-100',
+    tier: 'platinum',
+    name: 'Cume da Torre',
+    description: 'Chegue ao andar 100 da Torre de Batalha.',
+    goal: { kind: 'tower', n: 100 },
+    reward: { research: 50 },
+  },
+  {
+    id: 'water-1',
+    tier: 'bronze',
+    name: 'Fisgou!',
+    description: 'Vença um Pokémon pescando ou surfando.',
+    goal: { kind: 'water', n: 1 },
+    reward: { coins: 500 },
+  },
+  {
+    id: 'water-500',
+    tier: 'gold',
+    name: 'Lobo do mar',
+    description: 'Vença 500 Pokémon pescando ou surfando.',
+    goal: { kind: 'water', n: 500 },
+    reward: { research: 20 },
+  },
+  {
+    id: 'sold-100',
+    tier: 'silver',
+    name: 'Comerciante',
+    description: 'Venda 100 itens.',
+    goal: { kind: 'sold', n: 100 },
+    reward: { research: 8 },
+  },
+  {
+    id: 'merchant-5',
+    tier: 'silver',
+    name: 'Cliente fiel',
+    description: 'Compre 5 vezes do mercador viajante.',
+    goal: { kind: 'merchant', n: 5 },
+    reward: { research: 8 },
+  },
+  {
+    id: 'prestige-5',
+    tier: 'platinum',
+    name: 'Viajante eterno',
+    description: 'Complete 5 jornadas (prestígio).',
+    goal: { kind: 'prestige', n: 5 },
+    reward: { research: 50 },
+  },
+  {
+    id: 'tournament-1',
+    tier: 'gold',
+    name: 'Campeão do torneio',
+    description: 'Vença um torneio semanal.',
+    goal: { kind: 'tournaments', n: 1 },
+    reward: { research: 15 },
+  },
+  {
+    id: 'tournament-5',
+    tier: 'platinum',
+    name: 'Dinastia',
+    description: 'Vença 5 torneios semanais.',
+    goal: { kind: 'tournaments', n: 5 },
+    reward: { research: 40 },
+  },
+  {
+    id: 'safari-10',
+    tier: 'silver',
+    name: 'Guarda-parque',
+    description: 'Capture 10 Pokémon no jogo do Safari.',
+    goal: { kind: 'safari', n: 10 },
+    reward: { research: 8 },
+  },
+  {
+    id: 'research-10',
+    tier: 'silver',
+    name: 'Cientista de campo',
+    description: 'Complete a pesquisa de 10 espécies.',
+    goal: { kind: 'research', n: 10 },
+    reward: { research: 10 },
+  },
+  {
+    id: 'research-50',
+    tier: 'gold',
+    name: 'Autoridade em Pokémon',
+    description: 'Complete a pesquisa de 50 espécies.',
+    goal: { kind: 'research', n: 50 },
+    reward: { research: 30 },
+  },
+  {
+    id: 'forms-unown',
+    tier: 'platinum',
+    name: 'Alfabeto completo',
+    description: 'Capture as 28 formas de Unown.',
+    goal: { kind: 'forms', speciesId: 201, n: 28 },
+    reward: { research: 40 },
+  },
+  {
+    id: 'forms-deerling',
+    tier: 'gold',
+    name: 'Quatro estações',
+    description: 'Capture Deerling nas quatro estações.',
+    goal: { kind: 'forms', speciesId: 585, n: 4 },
+    reward: { research: 15 },
+  },
+  {
+    id: 'berries-20',
+    tier: 'bronze',
+    name: 'Coletor',
+    description: 'Colha 20 árvores de berry nas rotas.',
+    goal: { kind: 'wildBerries', n: 20 },
+    reward: { coins: 1500 },
   },
 ];

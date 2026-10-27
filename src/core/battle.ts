@@ -3,11 +3,16 @@
 
 import {
   BALANCE,
+  FOUND_ITEMS,
+  RAID_LOOT,
   ROUTES,
+  abilitiesOf,
+  getMove,
   getRoute,
   getSpecies,
   lineRoot,
   routeIndex,
+  type Ailment,
   type BuffKind,
   type Route,
   type TypeName,
@@ -15,20 +20,26 @@ import {
 import { combatScales, computeModifiers, masteryLevel, type Modifiers } from './bonuses';
 import { captureChance, rollCapture } from './capture';
 import { addToCollection, dexEntry, giveItems, markCaught, unlockTm } from './collection';
-import { attackInterval, calcDamage, chooseMove, combatantOf } from './combat';
+import { absorbedBy, attackInterval, calcDamage, chooseMove, combatantOf } from './combat';
 import { daycareKills } from './daycare';
 import { routeWeather } from './env';
 import { relocateRoamer, roamerCaught } from './events';
+import { addFriendship, friendshipSteps } from './friendship';
 import { breakChain, huntShinyMultiplier, huntWeight, recordEncounter } from './hunt';
 import { endLegendary, legendaryDef, legendaryRules } from './legendary';
 import { progressMission } from './missions';
-import { beforeAction, rollAilment, statusDamage, statusInterval } from './status';
+import { beforeAction, canInflict, rollAilment, statusDamage, statusInterval } from './status';
 import { bestMatchup, healTeam, nextHealthyReserve, reservePokemon, switchIn } from './team';
 import { isPerfect, legendaryIvs, randomIvs, rollShiny, statsOf, type PokemonInstance } from './pokemon';
-import { coinYield, expYield, grantExp, type ExpResult } from './progression';
+import { checkEvolution, coinYield, expYield, grantExp, type ExpResult } from './progression';
 import { pickWeighted, randInt, rngFrom, type Rng } from './rng';
 import type { Ivs } from './stats';
 import { endTowerRun, floorTeam, isBossFloor, towerFloorCleared } from './tower';
+import { activeMode, modeEncounters } from './water';
+import { addResearch, researchBonus } from './dexresearch';
+import { battleForm, recordForm, rollForm } from './forms';
+import { addMvpWin, addRecord } from './records';
+import { tournamentLost, tournamentWon } from './tournament';
 import {
   type EnemyState,
   type StatusState,
@@ -83,7 +94,8 @@ export function step(
       if (b.kind === 'tower') {
         events.push({ type: 'towerEnded', floor: endTowerRun(state, now, p.speciesId) });
       }
-      if (b.kind !== 'wild') state.battle = freshBattle(b.routeId);
+      if (b.kind === 'tournament') tournamentLost(state, events);
+      else if (b.kind !== 'wild') state.battle = freshBattle(b.routeId);
     }
     spawnEnemy(state, rng, now, events, mods);
     return;
@@ -98,6 +110,16 @@ export function step(
       b.enemy = null;
       b.phase = 'victory';
       b.phaseMs = c.victoryDelayMs;
+      return;
+    }
+  }
+
+  if (b.kind === 'raid') {
+    b.raidMs = (b.raidMs ?? BALANCE.raid.timeLimitMs) - dt;
+    if (b.raidMs <= 0) {
+      events.push({ type: 'raidFailed', speciesId: enemy.speciesId });
+      healTeam(state);
+      state.battle = freshBattle(b.routeId);
       return;
     }
   }
@@ -117,9 +139,15 @@ export function step(
 
 type Side = 'player' | 'enemy';
 
+const makeStatus = (kind: Ailment, rng: Rng): StatusState =>
+  kind === 'sleep'
+    ? { kind, turns: randInt(rng, BALANCE.status.sleepTurns[0], BALANCE.status.sleepTurns[1]) }
+    : { kind };
+
 /**
- * Uma ação de `side`: status que impede de agir, ataque, status causado no alvo e
- * dano de queimadura/veneno. Devolve true se a batalha mudou (alguém desmaiou).
+ * Uma ação de `side`: status que impede de agir, ataque, efeitos de habilidades e itens,
+ * status causado no alvo e dano de queimadura/veneno. Devolve true se a batalha mudou
+ * (alguém desmaiou).
  */
 function takeTurn(
   state: GameState,
@@ -132,25 +160,127 @@ function takeTurn(
   const b = state.battle;
   const enemy = b.enemy!;
   const player = activePokemon(state);
+  const playerMax = statsOf(player).hp;
   const pc = combatantOf(player, mods.playerMoveBoost);
   const ec = combatantOf(enemy, mods.enemyMoveBoost);
   pc.burned = b.playerStatus?.kind === 'burn';
   ec.burned = enemy.status?.kind === 'burn';
+  pc.statused = !!b.playerStatus;
+  ec.statused = !!enemy.status;
+  pc.hpRatio = player.currentHp / playerMax;
+  ec.hpRatio = enemy.hp / enemy.maxHp;
   const scales = combatScales(mods, ec.types);
   const isPlayer = side === 'player';
   const [self, foe] = isPlayer ? [pc, ec] : [ec, pc];
+  const other: Side = isPlayer ? 'enemy' : 'player';
+
+  const combatant = (s: Side) => (s === 'player' ? pc : ec);
   const getStatus = (s: Side) => (s === 'player' ? b.playerStatus : enemy.status);
   const setStatus = (s: Side, st: StatusState | null) => {
     if (s === 'player') b.playerStatus = st;
     else enemy.status = st ?? undefined;
   };
-  const other: Side = isPlayer ? 'enemy' : 'player';
+  const hp = (s: Side) => (s === 'player' ? player.currentHp : enemy.hp);
+  const maxHp = (s: Side) => (s === 'player' ? playerMax : enemy.maxHp);
+  const setHp = (s: Side, v: number) => {
+    const clamped = Math.max(0, Math.min(maxHp(s), Math.floor(v)));
+    if (s === 'player') player.currentHp = clamped;
+    else enemy.hp = clamped;
+  };
+  const used = (s: Side): string[] => (s === 'player' ? (b.playerUsed ??= []) : (enemy.used ??= []));
+  const effect = (
+    s: Side,
+    kind: Extract<GameEvent, { type: 'effect' }>['kind'],
+    item?: string,
+    amount?: number,
+  ) => events.push({ type: 'effect', side: s, speciesId: combatant(s).speciesId, kind, item, amount });
+
+  /** O item some; o do jogador é reposto da Mochila enquanto houver estoque. */
+  const consumeHeld = (s: Side) => {
+    if (s === 'enemy') {
+      enemy.held = undefined;
+      return;
+    }
+    const id = player.held;
+    if (!id) return;
+    if ((state.items[id] ?? 0) > 0) state.items[id]--;
+    else player.held = undefined;
+  };
+
+  const canGetStatus = (kind: Ailment, s: Side, by: Side) =>
+    canInflict(kind, combatant(s).types, getStatus(s)) &&
+    (combatant(by).ability?.moldBreaker || !combatant(s).ability?.statusImmune?.includes(kind));
+
+  const tryBerry = (s: Side, trigger: 'hp' | 'status') => {
+    const item = combatant(s).held;
+    const berry = item?.berry;
+    let healed = 0;
+    if (!item || !berry || used(s).includes('berry')) return;
+    if (trigger === 'hp') {
+      if (!berry.heal || hp(s) <= 0 || hp(s) / maxHp(s) > 0.5) return;
+      healed = hp(s);
+      setHp(s, hp(s) + Math.max(1, maxHp(s) * berry.heal));
+      healed = hp(s) - healed;
+    } else {
+      const st = getStatus(s);
+      if (!berry.cures || !st) return;
+      if (berry.cures !== 'all' && !berry.cures.includes(st.kind)) return;
+      setStatus(s, null);
+    }
+    used(s).push('berry');
+    effect(s, trigger === 'hp' ? 'berry' : 'cure', item.id, healed || undefined);
+    consumeHeld(s);
+  };
+
+  const inflict = (target: Side, st: StatusState, source: Side) => {
+    setStatus(target, st);
+    if (
+      combatant(target).ability?.synchronize &&
+      st.kind !== 'sleep' &&
+      st.kind !== 'freeze' &&
+      canGetStatus(st.kind, source, target)
+    ) {
+      setStatus(source, { kind: st.kind });
+      effect(target, 'synchronize');
+    }
+    tryBerry(target, 'status');
+  };
+
+  /** Segura um golpe fatal com HP cheio (Robustez, Faixa Foco). Devolve o dano final. */
+  const survive = (target: Side, damage: number, attacker: Side): number => {
+    const tc = combatant(target);
+    if (damage < hp(target) || hp(target) < maxHp(target)) return damage;
+    if (tc.ability?.sturdy && !combatant(attacker).ability?.moldBreaker && !used(target).includes('sturdy')) {
+      used(target).push('sturdy');
+      effect(target, 'sturdy');
+      return hp(target) - 1;
+    }
+    if (tc.held?.sash && !used(target).includes('sash')) {
+      used(target).push('sash');
+      effect(target, 'sash', tc.held.id);
+      consumeHeld(target);
+      return hp(target) - 1;
+    }
+    return damage;
+  };
+
+  // Troca de Pele: chance de curar o status antes de agir.
+  if (getStatus(side) && self.ability?.shedSkin && rng.next() < self.ability.shedSkin) {
+    events.push({ type: 'statusCured', side, speciesId: self.speciesId, status: getStatus(side)!.kind });
+    setStatus(side, null);
+  }
   const status = getStatus(side);
 
-  const interval =
+  const rage = isPlayer ? 0 : (enemy.rage ?? 0);
+  let interval =
     attackInterval(self.stats.spe, foe.stats.spe) *
     (isPlayer ? scales.playerInterval : 1) *
-    statusInterval(status);
+    statusInterval(status) *
+    (self.ability?.intervalMult ?? 1) *
+    (foe.ability?.foeInterval ?? 1) *
+    BALANCE.raid.rageSpeed ** rage;
+  if (self.ability?.weatherSpeed && self.ability.weatherSpeed === mods.weather) interval *= 0.7;
+  if (self.held?.quickClaw && rng.next() < self.held.quickClaw) interval *= 0.5;
   if (isPlayer) b.playerTimerMs += interval;
   else b.enemyTimerMs += interval;
 
@@ -165,29 +295,69 @@ function takeTurn(
   }
 
   const moveId = isPlayer ? chooseMove(pc, ec) : chooseMove(ec, pc, rng, 0.3);
-  const result = calcDamage(self, foe, moveId, rng, isPlayer ? scales.playerDamage : scales.enemyDamage);
+  const move = getMove(moveId);
+  const damageScale = isPlayer ? scales.playerDamage : scales.enemyDamage * BALANCE.raid.rageDamage ** rage;
+  const result = calcDamage(self, foe, moveId, rng, damageScale);
   if (!result.missed && result.damage > 0) {
+    result.damage = survive(other, result.damage, side);
     const inflicted = rollAilment(moveId, foe.types, getStatus(other), rng);
-    if (inflicted) {
-      setStatus(other, inflicted);
+    if (inflicted && canGetStatus(inflicted.kind, other, side)) {
+      inflict(other, inflicted, side);
       result.status = inflicted.kind;
     }
   }
-  if (isPlayer) enemy.hp = Math.max(0, enemy.hp - result.damage);
-  else player.currentHp = Math.max(0, player.currentHp - result.damage);
+  setHp(other, hp(other) - result.damage);
   events.push({ type: 'attack', side, attacker: self.speciesId, target: foe.speciesId, result });
-  if ((isPlayer ? enemy.hp : player.currentHp) <= 0) return onFaint(state, other, now, events, mods);
-
-  // Queimadura e veneno ferem quem acabou de agir.
-  const after = getStatus(side);
-  const dot = statusDamage(after, isPlayer ? statsOf(player).hp : enemy.maxHp);
-  if (dot > 0) {
-    if (isPlayer) player.currentHp = Math.max(0, player.currentHp - dot);
-    else enemy.hp = Math.max(0, enemy.hp - dot);
-    events.push({ type: 'statusDamage', side, speciesId: self.speciesId, status: after!.kind, damage: dot });
-    if ((isPlayer ? player.currentHp : enemy.hp) <= 0) return onFaint(state, side, now, events, mods);
+  if (isPlayer) addRecord(player, { damage: result.damage, crits: result.crit && !result.missed ? 1 : 0 });
+  if (!result.missed && result.effectiveness === 0 && absorbedBy(self, foe, moveId)) {
+    const before = hp(other);
+    setHp(other, before + maxHp(other) * 0.25);
+    effect(other, 'absorb', undefined, hp(other) - before);
   }
+
+  if (result.damage > 0) {
+    if (self.held?.shellBell) setHp(side, hp(side) + Math.max(1, result.damage * self.held.shellBell));
+    if (self.held?.recoil) setHp(side, Math.max(1, hp(side) - Math.max(1, maxHp(side) * self.held.recoil)));
+  }
+  if (hp(other) <= 0) return onFaint(state, other, now, events, mods);
+
+  // O alvo sobreviveu: berry de cura, espinhos e status de contato.
+  tryBerry(other, 'hp');
+  if (result.damage > 0 && move.category === 'physical') {
+    const reflect = (self.ability?.moldBreaker ? 0 : (foe.ability?.thorns ?? 0)) + (foe.held?.rocky ?? 0);
+    if (reflect > 0) {
+      setHp(side, hp(side) - Math.max(1, maxHp(side) * reflect));
+      if (hp(side) <= 0) return onFaint(state, side, now, events, mods);
+    }
+    const contact = self.ability?.moldBreaker ? undefined : foe.ability?.contact;
+    if (contact && rng.next() < contact.chance && canGetStatus(contact.ailment, side, other)) {
+      inflict(side, makeStatus(contact.ailment, rng), other);
+    }
+  }
+  if (isPlayer && b.kind === 'raid' && result.damage > 0) raidRage(enemy, events);
+
+  // Queimadura e veneno ferem quem acabou de agir (Cura Venenosa transforma o veneno em cura).
+  const after = getStatus(side);
+  const dot = statusDamage(after, maxHp(side));
+  if (dot > 0 && after?.kind === 'poison' && self.ability?.poisonHeal) {
+    setHp(side, hp(side) + maxHp(side) * self.ability.poisonHeal);
+  } else if (dot > 0) {
+    setHp(side, hp(side) - dot);
+    events.push({ type: 'statusDamage', side, speciesId: self.speciesId, status: after!.kind, damage: dot });
+    if (hp(side) <= 0) return onFaint(state, side, now, events, mods);
+  }
+  const regen = (self.ability?.regen ?? 0) + (self.held?.leftovers ?? 0);
+  if (regen > 0 && hp(side) > 0) setHp(side, hp(side) + Math.max(1, maxHp(side) * regen));
   return false;
+}
+
+/** Raide: o chefe fica furioso ao passar de 2/3 e de 1/3 do HP. */
+function raidRage(enemy: EnemyState, events: GameEvent[]): void {
+  const stage = BALANCE.raid.rageAt.filter((t) => enemy.hp / enemy.maxHp <= t).length;
+  if (stage <= (enemy.rage ?? 0) || enemy.hp <= 0) return;
+  enemy.rage = stage;
+  enemy.status = undefined;
+  events.push({ type: 'raidRage', speciesId: enemy.speciesId, stage });
 }
 
 /** Alguém chegou a 0 de HP. Devolve true se a batalha mudou. */
@@ -203,6 +373,8 @@ function onFaint(state: GameState, side: Side, now: number, events: GameEvent[],
     return true;
   }
   const player = activePokemon(state);
+  addFriendship(player, -BALANCE.friendship.faint);
+  addRecord(player, { faints: 1 });
   const reserve = nextHealthyReserve(state);
   if (reserve) {
     switchIn(state, reserve.uid, 'fainted', events);
@@ -234,6 +406,8 @@ function encounterTypes(state: GameState, route: Route): TypeName[] {
   if (weather === 'rain') out.push('water');
   if (weather === 'sun') out.push('fire', 'grass');
   if (weather === 'sand') out.push('rock', 'ground');
+  if (weather === 'hail') out.push('ice');
+  if (weather === 'fog') out.push('ghost', 'psychic');
   if (state.env.period === 'night') out.push('ghost', 'dark');
   return out;
 }
@@ -241,8 +415,10 @@ function encounterTypes(state: GameState, route: Route): TypeName[] {
 /** Encontros possíveis agora, com pesos ajustados por período, clima e caça shiny. */
 export function currentEncounters(state: GameState, routeId: string) {
   const route = encounterRoute(getRoute(routeId));
-  const timed = route.encounters.filter((e) => !e.time || e.time === state.env.period);
-  const list = timed.length ? timed : route.encounters;
+  const water = modeEncounters(state, route.id, activeMode(state, route.id));
+  const all = water ?? route.encounters;
+  const timed = all.filter((e) => !e.time || e.time === state.env.period);
+  const list = timed.length ? timed : all;
   const favored = encounterTypes(state, route);
   return list.map((e) => {
     const types = getSpecies(e.speciesId).types;
@@ -260,18 +436,35 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
   let shiny = false;
   let boost: number | undefined;
   let roamer = false;
+  let held: string | undefined;
+  let abilitySlot: 0 | 1 | 2 = 0;
+  let water: EnemyState['water'];
+  let form: string | undefined;
   if (b.kind === 'legendary') {
     const member = b.team[0];
     speciesId = member.speciesId;
     level = member.level;
     boost = member.boost;
+    held = member.held;
+    abilitySlot = member.abilitySlot ?? 0;
     ivs = legendaryIvs(rng, legendaryRules(speciesId).guaranteedPerfectIvs);
+    shiny = rollShiny(rng, mods.shiny);
+  } else if (b.kind === 'raid') {
+    const member = b.team[0];
+    speciesId = member.speciesId;
+    level = member.level;
+    boost = member.boost;
+    held = member.held;
+    abilitySlot = member.abilitySlot ?? 0;
+    ivs = legendaryIvs(rng, BALANCE.raid.perfectIvs);
     shiny = rollShiny(rng, mods.shiny);
   } else if (b.kind !== 'wild') {
     const member = b.team[b.bossIndex];
     speciesId = member.speciesId;
     level = member.level;
     boost = member.boost;
+    held = member.held;
+    abilitySlot = member.abilitySlot ?? 0;
     ivs = { hp: 20, atk: 20, def: 20, spAtk: 20, spDef: 20, spe: 20 };
   } else if (
     state.roamer &&
@@ -285,20 +478,41 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     roamer = true;
   } else {
     const enc = pickWeighted(rng, currentEncounters(state, b.routeId));
+    const mode = activeMode(state, encounterRoute(route).id);
+    if (mode !== 'land') water = mode;
     speciesId = enc.speciesId;
+    form = rollForm(speciesId, rng, now);
     level = randInt(rng, enc.minLevel, enc.maxLevel);
     ivs = randomIvs(rng);
     shiny = rollShiny(rng, mods.shiny * huntShinyMultiplier(state, speciesId));
     recordEncounter(state, speciesId, shiny, now);
+    if (abilitiesOf(speciesId)[1] && rng.next() < 0.25) abilitySlot = 1;
+    if (rng.next() < BALANCE.heldDropChance) held = pickWeighted(rng, FOUND_ITEMS).id;
   }
   const base = statsOf({ speciesId, level, ivs }).hp;
   const hpScale = roamer
     ? BALANCE.roamers.hpMultiplier
     : b.kind === 'legendary'
       ? legendaryRules(speciesId).hpMultiplier
-      : 1;
+      : b.kind === 'raid'
+        ? BALANCE.raid.hpMultiplier
+        : 1;
   const maxHp = Math.round(base * (boost ?? 1) * hpScale);
-  b.enemy = { speciesId, level, ivs, shiny, hp: maxHp, maxHp, captureAttempted: false, boost };
+  b.enemy = {
+    speciesId,
+    level,
+    ivs,
+    shiny,
+    hp: maxHp,
+    maxHp,
+    captureAttempted: false,
+    boost,
+    held,
+    abilitySlot,
+    water,
+    form,
+  };
+  b.playerUsed = [];
   if (roamer) Object.assign(b.enemy, { roamer: true, fleeMs: BALANCE.roamers.fleeMs });
   b.phase = 'fighting';
   b.playerStatus = null;
@@ -317,16 +531,19 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     speciesId,
     level,
     shiny,
-    boss: b.kind !== 'wild' && b.kind !== 'legendary',
+    boss: b.kind !== 'wild' && b.kind !== 'legendary' && b.kind !== 'raid',
     legendary: b.kind === 'legendary',
+    raid: b.kind === 'raid',
     roamer,
     perfect: !roamer && b.kind === 'wild' && isPerfect(ivs),
+    water,
   });
 }
 
 /** Evolução concluída: Pokédex, estatísticas e missões. */
 export function recordEvolution(state: GameState, to: number, shiny: boolean, events?: GameEvent[]): void {
   markCaught(state, to, shiny);
+  addResearch(state, to, { evolved: 1 }, events);
   state.stats.evolutions++;
   progressMission(state, 'evolutions', 1, events);
 }
@@ -338,7 +555,10 @@ export function pushExpEvents(
   res: ExpResult,
   events: GameEvent[],
 ): void {
-  if (res.levelsGained > 0) events.push({ type: 'levelUp', uid: p.uid, speciesId: before, level: p.level });
+  if (res.levelsGained > 0) {
+    addFriendship(p, BALANCE.friendship.levelUp * res.levelsGained);
+    events.push({ type: 'levelUp', uid: p.uid, speciesId: before, level: p.level });
+  }
   for (const move of res.learnedMoves)
     events.push({ type: 'learnedMove', uid: p.uid, speciesId: before, move });
   if (res.evolvedTo) {
@@ -358,13 +578,31 @@ function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, 
   const route = getRoute(b.routeId);
   const player = activePokemon(state);
 
-  const exp = Math.floor(expYield(enemy.speciesId, enemy.level, isTrainer, player.level) * mods.exp);
+  const exp = Math.floor(
+    expYield(enemy.speciesId, enemy.level, isTrainer, player.level) *
+      mods.exp *
+      researchBonus(state, enemy.speciesId).exp,
+  );
   const coins = Math.floor(coinYield(enemy.level, isTrainer, player.level) * mods.coins);
   state.coins += coins;
   state.stats.totalKills++;
+  if (enemy.water) state.stats.waterKills++;
   state.stats.expEarned += exp;
   state.stats.coinsEarned += coins;
   events.push({ type: 'enemyFainted', speciesId: enemy.speciesId, exp, coins });
+  addRecord(player, { wins: 1 });
+  addMvpWin(state, player.uid, now);
+  addResearch(state, enemy.speciesId, { defeated: 1, night: state.env.period === 'night' ? 1 : 0 }, events);
+  // Castform do jogador lutando num clima registra a forma daquele clima.
+  recordForm(
+    state,
+    player.speciesId,
+    battleForm(player.speciesId, player.form, routeWeather(route, state.env)),
+  );
+  if (b.kind === 'wild' && enemy.held) {
+    giveItems(state, { [enemy.held]: 1 });
+    events.push({ type: 'itemFound', item: enemy.held, qty: 1 });
+  }
   addMastery(state, player.speciesId, 1, events);
   const before = player.speciesId;
   pushExpEvents(
@@ -375,6 +613,7 @@ function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, 
     events,
   );
   shareExp(state, exp, events);
+  friendshipTick(state, 1, events);
 
   b.phase = 'victory';
   b.phaseMs = BALANCE.combat.victoryDelayMs;
@@ -390,9 +629,15 @@ function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, 
       b.bossIndex++;
       return;
     }
-    if (b.kind === 'boss' && route.boss) return onBossDefeated(state, route, events, now);
+    if (b.kind === 'boss' && route.boss) {
+      return b.rematch
+        ? onRematchDefeated(state, route, events, now)
+        : onBossDefeated(state, route, events, now);
+    }
+    if (b.kind === 'raid') return onRaidDefeated(state, enemy, events, now);
     if (b.kind === 'rocket') return onRocketDefeated(state, events);
     if (b.kind === 'tower') return onTowerFloor(state, events);
+    if (b.kind === 'tournament') return tournamentWon(state, events);
   }
 
   healTeam(state, mods.heal);
@@ -408,6 +653,97 @@ export function shareExp(state: GameState, exp: number, events: GameEvent[]): vo
     const before = r.speciesId;
     pushExpEvents(state, r, before, grantExp(r, share, state.settings.autoEvolve, state.env.period), events);
   }
+}
+
+/**
+ * Amizade por vitórias: o ativo ganha mais, as reservas e o apoio menos. Chamado a cada
+ * vitória e, em bloco, no progresso offline (`totalKills` já deve incluir as `kills`).
+ */
+export function friendshipTick(state: GameState, kills: number, events: GameEvent[]): void {
+  const f = BALANCE.friendship;
+  const total = state.stats.totalKills;
+  const group: [PokemonInstance[], number][] = [
+    [[activePokemon(state)], friendshipSteps(total, kills, f.killsPerPoint)],
+    [reservePokemon(state), friendshipSteps(total, kills, f.reserveKillsPerPoint)],
+    [
+      state.passives
+        .map((uid) => state.collection.find((p) => p.uid === uid))
+        .filter((p): p is PokemonInstance => !!p && p.uid !== state.activeUid),
+      friendshipSteps(total, kills, f.passiveKillsPerPoint),
+    ],
+  ];
+  for (const [list, steps] of group) {
+    if (steps <= 0) continue;
+    for (const p of list) {
+      addFriendship(p, steps);
+      const before = p.speciesId;
+      pushExpEvents(
+        state,
+        p,
+        before,
+        {
+          levelsGained: 0,
+          learnedMoves: [],
+          ...checkEvolution(p, state.settings.autoEvolve, state.env.period),
+        },
+        events,
+      );
+    }
+  }
+}
+
+/** Vitória na raide: moedas, itens raros e uma chance de capturar o chefe (com o item dele). */
+function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[], now: number): void {
+  const b = state.battle;
+  const rng = rngFrom(state);
+  const cfg = BALANCE.raid;
+  const coins = Math.round(enemy.level * cfg.coinsPerLevel);
+  const loot: Record<string, number> = {};
+  for (let i = 0; i < 2; i++) {
+    for (const [id, n] of Object.entries(pickWeighted(rng, RAID_LOOT).items)) loot[id] = (loot[id] ?? 0) + n;
+  }
+  state.coins += coins;
+  state.stats.coinsEarned += coins;
+  giveItems(state, loot);
+  let caught: { uid: number; shiny: boolean; isNew: boolean } | undefined;
+  if (rng.next() < cfg.catchChance) {
+    const isNew = !dexEntry(state, enemy.speciesId).caught;
+    const p = addToCollection(
+      state,
+      enemy.speciesId,
+      enemy.level,
+      enemy.ivs,
+      enemy.shiny,
+      now,
+      `Raide em ${getRoute(b.routeId).name}`,
+    );
+    p.held = enemy.held;
+    state.stats.totalCaptures++;
+    progressMission(state, 'captures', 1, events);
+    caught = { uid: p.uid, shiny: p.shiny, isNew };
+  }
+  progressMission(state, 'bosses', 1, events);
+  state.stats.raidWins++;
+  events.push({ type: 'raidDefeated', speciesId: enemy.speciesId, coins, items: loot, caught });
+  if (state.raid) state.raid = null;
+  healTeam(state);
+  state.battle = { ...freshBattle(b.routeId), phase: 'victory', phaseMs: BALANCE.combat.victoryDelayMs };
+}
+
+/** Vitória numa revanche: sem insígnia nem desbloqueios, mas com moedas e itens raros. */
+function onRematchDefeated(state: GameState, route: Route, events: GameEvent[], now: number): void {
+  const boss = route.boss!;
+  const coins = Math.round(boss.reward.coins * BALANCE.rematch.coinMultiplier);
+  const loot = pickWeighted(rngFrom(state), RAID_LOOT).items;
+  state.coins += coins;
+  state.stats.coinsEarned += coins;
+  giveItems(state, loot);
+  state.rematchAt[route.id] = now + BALANCE.rematch.cooldownHours * 3_600_000;
+  state.stats.rematchWins++;
+  progressMission(state, 'bosses', 1, events);
+  events.push({ type: 'rematchDefeated', routeId: route.id, coins, items: loot });
+  healTeam(state);
+  state.battle = { ...freshBattle(route.id), phase: 'victory', phaseMs: BALANCE.combat.victoryDelayMs };
 }
 
 function onBossDefeated(state: GameState, route: Route, events: GameEvent[], now: number): void {
@@ -537,7 +873,7 @@ export function currentCaptureChance(state: GameState, ball: string, mods = comp
       ? BALANCE.pseudo.captureRate
       : getSpecies(enemy.speciesId).captureRate;
   const base = captureChance(rate, enemy.hp, enemy.maxHp, ball);
-  return Math.min(1, base * mods.capture);
+  return Math.min(1, base * mods.capture * researchBonus(state, enemy.speciesId).capture);
 }
 
 export function throwBall(state: GameState, ball: string, now: number): GameEvent[] {
@@ -576,6 +912,14 @@ function attemptCapture(
   const routeName = getRoute(state.battle.routeId).name;
   const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, routeName);
   p.currentHp = enemy.hp > 0 ? Math.min(statsOf(p).hp, enemy.hp) : 1;
+  if (enemy.held) {
+    p.held = enemy.held;
+    enemy.held = undefined;
+  }
+  if (enemy.form) p.form = enemy.form;
+  recordForm(state, p.speciesId, enemy.form ?? battleForm(p.speciesId, undefined, 'clear'));
+  if (state.env.period === 'night') addResearch(state, p.speciesId, { night: 1 }, events);
+  addRecord(activePokemon(state), { captures: 1 });
   state.stats.totalCaptures++;
   progressMission(state, 'captures', 1, events);
   progressMission(state, 'capture-type', 1, events, getSpecies(p.speciesId).types);

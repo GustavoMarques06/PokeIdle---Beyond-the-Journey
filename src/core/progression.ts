@@ -1,5 +1,5 @@
 import { BALANCE, getSpecies, type Evolution, type TimeOfDay } from '../game-data';
-import { knownMoves, statsOf, type PokemonInstance } from './pokemon';
+import { friendshipOf, heldOf, knownMoves, statsOf, type PokemonInstance } from './pokemon';
 import { expForLevel, levelFromExp } from './stats';
 
 export interface ExpResult {
@@ -33,15 +33,56 @@ export function coinYield(level: number, isBoss: boolean, receiverLevel: number)
 
 const timeMatches = (e: Evolution, period: TimeOfDay) => !e.time || e.time === period;
 
+/** Pedra Eterna (na Mochila, travando) ou segurada impede evoluir. */
+export const evolutionBlocked = (p: PokemonInstance) => !!p.evolutionLocked || !!heldOf(p)?.everstone;
+
+/** Condição extra de uma evolução por nível (Hitmon*, Wurmple). */
+function conditionMet(e: Extract<Evolution, { trigger: 'level' }>, p: PokemonInstance): boolean {
+  if (!e.cond) return true;
+  if (e.cond === 'uid-even') return p.uid % 2 === 0;
+  if (e.cond === 'uid-odd') return p.uid % 2 === 1;
+  const { atk, def } = statsOf(p);
+  return e.cond === 'atk>def' ? atk > def : e.cond === 'def>atk' ? def > atk : atk === def;
+}
+
 export function levelEvolution(
   p: PokemonInstance,
   period: TimeOfDay = 'day',
 ): Extract<Evolution, { trigger: 'level' }> | undefined {
-  if (p.evolutionLocked) return undefined;
+  if (evolutionBlocked(p)) return undefined;
   return getSpecies(p.speciesId).evolutions.find(
     (e): e is Extract<Evolution, { trigger: 'level' }> =>
-      e.trigger === 'level' && p.level >= e.minLevel && timeMatches(e, period),
+      e.trigger === 'level' && p.level >= e.minLevel && timeMatches(e, period) && conditionMet(e, p),
   );
+}
+
+export function friendshipEvolution(
+  p: PokemonInstance,
+  period: TimeOfDay = 'day',
+): Extract<Evolution, { trigger: 'friendship' }> | undefined {
+  if (evolutionBlocked(p)) return undefined;
+  const friendship = friendshipOf(p);
+  return getSpecies(p.speciesId).evolutions.find(
+    (e): e is Extract<Evolution, { trigger: 'friendship' }> =>
+      e.trigger === 'friendship' && friendship >= e.minFriendship && timeMatches(e, period),
+  );
+}
+
+/** Evolução por nível ou amizade: evolui na hora (automática) ou deixa pendente. */
+export function checkEvolution(
+  p: PokemonInstance,
+  autoEvolve: boolean,
+  period: TimeOfDay = 'day',
+): Pick<ExpResult, 'evolvedFrom' | 'evolvedTo'> {
+  const evo = levelEvolution(p, period) ?? friendshipEvolution(p, period);
+  if (!evo) return {};
+  if (!autoEvolve) {
+    p.pendingEvolution = evo.to;
+    return {};
+  }
+  const evolvedFrom = p.speciesId;
+  evolve(p, evo.to);
+  return { evolvedFrom, evolvedTo: evo.to };
 }
 
 export function itemEvolution(
@@ -95,17 +136,7 @@ export function grantExp(
     result.learnedMoves = knownMoves(species, p.level).filter((m) => !movesBefore.includes(m));
   }
 
-  const evo = levelEvolution(p, period);
-  if (evo) {
-    if (autoEvolve) {
-      result.evolvedFrom = p.speciesId;
-      result.evolvedTo = evo.to;
-      evolve(p, evo.to);
-    } else {
-      p.pendingEvolution = evo.to;
-    }
-  }
-  return result;
+  return { ...result, ...checkEvolution(p, autoEvolve, period) };
 }
 
 /** Sobe o Pokémon direto para o nível `level` (Rare Candy, creche, expedições). */

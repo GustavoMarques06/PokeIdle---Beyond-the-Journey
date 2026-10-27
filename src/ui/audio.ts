@@ -19,6 +19,11 @@ export type Sfx =
   | 'victory'
   | 'boss'
   | 'achievement'
+  | 'item'
+  | 'raid'
+  | 'splash'
+  | 'coin'
+  | 'merchant'
   | 'click';
 
 type Wave = OscillatorType;
@@ -154,12 +159,16 @@ class AudioManager {
         return;
       }
       case 'super':
-        this.noise(t, 0.12, 0.2);
-        this.tone(330, t, 0.12, 'square', 0.08, 90);
+        // Pancada grave em duas batidas, com o tremor da tela.
+        this.noise(t, 0.16, 0.24);
+        this.tone(180, t, 0.18, 'square', 0.1, 50);
+        this.tone(120, t + 0.07, 0.16, 'triangle', 0.12, 40);
         return;
       case 'crit':
-        this.noise(t, 0.14, 0.22);
-        this.tone(660, t, 0.1, 'square', 0.08, 160);
+        // Estalo agudo e um brilho subindo: soa diferente do super efetivo.
+        this.noise(t, 0.06, 0.2);
+        this.tone(1320, t, 0.05, 'square', 0.07, 880);
+        this.arpeggio([84, 88, 91], t + 0.04, 0.035, 'triangle', 0.08);
         return;
       case 'miss':
         this.tone(500, t, 0.12, 'triangle', 0.08, 900);
@@ -195,6 +204,24 @@ class AudioManager {
       case 'click':
         this.tone(880, t, 0.03, 'square', 0.04);
         return;
+      case 'item':
+        this.arpeggio([79, 84], t, 0.05, 'triangle', 0.08);
+        return;
+      case 'raid':
+        this.arpeggio([48, 55, 48, 55, 60], t, 0.12, 'sawtooth', 0.06);
+        this.noise(t + 0.1, 0.2, 0.08);
+        return;
+      case 'splash':
+        this.noise(t, 0.22, 0.12);
+        this.tone(900, t, 0.15, 'sine', 0.05, 300);
+        return;
+      case 'coin':
+        this.tone(hz(88), t, 0.05, 'square', 0.05);
+        this.tone(hz(93), t + 0.05, 0.12, 'square', 0.05);
+        return;
+      case 'merchant':
+        this.arpeggio([72, 76, 79, 76, 84], t, 0.08, 'triangle', 0.1);
+        return;
     }
   }
 
@@ -203,7 +230,32 @@ class AudioManager {
     for (const e of events) {
       switch (e.type) {
         case 'spawn':
+          if (e.water) this.sfx('splash');
           this.cry(e.speciesId);
+          break;
+        case 'switched':
+          // Quem entra também solta o grito (se o inimigo gritou há pouco, o limite evita sobrepor).
+          this.cry(e.to);
+          break;
+        case 'merchantAppeared':
+          this.sfx('merchant');
+          break;
+        case 'companionFound':
+          this.sfx('item');
+          break;
+        case 'researchComplete':
+          this.sfx('achievement');
+          break;
+        case 'safariResult':
+          if (e.outcome === 'caught') this.sfx('capture');
+          else if (e.outcome === 'missed' || e.outcome === 'fled') this.sfx('escape');
+          else if (e.action !== 'run') this.sfx('throw');
+          break;
+        case 'tournamentMatch':
+          this.sfx(e.won ? 'boss' : 'faint');
+          break;
+        case 'tournamentEnded':
+          if (e.place === 'champion') this.sfx('achievement');
           break;
         case 'attack': {
           const r = e.result;
@@ -230,6 +282,21 @@ class AudioManager {
           break;
         case 'bossDefeated':
           this.sfx('boss');
+          break;
+        case 'effect':
+        case 'itemFound':
+          this.sfx('item');
+          break;
+        case 'raidAppeared':
+        case 'raidRage':
+          this.sfx('raid');
+          break;
+        case 'raidDefeated':
+        case 'rematchDefeated':
+          this.sfx('boss');
+          break;
+        case 'raidFailed':
+          this.sfx('faint');
           break;
         case 'achievement':
         case 'masteryUp':

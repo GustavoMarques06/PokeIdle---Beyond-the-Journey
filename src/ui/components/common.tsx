@@ -1,7 +1,15 @@
 // Componentes visuais reutilizáveis: sprites, ícones, molduras, barras e rótulos de tipo.
 
 import type { ReactNode } from 'react';
-import { assetUrl, badgeSprite, getItem, getSpecies, trainerSprite } from '../../game-data';
+import {
+  assetUrl,
+  badgeSprite,
+  formSprite,
+  getItem,
+  getSpecies,
+  spriteFeet,
+  trainerSprite,
+} from '../../game-data';
 import { TYPE_NAMES } from '../i18n/pt-BR';
 import { ICONS, iconSvg, type IconName } from '../theme/icons';
 
@@ -14,6 +22,7 @@ export function PokemonSprite({
   className = '',
   silhouette = false,
   pixelScale,
+  form,
 }: {
   speciesId: number;
   kind: SpriteKind;
@@ -22,15 +31,25 @@ export function PokemonSprite({
   silhouette?: boolean;
   /** Exibe no tamanho natural × escala inteira (pixels uniformes), limitado pela caixa. */
   pixelScale?: number;
+  /** Forma alternativa (Unown, Deerling, Castform…). */
+  form?: string;
 }) {
   const s = getSpecies(speciesId).sprites;
+  const formPath = kind === 'icon' ? undefined : formSprite(speciesId, form, kind, shiny);
   const path =
-    kind === 'icon'
+    formPath ??
+    (kind === 'icon'
       ? s.icon
       : kind === 'front'
         ? (shiny && s.frontShiny) || s.front
-        : (shiny && s.backShiny) || s.back;
-  const size = kind !== 'icon' && pixelScale ? getSpecies(speciesId).spriteSize?.[kind] : undefined;
+        : (shiny && s.backShiny) || s.back);
+  const feet = formPath && kind !== 'icon' ? spriteFeet(speciesId, kind, form) : undefined;
+  const size =
+    kind !== 'icon' && pixelScale
+      ? feet
+        ? ([feet[5], feet[6]] as [number, number])
+        : getSpecies(speciesId).spriteSize?.[kind]
+      : undefined;
   return (
     <img
       style={size ? { width: size[0] * pixelScale!, height: size[1] * pixelScale! } : undefined}
@@ -53,6 +72,17 @@ export function ItemIcon({
   className?: string;
 }) {
   const item = getItem(id);
+  if (item?.icon && !item.sprite) {
+    return (
+      <PixelIcon
+        name={item.icon.glyph as IconName}
+        scale={size / 9}
+        palette={{ c: item.icon.color }}
+        className={`item-icon ${className}`}
+        title={item.name}
+      />
+    );
+  }
   return (
     <img
       className={`item-icon ${className}`}
@@ -127,6 +157,7 @@ export function HpBar({ value, max, label = true }: { value: number; max: number
     >
       {label && <span className="hpbar-label">HP</span>}
       <span className="hpbar-track">
+        <span className="hpbar-lag" style={{ width: `${p}%` }} />
         <span className={`hpbar-fill tone-${tone}`} style={{ width: `${p}%` }} />
       </span>
     </div>

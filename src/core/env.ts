@@ -3,7 +3,7 @@
 
 import { BALANCE, type Route, type TimeOfDay, type TypeName } from '../game-data';
 
-export type Weather = 'clear' | 'sun' | 'rain' | 'sand';
+export type Weather = 'clear' | 'sun' | 'rain' | 'sand' | 'fog' | 'hail';
 
 export interface Environment {
   period: TimeOfDay;
@@ -12,6 +12,11 @@ export interface Environment {
 
 /** Cenas cobertas: sem clima. */
 const INDOOR = new Set(['cave', 'icecave', 'volcano', 'dampcave', 'city', 'sea']);
+
+/** Rota ao ar livre (tem clima e árvores de berry). */
+export function isOutdoor(route: Route): boolean {
+  return !INDOOR.has(route.scene);
+}
 
 export function periodAt(now: number): TimeOfDay {
   const hour = new Date(now).getHours();
@@ -47,6 +52,8 @@ export function environmentAt(now: number): Environment {
 export function routeWeather(route: Route, env: Environment): Weather {
   if (INDOOR.has(route.scene)) return 'clear';
   if (route.scene === 'desert') return env.weather === 'rain' ? 'clear' : 'sand';
+  // Granizo só onde faz frio ou em áreas abertas altas; na praia e no deserto vira chuva/areia.
+  if (env.weather === 'hail' && route.scene === 'beach') return 'rain';
   return env.weather;
 }
 
@@ -64,6 +71,10 @@ export function environmentMoveBoost(weather: Weather, period: TimeOfDay): Recor
     boost.rock = w.sandBoost;
     boost.ground = w.sandBoost;
     boost.steel = w.sandBoost;
+  } else if (weather === 'hail') {
+    boost.ice = w.hailBoost;
+  } else if (weather === 'fog') {
+    boost.ghost = w.fogBoost;
   }
   if (period === 'night') {
     boost.ghost = (boost.ghost ?? 1) * w.nightBoost;

@@ -1,24 +1,44 @@
-// TREINADOR: cartão de treinador, conquistas, opções e salvamento.
+// TREINADOR: cartão de treinador (com moldura e vitrine de medalhas), medalhas, opções e salvamento.
 
 import { useState } from 'react';
-import { ACHIEVEMENTS, PLAYER_AVATARS, REGIONS, SPECIES } from '../../game-data';
-import { setTrainerAvatar, setTrainerName, type GameState, type Settings } from '../../core/game';
-import { achievementProgress, trainerLevel } from '../../core/meta';
+import {
+  ACHIEVEMENTS,
+  CARD_FRAMES,
+  MEDAL_TIERS,
+  PLAYER_AVATARS,
+  REGIONS,
+  SHOWCASE_SLOTS,
+  SPECIES,
+  assetUrl,
+  type AchievementDef,
+  type MedalTier,
+} from '../../game-data';
+import { setTrainerAvatar, setTrainerName, weeklyMvp, type GameState, type Settings } from '../../core/game';
+import {
+  achievementProgress,
+  frameUnlocked,
+  medalPoints,
+  setCardFrame,
+  toggleShowcase,
+  trainerLevel,
+} from '../../core/meta';
 import { exportSave, importSave } from '../../core/save';
 import { Bar, ItemIcon, Money, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { Badges } from '../components/Hud';
 import { StatsPanel } from '../components/StatsPanel';
 import { HOTKEY_HELP } from '../hotkeys';
 import { requestNotificationPermission } from '../notify';
-import { REGION_NAMES, T, formatDuration, formatNumber } from '../i18n/pt-BR';
+import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
-type Toggle = Exclude<keyof Settings, 'volume'>;
+type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed'>;
 
 const TOGGLES: { key: Toggle; label: string; requires?: string }[] = [
   { key: 'autoEvolve', label: T.settings.autoEvolve },
   { key: 'showDamageNumbers', label: T.settings.damageNumbers },
   { key: 'reducedMotion', label: T.settings.reducedMotion },
+  { key: 'highContrast', label: 'Contraste alto' },
+  { key: 'largeText', label: 'Texto maior' },
   { key: 'illustratedScenes', label: 'Cenários ilustrados' },
   { key: 'autoCapture', label: T.settings.autoCapture, requires: 'auto-capture' },
   { key: 'sfx', label: T.settings.sfx },
@@ -27,6 +47,26 @@ const TOGGLES: { key: Toggle; label: string; requires?: string }[] = [
   { key: 'autoSwitch', label: 'Trocar para a reserva com vantagem de tipo' },
   { key: 'notifications', label: 'Avisos do sistema com o jogo em segundo plano' },
 ];
+
+/** Cor de cada metal no ícone de medalha. */
+const MEDAL_COLORS: Record<MedalTier, string> = {
+  bronze: '#d08848',
+  silver: '#c8d0e0',
+  gold: '#f0c030',
+  platinum: '#a8f0f0',
+};
+
+export function Medal({ def, earned, scale = 3 }: { def: AchievementDef; earned: boolean; scale?: number }) {
+  return (
+    <PixelIcon
+      name="medal"
+      scale={scale}
+      palette={earned ? { c: MEDAL_COLORS[def.tier] } : { c: '#8890a0', r: '#9098a8', b: '#9098a8' }}
+      className={`medal medal-${def.tier} ${earned ? '' : 'medal-locked'}`}
+      title={def.name}
+    />
+  );
+}
 
 function formatBytes(n: number): string {
   return n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 / 1024).toFixed(2)} MB`;
@@ -41,6 +81,16 @@ export function TrainerScreen({ state }: { state: GameState }) {
   const trainer = trainerLevel(state);
   const caught = SPECIES.filter((s) => state.pokedex[s.id]?.caught).length;
   const done = new Set(state.achievements);
+  const points = medalPoints(state);
+  const showcase = state.showcase
+    .map((id) => ACHIEVEMENTS.find((a) => a.id === id))
+    .filter((a): a is AchievementDef => !!a);
+  const nextFrame = CARD_FRAMES.find((f) => f.points > points);
+  const mvp = weeklyMvp(state, state.lastTimerAt);
+  const mvpMon = mvp ? state.collection.find((p) => p.uid === mvp.uid) : undefined;
+  const companion = state.companion
+    ? state.collection.find((p) => p.uid === state.companion!.uid)
+    : undefined;
 
   const onExport = async () => {
     const text = exportSave(state, Date.now());
@@ -64,7 +114,20 @@ export function TrainerScreen({ state }: { state: GameState }) {
 
   return (
     <div className="trainer-screen">
-      <div className="trainer-card frame frame-card">
+      <div className={`trainer-card frame frame-card card-frame-${state.cardFrame}`}>
+        {state.cardFrame !== 'basic' &&
+          // Ornamento de canto desenhado (public/sprites/frames/<moldura>.png, o canto de cima à
+          // esquerda), espelhado nos outros três. Sem o arquivo, ficam os cantos feitos em CSS.
+          (['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
+            <img
+              key={`${state.cardFrame}-${corner}`}
+              className={`frame-corner frame-corner-${corner}`}
+              src={assetUrl(`sprites/frames/${state.cardFrame}.png`)}
+              alt=""
+              draggable={false}
+              onError={(e) => e.currentTarget.remove()}
+            />
+          ))}
         <div className="card-head">
           <span>CARTÃO DE TREINADOR</span>
           <span>ID Nº{String(state.createdAt % 65536).padStart(5, '0')}</span>
@@ -100,9 +163,32 @@ export function TrainerScreen({ state }: { state: GameState }) {
             <dd>{formatNumber(state.stats.totalCaptures)}</dd>
             <dt>JORNADAS</dt>
             <dd>{state.prestige.count}</dd>
+            <dt>MVP</dt>
+            <dd>
+              {mvpMon ? (
+                <>
+                  <PokemonSprite speciesId={mvpMon.speciesId} kind="icon" /> {speciesName(mvpMon.speciesId)} ·{' '}
+                  {mvp!.wins} vitórias na semana
+                </>
+              ) : (
+                '—'
+              )}
+            </dd>
           </dl>
           <div className="card-portrait">
-            <TrainerSprite id={state.trainerAvatar} size={128} />
+            <div className="card-trainer">
+              <TrainerSprite id={state.trainerAvatar} size={128} />
+              {companion && (
+                <span className="card-companion" title={`${speciesName(companion.speciesId)} acompanha você`}>
+                  <PokemonSprite
+                    speciesId={companion.speciesId}
+                    kind="front"
+                    shiny={companion.shiny}
+                    form={companion.form}
+                  />
+                </span>
+              )}
+            </div>
             <div className="avatar-pick">
               {PLAYER_AVATARS.map((a) => (
                 <button
@@ -116,6 +202,25 @@ export function TrainerScreen({ state }: { state: GameState }) {
               ))}
             </div>
           </div>
+        </div>
+        <div className="card-showcase" aria-label="Vitrine de medalhas">
+          <span>MEDALHAS · {points} pts</span>
+          {Array.from({ length: SHOWCASE_SLOTS }, (_, i) => showcase[i]).map((a, i) =>
+            a ? (
+              <span key={a.id} className="showcase-slot filled" title={`${a.name}: ${a.description}`}>
+                <Medal def={a} earned scale={3} />
+                <small>{a.name}</small>
+              </span>
+            ) : (
+              <span
+                key={`empty-${i}`}
+                className="showcase-slot"
+                title="Escolha uma medalha abaixo para expor aqui"
+              >
+                <small>vazio</small>
+              </span>
+            ),
+          )}
         </div>
         <div className="card-badges">
           <span>INSÍGNIAS</span>
@@ -163,18 +268,69 @@ export function TrainerScreen({ state }: { state: GameState }) {
       </Window>
 
       <Window
-        title={`CONQUISTAS · ${done.size}/${ACHIEVEMENTS.length}`}
-        icon={<PixelIcon name="trophy" scale={2} />}
+        title={`MEDALHAS · ${done.size}/${ACHIEVEMENTS.length}`}
+        icon={<PixelIcon name="medal" scale={2} />}
       >
+        <div className="medal-summary">
+          {MEDAL_TIERS.map((t) => {
+            const all = ACHIEVEMENTS.filter((a) => a.tier === t.id);
+            const got = all.filter((a) => done.has(a.id)).length;
+            return (
+              <span key={t.id} className={`medal-count medal-${t.id}`}>
+                {t.name}: {got}/{all.length} <small>({t.points} pt cada)</small>
+              </span>
+            );
+          })}
+        </div>
+        <div className="frame-pick" role="radiogroup" aria-label="Moldura do cartão">
+          <span>Moldura do cartão:</span>
+          {CARD_FRAMES.map((f) => {
+            const ok = frameUnlocked(state, f.id);
+            return (
+              <button
+                key={f.id}
+                role="radio"
+                aria-checked={state.cardFrame === f.id}
+                className={`pbtn small frame-swatch card-frame-${f.id} ${state.cardFrame === f.id ? 'primary' : ''}`}
+                disabled={!ok}
+                title={ok ? f.name : `${f.name}: libera com ${f.points} pontos de medalha`}
+                onClick={() => engine.dispatch((s) => setCardFrame(s, f.id))}
+              >
+                {f.name}
+                {!ok && ` · ${f.points}`}
+              </button>
+            );
+          })}
+        </div>
+        <p className="hint">
+          Clique numa medalha conquistada para expor no cartão (até {SHOWCASE_SLOTS}).
+          {nextFrame && ` Próxima moldura (${nextFrame.name}) com ${nextFrame.points} pontos.`}
+        </p>
         <ul className="achievement-list">
           {ACHIEVEMENTS.map((a) => {
             const { value, target } = achievementProgress(state, a);
             const complete = done.has(a.id);
+            const shown = state.showcase.includes(a.id);
             return (
-              <li key={a.id} className={complete ? 'done' : ''}>
-                <PixelIcon name={complete ? 'trophy' : 'trophyEmpty'} scale={2} />
+              <li key={a.id} className={`${complete ? 'done' : ''} ${shown ? 'shown' : ''}`}>
+                <button
+                  className="medal-btn"
+                  disabled={!complete}
+                  aria-pressed={shown}
+                  title={
+                    complete ? (shown ? 'Tirar da vitrine' : 'Expor no cartão') : 'Ainda não conquistada'
+                  }
+                  onClick={() => engine.dispatch((s) => toggleShowcase(s, a.id))}
+                >
+                  <Medal def={a} earned={complete} scale={3} />
+                </button>
                 <div>
-                  <strong>{a.name}</strong>
+                  <strong>
+                    {a.name}{' '}
+                    <small className={`tier-tag medal-${a.tier}`}>
+                      {MEDAL_TIERS.find((t) => t.id === a.tier)?.name}
+                    </small>
+                  </strong>
                   <small>{a.description}</small>
                   {!complete && target > 1 && (
                     <span className="ach-progress">
@@ -222,6 +378,22 @@ export function TrainerScreen({ state }: { state: GameState }) {
               </button>
             </label>
           ))}
+          <label className="option-row">
+            <span>Velocidade das animações</span>
+            <select
+              value={state.settings.animSpeed}
+              onChange={(e) =>
+                engine.dispatch((s) => {
+                  s.settings.animSpeed = Number(e.target.value);
+                })
+              }
+            >
+              <option value={0.75}>Lenta (0,75×)</option>
+              <option value={1}>Normal (1×)</option>
+              <option value={1.5}>Rápida (1,5×)</option>
+              <option value={2}>Muito rápida (2×)</option>
+            </select>
+          </label>
           <label className="option-row">
             <span>{T.settings.volume}</span>
             <input

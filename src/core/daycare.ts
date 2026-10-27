@@ -139,6 +139,7 @@ export function hatchReadyEggs(state: GameState, now: number, events: GameEvent[
       now,
       'Creche',
     );
+    p.friendship = BALANCE.friendship.hatch;
     state.stats.hatched++;
     progressMission(state, 'hatch', 1, events);
     events.push({ type: 'hatched', uid: p.uid, speciesId: p.speciesId, shiny: p.shiny, isNew });

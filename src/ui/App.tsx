@@ -46,6 +46,14 @@ export function App() {
     };
   }, []);
   if (state) audio.configure(state.settings);
+  const highContrast = state?.settings.highContrast ?? false;
+  const largeText = state?.settings.largeText ?? false;
+  const reducedMotion = state?.settings.reducedMotion ?? false;
+  useEffect(() => {
+    document.documentElement.classList.toggle('hc', highContrast);
+    document.documentElement.classList.toggle('large-text', largeText);
+    document.documentElement.classList.toggle('reduced-motion', reducedMotion);
+  }, [highContrast, largeText, reducedMotion]);
   useGameEvents(useCallback((events: GameEvent[]) => audio.play(events), []));
 
   useHotkeys({
@@ -88,7 +96,8 @@ function GameScreen({ state }: { state: GameState }) {
       <aside className="side-column">
         <ActiveCard state={state} onOpen={() => setScreen('party')} />
         <GameMenu state={state} current={screen} onSelect={setScreen} />
-        <div className="screen-area">
+        {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
+        <div className="screen-area screen-enter" key={screen}>
           <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
             {screen === 'party' && <PartyScreen state={state} />}
             {screen === 'dex' && <DexScreen state={state} />}

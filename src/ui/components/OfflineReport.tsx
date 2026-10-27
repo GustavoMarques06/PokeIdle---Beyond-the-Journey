@@ -1,6 +1,6 @@
 import { BALANCE, getRoute } from '../../game-data';
 import type { OfflineReport as Report } from '../../core/offline';
-import { T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
+import { STAT_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { ItemIcon, Money, PokemonSprite } from './common';
 
 export function OfflineReport({ report, onClose }: { report: Report; onClose: () => void }) {
@@ -58,6 +58,12 @@ export function OfflineReport({ report, onClose }: { report: Report; onClose: ()
           <p key={`${e.uid}-${e.to}`} className="report-line rare">
             <PokemonSprite speciesId={e.to} kind="icon" /> {speciesName(e.from)} evoluiu para{' '}
             {speciesName(e.to)}!
+          </p>
+        ))}
+        {report.training?.map((t) => (
+          <p key={t.uid} className="report-line">
+            <PokemonSprite speciesId={t.speciesId} kind="icon" /> {speciesName(t.speciesId)} treinou: +
+            {t.gained} EVs de {STAT_NAMES[t.stat as keyof typeof STAT_NAMES] ?? t.stat}
           </p>
         ))}
         <button className="pbtn primary" onClick={onClose} autoFocus>

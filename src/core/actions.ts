@@ -12,11 +12,15 @@ import { computeModifiers } from './bonuses';
 import { attackInterval, combatantOf } from './combat';
 import { rocketTeam } from './events';
 import { breakChain } from './hunt';
+import { eliteItemOf } from './loadout';
 import { endLegendary, legendaryDef, legendaryStatus } from './legendary';
 import { evolve, itemEvolution, setLevel } from './progression';
+import { raidTeam } from './raids';
+import { canRematch } from './rematch';
 import { rngFrom } from './rng';
 import { healTeam } from './team';
 import { endTowerRun, towerUnlocked } from './tower';
+import { tournamentLost } from './tournament';
 import {
   type BattleKind,
   type TeamMember,
@@ -69,6 +73,37 @@ export function challengeBoss(state: GameState, routeId: string): boolean {
   return true;
 }
 
+/** Revanche contra o chefe da rota (já vencido e com a espera cumprida). */
+export function challengeRematch(state: GameState, routeId: string, now = Date.now()): boolean {
+  if (state.battle.kind !== 'wild' || !canRematch(state, routeId, now)) return false;
+  const boss = getRoute(routeId).boss!;
+  startTrainerBattle(state, routeId, 'boss', resolveBossTeam(state, boss, true), {
+    sprite: boss.trainer,
+    name: boss.name,
+    title: `Revanche · ${boss.title}`,
+  });
+  state.battle.rematch = true;
+  return true;
+}
+
+export function canChallengeRaid(state: GameState): boolean {
+  return !!state.raid && state.battle.kind === 'wild';
+}
+
+export function challengeRaid(state: GameState): boolean {
+  if (!canChallengeRaid(state)) return false;
+  const raid = state.raid!;
+  healTeam(state);
+  state.currentRouteId = raid.routeId;
+  state.battle = {
+    ...freshBattle(raid.routeId),
+    kind: 'raid',
+    team: raidTeam(raid, rngFrom(state)),
+    raidMs: BALANCE.raid.timeLimitMs,
+  };
+  return true;
+}
+
 export function canChallengeRocket(state: GameState): boolean {
   return !!state.rocket && state.battle.kind === 'wild';
 }
@@ -108,6 +143,10 @@ export function retreatFromBoss(state: GameState, now = Date.now()): GameEvent[]
   const b = state.battle;
   if (b.kind === 'wild') return [];
   const events: GameEvent[] = [];
+  if (b.kind === 'tournament') {
+    tournamentLost(state, events, true);
+    return events;
+  }
   if (b.kind === 'tower') {
     events.push({ type: 'towerEnded', floor: endTowerRun(state, now, activePokemon(state).speciesId) });
   }
@@ -124,7 +163,7 @@ export function challengeLegendary(state: GameState, speciesId: number, now: num
   state.battle = {
     ...freshBattle(state.currentRouteId),
     kind: 'legendary',
-    team: [{ speciesId, level: def.level, boost: def.boost }],
+    team: [{ speciesId, level: def.level, boost: def.boost, held: eliteItemOf(speciesId), abilitySlot: 0 }],
   };
   return true;
 }
@@ -132,6 +171,7 @@ export function challengeLegendary(state: GameState, speciesId: number, now: num
 export function setActive(state: GameState, uid: number): void {
   if (!state.collection.some((p) => p.uid === uid) || uid === state.activeUid) return;
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return;
+  if (state.training.slots.some((s) => s.uid === uid)) return;
   // Se o novo ativo estava numa vaga passiva ou de reserva, o antigo ativo assume a vaga.
   const slot = state.passives.indexOf(uid);
   if (slot >= 0) state.passives[slot] = state.activeUid;

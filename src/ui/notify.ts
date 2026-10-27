@@ -16,6 +16,10 @@ const NOTIFY_EVENTS = new Set<GameEvent['type']>([
   'rocketAppeared',
   'evolutionReady',
   'bossAvailable',
+  'raidAppeared',
+  'trainingFull',
+  'merchantAppeared',
+  'companionFound',
 ]);
 
 /** Um aviso de cada tipo a cada minuto, no máximo. */

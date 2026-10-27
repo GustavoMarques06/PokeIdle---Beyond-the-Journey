@@ -2,6 +2,7 @@
 
 import { BALANCE, RESEARCH_POINTS, getRoute } from '../game-data';
 import type { DexEntry, GameState } from './game';
+import { addResearch } from './dexresearch';
 import { createPokemon, type PokemonInstance } from './pokemon';
 import type { Ivs } from './stats';
 
@@ -29,6 +30,8 @@ export function addToCollection(
   const p = createPokemon(state.nextUid++, speciesId, level, ivs, shiny, now, caughtOn);
   state.collection.push(p);
   markCaught(state, speciesId, shiny);
+  // Toda forma de obter conta no diário de pesquisa (captura, ovo, fóssil, inicial, prêmio).
+  addResearch(state, speciesId, { caught: 1 });
   return p;
 }
 
@@ -39,6 +42,7 @@ export function busyUids(state: GameState): Set<number> {
     ...(state.battleTeam ?? []),
     ...state.passives,
     ...state.daycare.uids,
+    ...state.training.slots.map((slot) => slot.uid),
   ]);
   for (const e of state.expeditions) for (const uid of e.uids) busy.add(uid);
   return busy;
@@ -67,7 +71,17 @@ export function routeDone(state: GameState, routeId: string): boolean {
   return route.boss ? prog.bossDefeated : prog.unlocked && prog.kills >= route.killsRequired;
 }
 
-export type Activity = 'daycare' | 'expeditions' | 'garden' | 'fossils' | 'tower' | 'gamecorner';
+export type Activity =
+  | 'daycare'
+  | 'expeditions'
+  | 'garden'
+  | 'fossils'
+  | 'tower'
+  | 'gamecorner'
+  | 'training'
+  | 'raids'
+  | 'safari'
+  | 'tournament';
 
 export function activityUnlocked(state: GameState, activity: Activity): boolean {
   switch (activity) {
@@ -83,5 +97,13 @@ export function activityUnlocked(state: GameState, activity: Activity): boolean 
       return routeDone(state, BALANCE.tower.unlock);
     case 'gamecorner':
       return routeDone(state, BALANCE.gameCorner.unlock);
+    case 'training':
+      return routeDone(state, BALANCE.training.slots[0]);
+    case 'raids':
+      return routeDone(state, BALANCE.raid.unlock);
+    case 'safari':
+      return !!state.routes[BALANCE.safari.unlock]?.unlocked;
+    case 'tournament':
+      return routeDone(state, BALANCE.tournament.unlock);
   }
 }

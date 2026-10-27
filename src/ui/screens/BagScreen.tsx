@@ -2,12 +2,23 @@
 // tela LOJA (ShopScreen).
 
 import { useState } from 'react';
-import { BERRIES, FOSSILS, getMove, getSpecies } from '../../game-data';
-import { applyEvolutionItem, type GameState } from '../../core/game';
+import { BERRIES, FOSSILS, getMove, getSpecies, isHeldItem, vitaminStat } from '../../game-data';
+import {
+  applyEvolutionItem,
+  equipItem,
+  giveVitamin,
+  sellItem,
+  sellPrice,
+  type GameState,
+  activePokemon,
+} from '../../core/game';
+import { passivePokemon } from '../../core/bonuses';
+import { reservePokemon } from '../../core/team';
 import { eatBerry } from '../../core/garden';
 import { itemEvolution } from '../../core/progression';
 import { ItemIcon, Money, PokemonSprite, TypeBadge, Window } from '../components/common';
-import { ITEM_DESCRIPTIONS, itemName, moveName, speciesName } from '../i18n/pt-BR';
+import { itemDescription, itemName, moveName, speciesName } from '../i18n/pt-BR';
+import { audio } from '../audio';
 import { useEngine } from '../useGame';
 
 type Pocket = 'items' | 'tms';
@@ -22,6 +33,10 @@ export function BagScreen({ state }: { state: GameState }) {
     : [];
   const berry = selected ? BERRIES.find((b) => b.id === selected) : undefined;
   const fossil = selected ? FOSSILS.find((f) => f.item === selected) : undefined;
+  // Itens seguráveis e vitaminas podem ser usados direto na equipe (ativo, reservas e apoio).
+  const team = [activePokemon(state), ...reservePokemon(state), ...passivePokemon(state)];
+  const holdable = !!selected && isHeldItem(selected);
+  const vitamin = !!selected && !!vitaminStat(selected);
 
   return (
     <div className="bag-screen">
@@ -60,7 +75,7 @@ export function BagScreen({ state }: { state: GameState }) {
             <div className="item-desc frame frame-dialog">
               <ItemIcon id={selected} size={48} />
               <div>
-                <p>{ITEM_DESCRIPTIONS[selected] ?? itemName(selected)}</p>
+                <p>{itemDescription(selected) || itemName(selected)}</p>
                 {berry && (state.items[selected] ?? 0) > 0 && (
                   <button
                     className="pbtn small"
@@ -68,6 +83,26 @@ export function BagScreen({ state }: { state: GameState }) {
                   >
                     Comer agora
                   </button>
+                )}
+                {(holdable || vitamin) && (
+                  <div className="item-use">
+                    {team.map((p) => (
+                      <button
+                        key={p.uid}
+                        className="pbtn small"
+                        disabled={holdable && p.held === selected}
+                        onClick={() =>
+                          engine.dispatch((s) =>
+                            holdable ? equipItem(s, p.uid, selected!) : giveVitamin(s, p.uid, selected!),
+                          )
+                        }
+                      >
+                        <PokemonSprite speciesId={p.speciesId} kind="icon" />{' '}
+                        {holdable ? 'Equipar em' : 'Dar a'} {speciesName(p.speciesId)}
+                        {holdable && p.held ? ` (troca ${itemName(p.held)})` : ''}
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {fossil && (
                   <p className="hint">
@@ -89,12 +124,47 @@ export function BagScreen({ state }: { state: GameState }) {
                     ))}
                   </div>
                 )}
+                <SellBox state={state} id={selected} />
               </div>
             </div>
           )}
         </>
       ) : (
         <TmPocket state={state} />
+      )}
+    </div>
+  );
+}
+
+/** Venda pela metade do preço de loja; vender tudo de um item caro pede confirmação. */
+function SellBox({ state, id }: { state: GameState; id: string }) {
+  const engine = useEngine();
+  const have = state.items[id] ?? 0;
+  const unit = sellPrice(id);
+  if (have <= 0) return null;
+  if (unit <= 0) return <p className="hint">Este item não tem valor de venda.</p>;
+  const sell = (qty: number) => {
+    if (
+      qty > 1 &&
+      unit * qty >= 20_000 &&
+      !window.confirm(`Vender ${qty}× ${itemName(id)} por ${unit * qty} moedas?`)
+    )
+      return;
+    engine.dispatch((s) => sellItem(s, id, qty));
+    audio.sfx('coin');
+  };
+  return (
+    <div className="sell-box">
+      <span>
+        Vender por <Money value={unit} /> cada
+      </span>
+      <button className="pbtn small" onClick={() => sell(1)}>
+        Vender 1
+      </button>
+      {have > 1 && (
+        <button className="pbtn small" onClick={() => sell(have)}>
+          Vender todos ({have}) · <Money value={unit * have} />
+        </button>
       )}
     </div>
   );

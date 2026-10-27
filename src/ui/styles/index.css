@@ -5,4 +5,5 @@
 @import './intro.css'; /* abertura (laboratório) e ajustes para telas altas */
 @import './overlays.css'; /* janelas flutuantes */
 @import './systems.css'; /* ambiente, mapa da região, atividades, missões, golpes, TMs */
+@import './effects.css'; /* efeitos de golpe, shiny, Poké Ball, status, barras, transições */
 @import './compact.css'; /* telas de 1280 px */

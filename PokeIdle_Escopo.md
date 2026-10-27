@@ -12,7 +12,14 @@ marca e propriedade intelectual antes de qualquer publicação)_
 
 ---
 
-## Estado atual (versão 0.4, outubro de 2026)
+## Estado atual (versão 0.5, outubro de 2026)
+
+A 0.5 acrescenta profundidade de combate e de coleção: **habilidades**, **itens seguráveis**, **amizade** com
+evoluções por afeto e por condição, **EVs** (Campo de Treino, vitaminas, duplicatas) e **IVs** treináveis,
+**raides** e **revanches** contra chefes. Ficaram
+de fora formas regionais e Pokémon da Geração VI em diante (exigem novos sprites e dados da PokéAPI).
+
+### Histórico: versão 0.4
 
 Este documento descreve o plano original. **Todas as fases da seção 8 foram concluídas** e as decisões
 da seção 14 já foram tomadas — estão registradas no [README](README.md#decisões-tomadas-seção-14-do-escopo).

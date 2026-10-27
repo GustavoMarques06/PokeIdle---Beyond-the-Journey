@@ -7,11 +7,22 @@ import {
   SPECIES,
   STARTER_GENERATIONS,
   TYPE_MEDAL_BONUS,
+  BALANCE,
+  WATER_SPOTS,
+  formName,
+  formSet,
   getSpecies,
   lineRoot,
 } from '../../game-data';
 import { canClaimMilestone, caughtCount, claimMilestone, typeProgress } from '../../core/dex';
-import type { GameState } from '../../core/game';
+import {
+  completeResearchCount,
+  formsCaught,
+  researchComplete,
+  researchTasks,
+  tasksDone,
+  type GameState,
+} from '../../core/game';
 import { setHuntTarget } from '../../core/hunt';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, Shiny, TypeBadge, Window } from '../components/common';
 import { STAT_NAMES, TYPE_NAMES, formatNumber, formatPercent, itemName, speciesName } from '../i18n/pt-BR';
@@ -55,7 +66,19 @@ export function DexScreen({ state }: { state: GameState }) {
   const sp = getSpecies(selected);
   const entry = state.pokedex[selected];
   const known = !!entry?.seen;
-  const habitats = ROUTES.filter((r) => r.encounters.some((e) => e.speciesId === selected));
+  const slug = sp.slug;
+  const habitats = [
+    ...ROUTES.filter((r) => r.encounters.some((e) => e.speciesId === selected)).map((r) => r.name),
+    ...ROUTES.flatMap((r) => {
+      const spot = WATER_SPOTS[r.id];
+      const fish = spot?.fish?.find(([s]) => s === slug);
+      const surf = spot?.surf?.some(([s]) => s === slug);
+      return [
+        ...(fish ? [`${r.name} (pesca, ${itemName(fish[2])})`] : []),
+        ...(surf ? [`${r.name} (surf)`] : []),
+      ];
+    }),
+  ];
 
   return (
     <div className="dex frame frame-dex">
@@ -129,13 +152,10 @@ export function DexScreen({ state }: { state: GameState }) {
           </>
         )}
         <div className="dex-habitat">
-          HABITAT:{' '}
-          {habitats.length
-            ? habitats.map((r) => r.name).join(', ')
-            : known
-              ? 'evolução, ovo ou evento'
-              : '???'}
+          HABITAT: {habitats.length ? habitats.join(', ') : known ? 'evolução, ovo ou evento' : '???'}
         </div>
+        {known && <ResearchJournal state={state} speciesId={selected} />}
+        {known && formSet(selected) && <FormCollection state={state} speciesId={selected} />}
         {known && (
           <div className="dex-hunt">
             ENCONTROS: {formatNumber(state.hunt.counts[selected] ?? 0)}
@@ -279,5 +299,72 @@ function DexRewards({ state }: { state: GameState }) {
         </ul>
       </Window>
     </>
+  );
+}
+
+/** Diário de pesquisa da espécie: tarefas e o bônus de pesquisa completa. */
+function ResearchJournal({ state, speciesId }: { state: GameState; speciesId: number }) {
+  const entry = state.dexResearch[speciesId] ?? researchEntryPreview;
+  const done = tasksDone(state, speciesId);
+  const need = BALANCE.dexResearch.tasksToComplete;
+  const complete = researchComplete(state, speciesId);
+  return (
+    <div className={`dex-research ${complete ? 'complete' : ''}`}>
+      <div className="dex-research-head">
+        PESQUISA {Math.min(done, need)}/{need}
+        {complete && <span className="tag tag-active">COMPLETA</span>}
+        <small>· {completeResearchCount(state)} espécies completas</small>
+      </div>
+      <ul>
+        {researchTasks(speciesId).map((t) => {
+          const v = t.value(entry);
+          return (
+            <li key={t.id} className={v >= t.target ? 'done' : ''}>
+              {v >= t.target ? '✔' : '·'} {t.label}{' '}
+              <small>
+                {Math.min(v, t.target)}/{t.target}
+              </small>
+            </li>
+          );
+        })}
+      </ul>
+      <small className="hint">
+        {complete
+          ? `Bônus ativo: +${Math.round(BALANCE.dexResearch.captureBonus * 100)}% de captura e +${Math.round(BALANCE.dexResearch.expBonus * 100)}% de EXP contra esta espécie.`
+          : `Complete ${need} tarefas para ganhar +${Math.round(BALANCE.dexResearch.captureBonus * 100)}% de captura e +${Math.round(BALANCE.dexResearch.expBonus * 100)}% de EXP contra ela.`}
+      </small>
+    </div>
+  );
+}
+
+const researchEntryPreview = { caught: 0, defeated: 0, night: 0, evolved: 0 };
+
+/** Formas da espécie: as capturadas aparecem; as que faltam ficam em silhueta. */
+function FormCollection({ state, speciesId }: { state: GameState; speciesId: number }) {
+  const set = formSet(speciesId)!;
+  const caught = new Set(formsCaught(state, speciesId));
+  const hint =
+    set.rule === 'season'
+      ? 'A forma depende da estação do ano no momento da captura (muda todo mês).'
+      : set.rule === 'weather'
+        ? 'Lute com um Castform seu sob sol, chuva ou granizo para registrar a forma.'
+        : set.rule === 'pattern'
+          ? 'Cada Spinda tem um padrão de manchas.'
+          : 'Cada Unown aparece com uma letra ao acaso.';
+  return (
+    <div className="dex-forms">
+      <div className="dex-research-head">
+        FORMAS {caught.size}/{set.forms.length}
+      </div>
+      <div className="dex-form-grid">
+        {set.forms.map((f) => (
+          <span key={f} className={`dex-form ${caught.has(f) ? 'got' : ''}`} title={formName(speciesId, f)}>
+            <PokemonSprite speciesId={speciesId} kind="front" form={f} silhouette={!caught.has(f)} />
+            <small>{formName(speciesId, f)}</small>
+          </span>
+        ))}
+      </div>
+      <small className="hint">{hint}</small>
+    </div>
   );
 }

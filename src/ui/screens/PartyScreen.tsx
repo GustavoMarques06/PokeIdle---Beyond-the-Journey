@@ -8,6 +8,7 @@ import {
   getItem,
   getNature,
   getMove,
+  formName,
   getRoute,
   getSpecies,
 } from '../../game-data';
@@ -22,17 +23,23 @@ import {
 import {
   applyEvolutionItem,
   confirmEvolution,
+  recordOf,
   setActive,
+  setCompanion,
   toggleEvolutionLock,
   giveRareCandy,
+  weekOf,
+  weeklyMvp,
   type GameState,
 } from '../../core/game';
+import { rngFrom } from '../../core/rng';
 import { addPassive, canTransfer, removePassive, transferPokemon, transferValue } from '../../core/meta';
 import { learnableMoves, setMoveset } from '../../core/moveset';
-import { isPerfect, movesOf, potential, statsOf, type PokemonInstance } from '../../core/pokemon';
+import { evsOf, isPerfect, movesOf, potential, statsOf, type PokemonInstance } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
 import { addReserve, removeReserve, reservePokemon, reserveSlotsUnlocked } from '../../core/team';
 import { evolutionHint } from '../components/ActiveCard';
+import { Depth } from './party/Depth';
 import {
   Bar,
   ExpBar,
@@ -49,6 +56,7 @@ import {
   STAT_NAMES,
   STATUS_TEXT,
   TYPE_NAMES,
+  formatNumber,
   formatPercent,
   itemName,
   moveName,
@@ -238,6 +246,7 @@ export function PartyScreen({ state }: { state: GameState }) {
 /** Onde o Pokémon está, quando não está disponível para a batalha. */
 function busyLabel(state: GameState, uid: number): string | null {
   if (state.daycare.uids.includes(uid)) return 'NA CRECHE';
+  if (state.training.slots.some((s) => s.uid === uid)) return 'NO TREINO';
   if (state.expeditions.some((e) => e.uids.includes(uid))) return 'EM EXPEDIÇÃO';
   return null;
 }
@@ -275,7 +284,32 @@ function TeamBonuses({ state }: { state: GameState }) {
   );
 }
 
+/** Histórico de batalha do Pokémon (como ativo). */
+function BattleRecordRow({ p, weekWins }: { p: PokemonInstance; weekWins: number }) {
+  const r = recordOf(p);
+  return (
+    <div className="battle-record">
+      <h4>HISTÓRICO</h4>
+      <dl>
+        <dt>Vitórias</dt>
+        <dd>{formatNumber(r.wins)}</dd>
+        <dt>Nesta semana</dt>
+        <dd>{formatNumber(weekWins)}</dd>
+        <dt>Críticos</dt>
+        <dd>{formatNumber(r.crits)}</dd>
+        <dt>Dano causado</dt>
+        <dd>{formatNumber(r.damage)}</dd>
+        <dt>Capturas ajudadas</dt>
+        <dd>{formatNumber(r.captures)}</dd>
+        <dt>Desmaios</dt>
+        <dd>{formatNumber(r.faints)}</dd>
+      </dl>
+    </div>
+  );
+}
+
 function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
+  const mvp = weeklyMvp(state, state.lastTimerAt);
   const engine = useEngine();
   const species = getSpecies(p.speciesId);
   const stats = statsOf(p);
@@ -291,6 +325,7 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
   const mastery = masteryOf(state, p.speciesId);
   const itemEvos = species.evolutions.filter((e) => e.trigger === 'item');
   const hint = evolutionHint(state, p.uid);
+  const evs = evsOf(p);
 
   return (
     <Window
@@ -305,7 +340,9 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
     >
       <div className="summary-top">
         <div className="summary-portrait">
-          <PokemonSprite speciesId={p.speciesId} kind="front" shiny={p.shiny} pixelScale={2} />
+          <PokemonSprite speciesId={p.speciesId} kind="front" shiny={p.shiny} form={p.form} pixelScale={2} />
+          {mvp?.uid === p.uid && <span className="mvp-tag">MVP DA SEMANA</span>}
+          {state.companion?.uid === p.uid && <span className="companion-tag">ACOMPANHANTE</span>}
         </div>
         <dl className="summary-info">
           <dt>TIPO</dt>
@@ -329,6 +366,12 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
               </small>
             )}
           </dd>
+          {formName(p.speciesId, p.form) && (
+            <>
+              <dt>FORMA</dt>
+              <dd>{formName(p.speciesId, p.form)}</dd>
+            </>
+          )}
           <dt>ORIGEM</dt>
           <dd>{p.caughtOn}</dd>
           <dt>MAESTRIA</dt>
@@ -365,7 +408,9 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
               >
                 <th>{STAT_NAMES[k].toUpperCase()}</th>
                 <td>{k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}</td>
-                <td className="iv">IV{p.ivs[k]}</td>
+                <td className="iv">
+                  IV{p.ivs[k]} · EV{evs[k]}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -402,6 +447,13 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
 
       {editing && <MoveEditor state={state} p={p} />}
 
+      <Depth state={state} p={p} />
+
+      <BattleRecordRow
+        p={p}
+        weekWins={state.mvp.week === weekOf(state.lastTimerAt) ? (state.mvp.wins[p.uid] ?? 0) : 0}
+      />
+
       <div className="summary-actions">
         {isActive ? (
           <span className="tag tag-active">EM BATALHA</span>
@@ -432,6 +484,17 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
             Tirar da reserva
           </button>
         )}
+        <button
+          className={`pbtn ${state.companion?.uid === p.uid ? '' : 'companion-btn'}`}
+          title="O acompanhante anda com você no cartão e no mapa, ganha amizade com o tempo e às vezes acha itens."
+          onClick={() =>
+            engine.dispatch((s, now) =>
+              setCompanion(s, s.companion?.uid === p.uid ? null : p.uid, now, rngFrom(s)),
+            )
+          }
+        >
+          {state.companion?.uid === p.uid ? 'Deixar de acompanhar' : 'Acompanhante'}
+        </button>
         {p.pendingEvolution && (
           <button className="pbtn evolve" onClick={() => engine.dispatch((s) => confirmEvolution(s, p.uid))}>
             Evoluir → {speciesName(p.pendingEvolution)}

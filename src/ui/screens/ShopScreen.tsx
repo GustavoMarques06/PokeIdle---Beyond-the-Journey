@@ -1,27 +1,44 @@
-// LOJA: o POKé MART (itens básicos, em qualquer lugar) e a Loja de Departamentos de
-// Celadon, que vende todos os itens mas só para quem está na área dela.
+// LOJA: o POKé MART (itens básicos, em qualquer lugar), a Loja de Departamentos de Celadon,
+// que vende todos os itens mas só para quem está na área dela, e o mercador viajante, que
+// aparece de tempos em tempos com itens raros em promoção.
 
-import { useState } from 'react';
-import { DEPT_STORE, FOSSILS, SHOP_CATALOG, SPECIES, getRoute, type DeptSection } from '../../game-data';
+import { useMemo, useState } from 'react';
+import {
+  BALANCE,
+  DEPT_STORE,
+  FOSSILS,
+  SHOP_CATALOG,
+  SPECIES,
+  getItem,
+  getRoute,
+  type DeptSection,
+} from '../../game-data';
 import {
   atDeptStore,
   buy,
   buyAtDeptStore,
+  buyFromMerchant,
   deptStoreEntries,
   deptStoreUnlocked,
+  incomePerHour,
+  merchantUnlocked,
   selectRoute,
   shopEntries,
   type GameState,
 } from '../../core/game';
 import { ItemIcon, Money, Window } from '../components/common';
-import { ITEM_DESCRIPTIONS, UPGRADE_TEXT, itemName, speciesName } from '../i18n/pt-BR';
+import { UPGRADE_TEXT, formatDuration, itemDescription, itemName, speciesName } from '../i18n/pt-BR';
+import { audio } from '../audio';
 import { useEngine } from '../useGame';
+import { Countdown, Locked } from './activities/shared';
 
-type Store = 'mart' | 'dept';
+type Store = 'mart' | 'dept' | 'merchant';
 
 const DEPT_SECTIONS: { id: DeptSection; label: string }[] = [
   { id: 'balls', label: 'POKé BALLS' },
   { id: 'evolution', label: 'ITENS DE EVOLUÇÃO' },
+  { id: 'held', label: 'ITENS SEGURÁVEIS' },
+  { id: 'training', label: 'TREINO E HABILIDADES' },
   { id: 'other', label: 'OUTROS' },
   { id: 'berries', label: 'BERRIES' },
   { id: 'fossils', label: 'FÓSSEIS' },
@@ -33,9 +50,58 @@ for (const s of SPECIES)
   for (const e of s.evolutions)
     if (e.trigger === 'item') EVOLVES_WITH.set(e.item, [...(EVOLVES_WITH.get(e.item) ?? []), s.name]);
 
+function describe(id: string): string {
+  const species = EVOLVES_WITH.get(id);
+  if (species) {
+    return `Evolui ${species.slice(0, 3).join(', ')}${species.length > 3 ? ` e mais ${species.length - 3}` : ''}.`;
+  }
+  const fossil = FOSSILS.find((f) => f.item === id);
+  if (fossil) return `Revive um ${speciesName(fossil.speciesId)} no laboratório de fósseis.`;
+  return itemDescription(id);
+}
+
+/** Renda por hora (recalculada só quando a rota ou o nível do ativo mudam, ou a cada amostra). */
+function useIncome(state: GameState): number {
+  const active = state.collection.find((p) => p.uid === state.activeUid);
+  const key = `${state.currentRouteId}:${state.activeUid}:${active?.level}:${state.history.length}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => incomePerHour(state, state.lastTimerAt), [key]);
+}
+
+/** Tempo arredondado: "< 1 min", "≈ 25 min", "≈ 3 h 10 min", "≈ 2 dias". */
+function roughTime(ms: number): string {
+  const min = Math.round(ms / 60_000);
+  if (min < 1) return '< 1 min';
+  if (min < 60) return `≈ ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h >= 48) return `≈ ${Math.round(h / 24)} dias`;
+  const rest = Math.round((min % 60) / 10) * 10;
+  return `≈ ${h} h${rest ? ` ${rest} min` : ''}`;
+}
+
+/** "≈ 25 min de farm" ao lado do preço, para dar noção do quanto o item custa de verdade. */
+function FarmTime({ price, coins, income }: { price: number; coins: number; income: number }) {
+  if (income <= 0) return null;
+  const missing = price - coins;
+  const text = roughTime((price / income) * 3_600_000);
+  return (
+    <small
+      className={`farm-time ${missing > 0 ? 'short' : ''}`}
+      title={
+        missing > 0
+          ? `Faltam ${missing} moedas: ${roughTime((missing / income) * 3_600_000)} no ritmo atual.`
+          : 'Tempo de jogo que este preço representa no ritmo atual de moedas.'
+      }
+    >
+      {text} de farm
+    </small>
+  );
+}
+
 export function ShopScreen({ state }: { state: GameState }) {
   // Quem já está em Celadon abre direto na Loja de Departamentos.
   const [store, setStore] = useState<Store>(atDeptStore(state) ? 'dept' : 'mart');
+  const income = useIncome(state);
   return (
     <div className="bag-screen shop-screen">
       <div className="bag-pockets">
@@ -49,17 +115,29 @@ export function ShopScreen({ state }: { state: GameState }) {
         >
           <ItemIcon id="dowsing-machine" size={30} /> LOJA DE DEPTO.
         </button>
+        <button
+          className={`pocket ${store === 'merchant' ? 'active' : ''} ${state.merchant ? 'pocket-alert' : ''}`}
+          onClick={() => setStore('merchant')}
+        >
+          <ItemIcon id="vs-seeker" size={30} /> MERCADOR{state.merchant ? ' !' : ''}
+        </button>
         <span className="bag-money frame frame-menu">
           <Money value={state.coins} />
         </span>
       </div>
-      {store === 'mart' ? <Mart state={state} /> : <DeptStore state={state} />}
+      {store === 'mart' ? (
+        <Mart state={state} income={income} />
+      ) : store === 'dept' ? (
+        <DeptStore state={state} income={income} />
+      ) : (
+        <Merchant state={state} income={income} />
+      )}
     </div>
   );
 }
 
 /** POKé MART: itens básicos, liberados pelos chefes vencidos. Compra-se de qualquer lugar. */
-function Mart({ state }: { state: GameState }) {
+function Mart({ state, income }: { state: GameState; income: number }) {
   const engine = useEngine();
   const available = shopEntries(state);
   const locked = SHOP_CATALOG.filter((e) => !available.includes(e));
@@ -74,10 +152,11 @@ function Mart({ state }: { state: GameState }) {
           const bought = isUpgrade && state.upgrades.includes(entry.id);
           return (
             <li key={entry.id} className="mart-row">
-              <ItemIcon id={isUpgrade ? 'dowsing-machine' : entry.id} size={30} />
+              <ItemIcon id={isUpgrade && !getItem(entry.id) ? 'dowsing-machine' : entry.id} size={30} />
               <div className="mart-info">
                 <span className="item-name">{itemName(entry.id).toUpperCase()}</span>
-                <small>{isUpgrade ? UPGRADE_TEXT[entry.id]?.description : ITEM_DESCRIPTIONS[entry.id]}</small>
+                <small>{isUpgrade ? UPGRADE_TEXT[entry.id]?.description : itemDescription(entry.id)}</small>
+                {!bought && <FarmTime price={entry.price} coins={state.coins} income={income} />}
               </div>
               <div className="mart-buy">
                 {bought ? (
@@ -118,21 +197,12 @@ function Mart({ state }: { state: GameState }) {
 }
 
 /** Loja de Departamentos: todos os itens, mas só se compra estando na área dela. */
-function DeptStore({ state }: { state: GameState }) {
+function DeptStore({ state, income }: { state: GameState; income: number }) {
   const engine = useEngine();
   const route = getRoute(DEPT_STORE.routeId);
   const unlocked = deptStoreUnlocked(state);
   const here = atDeptStore(state);
   const entries = deptStoreEntries(state);
-  const describe = (id: string) => {
-    const species = EVOLVES_WITH.get(id);
-    if (species) {
-      return `Evolui ${species.slice(0, 3).join(', ')}${species.length > 3 ? ` e mais ${species.length - 3}` : ''}.`;
-    }
-    const fossil = FOSSILS.find((f) => f.item === id);
-    if (fossil) return `Revive um ${speciesName(fossil.speciesId)} no laboratório de fósseis.`;
-    return ITEM_DESCRIPTIONS[id] ?? '';
-  };
 
   return (
     <Window
@@ -183,6 +253,7 @@ function DeptStore({ state }: { state: GameState }) {
                       {(state.items[entry.id] ?? 0) > 0 && <small> · tem {state.items[entry.id]}</small>}
                     </span>
                     <small>{describe(entry.id)}</small>
+                    <FarmTime price={entry.price} coins={state.coins} income={income} />
                   </div>
                   <div className="mart-buy">
                     <button
@@ -208,6 +279,72 @@ function DeptStore({ state }: { state: GameState }) {
           </section>
         );
       })}
+    </Window>
+  );
+}
+
+/** Mercador viajante: ofertas com desconto e estoque limitado, de qualquer lugar, por pouco tempo. */
+function Merchant({ state, income }: { state: GameState; income: number }) {
+  const engine = useEngine();
+  if (!merchantUnlocked(state)) {
+    return (
+      <Window frame="menu" title="MERCADOR VIAJANTE" icon={<ItemIcon id="vs-seeker" size={24} />}>
+        <Locked routeId={BALANCE.merchant.unlock} />
+      </Window>
+    );
+  }
+  const m = state.merchant;
+  const now = state.lastTimerAt;
+  return (
+    <Window frame="menu" title="MERCADOR VIAJANTE" icon={<ItemIcon id="vs-seeker" size={24} />}>
+      {!m ? (
+        <p className="hint">
+          O mercador está na estrada. Ele aparece a cada {BALANCE.merchant.minHours}–
+          {BALANCE.merchant.maxHours} h
+          {state.nextMerchantAt > now
+            ? ` (próxima visita em cerca de ${formatDuration(state.nextMerchantAt - now)})`
+            : ''}
+          , fica {BALANCE.merchant.activeMinutes} min e vende itens raros com até{' '}
+          {Math.round(BALANCE.merchant.discount[1] * 100)}% de desconto.
+        </p>
+      ) : (
+        <>
+          <p className="hint">
+            “Tenho coisas que você não acha em loja nenhuma por esse preço!” Vai embora em{' '}
+            <Countdown until={m.until} now={now} done="saindo…" />. Estoque limitado.
+          </p>
+          <ul className="item-list mart">
+            {m.offers.map((o) => (
+              <li key={o.id} className={`mart-row ${o.stock <= 0 ? 'sold-out' : ''}`}>
+                <ItemIcon id={o.id} size={30} />
+                <div className="mart-info">
+                  <span className="item-name">
+                    {itemName(o.id).toUpperCase()}{' '}
+                    <span className="tag tag-sale">−{Math.round((1 - o.price / o.fullPrice) * 100)}%</span>
+                  </span>
+                  <small>{describe(o.id)}</small>
+                  <small>
+                    De <s>{o.fullPrice}</s> · {o.stock > 0 ? `restam ${o.stock}` : 'esgotado'}
+                  </small>
+                  {o.stock > 0 && <FarmTime price={o.price} coins={state.coins} income={income} />}
+                </div>
+                <div className="mart-buy">
+                  <button
+                    className="pbtn small"
+                    disabled={o.stock <= 0 || state.coins < o.price}
+                    onClick={() => {
+                      engine.dispatch((s, t) => buyFromMerchant(s, o.id, t));
+                      audio.sfx('coin');
+                    }}
+                  >
+                    <Money value={o.price} />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </Window>
   );
 }

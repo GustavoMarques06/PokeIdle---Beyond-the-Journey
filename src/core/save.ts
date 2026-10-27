@@ -1,6 +1,6 @@
 // Salvamento local versionado, com backup e migrações explícitas.
 
-import { ROUTES, hasSpecies, lineRoot } from '../game-data';
+import { ROUTES, hasSpecies, isHeldItem, lineRoot } from '../game-data';
 import { emptyDaycare } from './daycare';
 import { environmentAt } from './env';
 import { DEFAULT_SETTINGS, EMPTY_STATS, freshBattle, type GameState } from './game';
@@ -10,9 +10,13 @@ import { emptyMissions } from './missions';
 import { natureFor } from './pokemon';
 import type { Ivs } from './stats';
 import { emptyTower } from './tower';
+import { addResearch } from './dexresearch';
+import { recordForm } from './forms';
+import { emptyTournament } from './tournament';
+import { emptyTraining } from './training';
 
-export const SAVE_FORMAT_VERSION = 5;
-export const GAME_VERSION = '0.4.0';
+export const SAVE_FORMAT_VERSION = 6;
+export const GAME_VERSION = '0.6.0';
 export const SAVE_KEY = 'pokeidle.save';
 export const BACKUP_KEY = 'pokeidle.save.backup';
 
@@ -102,6 +106,9 @@ const MIGRATIONS: Record<number, Migration> = {
     state.challengesWon = [];
     state.history = [];
   },
+  // Formato 5 → 6 (jogo 0.5): treino, raides, revanches, itens seguráveis e amizade.
+  // Os campos novos dos Pokémon são opcionais e os do estado são criados em `normalize`.
+  5: () => {},
 };
 
 /** Linhas iniciais removidas (Gen VI–IX) → espécie de Kanto equivalente (planta 1, fogo 4, água 7). */
@@ -155,6 +162,7 @@ export function parseSave(raw: string | null): ParseResult {
     migrate(file);
     file.meta.formatVersion = v + 1;
   }
+  repairCoins(file.state);
   const error = validateState(file.state);
   if (error) return { ok: false, error };
   const state = file.state as unknown as GameState;
@@ -167,6 +175,22 @@ function isObject(v: unknown): v is Record<string, unknown> {
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Até a 0.5.0, chefes com itens ou MT na recompensa davam `undefined` moedas e o dinheiro virava
+ * NaN (gravado como null). O valor real se perdeu: devolve as moedas dos chefes já vencidos.
+ */
+function repairCoins(s: Record<string, unknown>): void {
+  if (s.coins !== null) return;
+  const routes = isObject(s.routes) ? s.routes : {};
+  const beaten = (id: string) => isObject(routes[id]) && routes[id].bossDefeated === true;
+  const coins = ROUTES.filter((r) => r.boss && beaten(r.id)).reduce(
+    (sum, r) => sum + r.boss!.reward.coins,
+    0,
+  );
+  s.coins = coins;
+  if (isObject(s.stats) && !isNum(s.stats.coinsEarned)) s.stats.coinsEarned = coins;
+}
 
 function validateState(s: Record<string, unknown>): string | null {
   if (!isNum(s.coins) || s.coins < 0) return 'moedas inválidas';
@@ -226,6 +250,37 @@ function normalize(state: GameState): void {
   state.challenge ??= null;
   state.challengesWon ??= [];
   state.history ??= [];
+  state.training = { ...emptyTraining(), ...state.training };
+  // O Mega Bracelet saiu do jogo: devolve o preço.
+  if (state.upgrades.includes('mega-bracelet')) {
+    state.upgrades = state.upgrades.filter((id) => id !== 'mega-bracelet');
+    state.coins += 25_000;
+  }
+  state.raid ??= null;
+  state.nextRaidAt ??= 0;
+  state.rematchAt ??= {};
+  const uidsNow = new Set(state.collection.map((p) => p.uid));
+  state.encounterMode ??= 'land';
+  state.merchant ??= null;
+  state.nextMerchantAt ??= 0;
+  state.showcase = (state.showcase ?? []).filter((id) => state.achievements.includes(id));
+  state.cardFrame ??= 'basic';
+  state.safari ??= null;
+  state.berryTrees ??= {};
+  state.tournament = { ...emptyTournament(), ...state.tournament };
+  state.companion ??= null;
+  if (state.companion && !uidsNow.has(state.companion.uid)) state.companion = null;
+  if (!state.dexResearch) {
+    state.dexResearch = {};
+    for (const p of state.collection) addResearch(state, p.speciesId, { caught: 1 });
+  }
+  state.forms ??= {};
+  for (const p of state.collection) if (p.form) recordForm(state, p.speciesId, p.form);
+  state.mvp ??= { week: 0, wins: {} };
+  for (const p of state.collection) {
+    if (p.held && !isHeldItem(p.held)) delete p.held;
+  }
+  if (state.raid && !state.routes[state.raid.routeId]) state.raid = null;
   if (state.roamer && !state.routes[state.roamer.routeId]) state.roamer = null;
   if (state.rocket && !state.routes[state.rocket.routeId]) state.rocket = null;
   const uids = new Set(state.collection.map((p) => p.uid));
@@ -234,6 +289,9 @@ function normalize(state: GameState): void {
     (uid) => uids.has(uid) && uid !== state.activeUid && !state.passives.includes(uid),
   );
   state.daycare.uids = state.daycare.uids.filter((uid) => uids.has(uid) && uid !== state.activeUid);
+  state.training.slots = state.training.slots.filter(
+    (slot) => uids.has(slot.uid) && slot.uid !== state.activeUid && !state.passives.includes(slot.uid),
+  );
   for (const run of state.expeditions) run.uids = run.uids.filter((uid) => uids.has(uid));
   // Batalhas contra treinadores não são retomadas ao carregar: volta para a rota.
   if (!state.battle || state.battle.routeId !== state.currentRouteId || state.battle.kind !== 'wild') {

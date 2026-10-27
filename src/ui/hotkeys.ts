@@ -40,7 +40,10 @@ export const HOTKEY_HELP: [string, string][] = [
   ['1 – 9', 'abrir as telas do menu (Pokémon, Pokédex, Mochila, Loja…)'],
   ['Q', 'lançar Poké Ball'],
   ['W', 'lançar Great/Ultra Ball'],
-  ['D', 'desafiar o chefe ou a Equipe Rocket'],
+  ['D', 'desafiar o chefe, a raide, a Equipe Rocket ou fazer a revanche'],
   ['F', 'fugir / desistir do desafio'],
+  ['E', 'alternar entre grama, pesca e surf (em rotas com água)'],
+  ['B', 'colher a árvore de berry da rota'],
+  ['P', 'tirar uma foto da batalha'],
   ['Esc', 'fechar avisos e relatórios'],
 ];

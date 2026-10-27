@@ -33,7 +33,22 @@ export function Badges({
   );
 }
 
-const WEATHER_ICON = { clear: 'cloud', sun: 'sun', rain: 'rain', sand: 'sand' } as const;
+const WEATHER_ICON = {
+  clear: 'cloud',
+  sun: 'sun',
+  rain: 'rain',
+  sand: 'sand',
+  fog: 'fog',
+  hail: 'hail',
+} as const;
+
+/** Período do dia para exibição (o jogo só distingue dia e noite; entardecer e amanhecer são visuais). */
+function dayPhase(now: number, night: boolean): string {
+  const h = new Date(now).getHours();
+  if (h >= 16 && h < 18) return 'ENTARDECER';
+  if (h >= 6 && h < 8) return 'AMANHECER';
+  return night ? 'NOITE' : 'DIA';
+}
 
 export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => void }) {
   const route = getRoute(state.currentRouteId);
@@ -81,9 +96,12 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
         className="hud-plate frame frame-menu hud-env"
         title={`${night ? 'Noite' : 'Dia'} · ${WEATHER_NAMES[weather]}. ${WEATHER_EFFECTS[weather]}${night ? ' À noite: Fantasma/Sombrio +15% e outros Pokémon aparecem.' : ''}`}
       >
-        <PixelIcon name={night ? 'moon' : 'sun'} scale={2} />
-        <PixelIcon name={WEATHER_ICON[weather]} scale={2} />
-        <small>{WEATHER_NAMES[weather].toUpperCase()}</small>
+        {/* Um ícone só: o clima, ou o sol/a lua quando o céu está limpo. */}
+        <PixelIcon name={weather === 'clear' ? (night ? 'moon' : 'sun') : WEATHER_ICON[weather]} scale={2} />
+        <small>
+          {weather === 'clear' ? '' : `${WEATHER_NAMES[weather].toUpperCase()} · `}
+          {dayPhase(state.lastTimerAt, night)}
+        </small>
       </div>
 
       {(state.roamer || state.rocket) && (

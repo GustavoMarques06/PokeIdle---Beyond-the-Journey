@@ -20,7 +20,8 @@ const r = (id, name, description, kills, scene, map, encounters, opts = {}) => (
   ...opts,
 });
 
-const boss = (name, title, trainer, team, coins, extra = {}) => ({ name, title, trainer, team, reward: { coins, ...(extra.reward ?? {}) }, ...extra });
+// `reward` vem por último: o de `extra` só acrescenta itens e MT às moedas, sem apagá-las.
+const boss = (name, title, trainer, team, coins, extra = {}) => ({ name, title, trainer, team, ...extra, reward: { coins, ...(extra.reward ?? {}) } });
 
 /** Desafio da Liga: sem encontros selvagens, o jogador treina em `farm`. */
 const trial = (id, name, farm, map, b) => ({

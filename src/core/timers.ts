@@ -1,5 +1,5 @@
 // Cronômetros de tempo real: ambiente, ovos, berries, expedições, fósseis, errantes,
-// Equipe Rocket e missões. Chamado pelo motor a cada segundo e ao carregar o save.
+// Equipe Rocket, raides, mercador e missões. Chamado pelo motor a cada segundo e ao carregar o save.
 
 import { daycareTime, hatchReadyEggs } from './daycare';
 import { environmentAt } from './env';
@@ -9,8 +9,13 @@ import { fossilTimers } from './fossils';
 import { gardenTimers } from './garden';
 import { sampleHistory } from './history';
 import type { GameEvent, GameState } from './game';
+import { companionTick } from './companion';
+import { updateMerchant } from './market';
+import { refreshSeason } from './tournament';
 import { refreshMissions } from './missions';
+import { updateRaid } from './raids';
 import { rngFrom } from './rng';
+import { trainingTick } from './training';
 
 export function updateTimers(state: GameState, now: number): GameEvent[] {
   const events: GameEvent[] = [];
@@ -35,6 +40,11 @@ export function updateTimers(state: GameState, now: number): GameEvent[] {
   const rng = rngFrom(state);
   updateRoamer(state, now, rng, events);
   updateRocket(state, now, rng, events);
+  updateRaid(state, now, rng, events);
+  updateMerchant(state, now, rng, events);
+  companionTick(state, now, rng, events);
+  refreshSeason(state, now);
+  trainingTick(state, now, events);
   refreshMissions(state, now, events);
   sampleHistory(state, now);
   return events;

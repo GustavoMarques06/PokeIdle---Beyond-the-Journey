@@ -16,22 +16,33 @@ import {
   type PlayerAvatar,
   type Route,
   type ShopEntry,
+  type WaterMode,
 } from '../game-data';
 import { addToCollection } from './collection';
+import { eliteItemOf, typeItemOf } from './loadout';
 import { type DamageResult } from './combat';
 import { emptyDaycare, type DaycareState, type Egg } from './daycare';
 import { environmentAt, type Environment } from './env';
 import { type RoamerState, type RocketState } from './events';
 import type { ExpeditionRun } from './expeditions';
 import type { FossilRun } from './fossils';
+import type { MerchantState } from './market';
+import type { CompanionState } from './companion';
+import type { DexResearchEntry } from './dexresearch';
+import type { MvpState } from './records';
+import type { SafariState } from './safari';
+import type { TournamentState } from './tournament';
 import type { GardenPlot } from './garden';
 import { emptyHunt, type HuntState } from './hunt';
 import { emptyLegends, type LegendState } from './legendary';
 import { emptyMissions, type MissionsState } from './missions';
 import { randomIvs, rollShiny, type PokemonInstance } from './pokemon';
+import type { RaidState } from './raids';
 import { rngFrom } from './rng';
 import type { Ivs } from './stats';
 import { emptyTower, type TowerState } from './tower';
+import { emptyTournament } from './tournament';
+import { emptyTraining, type TrainingState } from './training';
 
 export interface RouteProgress {
   unlocked: boolean;
@@ -61,6 +72,11 @@ export interface Settings {
   notifications: boolean;
   /** Troca automática para a reserva com vantagem contra cada inimigo. */
   autoSwitch: boolean;
+  /** Velocidade das animações e do texto da batalha (1 = normal). */
+  animSpeed: number;
+  /** Contraste alto e texto maior. */
+  highContrast: boolean;
+  largeText: boolean;
 }
 
 /** Efeito de status em andamento. `turns` conta as ações restantes de sono. */
@@ -94,15 +110,28 @@ export interface EnemyState {
   roamer?: boolean;
   fleeMs?: number;
   status?: StatusState;
+  /** Item segurado (cai ao ser derrotado). */
+  held?: string;
+  abilitySlot?: 0 | 1 | 2;
+  /** Efeitos de uma só vez por luta já gastos ('sturdy', 'sash', 'berry'). */
+  used?: string[];
+  /** Raide: etapa de fúria (0 a 2). */
+  rage?: number;
+  /** Encontrado pescando ou surfando. */
+  water?: WaterMode;
+  /** Forma alternativa (Unown, Deerling, Spinda). */
+  form?: string;
 }
 
 export type BattlePhase = 'spawning' | 'fighting' | 'victory' | 'defeat';
-export type BattleKind = 'wild' | 'boss' | 'rocket' | 'tower' | 'legendary';
+export type BattleKind = 'wild' | 'boss' | 'rocket' | 'tower' | 'legendary' | 'raid' | 'tournament';
 
 export interface TeamMember {
   speciesId: number;
   level: number;
   boost?: number;
+  held?: string;
+  abilitySlot?: 0 | 1 | 2;
 }
 
 export interface TrainerInfo {
@@ -127,6 +156,12 @@ export interface BattleState {
   enemyTimerMs: number;
   /** Status do Pokémon ativo; some ao fim de cada batalha ou na troca. */
   playerStatus?: StatusState | null;
+  /** Efeitos de uma só vez por luta já gastos pelo ativo. */
+  playerUsed?: string[];
+  /** Raide: tempo restante (ms). */
+  raidMs?: number;
+  /** Revanche contra um chefe já vencido (sem insígnia, TM nem desbloqueios). */
+  rematch?: boolean;
 }
 
 export interface HallOfFameEntry {
@@ -197,12 +232,42 @@ export interface GameState {
   nextRocketAt: number;
   tower: TowerState;
   hallOfFame: HallOfFameEntry[];
+  training: TrainingState;
+  raid: RaidState | null;
+  nextRaidAt: number;
+  /** Quando cada chefe aceita uma revanche (por rota). */
+  rematchAt: Record<string, number>;
   /** Desafio da jornada atual (escolhido ao iniciar uma nova jornada). */
   challenge: ChallengeId | null;
   /** Desafios já concluídos ao menos uma vez. */
   challengesWon: ChallengeId[];
   history: HistorySample[];
+  /** Onde o jogador procura Pokémon: na grama, pescando ou surfando (se a rota tiver água). */
+  encounterMode: EncounterMode;
+  merchant: MerchantState | null;
+  nextMerchantAt: number;
+  /** Medalhas (ids de conquistas) expostas no cartão de treinador. */
+  showcase: string[];
+  /** Moldura escolhida para o cartão de treinador. */
+  cardFrame: string;
+  /** Jogo do Safari em andamento. */
+  safari: SafariState | null;
+  /** Quando cada árvore de berry selvagem dá frutos de novo (por rota; ausente = pronta). */
+  berryTrees: Record<string, number>;
+  tournament: TournamentState;
+  companion: CompanionState | null;
+  /** Diário de pesquisa por espécie. */
+  dexResearch: Record<number, DexResearchEntry>;
+  /** Formas já capturadas por espécie. */
+  forms: Record<number, string[]>;
+  /** Vitórias da semana por Pokémon (MVP da semana). */
+  mvp: MvpState;
 }
+
+export type EncounterMode = 'land' | WaterMode;
+
+/** Colocação no torneio da semana. */
+export type TournamentPlace = 'champion' | 'final' | 'semi' | 'quarter';
 
 export interface GameStats {
   totalKills: number;
@@ -217,6 +282,14 @@ export interface GameStats {
   harvests: number;
   expEarned: number;
   coinsEarned: number;
+  waterKills: number;
+  raidWins: number;
+  rematchWins: number;
+  itemsSold: number;
+  merchantBuys: number;
+  safariCaptures: number;
+  wildHarvests: number;
+  tournamentTitles: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -231,6 +304,9 @@ export const DEFAULT_SETTINGS: Settings = {
   illustratedScenes: true,
   notifications: false,
   autoSwitch: true,
+  animSpeed: 1,
+  highContrast: false,
+  largeText: false,
 };
 
 export const EMPTY_STATS: GameStats = {
@@ -246,7 +322,17 @@ export const EMPTY_STATS: GameStats = {
   harvests: 0,
   expEarned: 0,
   coinsEarned: 0,
+  waterKills: 0,
+  raidWins: 0,
+  rematchWins: 0,
+  itemsSold: 0,
+  merchantBuys: 0,
+  safariCaptures: 0,
+  wildHarvests: 0,
+  tournamentTitles: 0,
 };
+
+export type EffectKind = 'sturdy' | 'sash' | 'berry' | 'cure' | 'absorb' | 'synchronize';
 
 export type GameEvent =
   | {
@@ -255,9 +341,11 @@ export type GameEvent =
       level: number;
       shiny: boolean;
       boss: boolean;
+      raid?: boolean;
       roamer?: boolean;
       perfect?: boolean;
       legendary?: boolean;
+      water?: WaterMode;
     }
   | { type: 'attack'; side: 'player' | 'enemy'; attacker: number; target: number; result: DamageResult }
   | { type: 'enemyFainted'; speciesId: number; exp: number; coins: number }
@@ -300,6 +388,50 @@ export type GameEvent =
   | { type: 'rocketDefeated'; coins: number; items: Record<string, number> }
   | { type: 'towerFloor'; floor: number; points: number }
   | { type: 'towerEnded'; floor: number }
+  /** Habilidade ou item entrou em ação (Robustez, Faixa Foco, berries, absorções…). */
+  | {
+      type: 'effect';
+      side: 'player' | 'enemy';
+      speciesId: number;
+      kind: EffectKind;
+      item?: string;
+      /** HP recuperado (berry, absorção). */
+      amount?: number;
+    }
+  | { type: 'itemFound'; item: string; qty: number }
+  | { type: 'raidAppeared'; speciesId: number }
+  | { type: 'raidLeft'; speciesId: number }
+  | { type: 'raidRage'; speciesId: number; stage: number }
+  | { type: 'raidFailed'; speciesId: number }
+  | {
+      type: 'raidDefeated';
+      speciesId: number;
+      coins: number;
+      items: Record<string, number>;
+      caught?: { uid: number; shiny: boolean; isNew: boolean };
+    }
+  | { type: 'rematchDefeated'; routeId: string; coins: number; items: Record<string, number> }
+  | { type: 'trainingFull'; uid: number; stat: string }
+  | { type: 'merchantAppeared' }
+  | { type: 'merchantLeft' }
+  | { type: 'companionFound'; uid: number; speciesId: number; item: string }
+  | { type: 'researchComplete'; speciesId: number }
+  | {
+      type: 'safariResult';
+      speciesId: number;
+      action: 'ball' | 'bait' | 'rock' | 'run';
+      outcome: 'caught' | 'missed' | 'fled' | 'stayed' | 'left';
+    }
+  | { type: 'safariEnded'; caught: number }
+  | {
+      type: 'tournamentMatch';
+      round: number;
+      opponent: string;
+      won: boolean;
+      score: [number, number];
+      coins: number;
+    }
+  | { type: 'tournamentEnded'; place: TournamentPlace }
   | { type: 'missionDone'; id: string }
   | { type: 'missionsRefreshed'; scope: 'daily' | 'weekly' }
   | { type: 'weatherChanged'; weather: string };
@@ -362,9 +494,25 @@ export function newGame(
     nextRocketAt: 0,
     tower: emptyTower(),
     hallOfFame: [],
+    training: emptyTraining(),
+    raid: null,
+    nextRaidAt: 0,
+    rematchAt: {},
     challenge: null,
     challengesWon: [],
     history: [],
+    encounterMode: 'land',
+    merchant: null,
+    nextMerchantAt: 0,
+    showcase: [],
+    cardFrame: 'basic',
+    safari: null,
+    berryTrees: {},
+    tournament: emptyTournament(),
+    companion: null,
+    dexResearch: {},
+    forms: {},
+    mvp: { week: 0, wins: {} },
   };
   const rng = rngFrom(state);
   const starter = addToCollection(
@@ -441,11 +589,31 @@ export function rivalSpecies(state: GameState, stage: number): number {
 }
 
 /** Time real de um chefe: resolve o inicial do rival e o reforço por prestígio. */
-export function resolveBossTeam(state: GameState, boss: BossData): TeamMember[] {
+export function resolveBossTeam(state: GameState, boss: BossData, rematch = false): TeamMember[] {
   const extra = boss.rival ? BALANCE.rival.levelsPerPrestige * state.prestige.count : 0;
-  return boss.team.map((m) => ({
-    speciesId: 'speciesId' in m ? m.speciesId : rivalSpecies(state, m.rivalStage),
-    level: Math.min(BALANCE.maxLevel, m.level + extra),
-    boost: boss.boost,
-  }));
+  const re = rematch ? BALANCE.rematch.levelBonus : 0;
+  const lastIndex = boss.team.length - 1;
+  return boss.team.map((m, i) => {
+    const speciesId = 'speciesId' in m ? m.speciesId : rivalSpecies(state, m.rivalStage);
+    return {
+      speciesId,
+      level: Math.min(BALANCE.maxLevel, m.level + extra + re),
+      boost: rematch ? (boss.boost ?? 1) * BALANCE.rematch.boost : boss.boost,
+      ...bossLoadout(boss, speciesId, i === lastIndex, rematch),
+    };
+  });
+}
+
+/** Itens que o treinador dá a cada Pokémon: o ás segura um item do tipo; campeões e revanches, todos. */
+function bossLoadout(
+  boss: BossData,
+  speciesId: number,
+  ace: boolean,
+  rematch: boolean,
+): { held?: string; abilitySlot?: 0 | 1 | 2 } {
+  const typeItem = typeItemOf(speciesId);
+  if (boss.champion || rematch) {
+    return { held: ace ? (typeItem ?? eliteItemOf(speciesId)) : eliteItemOf(speciesId), abilitySlot: 0 };
+  }
+  return ace && typeItem ? { held: typeItem, abilitySlot: 0 } : {};
 }

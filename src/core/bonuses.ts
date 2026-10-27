@@ -22,7 +22,7 @@ import type { DuelScales } from './combat';
 import { dexBonuses, typeMedalBoost } from './dex';
 import { environmentMoveBoost, mergeBoosts, routeWeather, type Weather } from './env';
 import type { GameState } from './game';
-import type { PokemonInstance } from './pokemon';
+import { abilityOf, heldOf, type PokemonInstance } from './pokemon';
 
 export const BONUS_KINDS: BonusKind[] = ['damage', 'defense', 'speed', 'exp', 'coins', 'capture', 'heal'];
 
@@ -65,6 +65,8 @@ export interface PassiveContribution {
   duplicate: boolean;
   typeTargets: TypeName[];
   typeValue: number;
+  /** Bônus da habilidade do Pokémon enquanto está no apoio (somado depois do empilhamento). */
+  ability?: { kind: BonusKind; value: number };
 }
 
 /** Contribuição de cada passivo, com empilhamento decrescente e espécies repetidas anuladas. */
@@ -78,6 +80,7 @@ export function passiveContributions(state: GameState): PassiveContribution[] {
     duplicate: false,
     typeTargets: [...new Set(getSpecies(p.speciesId).types.flatMap(superEffectiveAgainst))],
     typeValue: PASSIVE.typeAdvantage.base + PASSIVE.typeAdvantage.perLevel * p.level,
+    ability: abilityOf(p).passive,
   }));
 
   const best = new Map<number, PassiveContribution>();
@@ -165,7 +168,10 @@ function buff(state: GameState, kind: BuffKind): number {
 export function computeModifiers(state: GameState): Modifiers {
   const contributions = passiveContributions(state);
   const passive = Object.fromEntries(BONUS_KINDS.map((k) => [k, 0])) as Record<BonusKind, number>;
-  for (const c of contributions) passive[c.kind] += c.effective;
+  for (const c of contributions) {
+    passive[c.kind] += c.effective;
+    if (c.ability && !c.duplicate) passive[c.ability.kind] += c.ability.value;
+  }
   for (const k of BONUS_KINDS) passive[k] = Math.min(PASSIVE.caps[k], passive[k]);
 
   const typeDamage: Record<TypeName, number> = {};
@@ -181,6 +187,8 @@ export function computeModifiers(state: GameState): Modifiers {
   }
 
   const active = state.collection.find((p) => p.uid === state.activeUid);
+  const activeHeld = active ? heldOf(active) : undefined;
+  const activeAbility = active ? abilityOf(active) : undefined;
   const mastery = active ? masteryOf(state, active.speciesId).level : 0;
   const masteryBonus = mastery * MASTERY_BONUS_PER_LEVEL;
   const fortune = 0.15 * prestigeLevel(state, 'fortune');
@@ -199,22 +207,32 @@ export function computeModifiers(state: GameState): Modifiers {
       (1 + passive.exp) *
       (1 + researchTotal(state, 'exp')) *
       (1 + fortune) *
-      (1 + dex.exp + buff(state, 'exp')),
+      (1 + dex.exp + buff(state, 'exp')) *
+      (1 + (activeHeld?.exp ?? 0)),
     coins:
       (1 + passive.coins) *
       (1 + researchTotal(state, 'coins')) *
       (1 + fortune) *
-      (1 + dex.coins + buff(state, 'coins')),
+      (1 + dex.coins + buff(state, 'coins')) *
+      (1 + (activeHeld?.coins ?? 0)),
     capture:
       (1 + passive.capture) *
       (1 + researchTotal(state, 'capture')) *
       (1 + dex.capture + buff(state, 'capture')) *
       (route.safari ? BALANCE.capture.safariBonus : 1),
-    shiny: (1 + 0.5 * prestigeLevel(state, 'shiny')) * (1 + dex.shiny + buff(state, 'shiny')),
+    shiny:
+      (1 + 0.5 * prestigeLevel(state, 'shiny')) *
+      (1 + dex.shiny + buff(state, 'shiny')) *
+      (1 + (activeHeld?.shiny ?? 0)),
     damageTaken: (1 - passive.defense) * (1 - masteryBonus),
     enemyDamage: state.challenge === 'fierce' ? BALANCE.fierceEnemyDamage : 1,
     attackInterval: 1 / ((1 + passive.speed) * (1 + buff(state, 'speed'))),
-    heal: BALANCE.combat.healOnVictory + passive.heal + researchTotal(state, 'heal') + buff(state, 'heal'),
+    heal:
+      BALANCE.combat.healOnVictory +
+      passive.heal +
+      researchTotal(state, 'heal') +
+      buff(state, 'heal') +
+      (activeAbility?.healOnWin ?? 0),
     typeDamage,
     offlineMaxHours: BALANCE.offline.maxHours + researchTotal(state, 'offlineHours'),
     offlineEfficiency: Math.min(1, BALANCE.offline.efficiency + researchTotal(state, 'offlineEfficiency')),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ROUTES, STARTERS, getRoute } from '../game-data';
+import { ROUTES, SHOP, STARTERS, getRoute } from '../game-data';
 import {
   activePokemon,
   advance,
@@ -125,10 +125,12 @@ describe('captura e equipe', () => {
   it('loja respeita moedas e desbloqueios', () => {
     const s = newGame(1, 0, 11);
     expect(buy(s, 'poke-ball')).toBe(false);
-    s.coins = 100;
+    const price = SHOP.find((e) => e.id === 'poke-ball')!.price;
+    s.coins = 2 * price + 10;
+    expect(buy(s, 'poke-ball', 3)).toBe(false);
     expect(buy(s, 'poke-ball', 2)).toBe(true);
     expect(s.items['poke-ball']).toBe(7);
-    expect(s.coins).toBe(50);
+    expect(s.coins).toBe(10);
     expect(buy(s, 'great-ball')).toBe(false); // exige vencer Brock
   });
 });

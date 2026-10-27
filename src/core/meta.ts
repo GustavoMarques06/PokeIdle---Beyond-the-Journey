@@ -4,12 +4,15 @@
 import {
   ACHIEVEMENTS,
   BALANCE,
+  CARD_FRAMES,
   CHALLENGES,
+  MEDAL_TIERS,
   PRESTIGE,
   PRESTIGE_UPGRADES,
   RESEARCH,
   RESEARCH_POINTS,
   ROUTES,
+  SHOWCASE_SLOTS,
   getSpecies,
   type AchievementDef,
   type ChallengeId,
@@ -55,6 +58,7 @@ export function canTransfer(state: GameState, uid: number): boolean {
     return false;
   }
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return false;
+  if (state.training.slots.some((s) => s.uid === uid)) return false;
   return state.collection.some((x) => x.uid !== uid && x.speciesId === p.speciesId);
 }
 
@@ -62,6 +66,7 @@ export function transferPokemon(state: GameState, uid: number): number {
   if (!canTransfer(state, uid)) return 0;
   const p = state.collection.find((x) => x.uid === uid)!;
   const points = transferValue(p);
+  if (p.held) state.items[p.held] = (state.items[p.held] ?? 0) + 1;
   state.collection = state.collection.filter((x) => x.uid !== uid);
   state.research.points += points;
   return points;
@@ -166,6 +171,8 @@ export function prestigeReset(state: GameState, challenge: ChallengeId | null = 
   state.tower.floor = 0;
   state.rocket = null;
   state.roamer = null;
+  state.raid = null;
+  state.rematchAt = {};
   applyJourneyStart(state);
   state.passives = [];
   state.battleTeam = [];
@@ -231,7 +238,71 @@ export function achievementProgress(
       return { value: state.prestige.count, target: g.n };
     case 'passives':
       return { value: passivePokemon(state).length, target: g.n };
+    case 'shinies':
+      return { value: Object.values(state.pokedex).filter((d) => d.shinyCaught).length, target: g.n };
+    case 'badges':
+      return {
+        value: ROUTES.filter((r) => r.boss?.badge && state.routes[r.id]?.bossDefeated).length,
+        target: g.n,
+      };
+    case 'champions':
+      return { value: new Set(state.hallOfFame.map((h) => h.regionId)).size, target: g.n };
+    case 'raids':
+      return { value: state.stats.raidWins, target: g.n };
+    case 'rematches':
+      return { value: state.stats.rematchWins, target: g.n };
+    case 'tower':
+      return { value: state.tower.best, target: g.n };
+    case 'water':
+      return { value: state.stats.waterKills, target: g.n };
+    case 'sold':
+      return { value: state.stats.itemsSold, target: g.n };
+    case 'merchant':
+      return { value: state.stats.merchantBuys, target: g.n };
+    case 'tournaments':
+      return { value: state.stats.tournamentTitles, target: g.n };
+    case 'safari':
+      return { value: state.stats.safariCaptures, target: g.n };
+    case 'research':
+      return { value: Object.values(state.dexResearch).filter((e) => e.complete).length, target: g.n };
+    case 'forms':
+      return { value: (state.forms[g.speciesId] ?? []).length, target: g.n };
+    case 'wildBerries':
+      return { value: state.stats.wildHarvests, target: g.n };
   }
+}
+
+// --- Medalhas: vitrine e moldura do cartão ---------------------------------------------
+
+/** Pontos de medalha: cada conquista vale conforme o metal (bronze 1 … platina 8). */
+export function medalPoints(state: GameState): number {
+  const points = new Map(MEDAL_TIERS.map((t) => [t.id, t.points]));
+  return ACHIEVEMENTS.filter((a) => state.achievements.includes(a.id)).reduce(
+    (sum, a) => sum + (points.get(a.tier) ?? 0),
+    0,
+  );
+}
+
+export function frameUnlocked(state: GameState, id: string): boolean {
+  const frame = CARD_FRAMES.find((f) => f.id === id);
+  return !!frame && medalPoints(state) >= frame.points;
+}
+
+export function setCardFrame(state: GameState, id: string): boolean {
+  if (!frameUnlocked(state, id)) return false;
+  state.cardFrame = id;
+  return true;
+}
+
+/** Põe ou tira uma medalha da vitrine do cartão (até SHOWCASE_SLOTS). */
+export function toggleShowcase(state: GameState, id: string): boolean {
+  if (state.showcase.includes(id)) {
+    state.showcase = state.showcase.filter((x) => x !== id);
+    return true;
+  }
+  if (!state.achievements.includes(id) || state.showcase.length >= SHOWCASE_SLOTS) return false;
+  state.showcase.push(id);
+  return true;
 }
 
 /** Concede as conquistas recém-cumpridas e devolve os eventos. */

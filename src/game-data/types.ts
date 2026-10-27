@@ -19,10 +19,17 @@ export type GrowthRate =
 
 export type TimeOfDay = 'day' | 'night';
 
-/** Evolução por nível ou por item (com período do dia opcional, como Espeon/Umbreon). */
+/** Condição extra de uma evolução por nível (Hitmon*, Wurmple). */
+export type EvoCondition = 'atk>def' | 'def>atk' | 'atk=def' | 'uid-even' | 'uid-odd';
+
+/**
+ * Evolução por nível, por item ou por amizade (com período do dia opcional, como
+ * Espeon/Umbreon).
+ */
 export type Evolution =
-  | { to: number; trigger: 'level'; minLevel: number; time?: TimeOfDay }
-  | { to: number; trigger: 'item'; item: string; time?: TimeOfDay };
+  | { to: number; trigger: 'level'; minLevel: number; time?: TimeOfDay; cond?: EvoCondition }
+  | { to: number; trigger: 'item'; item: string; time?: TimeOfDay }
+  | { to: number; trigger: 'friendship'; minFriendship: number; time?: TimeOfDay };
 
 export interface LearnsetEntry {
   level: number;
@@ -84,7 +91,9 @@ export interface Move {
 export interface ItemData {
   id: string;
   name: string;
-  sprite: string;
+  sprite?: string;
+  /** Itens sem sprite da PokéAPI são desenhados pelo jogo: forma (ver theme/icons.ts) e cor. */
+  icon?: { glyph: string; color: string };
 }
 
 export interface Encounter {

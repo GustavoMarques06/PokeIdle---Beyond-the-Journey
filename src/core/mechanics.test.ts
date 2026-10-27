@@ -269,10 +269,13 @@ describe('Loja de Departamentos', () => {
     for (const id of ['master-ball', 'rare-candy', 'moon-stone', 'dusk-stone', 'helix-fossil', 'lum-berry']) {
       expect(ids).toContain(id);
     }
-    expect(ids).not.toContain('amulet-coin');
+    // Itens seguráveis e de treino também estão à venda; o que não tem uso no jogo, não.
+    for (const id of ['leftovers', 'choice-band', 'protein', 'bottle-cap']) expect(ids).toContain(id);
+    expect(ids).not.toContain('exp-share');
 
     const s = newGame(4, 0, 1);
-    s.coins = 10_000;
+    const start = 2 * DEPT_STORE.prices['rare-candy'] + 1000;
+    s.coins = start;
     expect(deptStoreUnlocked(s)).toBe(false);
     expect(buyAtDeptStore(s, 'rare-candy')).toBe(false);
 
@@ -284,7 +287,7 @@ describe('Loja de Departamentos', () => {
     expect(atDeptStore(s)).toBe(true);
     expect(buyAtDeptStore(s, 'rare-candy', 2)).toBe(true);
     expect(s.items['rare-candy']).toBe(2);
-    expect(s.coins).toBe(10_000 - 2 * DEPT_STORE.prices['rare-candy']);
+    expect(s.coins).toBe(1000);
     expect(buyAtDeptStore(s, 'master-ball')).toBe(false); // caro demais
   });
 

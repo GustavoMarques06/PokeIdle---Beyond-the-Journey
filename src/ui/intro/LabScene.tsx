@@ -3,7 +3,7 @@
 // tamanhos de sprite em múltiplos inteiros para manter os pixels nítidos.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { assetUrl, getItem, getSpecies, trainerSprite } from '../../game-data';
+import { assetUrl, getItem, getSpecies, spriteFeet, trainerSprite } from '../../game-data';
 import { PixelIcon } from '../components/common';
 import { LAB, LAB_H, LAB_W, paintLab, ringUri, shadowUri } from './lab';
 
@@ -52,7 +52,10 @@ export function LabScene({
   const starterScale = Math.max(2, Math.min(Math.floor(u * 1.3), Math.floor((58 * u) / sh)));
   const starterW = sw * starterScale;
   const starterH = sh * starterScale;
-  const shadowW = Math.max(at(26), Math.round(starterW * 0.9));
+  // Apoia o inicial pelos pés (não pelo centro da imagem) e dimensiona a sombra por eles.
+  const [feetCx, feetW, feetBottom] = spriteFeet(chosen, 'front') ?? [sw / 2, sw * 0.7, sh, 0];
+  const feetX = Math.min(0.72, Math.max(0.28, feetCx / sw)) * starterW;
+  const shadowW = Math.max(at(26), Math.round(Math.min(sw * 0.9, feetW * 1.3) * starterScale));
   const shadowH = Math.round(shadowW * 0.2);
 
   return (
@@ -116,8 +119,8 @@ export function LabScene({
         style={{
           width: starterW,
           height: starterH,
-          left: at(LAB.starter.x) - starterW / 2,
-          top: at(LAB.starter.y) - starterH,
+          left: at(LAB.starter.x) - feetX,
+          top: at(LAB.starter.y) - feetBottom * starterScale,
           ['--ps' as string]: `${starterScale}px`,
         }}
       />

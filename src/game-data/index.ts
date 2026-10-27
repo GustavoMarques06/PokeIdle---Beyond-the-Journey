@@ -2,10 +2,15 @@ import speciesJson from './generated/species.json';
 import movesJson from './generated/moves.json';
 import typeChartJson from './generated/type-chart.json';
 import itemsJson from './generated/items.json';
-import type { ItemData, Move, Region, Route, Species, TypeName } from './types';
-import { DEPT_STORE, EVOLUTION_ITEM_SHOP, SHOP, type ShopEntry } from './balance';
+import spriteFeetJson from './generated/sprite-feet.json';
+import type { Encounter, Evolution, ItemData, Move, Region, Route, Species, TypeName } from './types';
+import { BALANCE, DEPT_STORE, EVOLUTION_ITEM_SHOP, SHOP, type ShopEntry } from './balance';
 import { BERRIES } from './activities';
+import { SPECIES_ABILITIES, TYPE_ABILITIES, type AbilityTriple } from './abilities';
+import { HELD_ITEMS, TRAINING_ITEMS, extraItemData } from './helditems';
 import { FOSSILS, REGIONS, ROUTES } from './routes';
+import { RODS, WATER_ITEMS, WATER_SPOTS, type Rod, type WaterMode } from './water';
+import { SAFARI_ITEMS } from './safari';
 
 export * from './types';
 export {
@@ -26,13 +31,55 @@ export { BALANCE, DEPT_STORE, SHOP, type ShopEntry } from './balance';
 export * from './meta';
 export * from './activities';
 export * from './natures';
+export * from './abilities';
+export * from './helditems';
+export * from './water';
+export * from './forms';
+export * from './safari';
 
-export const SPECIES: Species[] = speciesJson as Species[];
+/**
+ * Amizade, Hitmon* e Wurmple: a PokéAPI traz essas evoluções como "item" (Sino Calmante,
+ * pedras); aqui viram evoluções por amizade e por condição.
+ */
+function withNaturalEvolutions(s: Species): Species {
+  const level = (
+    to: number,
+    minLevel: number,
+    cond: Extract<Evolution, { trigger: 'level' }>['cond'],
+  ): Evolution => ({
+    to,
+    trigger: 'level',
+    minLevel,
+    cond,
+  });
+  if (s.slug === 'tyrogue') {
+    return {
+      ...s,
+      evolutions: [level(106, 20, 'atk>def'), level(107, 20, 'def>atk'), level(237, 20, 'atk=def')],
+    };
+  }
+  if (s.slug === 'wurmple') {
+    return { ...s, evolutions: [level(266, 7, 'uid-even'), level(268, 7, 'uid-odd')] };
+  }
+  const evolutions = s.evolutions.map((e): Evolution =>
+    e.trigger === 'item' && e.item === 'soothe-bell'
+      ? { to: e.to, trigger: 'friendship', minFriendship: BALANCE.friendship.evolve, time: e.time }
+      : e,
+  );
+  return { ...s, evolutions };
+}
+
+export const SPECIES: Species[] = (speciesJson as Species[]).map(withNaturalEvolutions);
 const speciesById = new Map(SPECIES.map((s) => [s.id, s]));
 const speciesBySlug = new Map(SPECIES.map((s) => [s.slug, s]));
 const moves = movesJson as Record<string, Move>;
 const typeChart = typeChartJson as Record<TypeName, Record<TypeName, number>>;
-const items = itemsJson as Record<string, ItemData>;
+const items: Record<string, ItemData> = {
+  ...extraItemData(),
+  ...WATER_ITEMS,
+  ...SAFARI_ITEMS,
+  ...(itemsJson as Record<string, ItemData>),
+};
 const routesById = new Map(ROUTES.map((r) => [r.id, r]));
 const regionsById = new Map(REGIONS.map((r) => [r.id, r]));
 
@@ -44,6 +91,30 @@ export function getSpecies(id: number): Species {
 
 export function hasSpecies(id: number): boolean {
   return speciesById.has(id);
+}
+
+/**
+ * Centro x e largura dos pés, linha mais baixa e mais alta desenhadas, em pixels do sprite, e o
+ * quanto ele flutua na animação (fração da altura; Pokémon voadores ficam acima de 0,1).
+ */
+export type SpriteFeet = [
+  cx: number,
+  width: number,
+  bottom: number,
+  top: number,
+  hover: number,
+  imageWidth: number,
+  imageHeight: number,
+];
+
+const spriteFeetById = spriteFeetJson as unknown as Record<string, { front?: SpriteFeet; back?: SpriteFeet }>;
+
+/**
+ * Onde o desenho de um sprite de batalha toca o chão (scripts/sprite-feet.py). Formas com sprite
+ * próprio ("201-b") têm medidas próprias; as demais usam as da espécie.
+ */
+export function spriteFeet(id: number, kind: 'front' | 'back', form?: string): SpriteFeet | undefined {
+  return (form ? spriteFeetById[`${id}-${form}`]?.[kind] : undefined) ?? spriteFeetById[id]?.[kind];
 }
 
 export function speciesId(slug: string): number {
@@ -110,6 +181,18 @@ export function lineRoot(speciesId: number): number {
   return id;
 }
 
+/** Habilidades da espécie: a própria entrada, a da pré-evolução mais próxima ou o padrão do tipo. */
+export function abilitiesOf(speciesId: number): AbilityTriple {
+  for (let id = speciesId, guard = 0; guard < 4; guard++) {
+    const entry = SPECIES_ABILITIES[getSpecies(id).slug];
+    if (entry) return entry;
+    const pre = preEvolution.get(id);
+    if (pre === undefined) break;
+    id = pre;
+  }
+  return TYPE_ABILITIES[getSpecies(speciesId).types[0]] ?? ['run-away'];
+}
+
 /** Itens de evolução usados pelas espécies e que não estão no Poké Mart fixo. */
 const fixedShop = new Set(SHOP.map((e) => e.id));
 const evolutionItems = [
@@ -128,7 +211,7 @@ export const SHOP_CATALOG: ShopEntry[] = [
   ...evolutionItems.map((id): ShopEntry => ({ id, kind: 'item', ...EVOLUTION_ITEM_SHOP })),
 ];
 
-export type DeptSection = 'balls' | 'evolution' | 'berries' | 'fossils' | 'other';
+export type DeptSection = 'balls' | 'evolution' | 'held' | 'training' | 'berries' | 'fossils' | 'other';
 
 export interface DeptEntry {
   id: string;
@@ -149,11 +232,13 @@ export const DEPT_STORE_CATALOG: DeptEntry[] = [
     price: DEPT_STORE.basicStones.includes(id) ? DEPT_STORE.basicStone : DEPT_STORE.evolutionItem,
     section: 'evolution',
   })),
-  ...['rare-candy', 'everstone', 'soothe-bell'].map((id): DeptEntry => ({
-    id,
-    price: DEPT_STORE.prices[id],
-    section: 'other',
+  { id: 'rare-candy', price: DEPT_STORE.prices['rare-candy'], section: 'other' },
+  ...HELD_ITEMS.filter((h) => h.price > 0).map((h): DeptEntry => ({
+    id: h.id,
+    price: h.price,
+    section: 'held',
   })),
+  ...TRAINING_ITEMS.map((t): DeptEntry => ({ id: t.id, price: t.price, section: 'training' })),
   ...BERRIES.map((b): DeptEntry => ({
     id: b.id,
     price: b.price > 0 ? b.price : DEPT_STORE.rareBerry,
@@ -165,6 +250,50 @@ export const DEPT_STORE_CATALOG: DeptEntry[] = [
     section: 'fossils',
   })),
 ];
+
+/** Preço de referência de cada item (Loja de Departamentos, depois Poké Mart); 0 = sem valor. */
+const itemValues = new Map<string, number>();
+for (const e of SHOP_CATALOG) if (e.kind === 'item') itemValues.set(e.id, e.price);
+for (const e of DEPT_STORE_CATALOG) itemValues.set(e.id, e.price);
+
+export function itemValue(id: string): number {
+  return itemValues.get(id) ?? 0;
+}
+
+/** O que o mercador viajante pode trazer: itens caros de todas as seções, menos as bolas comuns. */
+export const MERCHANT_POOL: DeptEntry[] = DEPT_STORE_CATALOG.filter(
+  (e) => e.price >= 2000 && (e.section !== 'balls' || e.id === 'master-ball'),
+);
+
+// --- Pesca e Surf ------------------------------------------------------------------------
+
+/** Encontros de água de uma rota (null se ela não tem esse tipo de água). */
+export function waterEncounters(routeId: string, mode: WaterMode, rod: Rod | null): Encounter[] | null {
+  const spot = WATER_SPOTS[routeId];
+  const route = routesById.get(routeId);
+  if (!spot || !route?.encounters.length) return null;
+  const min = Math.min(...route.encounters.map((e) => e.minLevel));
+  const max = Math.max(...route.encounters.map((e) => e.maxLevel));
+  const offset = BALANCE.water.levelOffset;
+  const levels = (shift: number) => ({
+    minLevel: Math.max(2, Math.min(BALANCE.maxLevel, min + shift)),
+    maxLevel: Math.max(2, Math.min(BALANCE.maxLevel, max + shift)),
+  });
+  if (mode === 'surf') {
+    if (!spot.surf) return null;
+    return spot.surf.map(([slug, weight]) => ({
+      speciesId: speciesId(slug),
+      weight,
+      ...levels(offset.surf),
+    }));
+  }
+  if (!spot.fish || !rod) return null;
+  const tier = RODS.indexOf(rod);
+  const list = spot.fish
+    .filter(([, , need]) => RODS.indexOf(need) <= tier)
+    .map(([slug, weight]) => ({ speciesId: speciesId(slug), weight, ...levels(offset[rod]) }));
+  return list.length ? list : null;
+}
 
 export const trainerSprite = (id: string) => `sprites/trainers/${id}.png`;
 export const badgeSprite = (id: string) => `sprites/badges/${id}.png`;

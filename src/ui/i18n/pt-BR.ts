@@ -2,7 +2,9 @@
 
 import {
   ACHIEVEMENTS,
+  getHeldItem,
   getItem,
+  getTrainingItem,
   getMove,
   getRoute,
   getSpecies,
@@ -61,6 +63,31 @@ export const UPGRADE_TEXT: Record<string, { name: string; description: string }>
     description:
       'Lança bolas sozinho em espécies ainda não capturadas (e shinies) quando o HP do alvo cai pela metade.',
   },
+  'old-rod': {
+    name: 'Old Rod',
+    description:
+      'Pesque em rotas com água (botão PESCA na batalha). Fisga Pokémon mais fracos que os da grama.',
+  },
+  'good-rod': {
+    name: 'Good Rod',
+    description: 'Vara melhor: fisga mais espécies, em níveis próximos aos da grama.',
+  },
+  'super-rod': {
+    name: 'Super Rod',
+    description: 'A melhor vara: espécies raras (Dratini, Feebas, Relicanth…) e níveis acima dos da grama.',
+  },
+  surf: {
+    name: 'HM Surf',
+    description:
+      'Surfe em rotas com água (botão SURF na batalha) e encontre Pokémon que não aparecem na grama.',
+  },
+};
+
+/** Onde o jogador procura Pokémon. */
+export const ENCOUNTER_MODE_NAMES: Record<string, string> = {
+  land: 'Grama',
+  fish: 'Pesca',
+  surf: 'Surf',
 };
 
 export const ITEM_DESCRIPTIONS: Record<string, string> = {
@@ -74,8 +101,8 @@ export const ITEM_DESCRIPTIONS: Record<string, string> = {
   'ultra-ball': 'Taxa de captura 2× maior. A captura automática só a usa em shinies e errantes.',
   'master-ball': 'Captura qualquer Pokémon sem falhar.',
   'rare-candy': 'Sobe o Pokémon 1 nível na hora (use na tela POKéMON).',
-  'soothe-bell': 'Faz evoluir Pokémon que evoluem por amizade (alguns só de dia ou à noite).',
-  everstone: 'Com ela na Mochila, você pode travar a evolução de um Pokémon (tela POKéMON).',
+  'soothe-bell': 'Segurada, dobra a amizade que o Pokémon ganha (e ele evolui por afeto mais cedo).',
+  everstone: 'Segurada, impede a evolução. Na Mochila, também permite travar a evolução (tela POKéMON).',
   nugget: 'Uma pepita de ouro puro. Vale muito para colecionadores.',
   'oran-berry': 'Planta no Jardim. Comer: +15% de cura por vitória por 20 min.',
   'pecha-berry': 'Planta no Jardim. Comer: +25% de moedas por 30 min.',
@@ -89,6 +116,10 @@ export const ITEM_DESCRIPTIONS: Record<string, string> = {
   'dome-fossil': 'Fóssil de carapaça. Leve ao Laboratório (ATIVIDADES → FÓSSEIS).',
   'old-amber': 'Âmbar com DNA antigo. Leve ao Laboratório (ATIVIDADES → FÓSSEIS).',
 };
+
+/** Descrição de um item: textos próprios, itens seguráveis ou de treino. */
+export const itemDescription = (id: string): string =>
+  ITEM_DESCRIPTIONS[id] ?? getHeldItem(id)?.description ?? getTrainingItem(id)?.description ?? '';
 
 export const T = {
   appTitle: 'PokéIdle',
@@ -280,7 +311,9 @@ export function describeEvent(e: GameEvent): string | null {
     case 'spawn':
       return e.boss
         ? `${speciesName(e.speciesId)} (Nv. ${e.level}) entrou na batalha!`
-        : `Um ${speciesName(e.speciesId)} selvagem${e.shiny ? ' brilhante' : ''} (Nv. ${e.level}) apareceu!`;
+        : e.water === 'fish'
+          ? `Fisgou um ${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''} (Nv. ${e.level})!`
+          : `Um ${speciesName(e.speciesId)} selvagem${e.shiny ? ' brilhante' : ''} (Nv. ${e.level}) apareceu!`;
     case 'attack': {
       const r = e.result;
       const who = e.side === 'player' ? 'Você' : 'Inimigo';
@@ -377,6 +410,85 @@ export function describeEvent(e: GameEvent): string | null {
       return e.scope === 'daily' ? 'Novas missões diárias!' : 'Novas missões semanais!';
     case 'weatherChanged':
       return `O tempo mudou: ${WEATHER_NAMES[e.weather] ?? e.weather}.`;
+    case 'effect':
+      return effectText(e);
+    case 'itemFound':
+      return `O Pokémon derrotado deixou cair ${itemName(e.item)}!`;
+    case 'raidAppeared':
+      return `RAIDE! ${speciesName(e.speciesId)} gigante apareceu. Vá até a rota dele para enfrentá-lo.`;
+    case 'raidLeft':
+      return `A raide de ${speciesName(e.speciesId)} terminou.`;
+    case 'raidRage':
+      return `${speciesName(e.speciesId)} está furioso! (fase ${e.stage})`;
+    case 'raidFailed':
+      return `Acabou o tempo! ${speciesName(e.speciesId)} escapou da raide.`;
+    case 'raidDefeated': {
+      const loot = Object.entries(e.items)
+        .map(([id, n]) => `${itemName(id)} ×${n}`)
+        .join(', ');
+      return `Raide vencida! +${e.coins} moedas${loot ? `, ${loot}` : ''}.${e.caught ? ` ${speciesName(e.speciesId)} foi capturado!` : ' Ele escapou antes da captura.'}`;
+    }
+    case 'rematchDefeated': {
+      const loot = Object.entries(e.items)
+        .map(([id, n]) => `${itemName(id)} ×${n}`)
+        .join(', ');
+      return `Revanche vencida contra ${getRoute(e.routeId).boss?.name}! +${e.coins} moedas${loot ? `, ${loot}` : ''}.`;
+    }
+    case 'trainingFull':
+      return 'Um Pokémon terminou o treino: não cabem mais EVs naquele atributo.';
+    case 'merchantAppeared':
+      return 'Um mercador viajante chegou com itens raros em promoção! Veja na LOJA.';
+    case 'merchantLeft':
+      return 'O mercador viajante foi embora.';
+    case 'companionFound':
+      return `${speciesName(e.speciesId)} achou ${itemName(e.item)} pelo caminho!`;
+    case 'researchComplete':
+      return `Pesquisa completa: ${speciesName(e.speciesId)}! Mais chance de captura e EXP contra ele.`;
+    case 'safariResult':
+      return SAFARI_TEXT[e.outcome](speciesName(e.speciesId));
+    case 'safariEnded':
+      return `Fim do Safari! Você capturou ${e.caught} Pokémon.`;
+    case 'tournamentMatch':
+      return e.won
+        ? `Torneio: venceu ${e.opponent} por ${e.score[0]}–${e.score[1]} (+${e.coins} moedas).`
+        : `Torneio: perdeu para ${e.opponent} por ${e.score[0]}–${e.score[1]}.`;
+    case 'tournamentEnded':
+      return `Torneio da semana encerrado: ${TOURNAMENT_PLACES[e.place]}.`;
+  }
+}
+
+export const SAFARI_TEXT: Record<string, (name: string) => string> = {
+  caught: (n) => `Peguei! ${n} foi capturado!`,
+  missed: (n) => `Ah! ${n} escapou da Safari Ball!`,
+  fled: (n) => `${n} fugiu!`,
+  stayed: (n) => `${n} está de olho em você…`,
+  left: (n) => `Você deixou ${n} para trás.`,
+};
+
+export const TOURNAMENT_PLACES: Record<string, string> = {
+  champion: 'CAMPEÃO',
+  final: 'vice-campeão',
+  semi: 'semifinalista',
+  quarter: 'quartas de final',
+};
+
+/** Texto de habilidades e itens que entram em ação. */
+export function effectText(e: Extract<GameEvent, { type: 'effect' }>): string {
+  const who = speciesName(e.speciesId);
+  const item = e.item ? itemName(e.item) : '';
+  switch (e.kind) {
+    case 'sturdy':
+      return `${who} aguentou o golpe com Robustez!`;
+    case 'sash':
+      return `${who} aguentou o golpe com a ${item}!`;
+    case 'berry':
+      return `${who} comeu a ${item} e recuperou HP!`;
+    case 'cure':
+      return `${who} comeu a ${item} e se curou!`;
+    case 'absorb':
+      return `${who} absorveu o golpe e recuperou HP!`;
+    case 'synchronize':
+      return `Sincronismo! ${who} devolveu o status.`;
   }
 }
 
@@ -393,6 +505,8 @@ export const WEATHER_NAMES: Record<string, string> = {
   sun: 'sol forte',
   rain: 'chuva',
   sand: 'tempestade de areia',
+  fog: 'neblina',
+  hail: 'granizo',
 };
 
 export const WEATHER_EFFECTS: Record<string, string> = {
@@ -400,6 +514,8 @@ export const WEATHER_EFFECTS: Record<string, string> = {
   sun: 'Golpes de Fogo +30%, de Água −30%. Mais Pokémon de Fogo e Planta.',
   rain: 'Golpes de Água +30%, de Fogo −30%. Mais Pokémon de Água.',
   sand: 'Golpes de Pedra, Terra e Aço +15%. Mais Pokémon de Pedra e Terra.',
+  fog: 'Golpes Fantasma +20%. Mais Pokémon Fantasma e Psíquico.',
+  hail: 'Golpes de Gelo +30%. Mais Pokémon de Gelo.',
 };
 
 export const BUFF_NAMES: Record<string, string> = {
@@ -451,4 +567,15 @@ export const TOAST_EVENTS = new Set<GameEvent['type']>([
   'missionDone',
   'missionsRefreshed',
   'weatherChanged',
+  'raidAppeared',
+  'raidDefeated',
+  'raidFailed',
+  'rematchDefeated',
+  'trainingFull',
+  'merchantAppeared',
+  'companionFound',
+  'researchComplete',
+  'safariEnded',
+  'tournamentMatch',
+  'tournamentEnded',
 ]);

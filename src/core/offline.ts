@@ -9,6 +9,7 @@ import {
   addMastery,
   currentEncounters,
   freshBattle,
+  friendshipTick,
   registerKills,
   shareExp,
   type GameEvent,
@@ -39,6 +40,8 @@ export interface OfflineReport extends OfflineWindow {
   /** EXP recebida por cada reserva (metade da do ativo). */
   reserveExp: number;
   evolutions: { uid: number; from: number; to: number }[];
+  /** EVs ganhos no Campo de Treino enquanto o jogo esteve fechado. */
+  training?: { uid: number; speciesId: number; stat: string; gained: number }[];
 }
 
 export function offlineWindow(
@@ -157,6 +160,11 @@ export function applyOffline(state: GameState, window: OfflineWindow): OfflineRe
     state.stats.expEarned += exp;
     state.stats.coinsEarned += coins;
     registerKills(state, routeId, whole, events);
+    const friendEvents: GameEvent[] = [];
+    friendshipTick(state, whole, friendEvents);
+    for (const e of friendEvents) {
+      if (e.type === 'evolved') report.evolutions.push({ uid: e.uid, from: e.from, to: e.to });
+    }
     report.kills += whole;
     report.exp += exp;
     report.coins += coins;

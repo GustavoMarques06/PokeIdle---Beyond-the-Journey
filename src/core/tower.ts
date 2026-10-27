@@ -3,6 +3,7 @@
 
 import { BALANCE, SPECIES, TM_POOL, TOWER_SHOP } from '../game-data';
 import { activityUnlocked, giveItems, unlockTm } from './collection';
+import { eliteItemOf } from './loadout';
 import type { GameState, TeamMember } from './game';
 import { randInt, rngFrom, type Rng } from './rng';
 
@@ -44,12 +45,16 @@ export function floorLevel(floor: number): { level: number; boost: number } {
 export function floorTeam(floor: number, rng: Rng): TeamMember[] {
   const { level, boost } = floorLevel(floor);
   const pick = (pool: number[]) => pool[Math.floor(rng.next() * pool.length)];
-  const team: TeamMember[] = [0, 1].map(() => ({ speciesId: pick(FINAL_STAGES), level, boost }));
-  team.push({
-    speciesId: pick(isBossFloor(floor) && LEGENDARIES.length ? LEGENDARIES : FINAL_STAGES),
+  // O último (o ás) sempre segura um item de elite; os outros, do andar 10 em diante.
+  const member = (speciesId: number, ace: boolean): TeamMember => ({
+    speciesId,
     level,
     boost,
+    held: ace || floor >= BALANCE.tower.bossEvery ? eliteItemOf(speciesId) : undefined,
+    abilitySlot: rng.next() < 0.5 ? 1 : 0,
   });
+  const team = [0, 1].map(() => member(pick(FINAL_STAGES), false));
+  team.push(member(pick(isBossFloor(floor) && LEGENDARIES.length ? LEGENDARIES : FINAL_STAGES), true));
   return team;
 }
 

@@ -57,7 +57,7 @@ export function Toasts() {
       {toasts.map((t) => (
         <div key={t.id} className={`toast frame frame-toast ${t.rare ? 'rare' : ''}`}>
           {t.trophy ? (
-            <PixelIcon name="trophy" scale={2} />
+            <PixelIcon name="medal" scale={2} />
           ) : (
             t.speciesId && <PokemonSprite speciesId={t.speciesId} kind="icon" />
           )}

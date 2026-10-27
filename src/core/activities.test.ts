@@ -274,8 +274,9 @@ describe('Game Corner', () => {
   it('compra fichas, gira e troca prêmios', () => {
     const s = newGame(1, 0, 14);
     clearUpTo(s, BALANCE.gameCorner.unlock);
-    s.coins = 5000;
+    s.coins = 4 * BALANCE.gameCorner.packPrice;
     expect(buyTokens(s, 4)).toBe(true);
+    expect(s.coins).toBe(0);
     expect(s.tokens).toBe(200);
     expect(spinSlots(s)).not.toBeNull();
     s.tokens = 10_000;

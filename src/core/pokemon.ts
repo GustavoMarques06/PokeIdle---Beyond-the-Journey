@@ -1,6 +1,17 @@
-import { BALANCE, NATURES, getSpecies, type Species } from '../game-data';
+import {
+  BALANCE,
+  NATURES,
+  abilitiesOf,
+  getAbility,
+  getHeldItem,
+  getSpecies,
+  type AbilityDef,
+  type HeldItemDef,
+  type Species,
+  type StatKey,
+} from '../game-data';
 import { randInt, type Rng } from './rng';
-import { calcStats, expForLevel, type Ivs, type Stats } from './stats';
+import { calcStats, expForLevel, type Evs, type Ivs, type Stats } from './stats';
 
 /** Dados individuais de um Pokémon capturado (os dados-base ficam em `Species`). */
 export interface PokemonInstance {
@@ -21,6 +32,30 @@ export interface PokemonInstance {
   evolutionLocked?: boolean;
   /** Natureza (id). Ausente = neutra. */
   nature?: string;
+  /** Item segurado (id). */
+  held?: string;
+  /** Amizade (0–255). Ausente = valor inicial. */
+  friendship?: number;
+  /** EVs por atributo (máx. 252 cada e 510 no total). */
+  evs?: Evs;
+  /** EVs que vieram de vitaminas (têm teto menor por atributo). */
+  vitaminEvs?: Evs;
+  /** Habilidade escolhida pelo jogador: 0 e 1 = comuns, 2 = oculta. Ausente = pelo sorteio do uid. */
+  abilitySlot?: 0 | 1 | 2;
+  /** Forma alternativa (letra do Unown, estação do Deerling, padrão do Spinda). */
+  form?: string;
+  /** Histórico de batalha deste Pokémon (ver records.ts). */
+  record?: BattleRecord;
+}
+
+/** Feitos de um Pokémon como ativo. */
+export interface BattleRecord {
+  wins: number;
+  crits: number;
+  damage: number;
+  /** Capturas feitas com ele em campo. */
+  captures: number;
+  faints: number;
 }
 
 export const PERFECT_IVS: Ivs = { hp: 31, atk: 31, def: 31, spAtk: 31, spDef: 31, spe: 31 };
@@ -61,12 +96,80 @@ export function rollShiny(rng: Rng, multiplier = 1): boolean {
  * gerador do jogo e permite atribuir naturezas a saves antigos.
  */
 export function natureFor(uid: number, ivs: Ivs): string {
+  return NATURES[personality(uid, ivs) % NATURES.length].id;
+}
+
+function personality(uid: number, ivs: Ivs): number {
   let h = Math.imul(uid | 0, 0x9e3779b1);
   for (const v of [ivs.hp, ivs.atk, ivs.def, ivs.spAtk, ivs.spDef, ivs.spe]) {
     h = Math.imul(h ^ v, 0x85ebca6b);
     h ^= h >>> 13;
   }
-  return NATURES[(h >>> 0) % NATURES.length].id;
+  return h >>> 0;
+}
+
+/** Habilidade sorteada pelo uid: ~4% de chance da oculta (se a espécie tiver) e 50/50 entre as comuns. */
+export function defaultAbilitySlot(uid: number, ivs: Ivs, speciesId: number): 0 | 1 | 2 {
+  const [, second, hidden] = abilitiesOf(speciesId);
+  const h = personality(uid, ivs);
+  if (hidden && (h >>> 7) % 24 === 0) return 2;
+  return second && (h >>> 3) % 2 === 1 ? 1 : 0;
+}
+
+export function abilitySlotOf(p: { uid: number; ivs: Ivs; speciesId: number; abilitySlot?: 0 | 1 | 2 }) {
+  return p.abilitySlot ?? defaultAbilitySlot(p.uid, p.ivs, p.speciesId);
+}
+
+/** Habilidade de uma espécie num slot (cai para a primeira se o slot não existe). */
+export function abilityInSlot(speciesId: number, slot: number): AbilityDef {
+  const list = abilitiesOf(speciesId);
+  return getAbility(list[slot] ?? list[0]!);
+}
+
+export function abilityOf(p: {
+  uid: number;
+  ivs: Ivs;
+  speciesId: number;
+  abilitySlot?: 0 | 1 | 2;
+}): AbilityDef {
+  return abilityInSlot(p.speciesId, abilitySlotOf(p));
+}
+
+export function heldOf(p: { held?: string }): HeldItemDef | undefined {
+  return getHeldItem(p.held);
+}
+
+export function friendshipOf(p: { friendship?: number }): number {
+  return p.friendship ?? BALANCE.friendship.start;
+}
+
+export function evsOf(p: { evs?: Evs }): Stats {
+  return {
+    hp: p.evs?.hp ?? 0,
+    atk: p.evs?.atk ?? 0,
+    def: p.evs?.def ?? 0,
+    spAtk: p.evs?.spAtk ?? 0,
+    spDef: p.evs?.spDef ?? 0,
+    spe: p.evs?.spe ?? 0,
+  };
+}
+
+export function evTotal(p: { evs?: Evs }): number {
+  return Object.values(evsOf(p)).reduce((a, b) => a + b, 0);
+}
+
+/** Quantos EVs ainda cabem no atributo (limite por atributo e total de 510). */
+export function evRoom(p: { evs?: Evs }, stat: StatKey): number {
+  const t = BALANCE.training;
+  return Math.max(0, Math.min(t.maxPerStat - evsOf(p)[stat], t.maxTotal - evTotal(p)));
+}
+
+/** Soma EVs a um atributo respeitando os limites. Devolve quantos entraram. */
+export function addEvs(p: { evs?: Evs }, stat: StatKey, amount: number): number {
+  const gained = Math.min(Math.floor(amount), evRoom(p, stat));
+  if (gained <= 0) return 0;
+  p.evs = { ...p.evs, [stat]: evsOf(p)[stat] + gained };
+  return gained;
 }
 
 export function createPokemon(
@@ -95,8 +198,14 @@ export function createPokemon(
   return p;
 }
 
-export function statsOf(p: { speciesId: number; level: number; ivs: Ivs; nature?: string }): Stats {
-  return calcStats(getSpecies(p.speciesId), p.level, p.ivs, p.nature);
+export function statsOf(p: {
+  speciesId: number;
+  level: number;
+  ivs: Ivs;
+  nature?: string;
+  evs?: Evs;
+}): Stats {
+  return calcStats(getSpecies(p.speciesId), p.level, p.ivs, p.nature, p.evs);
 }
 
 /** Até quatro golpes de dano mais recentes que a espécie aprende até `level`. */
