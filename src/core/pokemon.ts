@@ -1,4 +1,4 @@
-import { BALANCE, getSpecies, type Species } from '../game-data';
+import { BALANCE, NATURES, getSpecies, type Species } from '../game-data';
 import { randInt, type Rng } from './rng';
 import { calcStats, expForLevel, type Ivs, type Stats } from './stats';
 
@@ -19,6 +19,8 @@ export interface PokemonInstance {
   moveset?: string[];
   /** Pedra Eterna: não evolui por nível. */
   evolutionLocked?: boolean;
+  /** Natureza (id). Ausente = neutra. */
+  nature?: string;
 }
 
 export const PERFECT_IVS: Ivs = { hp: 31, atk: 31, def: 31, spAtk: 31, spDef: 31, spe: 31 };
@@ -54,6 +56,19 @@ export function rollShiny(rng: Rng, multiplier = 1): boolean {
   return rng.next() < BALANCE.capture.shinyChance * multiplier;
 }
 
+/**
+ * Natureza sorteada de forma determinística a partir do uid e dos IVs: não consome o
+ * gerador do jogo e permite atribuir naturezas a saves antigos.
+ */
+export function natureFor(uid: number, ivs: Ivs): string {
+  let h = Math.imul(uid | 0, 0x9e3779b1);
+  for (const v of [ivs.hp, ivs.atk, ivs.def, ivs.spAtk, ivs.spDef, ivs.spe]) {
+    h = Math.imul(h ^ v, 0x85ebca6b);
+    h ^= h >>> 13;
+  }
+  return NATURES[(h >>> 0) % NATURES.length].id;
+}
+
 export function createPokemon(
   uid: number,
   speciesId: number,
@@ -74,13 +89,14 @@ export function createPokemon(
     currentHp: 0,
     caughtAt,
     caughtOn,
+    nature: natureFor(uid, ivs),
   };
   p.currentHp = statsOf(p).hp;
   return p;
 }
 
-export function statsOf(p: { speciesId: number; level: number; ivs: Ivs }): Stats {
-  return calcStats(getSpecies(p.speciesId), p.level, p.ivs);
+export function statsOf(p: { speciesId: number; level: number; ivs: Ivs; nature?: string }): Stats {
+  return calcStats(getSpecies(p.speciesId), p.level, p.ivs, p.nature);
 }
 
 /** Até quatro golpes de dano mais recentes que a espécie aprende até `level`. */

@@ -1,10 +1,13 @@
 // MELHORIAS: laboratório (pesquisa com duplicatas) e nova jornada (prestígio).
 
-import { PRESTIGE_UPGRADES, RESEARCH } from '../../game-data';
+import { useState } from 'react';
+import { CHALLENGES, PRESTIGE_UPGRADES, RESEARCH, type ChallengeId } from '../../game-data';
 import { prestigeLevel, researchLevel } from '../../core/bonuses';
 import type { GameState } from '../../core/game';
 import {
+  abandonChallenge,
   buyPrestige,
+  challengeBonus,
   buyResearch,
   canPrestige,
   prestigePreview,
@@ -15,7 +18,7 @@ import {
   upgradeCost,
 } from '../../core/meta';
 import { ItemIcon, PokemonSprite, Window } from '../components/common';
-import { T } from '../i18n/pt-BR';
+import { T, formatPercent } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
 const RESEARCH_ICONS: Record<string, string> = {
@@ -90,6 +93,8 @@ export function UpgradesScreen({ state }: { state: GameState }) {
   const surplus = surplusDuplicates(state);
   const surplusPoints = surplus.reduce((sum, p) => sum + transferValue(p), 0);
   const preview = prestigePreview(state);
+  const [nextChallenge, setNextChallenge] = useState<ChallengeId | null>(null);
+  const current = CHALLENGES.find((c) => c.id === state.challenge);
 
   return (
     <div className="upgrades-screen">
@@ -140,14 +145,58 @@ export function UpgradesScreen({ state }: { state: GameState }) {
         icon={<ItemIcon id="star-piece" size={24} />}
       >
         <p className="hint">{T.prestige.count(state.prestige.count)}</p>
+        {current && (
+          <div className="challenge-current frame frame-dialog">
+            <p>
+              <strong>Desafio em andamento: {current.name}.</strong> {current.description} Ao concluir a
+              jornada: +{formatPercent(challengeBonus(state))} de pontos.
+            </p>
+            <button
+              className="pbtn small danger"
+              onClick={() => {
+                if (window.confirm('Desistir do desafio? As regras normais voltam e o bônus se perde.'))
+                  engine.dispatch(abandonChallenge);
+              }}
+            >
+              Desistir do desafio
+            </button>
+          </div>
+        )}
         {canPrestige(state) ? (
           <div className="prestige-box frame frame-dialog">
             <p>{T.prestige.explain}</p>
+            <fieldset className="challenge-pick">
+              <legend>Desafio da próxima jornada (opcional)</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="challenge"
+                  checked={nextChallenge === null}
+                  onChange={() => setNextChallenge(null)}
+                />
+                <span>Nenhum — regras normais</span>
+              </label>
+              {CHALLENGES.map((c) => (
+                <label key={c.id}>
+                  <input
+                    type="radio"
+                    name="challenge"
+                    checked={nextChallenge === c.id}
+                    onChange={() => setNextChallenge(c.id)}
+                  />
+                  <span>
+                    <strong>{c.name}</strong> (+{formatPercent(c.bonus)} pontos)
+                    {state.challengesWon.includes(c.id) && <span className="tag tag-active">CONCLUÍDO</span>}
+                    <small>{c.description}</small>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
             <button
               className="pbtn primary"
               onClick={() => {
                 if (window.confirm(T.prestige.confirm(preview)))
-                  engine.dispatch((s) => void prestigeReset(s));
+                  engine.dispatch((s) => void prestigeReset(s, nextChallenge));
               }}
             >
               {T.prestige.gain(preview)}

@@ -2,11 +2,16 @@
 // partir de scripts/world.mjs (edite lá e rode `npm run data:fetch`).
 
 import worldJson from './generated/world.json';
-import type { WorldData } from './types';
+import { BALANCE } from './balance';
+import type { Route, WorldData } from './types';
 
 const WORLD = worldJson as unknown as WorldData;
 
-export const ROUTES = WORLD.routes;
+/** Rotas do mundo, com as vitórias necessárias ajustadas ao ritmo de progressão do jogo. */
+export const ROUTES: Route[] = WORLD.routes.map((r) => ({
+  ...r,
+  killsRequired: Math.ceil(r.killsRequired * BALANCE.progression.killsMultiplier),
+}));
 export const REGIONS = WORLD.regions;
 export const ROAMERS = WORLD.roamers;
 export const FOSSILS = WORLD.fossils;

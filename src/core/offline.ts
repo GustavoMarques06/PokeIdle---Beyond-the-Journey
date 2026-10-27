@@ -10,12 +10,13 @@ import {
   currentEncounters,
   freshBattle,
   registerKills,
+  shareExp,
   type GameEvent,
   type GameState,
 } from './game';
 import { progressMission } from './missions';
 import { endTowerRun } from './tower';
-import { statsOf } from './pokemon';
+import { healTeam, reservePokemon } from './team';
 import { coinYield, expYield, grantExp } from './progression';
 
 export type ClockIssue = 'none' | 'backwards' | 'invalid';
@@ -35,6 +36,8 @@ export interface OfflineReport extends OfflineWindow {
   exp: number;
   coins: number;
   levelUps: { uid: number; speciesId: number; from: number; to: number }[];
+  /** EXP recebida por cada reserva (metade da do ativo). */
+  reserveExp: number;
   evolutions: { uid: number; from: number; to: number }[];
 }
 
@@ -109,6 +112,7 @@ export function applyOffline(state: GameState, window: OfflineWindow): OfflineRe
     coins: 0,
     levelUps: [],
     evolutions: [],
+    reserveExp: 0,
   };
   if (window.countedMs <= 0) return report;
   // Uma subida na Torre não continua offline.
@@ -118,6 +122,7 @@ export function applyOffline(state: GameState, window: OfflineWindow): OfflineRe
   const player = activePokemon(state);
   const startLevel = player.level;
   const startSpecies = player.speciesId;
+  const reserves = reservePokemon(state).map((p) => ({ p, level: p.level, speciesId: p.speciesId }));
   const events: GameEvent[] = [];
   const chunkMs = window.countedMs / o.chunks;
   const efficiency = computeModifiers(state).offlineEfficiency;
@@ -141,8 +146,16 @@ export function applyOffline(state: GameState, window: OfflineWindow): OfflineRe
       progressMission(state, 'evolutions', 1);
     }
     addMastery(state, before, whole, events);
+    const reserveEvents: GameEvent[] = [];
+    shareExp(state, exp, reserveEvents);
+    for (const e of reserveEvents) {
+      if (e.type === 'evolved') report.evolutions.push({ uid: e.uid, from: e.from, to: e.to });
+    }
+    if (reserves.length) report.reserveExp += Math.ceil(exp * BALANCE.team.reserveExpShare);
     state.coins += coins;
     state.stats.totalKills += whole;
+    state.stats.expEarned += exp;
+    state.stats.coinsEarned += coins;
     registerKills(state, routeId, whole, events);
     report.kills += whole;
     report.exp += exp;
@@ -152,7 +165,12 @@ export function applyOffline(state: GameState, window: OfflineWindow): OfflineRe
   if (player.level > startLevel) {
     report.levelUps.push({ uid: player.uid, speciesId: startSpecies, from: startLevel, to: player.level });
   }
-  player.currentHp = statsOf(player).hp;
+  for (const r of reserves) {
+    if (r.p.level > r.level) {
+      report.levelUps.push({ uid: r.p.uid, speciesId: r.speciesId, from: r.level, to: r.p.level });
+    }
+  }
+  healTeam(state);
   for (const [kind, b] of Object.entries(state.buffs)) {
     if (!b) continue;
     b.ms -= window.countedMs;

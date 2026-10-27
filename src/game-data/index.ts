@@ -3,9 +3,9 @@ import movesJson from './generated/moves.json';
 import typeChartJson from './generated/type-chart.json';
 import itemsJson from './generated/items.json';
 import type { ItemData, Move, Region, Route, Species, TypeName } from './types';
-import { EVOLUTION_ITEM_SHOP, SHOP, type ShopEntry } from './balance';
+import { DEPT_STORE, EVOLUTION_ITEM_SHOP, SHOP, type ShopEntry } from './balance';
 import { BERRIES } from './activities';
-import { REGIONS, ROUTES } from './routes';
+import { FOSSILS, REGIONS, ROUTES } from './routes';
 
 export * from './types';
 export {
@@ -22,9 +22,10 @@ export {
   TM_POOL,
   type PlayerAvatar,
 } from './routes';
-export { BALANCE, SHOP, type ShopEntry } from './balance';
+export { BALANCE, DEPT_STORE, SHOP, type ShopEntry } from './balance';
 export * from './meta';
 export * from './activities';
+export * from './natures';
 
 export const SPECIES: Species[] = speciesJson as Species[];
 const speciesById = new Map(SPECIES.map((s) => [s.id, s]));
@@ -125,6 +126,44 @@ export const SHOP_CATALOG: ShopEntry[] = [
     requiresBoss: 'floresta-viridian',
   })),
   ...evolutionItems.map((id): ShopEntry => ({ id, kind: 'item', ...EVOLUTION_ITEM_SHOP })),
+];
+
+export type DeptSection = 'balls' | 'evolution' | 'berries' | 'fossils' | 'other';
+
+export interface DeptEntry {
+  id: string;
+  price: number;
+  section: DeptSection;
+}
+
+const BALL_IDS = ['poke-ball', 'great-ball', 'ultra-ball', 'master-ball'];
+const allEvolutionItems = [
+  ...new Set(SPECIES.flatMap((s) => s.evolutions.flatMap((e) => (e.trigger === 'item' ? [e.item] : [])))),
+].filter((id) => items[id] && !(id in DEPT_STORE.prices));
+
+/** Catálogo da Loja de Departamentos: todos os itens que têm uso no jogo. */
+export const DEPT_STORE_CATALOG: DeptEntry[] = [
+  ...BALL_IDS.map((id): DeptEntry => ({ id, price: DEPT_STORE.prices[id], section: 'balls' })),
+  ...allEvolutionItems.sort().map((id): DeptEntry => ({
+    id,
+    price: DEPT_STORE.basicStones.includes(id) ? DEPT_STORE.basicStone : DEPT_STORE.evolutionItem,
+    section: 'evolution',
+  })),
+  ...['rare-candy', 'everstone', 'soothe-bell'].map((id): DeptEntry => ({
+    id,
+    price: DEPT_STORE.prices[id],
+    section: 'other',
+  })),
+  ...BERRIES.map((b): DeptEntry => ({
+    id: b.id,
+    price: b.price > 0 ? b.price : DEPT_STORE.rareBerry,
+    section: 'berries',
+  })),
+  ...FOSSILS.filter((f) => items[f.item]).map((f): DeptEntry => ({
+    id: f.item,
+    price: DEPT_STORE.fossil,
+    section: 'fossils',
+  })),
 ];
 
 export const trainerSprite = (id: string) => `sprites/trainers/${id}.png`;

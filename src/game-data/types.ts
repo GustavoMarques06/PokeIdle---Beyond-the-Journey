@@ -66,6 +66,8 @@ export interface Species {
   cry?: string;
 }
 
+export type Ailment = 'burn' | 'poison' | 'paralysis' | 'sleep' | 'freeze';
+
 export interface Move {
   id: string;
   name: string;
@@ -74,6 +76,9 @@ export interface Move {
   accuracy: number;
   category: 'physical' | 'special';
   priority: number;
+  /** Efeito de status secundário e sua chance (%). */
+  ailment?: Ailment;
+  ailmentChance?: number;
 }
 
 export interface ItemData {

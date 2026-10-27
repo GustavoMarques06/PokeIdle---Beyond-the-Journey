@@ -32,9 +32,14 @@ export function addToCollection(
   return p;
 }
 
-/** Pokémon ocupados (ativo, apoio, creche, expedições) não podem ir para outra atividade. */
+/** Pokémon ocupados (ativo, reservas, apoio, creche, expedições) não podem ir para outra atividade. */
 export function busyUids(state: GameState): Set<number> {
-  const busy = new Set<number>([state.activeUid, ...state.passives, ...state.daycare.uids]);
+  const busy = new Set<number>([
+    state.activeUid,
+    ...(state.battleTeam ?? []),
+    ...state.passives,
+    ...state.daycare.uids,
+  ]);
   for (const e of state.expeditions) for (const uid of e.uids) busy.add(uid);
   return busy;
 }

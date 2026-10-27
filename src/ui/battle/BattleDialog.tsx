@@ -18,14 +18,16 @@ import {
   type GameState,
 } from '../../core/game';
 import { ItemIcon, PixelIcon, TrainerSprite } from '../components/common';
+import { useHotkeys } from '../hotkeys';
 import { battleText } from '../i18n/battleText';
 import { speciesName } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
 
-const HOLD_MS = 1800;
+const HOLD_MS = 2500;
 const TYPE_MS = 14;
 
-export type ScreenId = 'party' | 'dex' | 'bag' | 'map' | 'activities' | 'missions' | 'trainer' | 'upgrades';
+export type ScreenId =
+  'party' | 'dex' | 'bag' | 'shop' | 'map' | 'activities' | 'missions' | 'trainer' | 'upgrades';
 
 export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: ScreenId) => void }) {
   const engine = useEngine();
@@ -92,7 +94,23 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const special = b.enemy && (b.enemy.shiny || b.enemy.roamer || b.kind === 'legendary');
   const secondBall = ultra > 0 && (special || great <= 0) ? 'ultra-ball' : great > 0 ? 'great-ball' : null;
 
-  const ballCmd = (ball: string, label: string) => {
+  const throwIf = (ball: string | null) => {
+    if (ball && usable && (state.items[ball] ?? 0) > 0) engine.dispatch((s, now) => throwBall(s, ball, now));
+  };
+  useHotkeys({
+    q: () => throwIf('poke-ball'),
+    w: () => throwIf(secondBall),
+    d: () => {
+      if (b.kind !== 'wild') return;
+      if (bossReady) engine.dispatch((s) => challengeBoss(s, b.routeId));
+      else if (rocketHere) engine.dispatch(challengeRocket);
+    },
+    f: () => {
+      if (b.kind !== 'wild') engine.dispatch((s, now) => retreatFromBoss(s, now));
+    },
+  });
+
+  const ballCmd = (ball: string, label: string, key: string) => {
     const qty = state.items[ball] ?? 0;
     const chance = usable ? Math.round(currentCaptureChance(state, ball) * 100) : null;
     return (
@@ -100,7 +118,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
         className="cmd"
         disabled={!usable || qty <= 0}
         onClick={() => engine.dispatch((s, now) => throwBall(s, ball, now))}
-        title={chance !== null ? `Chance de captura: ${chance}%` : 'Só em batalhas contra Pokémon selvagens'}
+        title={`${chance !== null ? `Chance de captura: ${chance}%` : 'Só em batalhas contra Pokémon selvagens'} (tecla ${key})`}
       >
         <ItemIcon id={ball} size={30} />
         <span className="cmd-label">{label}</span>
@@ -133,14 +151,14 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
       </div>
 
       <div className="commands frame frame-menu" role="group" aria-label="Comandos">
-        {ballCmd('poke-ball', 'POKé BALL')}
+        {ballCmd('poke-ball', 'POKé BALL', 'Q')}
         {secondBall ? (
-          ballCmd(secondBall, secondBall === 'ultra-ball' ? 'ULTRA BALL' : 'GREAT BALL')
+          ballCmd(secondBall, secondBall === 'ultra-ball' ? 'ULTRA BALL' : 'GREAT BALL', 'W')
         ) : (
-          <button className="cmd" onClick={() => onOpen('bag')}>
-            <ItemIcon id="explorer-kit" size={30} />
-            <span className="cmd-label">MOCHILA</span>
-            <span className="cmd-sub">itens e loja</span>
+          <button className="cmd" onClick={() => onOpen('shop')}>
+            <ItemIcon id="coin-case" size={30} />
+            <span className="cmd-label">LOJA</span>
+            <span className="cmd-sub">comprar bolas</span>
           </button>
         )}
         <button className="cmd" onClick={() => onOpen('party')}>
@@ -151,6 +169,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
         {b.kind !== 'wild' ? (
           <button
             className="cmd cmd-danger"
+            title="Tecla F"
             onClick={() => engine.dispatch((s, now) => retreatFromBoss(s, now))}
           >
             <ItemIcon id="escape-rope" size={30} />
@@ -166,7 +185,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             </span>
           </button>
         ) : rocketHere && !bossReady ? (
-          <button className="cmd cmd-boss" onClick={() => engine.dispatch(challengeRocket)}>
+          <button className="cmd cmd-boss" title="Tecla D" onClick={() => engine.dispatch(challengeRocket)}>
             <PixelIcon name="rocket" scale={3} />
             <span className="cmd-label">ROCKET</span>
             <span className="cmd-sub">expulsar a equipe</span>
@@ -176,7 +195,9 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             className={`cmd ${bossReady ? 'cmd-boss' : ''}`}
             disabled={!bossReady}
             onClick={() => engine.dispatch((s) => challengeBoss(s, b.routeId))}
-            title={route.boss ? `${route.boss.name} — ${route.boss.title}` : 'Esta área não tem chefe'}
+            title={
+              route.boss ? `${route.boss.name} — ${route.boss.title} (tecla D)` : 'Esta área não tem chefe'
+            }
           >
             {route.boss ? (
               <TrainerSprite id={route.boss.trainer} size={40} head />

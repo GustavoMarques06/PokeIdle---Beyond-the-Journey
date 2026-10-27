@@ -9,10 +9,11 @@ import { claimableMissions } from '../../core/missions';
 import type { ScreenId } from '../battle/BattleDialog';
 import { ItemIcon, PixelIcon } from './common';
 
-const ITEMS: { id: ScreenId; label: string; icon: ReactNode }[] = [
+export const MENU_ITEMS: { id: ScreenId; label: string; icon: ReactNode }[] = [
   { id: 'party', label: 'POKéMON', icon: <ItemIcon id="poke-ball" size={28} /> },
   { id: 'dex', label: 'POKéDEX', icon: <PixelIcon name="pokedex" scale={2} /> },
   { id: 'bag', label: 'MOCHILA', icon: <ItemIcon id="explorer-kit" size={28} /> },
+  { id: 'shop', label: 'LOJA', icon: <ItemIcon id="coin-case" size={28} /> },
   { id: 'map', label: 'MAPA', icon: <ItemIcon id="town-map" size={28} /> },
   { id: 'activities', label: 'ATIVIDADES', icon: <PixelIcon name="egg" scale={3} /> },
   { id: 'missions', label: 'MISSÕES', icon: <ItemIcon id="fame-checker" size={28} /> },
@@ -41,9 +42,10 @@ export function GameMenu({
   };
   return (
     <nav className="game-menu frame frame-menu" aria-label="Menu">
-      {ITEMS.map((item) => (
+      {MENU_ITEMS.map((item, i) => (
         <button
           key={item.id}
+          title={`${item.label} (tecla ${i + 1})`}
           className={`menu-item ${current === item.id ? 'active' : ''}`}
           aria-current={current === item.id}
           onClick={() => onSelect(item.id)}

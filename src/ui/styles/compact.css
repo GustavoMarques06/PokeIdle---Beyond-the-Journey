@@ -1,0 +1,116 @@
+/* Telas de 1280 px: coluna lateral mais estreita e HUD compacto. */
+@media (max-width: 1440px) {
+  .game {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+
+  .hud-journey {
+    display: none;
+  }
+
+  .battle-ui {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .dialog-text {
+    font-size: 17px;
+  }
+
+  .cmd-label {
+    font-size: 11px;
+  }
+
+  /* Menu com ícone acima do rótulo para caber em 400 px. */
+  .menu-item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-height: 50px;
+    padding: 3px 2px;
+    font-size: 10px;
+  }
+
+  .menu-item.active::before,
+  .menu-item:hover::before {
+    left: 6px;
+  }
+}
+
+.pc-perfect {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 0 2px;
+  background: var(--gold);
+  border: 1px solid var(--gold-dark);
+  font: 700 8px var(--font-label);
+}
+
+.perfect-tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  font: 700 calc(var(--u) * 3) var(--font-label);
+  animation: blink-soft 0.8s steps(2, end) infinite;
+}
+
+.legend-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.legend-card strong {
+  font: 700 10px var(--font-label);
+}
+
+.legend-card small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.legend-card .sprite {
+  max-height: 72px;
+}
+
+.legend-card.locked {
+  opacity: 0.6;
+}
+
+.legend-card.caught {
+  background: #fff8d8;
+}
+
+.legend-balls {
+  display: flex;
+  gap: 10px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 700 11px var(--font-label);
+}
+
+.legend-balls li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.legend-group {
+  margin: 6px 0 3px;
+  font: 700 10px var(--font-label);
+  color: var(--ink-soft);
+}

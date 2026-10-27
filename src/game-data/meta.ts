@@ -63,6 +63,12 @@ export const PASSIVE_SLOTS: { requiresRoute: string }[] = [
   { requiresRoute: 'rota-4' },
 ];
 
+/** Vagas de reserva na equipe de batalha (entram quando o ativo desmaia ou têm vantagem de tipo). */
+export const RESERVE_SLOTS: { requiresRoute: string }[] = [
+  { requiresRoute: 'mt-moon' },
+  { requiresRoute: 'rota-4' },
+];
+
 // --- Laboratório / pesquisa ------------------------------------------------
 
 export type ResearchEffect = 'exp' | 'coins' | 'capture' | 'heal' | 'offlineHours' | 'offlineEfficiency';
@@ -221,6 +227,38 @@ export const PRESTIGE = {
   pointsPerTenLevels: 1,
   baseResetLevel: 5,
 };
+
+/** Desafios opcionais de uma jornada: regras mais duras em troca de pontos de prestígio extras. */
+export type ChallengeId = 'solo' | 'frugal' | 'fierce';
+
+export interface ChallengeDef {
+  id: ChallengeId;
+  name: string;
+  description: string;
+  /** Pontos de prestígio extras ao concluir a jornada (fração). */
+  bonus: number;
+}
+
+export const CHALLENGES: ChallengeDef[] = [
+  {
+    id: 'solo',
+    name: 'Lobo solitário',
+    description: 'Sem equipe de apoio e sem reservas: só o Pokémon ativo.',
+    bonus: 0.5,
+  },
+  {
+    id: 'frugal',
+    name: 'Mochila vazia',
+    description: 'O Poké Mart não vende Poké Balls; só valem as que você ganhar.',
+    bonus: 0.3,
+  },
+  {
+    id: 'fierce',
+    name: 'Natureza feroz',
+    description: 'Os inimigos causam +50% de dano.',
+    bonus: 0.4,
+  },
+];
 
 // --- Conquistas ----------------------------------------------------------------
 

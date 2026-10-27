@@ -6,10 +6,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } f
 import { assetUrl, getItem, getMove, getRoute, getSpecies, trainerSprite } from '../../game-data';
 import { routeWeather } from '../../core/env';
 import { legendaryDef, legendaryRules } from '../../core/legendary';
-import { activePokemon, type GameEvent, type GameState } from '../../core/game';
+import { activePokemon, type GameEvent, type GameState, type StatusState } from '../../core/game';
+import { reservePokemon } from '../../core/team';
 import { isPerfect, statsOf } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
 import { ExpBar, HpBar, PixelIcon, Shiny } from '../components/common';
+import { STATUS_TEXT } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
 import { ENEMY_BASE, PLAYER_BASE, SCENE_H, SCENE_THEMES, SCENE_W, paintScene } from './scene';
 import { EvolutionOverlay } from './EvolutionOverlay';
@@ -38,7 +40,18 @@ interface Floater {
   id: number;
   side: 'player' | 'enemy';
   text: string;
-  tone: 'normal' | 'super' | 'weak' | 'miss' | 'crit';
+  tone: 'normal' | 'super' | 'weak' | 'miss' | 'crit' | 'status';
+}
+
+/** Sigla de status ao lado do nome (QMD, ENV, PAR, DRM, CGL), como nas caixas do GBA. */
+function StatusTag({ status }: { status?: StatusState | null }) {
+  if (!status) return null;
+  const t = STATUS_TEXT[status.kind];
+  return (
+    <span className={`status-tag status-${status.kind}`} title={t.name}>
+      {t.short}
+    </span>
+  );
 }
 
 interface Spark {
@@ -226,6 +239,10 @@ export function BattleScene({ state }: { state: GameState }) {
             setFloaters((list) => [...list.slice(-6), f]);
             setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
           }
+        } else if (e.type === 'statusDamage' && st.settings.showDamageNumbers) {
+          const f: Floater = { id: nextId.current++, side: e.side, text: `-${e.damage}`, tone: 'status' };
+          setFloaters((list) => [...list.slice(-6), f]);
+          setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
         } else if (e.type === 'captureAttempt') {
           const enemy = st.battle.enemy;
           setCapture({
@@ -275,6 +292,7 @@ export function BattleScene({ state }: { state: GameState }) {
 
   const player = activePokemon(state);
   const pStats = statsOf(player);
+  const reserves = reservePokemon(state);
   const enemy = b.enemy;
   // Uma tentativa que falhou só é mostrada enquanto o mesmo inimigo está em campo.
   const staleEscape = capture !== null && !capture.success && keyOf(enemy) !== capture.enemyKey;
@@ -329,6 +347,7 @@ export function BattleScene({ state }: { state: GameState }) {
             <span>
               {getSpecies(enemy.speciesId).name.toUpperCase()}
               {enemy.shiny && <Shiny />}
+              <StatusTag status={enemy.status} />
               {isPerfect(enemy.ivs) && !enemy.boost && b.kind === 'wild' && (
                 <span className="perfect-tag">PERFEITO</span>
               )}
@@ -351,9 +370,19 @@ export function BattleScene({ state }: { state: GameState }) {
           <span>
             {getSpecies(player.speciesId).name.toUpperCase()}
             {player.shiny && <Shiny />}
+            <StatusTag status={b.playerStatus} />
           </span>
           <span className="status-level">Nv{player.level}</span>
         </div>
+        {reserves.length > 0 && (
+          <div className="party-balls" title="Equipe de batalha: ativo + reservas">
+            {[player, ...reserves].map((p) => (
+              <span key={p.uid} className={p.currentHp > 0 ? '' : 'fainted'}>
+                <PixelIcon name="miniBall" scale={2} />
+              </span>
+            ))}
+          </div>
+        )}
         <HpBar value={player.currentHp} max={pStats.hp} />
         <div className="status-hp">
           {player.currentHp}/ {pStats.hp}

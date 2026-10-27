@@ -1,6 +1,14 @@
 // Textos da interface em um só lugar, prontos para localização futura.
 
-import { ACHIEVEMENTS, getItem, getMove, getRoute, getSpecies, type BonusKind } from '../../game-data';
+import {
+  ACHIEVEMENTS,
+  getItem,
+  getMove,
+  getRoute,
+  getSpecies,
+  type Ailment,
+  type BonusKind,
+} from '../../game-data';
 import type { GameEvent } from '../../core/game';
 
 export const TYPE_NAMES: Record<string, string> = {
@@ -201,6 +209,53 @@ export const T = {
   },
 };
 
+/** Status: nome, sigla (como nas caixas de status do GBA) e frases da batalha. */
+export const STATUS_TEXT: Record<
+  Ailment,
+  { name: string; short: string; inflicted: string; skip: string; cured: string; damage: string }
+> = {
+  burn: {
+    name: 'Queimadura',
+    short: 'QMD',
+    inflicted: 'foi queimado',
+    skip: '',
+    cured: 'não está mais queimado',
+    damage: 'sofreu com a queimadura',
+  },
+  poison: {
+    name: 'Veneno',
+    short: 'ENV',
+    inflicted: 'foi envenenado',
+    skip: '',
+    cured: 'não está mais envenenado',
+    damage: 'sofreu com o veneno',
+  },
+  paralysis: {
+    name: 'Paralisia',
+    short: 'PAR',
+    inflicted: 'ficou paralisado! Talvez não consiga se mover',
+    skip: 'está paralisado! Não consegue se mover',
+    cured: 'não está mais paralisado',
+    damage: '',
+  },
+  sleep: {
+    name: 'Sono',
+    short: 'DRM',
+    inflicted: 'caiu no sono',
+    skip: 'está dormindo profundamente',
+    cured: 'acordou',
+    damage: '',
+  },
+  freeze: {
+    name: 'Congelamento',
+    short: 'CGL',
+    inflicted: 'foi congelado',
+    skip: 'está congelado',
+    cured: 'descongelou',
+    damage: '',
+  },
+};
+
 export const speciesName = (id: number) => getSpecies(id).name;
 export const moveName = (id: string) => getMove(id).name;
 export const itemName = (id: string) => getItem(id)?.name ?? UPGRADE_TEXT[id]?.name ?? id;
@@ -235,8 +290,19 @@ export function describeEvent(e: GameEvent): string | null {
       if (r.effectiveness === 0) s = `${who}: ${moveName(r.moveId)} não teve efeito.`;
       else if (r.effectiveness > 1) s += ' — super efetivo!';
       else if (r.effectiveness < 1) s += ' — pouco efetivo.';
+      if (r.status) s += ` ${speciesName(e.target)} ${STATUS_TEXT[r.status].inflicted}.`;
       return s;
     }
+    case 'switched':
+      return e.reason === 'fainted'
+        ? `${speciesName(e.from)} desmaiou! ${speciesName(e.to)} entrou na batalha.`
+        : `${speciesName(e.to)} entrou no lugar de ${speciesName(e.from)} (vantagem de tipo).`;
+    case 'statusSkip':
+      return `${speciesName(e.speciesId)} ${STATUS_TEXT[e.status].skip}.`;
+    case 'statusCured':
+      return `${speciesName(e.speciesId)} ${STATUS_TEXT[e.status].cured}.`;
+    case 'statusDamage':
+      return `${speciesName(e.speciesId)} ${STATUS_TEXT[e.status].damage} (−${e.damage}).`;
     case 'enemyFainted':
       return `${speciesName(e.speciesId)} desmaiou. +${e.exp} EXP, +${e.coins} moedas.`;
     case 'playerFainted':

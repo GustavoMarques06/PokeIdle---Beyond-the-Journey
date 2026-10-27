@@ -1,4 +1,4 @@
-import { BALANCE, getMove, getSpecies, typeEffectiveness, type TypeName } from '../game-data';
+import { BALANCE, getMove, getSpecies, typeEffectiveness, type Ailment, type TypeName } from '../game-data';
 import { movesOf } from './pokemon';
 import type { Rng } from './rng';
 import { calcStats, type Ivs, type Stats } from './stats';
@@ -11,6 +11,8 @@ export interface Combatant {
   moves: string[];
   /** Multiplicador de dano por tipo de golpe (clima, noite, medalhas da Pokédex). */
   moveBoost?: Record<TypeName, number>;
+  /** Queimado: golpes físicos causam menos dano. */
+  burned?: boolean;
 }
 
 export interface CombatantSource {
@@ -21,11 +23,12 @@ export interface CombatantSource {
   moveset?: string[];
   /** Multiplicador de atributos (chefes de nível 100, Torre de Batalha). */
   boost?: number;
+  nature?: string;
 }
 
 export function combatantOf(p: CombatantSource, moveBoost?: Record<TypeName, number>): Combatant {
   const species = getSpecies(p.speciesId);
-  const base = calcStats(species, p.level, p.ivs);
+  const base = calcStats(species, p.level, p.ivs, p.nature);
   const k = p.boost ?? 1;
   const stats =
     k === 1
@@ -54,6 +57,8 @@ export interface DamageResult {
   missed: boolean;
   crit: boolean;
   effectiveness: number;
+  /** Status causado no alvo por este golpe. */
+  status?: Ailment;
 }
 
 /** Dano sem aleatoriedade (antes de variação, crítico e precisão). */
@@ -73,7 +78,8 @@ function baseDamage(
   const stab = attacker.types.includes(move.type) ? BALANCE.combat.stab : 1;
   const eff = typeEffectiveness(move.type, defender.types);
   const boost = attacker.moveBoost?.[move.type] ?? 1;
-  return { damage: raw * stab * eff * boost * scale, eff };
+  const burn = attacker.burned && move.category === 'physical' ? BALANCE.status.burnAttackMultiplier : 1;
+  return { damage: raw * stab * eff * boost * burn * scale, eff };
 }
 
 export function calcDamage(

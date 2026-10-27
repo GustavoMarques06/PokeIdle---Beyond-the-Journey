@@ -7,6 +7,9 @@ import { achievementProgress, trainerLevel } from '../../core/meta';
 import { exportSave, importSave } from '../../core/save';
 import { Bar, ItemIcon, Money, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { Badges } from '../components/Hud';
+import { StatsPanel } from '../components/StatsPanel';
+import { HOTKEY_HELP } from '../hotkeys';
+import { requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
@@ -21,7 +24,13 @@ const TOGGLES: { key: Toggle; label: string; requires?: string }[] = [
   { key: 'sfx', label: T.settings.sfx },
   { key: 'cries', label: T.settings.cries },
   { key: 'music', label: T.settings.music },
+  { key: 'autoSwitch', label: 'Trocar para a reserva com vantagem de tipo' },
+  { key: 'notifications', label: 'Avisos do sistema com o jogo em segundo plano' },
 ];
+
+function formatBytes(n: number): string {
+  return n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
 
 export function TrainerScreen({ state }: { state: GameState }) {
   const engine = useEngine();
@@ -119,6 +128,8 @@ export function TrainerScreen({ state }: { state: GameState }) {
         </div>
       </div>
 
+      <StatsPanel state={state} />
+
       <Window
         title={`HALL DA FAMA · ${state.hallOfFame.length}`}
         icon={<PixelIcon name="trophy" scale={2} />}
@@ -196,11 +207,16 @@ export function TrainerScreen({ state }: { state: GameState }) {
                 className={`switch ${state.settings[t.key] ? 'on' : ''}`}
                 role="switch"
                 aria-checked={state.settings[t.key]}
-                onClick={() =>
+                onClick={async () => {
+                  const turningOn = !state.settings[t.key];
+                  if (t.key === 'notifications' && turningOn && !(await requestNotificationPermission())) {
+                    setMessage('O sistema não permitiu notificações.');
+                    return;
+                  }
                   engine.dispatch((s) => {
-                    s.settings[t.key] = !s.settings[t.key];
-                  })
-                }
+                    s.settings[t.key] = turningOn;
+                  });
+                }}
               >
                 {state.settings[t.key] ? 'SIM' : 'NÃO'}
               </button>
@@ -224,9 +240,25 @@ export function TrainerScreen({ state }: { state: GameState }) {
         </div>
       </Window>
 
+      <Window title="ATALHOS DE TECLADO" icon={<ItemIcon id="teachy-tv" size={24} />}>
+        <dl className="hotkey-list">
+          {HOTKEY_HELP.map(([key, what]) => (
+            <div key={key}>
+              <dt>
+                <kbd>{key}</kbd>
+              </dt>
+              <dd>{what}</dd>
+            </div>
+          ))}
+        </dl>
+      </Window>
+
       <Window title="SALVAR" icon={<ItemIcon id="fame-checker" size={24} />}>
         <div className="save-tools">
-          <p className="hint">O jogo salva sozinho a cada 15 s e após eventos importantes.</p>
+          <p className="hint">
+            O jogo salva sozinho a cada 15 s e após eventos importantes
+            {engine.saveBytes > 0 && ` · tamanho do save: ${formatBytes(engine.saveBytes)}`}.
+          </p>
           <button className="pbtn small" onClick={onExport}>
             {T.settings.export}
           </button>

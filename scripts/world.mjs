@@ -4,7 +4,7 @@
 // src/game-data/generated/world.json com os ids numéricos.
 //
 // Formato das rotas:
-//   r(id, nome, descrição, vitórias, cena, [x, y] no mapa da região, encontros, opções)
+//   r(id, nome, descrição, vitórias, cena, [x, y] em % do mapa ilustrado da região (public/maps), encontros, opções)
 //   encontros: [espécie, peso, nívelMín, nívelMáx, 'day' | 'night' (opcional)]
 //   chefe: { name, title, trainer, badge, team: [[espécie | '$rival:N', nível]], reward }
 // Rotas de desafio (Liga) usam kind: 'trial' e `farm` (rota onde o jogador treina enquanto isso).
@@ -54,12 +54,12 @@ const kanto = {
   name: 'Kanto',
   trainerSuffix: ['-gen3', ''],
   routes: [
-    r('rota-1', 'Rota 1', 'Um caminho tranquilo saindo de Pallet.', 20, 'meadow', [22, 78], [
+    r('rota-1', 'Rota 1', 'Um caminho tranquilo saindo de Pallet.', 20, 'meadow', [24, 58.7], [
       ['pidgey', 50, 2, 3, 'day'],
       ['rattata', 50, 2, 3],
       ['hoothoot', 30, 2, 3, 'night'],
     ]),
-    r('rota-2', 'Rota 2', 'Gramado alto ao norte de Viridian.', 30, 'route', [22, 60], [
+    r('rota-2', 'Rota 2', 'Gramado alto ao norte de Viridian.', 30, 'route', [23.6, 42.4], [
       ['pidgey', 35, 3, 5, 'day'],
       ['rattata', 35, 3, 5],
       ['caterpie', 15, 3, 5, 'day'],
@@ -67,7 +67,7 @@ const kanto = {
       ['hoothoot', 20, 3, 5, 'night'],
       ['spinarak', 15, 3, 5, 'night'],
     ]),
-    r('floresta-viridian', 'Floresta de Viridian', 'Mata fechada cheia de insetos. Brock espera em Pewter.', 45, 'forest', [22, 44], [
+    r('floresta-viridian', 'Floresta de Viridian', 'Mata fechada cheia de insetos. Brock espera em Pewter.', 45, 'forest', [22, 33.3], [
       ['caterpie', 25, 4, 6],
       ['metapod', 15, 5, 7],
       ['weedle', 25, 4, 6],
@@ -81,7 +81,7 @@ const kanto = {
         reward: { items: { 'great-ball': 3 }, tm: 'rock-tomb' },
       }),
     }),
-    r('rota-3', 'Rota 3', 'Trilha pedregosa rumo ao Mt. Moon.', 55, 'mountain', [32, 40], [
+    r('rota-3', 'Rota 3', 'Trilha pedregosa rumo ao Mt. Moon.', 55, 'mountain', [31, 24.7], [
       ['spearow', 30, 8, 11],
       ['jigglypuff', 15, 8, 11],
       ['ekans', 20, 8, 11, 'day'],
@@ -90,7 +90,7 @@ const kanto = {
       ['nidoran-m', 8, 8, 11],
       ['zubat', 15, 8, 11, 'night'],
     ]),
-    r('mt-moon', 'Mt. Moon', 'Cavernas escuras onde a Equipe Rocket procura fósseis.', 65, 'cave', [44, 30], [
+    r('mt-moon', 'Mt. Moon', 'Cavernas escuras onde a Equipe Rocket procura fósseis.', 65, 'cave', [40.5, 17.1], [
       ['zubat', 50, 9, 13],
       ['geodude', 30, 9, 13],
       ['paras', 12, 10, 13],
@@ -101,7 +101,7 @@ const kanto = {
         reward: { items: { 'moon-stone': 1, 'helix-fossil': 1 } },
       }),
     }),
-    r('rota-4', 'Rota 4 e Cerulean', 'Saída do Mt. Moon em direção a Cerulean.', 75, 'route', [58, 28], [
+    r('rota-4', 'Rota 4 e Cerulean', 'Saída do Mt. Moon em direção a Cerulean.', 75, 'route', [54.5, 19.3], [
       ['rattata', 20, 12, 16],
       ['spearow', 25, 12, 16],
       ['ekans', 15, 12, 16],
@@ -113,7 +113,7 @@ const kanto = {
         reward: { items: { 'great-ball': 5 }, tm: 'scald' },
       }),
     }),
-    r('rota-24-25', 'Ponte Pepita e Rota 25', 'Dizem que Pokémon iniciais raros aparecem por aqui.', 100, 'river', [64, 14], [
+    r('rota-24-25', 'Ponte Pepita e Rota 25', 'Dizem que Pokémon iniciais raros aparecem por aqui.', 100, 'river', [74.5, 6], [
       ['oddish', 25, 14, 19],
       ['bellsprout', 20, 14, 19],
       ['pidgey', 20, 14, 19, 'day'],
@@ -126,7 +126,7 @@ const kanto = {
     ], {
       boss: boss('Blue', 'Seu rival', 'blue', [['pidgeotto', 18], ['abra', 16], ['rattata', 16], ['$rival:2', 20]], 800, { rival: true }),
     }),
-    r('rota-5-6', 'Rotas 5–6 e Vermilion', 'O porto de Vermilion e o ginásio elétrico do Lt. Surge.', 60, 'route', [60, 52], [
+    r('rota-5-6', 'Rotas 5–6 e Vermilion', 'O porto de Vermilion e o ginásio elétrico do Lt. Surge.', 60, 'route', [67.6, 44], [
       ['oddish', 20, 16, 22],
       ['bellsprout', 20, 16, 22],
       ['meowth', 20, 16, 22, 'night'],
@@ -140,14 +140,14 @@ const kanto = {
         reward: { tm: 'wild-charge' },
       }),
     }),
-    r('tunel-de-pedra', 'Túnel de Pedra', 'Um túnel escuro e sem iluminação até Lavender.', 70, 'cave', [76, 30], [
+    r('tunel-de-pedra', 'Túnel de Pedra', 'Um túnel escuro e sem iluminação até Lavender.', 70, 'cave', [83.6, 19.3], [
       ['zubat', 35, 22, 27],
       ['geodude', 30, 22, 27],
       ['machop', 20, 22, 27],
       ['onix', 10, 22, 27],
       ['cubone', 5, 22, 27],
     ]),
-    r('torre-pokemon', 'Torre Pokémon', 'O cemitério de Lavender. Fantasmas aparecem à noite.', 70, 'dampcave', [78, 46], [
+    r('torre-pokemon', 'Torre Pokémon', 'O cemitério de Lavender. Fantasmas aparecem à noite.', 70, 'dampcave', [86.6, 33.1], [
       ['gastly', 50, 24, 30],
       ['gastly', 40, 24, 30, 'night'],
       ['haunter', 10, 26, 30],
@@ -156,7 +156,7 @@ const kanto = {
     ], {
       boss: boss('Blue', 'Seu rival', 'blue', [['pidgeotto', 26], ['kadabra', 25], ['exeggcute', 24], ['$rival:2', 28]], 1100, { rival: true }),
     }),
-    r('rota-7-8-celadon', 'Rotas 7–8 e Celadon', 'A maior cidade de Kanto, com a loja de departamentos e o Game Corner.', 80, 'meadow', [44, 50], [
+    r('rota-7-8-celadon', 'Rotas 7–8 e Celadon', 'A maior cidade de Kanto, com a loja de departamentos e o Game Corner.', 80, 'meadow', [48, 34.9], [
       ['growlithe', 15, 26, 32],
       ['vulpix', 15, 26, 32],
       ['oddish', 20, 26, 32],
@@ -170,7 +170,7 @@ const kanto = {
         reward: { tm: 'giga-drain' },
       }),
     }),
-    r('esconderijo-rocket', 'Esconderijo Rocket', 'Embaixo do Game Corner, o chefe da Equipe Rocket comanda tudo.', 80, 'city', [40, 46], [
+    r('esconderijo-rocket', 'Esconderijo Rocket', 'Embaixo do Game Corner, o chefe da Equipe Rocket comanda tudo.', 80, 'city', [44.5, 38], [
       ['koffing', 25, 28, 34],
       ['grimer', 20, 28, 34],
       ['raticate', 20, 28, 34],
@@ -182,7 +182,7 @@ const kanto = {
         reward: { items: { 'ultra-ball': 5 } },
       }),
     }),
-    r('rota-12-15', 'Rotas 12–15 e Fuchsia', 'Pescadores, a ponte de Silence e o ginásio ninja de Koga.', 85, 'river', [70, 76], [
+    r('rota-12-15', 'Rotas 12–15 e Fuchsia', 'Pescadores, a ponte de Silence e o ginásio ninja de Koga.', 85, 'river', [86.6, 57.3], [
       ['psyduck', 15, 30, 36],
       ['slowpoke', 15, 30, 36],
       ['krabby', 15, 30, 36],
@@ -197,7 +197,7 @@ const kanto = {
         reward: { tm: 'sludge-bomb' },
       }),
     }),
-    r('zona-safari', 'Zona Safari', 'Espécies raras e captura facilitada (+50%).', 70, 'meadow', [58, 84], [
+    r('zona-safari', 'Zona Safari', 'Espécies raras e captura facilitada (+50%).', 70, 'meadow', [57.5, 70.4], [
       ['nidorino', 15, 30, 38],
       ['nidorina', 15, 30, 38],
       ['rhyhorn', 15, 30, 38],
@@ -210,7 +210,7 @@ const kanto = {
       ['chansey', 3, 30, 38],
       ['dratini', 3, 30, 36],
     ], { safari: true }),
-    r('rota-16-18', 'Ciclovia e Saffron', 'Descida da Ciclovia até a cidade de Saffron e a Silph Co.', 85, 'city', [52, 50], [
+    r('rota-16-18', 'Ciclovia e Saffron', 'Descida da Ciclovia até a cidade de Saffron e a Silph Co.', 85, 'city', [37.5, 57.3], [
       ['doduo', 20, 33, 39],
       ['spearow', 15, 33, 39],
       ['fearow', 10, 35, 39],
@@ -224,7 +224,7 @@ const kanto = {
         reward: { tm: 'psychic' },
       }),
     }),
-    r('ilhas-seafoam', 'Ilhas Seafoam', 'Cavernas geladas cercadas pelo mar.', 90, 'icecave', [48, 90], [
+    r('ilhas-seafoam', 'Ilhas Seafoam', 'Cavernas geladas cercadas pelo mar.', 90, 'icecave', [44.5, 90.4], [
       ['seel', 20, 36, 44],
       ['shellder', 15, 36, 44],
       ['horsea', 15, 36, 44],
@@ -235,7 +235,7 @@ const kanto = {
       ['jynx', 5, 36, 44],
       ['dewgong', 3, 42, 44],
     ]),
-    r('mansao-cinnabar', 'Mansão de Cinnabar', 'Ruínas de um laboratório na ilha vulcânica.', 90, 'volcano', [28, 90], [
+    r('mansao-cinnabar', 'Mansão de Cinnabar', 'Ruínas de um laboratório na ilha vulcânica.', 90, 'volcano', [23.2, 86.9], [
       ['growlithe', 15, 38, 46],
       ['ponyta', 15, 38, 46],
       ['koffing', 15, 38, 46],
@@ -250,7 +250,7 @@ const kanto = {
         reward: { tm: 'fire-blast' },
       }),
     }),
-    r('rota-22-23', 'Rotas 22–23 e Viridian', 'O ginásio de Viridian finalmente abriu as portas.', 95, 'route', [12, 66], [
+    r('rota-22-23', 'Rotas 22–23 e Viridian', 'O ginásio de Viridian finalmente abriu as portas.', 95, 'route', [11, 48.3], [
       ['nidorino', 15, 42, 48],
       ['nidorina', 15, 42, 48],
       ['mankey', 15, 42, 48],
@@ -265,7 +265,7 @@ const kanto = {
         reward: { tm: 'earthquake' },
       }),
     }),
-    r('estrada-vitoria', 'Estrada da Vitória', 'A caverna final antes do Platô Índigo.', 100, 'cave', [6, 40], [
+    r('estrada-vitoria', 'Estrada da Vitória', 'A caverna final antes do Platô Índigo.', 100, 'cave', [7.2, 27.3], [
       ['machoke', 20, 44, 50],
       ['graveler', 20, 44, 50],
       ['onix', 15, 44, 50],
@@ -276,11 +276,11 @@ const kanto = {
     ], {
       boss: boss('Blue', 'Seu rival', 'blue', [['pidgeot', 48], ['alakazam', 47], ['rhyhorn', 46], ['exeggcute', 46], ['$rival:3', 53]], 2600, { rival: true }),
     }),
-    trial('liga-lorelei', 'Liga — Lorelei', 'estrada-vitoria', [6, 24], boss('Lorelei', 'Elite dos Quatro', 'lorelei', [['dewgong', 54], ['cloyster', 53], ['slowbro', 54], ['jynx', 56], ['lapras', 56]], 3000)),
-    trial('liga-bruno', 'Liga — Bruno', 'estrada-vitoria', [6, 20], boss('Bruno', 'Elite dos Quatro', 'bruno', [['onix', 53], ['hitmonchan', 55], ['hitmonlee', 55], ['onix', 56], ['machamp', 58]], 3200)),
-    trial('liga-agatha', 'Liga — Agatha', 'estrada-vitoria', [6, 16], boss('Agatha', 'Elite dos Quatro', 'agatha', [['gengar', 56], ['golbat', 56], ['haunter', 55], ['arbok', 58], ['gengar', 60]], 3400)),
-    trial('liga-lance', 'Liga — Lance', 'estrada-vitoria', [6, 12], boss('Lance', 'Elite dos Quatro', 'lance', [['gyarados', 58], ['dragonair', 56], ['dragonair', 56], ['aerodactyl', 60], ['dragonite', 62]], 3600)),
-    trial('liga-campeao', 'Liga — Campeão', 'estrada-vitoria', [6, 6], boss('Blue', 'Campeão da Liga Pokémon', 'blue', [['pidgeot', 61], ['alakazam', 59], ['rhydon', 61], ['arcanine', 61], ['exeggutor', 63], ['$rival:3', 65]], 6000, { rival: true, champion: true })),
+    trial('liga-lorelei', 'Liga — Lorelei', 'estrada-vitoria', [4.8, 20], boss('Lorelei', 'Elite dos Quatro', 'lorelei', [['dewgong', 54], ['cloyster', 53], ['slowbro', 54], ['jynx', 56], ['lapras', 56]], 3000)),
+    trial('liga-bruno', 'Liga — Bruno', 'estrada-vitoria', [3, 15.5], boss('Bruno', 'Elite dos Quatro', 'bruno', [['onix', 53], ['hitmonchan', 55], ['hitmonlee', 55], ['onix', 56], ['machamp', 58]], 3200)),
+    trial('liga-agatha', 'Liga — Agatha', 'estrada-vitoria', [5.2, 12.8], boss('Agatha', 'Elite dos Quatro', 'agatha', [['gengar', 56], ['golbat', 56], ['haunter', 55], ['arbok', 58], ['gengar', 60]], 3400)),
+    trial('liga-lance', 'Liga — Lance', 'estrada-vitoria', [10, 14.4], boss('Lance', 'Elite dos Quatro', 'lance', [['gyarados', 58], ['dragonair', 56], ['dragonair', 56], ['aerodactyl', 60], ['dragonite', 62]], 3600)),
+    trial('liga-campeao', 'Liga — Campeão', 'estrada-vitoria', [7.4, 9.3], boss('Blue', 'Campeão da Liga Pokémon', 'blue', [['pidgeot', 61], ['alakazam', 59], ['rhydon', 61], ['arcanine', 61], ['exeggutor', 63], ['$rival:3', 65]], 6000, { rival: true, champion: true })),
   ],
 };
 
@@ -292,7 +292,7 @@ const johto = {
   name: 'Johto',
   trainerSuffix: ['-gen4', '-gen2', ''],
   routes: [
-    r('johto-rotas-29-31', 'Rotas 29–31', 'De New Bark até Violet, a cidade da torre Sprout.', 60, 'meadow', [84, 70], [
+    r('johto-rotas-29-31', 'Rotas 29–31', 'De New Bark até Violet, a cidade da torre Sprout.', 60, 'meadow', [58.1, 63.8], [
       ['sentret', 25, 56, 59, 'day'],
       ['hoothoot', 25, 56, 59, 'night'],
       ['pidgey', 15, 56, 59, 'day'],
@@ -307,7 +307,7 @@ const johto = {
         reward: { tm: 'aerial-ace' },
       }),
     }),
-    r('poco-slowpoke-ilex', 'Poço Slowpoke e Floresta Ilex', 'O poço onde os Slowpoke são caçados e a floresta sagrada.', 65, 'forest', [62, 82], [
+    r('poco-slowpoke-ilex', 'Poço Slowpoke e Floresta Ilex', 'O poço onde os Slowpoke são caçados e a floresta sagrada.', 65, 'forest', [42.3, 79], [
       ['slowpoke', 20, 58, 61],
       ['zubat', 15, 58, 61],
       ['caterpie', 10, 58, 61, 'day'],
@@ -323,7 +323,7 @@ const johto = {
         reward: { tm: 'x-scissor' },
       }),
     }),
-    r('rotas-34-35-goldenrod', 'Rotas 34–35 e Goldenrod', 'A metrópole de Johto, com a creche e a torre de rádio.', 70, 'city', [56, 62], [
+    r('rotas-34-35-goldenrod', 'Rotas 34–35 e Goldenrod', 'A metrópole de Johto, com a creche e a torre de rádio.', 70, 'city', [36.7, 60], [
       ['snubbull', 15, 60, 63],
       ['drowzee', 15, 60, 63],
       ['abra', 10, 60, 63],
@@ -339,7 +339,7 @@ const johto = {
         reward: { tm: 'hyper-voice' },
       }),
     }),
-    r('torre-queimada', 'Torre Queimada e Ecruteak', 'A torre onde as três feras lendárias despertaram.', 70, 'dampcave', [56, 44], [
+    r('torre-queimada', 'Torre Queimada e Ecruteak', 'A torre onde as três feras lendárias despertaram.', 70, 'dampcave', [40.8, 29.5], [
       ['rattata', 15, 62, 65],
       ['raticate', 10, 62, 65],
       ['koffing', 15, 62, 65],
@@ -354,7 +354,7 @@ const johto = {
         reward: { tm: 'shadow-ball' },
       }),
     }),
-    r('rotas-38-42-cianwood', 'Rotas 38–42 e Cianwood', 'Fazendas de Miltank e a ilha de Cianwood do outro lado do mar.', 75, 'beach', [34, 52], [
+    r('rotas-38-42-cianwood', 'Rotas 38–42 e Cianwood', 'Fazendas de Miltank e a ilha de Cianwood do outro lado do mar.', 75, 'beach', [19.9, 62.9], [
       ['miltank', 10, 64, 67],
       ['tauros', 10, 64, 67],
       ['farfetchd', 10, 64, 67],
@@ -369,7 +369,7 @@ const johto = {
         reward: { tm: 'focus-blast' },
       }),
     }),
-    r('farol-olivine', 'Farol de Olivine', 'O farol cuja luz é mantida por uma Ampharos doente.', 75, 'beach', [40, 40], [
+    r('farol-olivine', 'Farol de Olivine', 'O farol cuja luz é mantida por uma Ampharos doente.', 75, 'beach', [23.4, 31], [
       ['magnemite', 20, 66, 69],
       ['magneton', 5, 67, 69],
       ['mareep', 15, 66, 69],
@@ -384,7 +384,7 @@ const johto = {
         reward: { tm: 'iron-tail' },
       }),
     }),
-    r('lago-da-furia', 'Lago da Fúria e Mahogany', 'Um lago onde Gyarados furiosos são forçados a evoluir.', 80, 'river', [62, 26], [
+    r('lago-da-furia', 'Lago da Fúria e Mahogany', 'Um lago onde Gyarados furiosos são forçados a evoluir.', 80, 'river', [54.6, 9.5], [
       ['magikarp', 25, 68, 71],
       ['gyarados', 5, 69, 71],
       ['goldeen', 15, 68, 71],
@@ -399,7 +399,7 @@ const johto = {
         reward: { tm: 'ice-beam' },
       }),
     }),
-    r('caverna-gelada', 'Caverna Gelada e Blackthorn', 'Um caminho escorregadio até a cidade dos domadores de dragão.', 85, 'icecave', [76, 18], [
+    r('caverna-gelada', 'Caverna Gelada e Blackthorn', 'Um caminho escorregadio até a cidade dos domadores de dragão.', 85, 'icecave', [61.7, 27.6], [
       ['swinub', 20, 70, 73],
       ['jynx', 15, 70, 73],
       ['delibird', 10, 70, 73],
@@ -413,7 +413,7 @@ const johto = {
         reward: { tm: 'dragon-pulse' },
       }),
     }),
-    r('johto-estrada-vitoria', 'Rotas 26–27 e Estrada da Vitória', 'O caminho de volta para o Platô Índigo, agora pelo lado de Johto.', 100, 'cave', [92, 40], [
+    r('johto-estrada-vitoria', 'Rotas 26–27 e Estrada da Vitória', 'O caminho de volta para o Platô Índigo, agora pelo lado de Johto.', 100, 'cave', [92, 55.2], [
       ['ponyta', 15, 72, 76],
       ['rapidash', 10, 73, 76],
       ['dodrio', 10, 72, 76],
@@ -426,11 +426,11 @@ const johto = {
     ], {
       boss: boss('Silver', 'Seu rival', 'silver', [['sneasel', 74], ['golbat', 75], ['magneton', 74], ['gengar', 75], ['alakazam', 75], ['$rival:3', 78]], 5000, { rival: true }),
     }),
-    trial('johto-liga-will', 'Liga de Johto — Will', 'johto-estrada-vitoria', [96, 30], boss('Will', 'Elite dos Quatro', 'will', [['xatu', 76], ['jynx', 76], ['exeggutor', 77], ['slowbro', 77], ['xatu', 79]], 5200)),
-    trial('johto-liga-koga', 'Liga de Johto — Koga', 'johto-estrada-vitoria', [96, 24], boss('Koga', 'Elite dos Quatro', 'koga', [['ariados', 76], ['forretress', 77], ['muk', 78], ['venomoth', 77], ['crobat', 80]], 5400)),
-    trial('johto-liga-bruno', 'Liga de Johto — Bruno', 'johto-estrada-vitoria', [96, 18], boss('Bruno', 'Elite dos Quatro', 'bruno', [['hitmontop', 77], ['hitmonlee', 77], ['hitmonchan', 77], ['onix', 78], ['machamp', 81]], 5600)),
-    trial('johto-liga-karen', 'Liga de Johto — Karen', 'johto-estrada-vitoria', [96, 12], boss('Karen', 'Elite dos Quatro', 'karen', [['umbreon', 78], ['vileplume', 77], ['gengar', 78], ['murkrow', 78], ['houndoom', 82]], 5800)),
-    trial('johto-liga-campeao', 'Liga de Johto — Campeão', 'johto-estrada-vitoria', [96, 6], boss('Lance', 'Campeão da Liga de Johto', 'lance', [['gyarados', 80], ['dragonite', 80], ['dragonite', 80], ['aerodactyl', 80], ['charizard', 80], ['dragonite', 83]], 9000, { champion: true })),
+    trial('johto-liga-will', 'Liga de Johto — Will', 'johto-estrada-vitoria', [94.3, 49.5], boss('Will', 'Elite dos Quatro', 'will', [['xatu', 76], ['jynx', 76], ['exeggutor', 77], ['slowbro', 77], ['xatu', 79]], 5200)),
+    trial('johto-liga-koga', 'Liga de Johto — Koga', 'johto-estrada-vitoria', [95.9, 45.9], boss('Koga', 'Elite dos Quatro', 'koga', [['ariados', 76], ['forretress', 77], ['muk', 78], ['venomoth', 77], ['crobat', 80]], 5400)),
+    trial('johto-liga-bruno', 'Liga de Johto — Bruno', 'johto-estrada-vitoria', [97.7, 48.6], boss('Bruno', 'Elite dos Quatro', 'bruno', [['hitmontop', 77], ['hitmonlee', 77], ['hitmonchan', 77], ['onix', 78], ['machamp', 81]], 5600)),
+    trial('johto-liga-karen', 'Liga de Johto — Karen', 'johto-estrada-vitoria', [98.9, 44.8], boss('Karen', 'Elite dos Quatro', 'karen', [['umbreon', 78], ['vileplume', 77], ['gengar', 78], ['murkrow', 78], ['houndoom', 82]], 5800)),
+    trial('johto-liga-campeao', 'Liga de Johto — Campeão', 'johto-estrada-vitoria', [97.1, 42.4], boss('Lance', 'Campeão da Liga de Johto', 'lance', [['gyarados', 80], ['dragonite', 80], ['dragonite', 80], ['aerodactyl', 80], ['charizard', 80], ['dragonite', 83]], 9000, { champion: true })),
   ],
 };
 
@@ -442,7 +442,7 @@ const hoenn = {
   name: 'Hoenn',
   trainerSuffix: ['-gen3', ''],
   routes: [
-    r('hoenn-rotas-101-104', 'Rotas 101–104 e Floresta Petalburg', 'Do laboratório do Prof. Birch até a cidade de Rustboro.', 60, 'forest', [22, 72], [
+    r('hoenn-rotas-101-104', 'Rotas 101–104 e Floresta Petalburg', 'Do laboratório do Prof. Birch até a cidade de Rustboro.', 60, 'forest', [12, 58.8], [
       ['zigzagoon', 20, 66, 69],
       ['wurmple', 15, 66, 69, 'day'],
       ['poochyena', 15, 66, 69, 'night'],
@@ -459,7 +459,7 @@ const hoenn = {
         reward: { tm: 'rock-slide' },
       }),
     }),
-    r('caverna-granite', 'Caverna Granite e Dewford', 'Uma caverna com pinturas antigas numa ilha pequena.', 65, 'cave', [16, 84], [
+    r('caverna-granite', 'Caverna Granite e Dewford', 'Uma caverna com pinturas antigas numa ilha pequena.', 65, 'cave', [6.4, 86], [
       ['zubat', 20, 68, 71],
       ['makuhita', 20, 68, 71],
       ['geodude', 15, 68, 71],
@@ -473,7 +473,7 @@ const hoenn = {
         reward: { tm: 'brick-break' },
       }),
     }),
-    r('rota-110-mauville', 'Rota 110 e Mauville', 'A ponte de ciclismo sobre o mar até a cidade coberta.', 70, 'plains', [40, 58], [
+    r('rota-110-mauville', 'Rota 110 e Mauville', 'A ponte de ciclismo sobre o mar até a cidade coberta.', 70, 'plains', [32, 37.3], [
       ['electrike', 20, 70, 73],
       ['plusle', 10, 70, 73],
       ['minun', 10, 70, 73],
@@ -488,7 +488,7 @@ const hoenn = {
         reward: { tm: 'thunderbolt' },
       }),
     }),
-    r('monte-chimney', 'Monte Chimney e Lavaridge', 'Cinzas caem sobre a rota 113 a caminho do vulcão.', 75, 'volcano', [40, 38], [
+    r('monte-chimney', 'Monte Chimney e Lavaridge', 'Cinzas caem sobre a rota 113 a caminho do vulcão.', 75, 'volcano', [24, 10.7], [
       ['numel', 20, 72, 75],
       ['slugma', 20, 72, 75],
       ['spinda', 15, 72, 75],
@@ -502,7 +502,7 @@ const hoenn = {
         reward: { tm: 'flamethrower' },
       }),
     }),
-    r('deserto-rota-111', 'Deserto da Rota 111 e Petalburg', 'Uma tempestade de areia constante esconde ruínas antigas.', 80, 'desert', [48, 46], [
+    r('deserto-rota-111', 'Deserto da Rota 111 e Petalburg', 'Uma tempestade de areia constante esconde ruínas antigas.', 80, 'desert', [35.2, 22.6], [
       ['sandshrew', 20, 74, 77],
       ['trapinch', 20, 74, 77],
       ['cacnea', 15, 74, 77],
@@ -515,7 +515,7 @@ const hoenn = {
         reward: { tm: 'facade' },
       }),
     }),
-    r('rota-119-fortree', 'Rota 119 e Fortree', 'Uma floresta chuvosa e a cidade nas copas das árvores.', 85, 'forest', [66, 34], [
+    r('rota-119-fortree', 'Rota 119 e Fortree', 'Uma floresta chuvosa e a cidade nas copas das árvores.', 85, 'forest', [49.6, 19.2], [
       ['tropius', 10, 76, 79],
       ['kecleon', 10, 76, 79],
       ['linoone', 15, 76, 79],
@@ -530,7 +530,7 @@ const hoenn = {
         reward: { tm: 'u-turn' },
       }),
     }),
-    r('rotas-123-124-mossdeep', 'Rotas 123–124 e Mossdeep', 'Mar aberto até a ilha do centro espacial.', 85, 'beach', [82, 50], [
+    r('rotas-123-124-mossdeep', 'Rotas 123–124 e Mossdeep', 'Mar aberto até a ilha do centro espacial.', 85, 'beach', [88, 24.9], [
       ['wingull', 20, 78, 81],
       ['pelipper', 10, 78, 81],
       ['tentacool', 15, 78, 81],
@@ -546,7 +546,7 @@ const hoenn = {
         reward: { tm: 'psyshock' },
       }),
     }),
-    r('caverna-seafloor', 'Caverna Seafloor e Sootopolis', 'Uma cratera submersa e a cidade escondida dentro dela.', 90, 'sea', [70, 66], [
+    r('caverna-seafloor', 'Caverna Seafloor e Sootopolis', 'Uma cratera submersa e a cidade escondida dentro dela.', 90, 'sea', [83.2, 53.2], [
       ['zubat', 15, 80, 83],
       ['golbat', 15, 80, 83],
       ['tentacruel', 10, 80, 83],
@@ -562,7 +562,7 @@ const hoenn = {
         reward: { tm: 'surf' },
       }),
     }),
-    r('hoenn-estrada-vitoria', 'Estrada da Vitória (Hoenn)', 'A caverna mais longa de Hoenn, antes de Ever Grande.', 100, 'cave', [92, 70], [
+    r('hoenn-estrada-vitoria', 'Estrada da Vitória (Hoenn)', 'A caverna mais longa de Hoenn, antes de Ever Grande.', 100, 'cave', [93.2, 50.3], [
       ['golbat', 15, 82, 85],
       ['hariyama', 15, 82, 85],
       ['loudred', 15, 82, 85],
@@ -574,11 +574,11 @@ const hoenn = {
     ], {
       boss: boss('May', 'Sua rival', 'may', [['swellow', 84], ['pelipper', 84], ['shiftry', 84], ['breloom', 84], ['$rival:3', 87]], 6400, { rival: true }),
     }),
-    trial('hoenn-liga-sidney', 'Liga de Hoenn — Sidney', 'hoenn-estrada-vitoria', [96, 62], boss('Sidney', 'Elite dos Quatro', 'sidney', [['mightyena', 84], ['shiftry', 84], ['cacturne', 84], ['crawdaunt', 85], ['absol', 86]], 6600)),
-    trial('hoenn-liga-phoebe', 'Liga de Hoenn — Phoebe', 'hoenn-estrada-vitoria', [96, 54], boss('Phoebe', 'Elite dos Quatro', 'phoebe', [['dusclops', 85], ['banette', 85], ['sableye', 85], ['banette', 85], ['dusclops', 87]], 6800)),
-    trial('hoenn-liga-glacia', 'Liga de Hoenn — Glacia', 'hoenn-estrada-vitoria', [96, 46], boss('Glacia', 'Elite dos Quatro', 'glacia', [['sealeo', 86], ['glalie', 86], ['sealeo', 86], ['glalie', 86], ['walrein', 88]], 7000)),
-    trial('hoenn-liga-drake', 'Liga de Hoenn — Drake', 'hoenn-estrada-vitoria', [96, 38], boss('Drake', 'Elite dos Quatro', 'drake', [['shelgon', 87], ['altaria', 87], ['flygon', 87], ['flygon', 87], ['salamence', 89]], 7200)),
-    trial('hoenn-liga-campeao', 'Liga de Hoenn — Campeão', 'hoenn-estrada-vitoria', [96, 30], boss('Steven', 'Campeão da Liga de Hoenn', 'steven', [['skarmory', 88], ['claydol', 88], ['aggron', 89], ['cradily', 89], ['armaldo', 89], ['metagross', 91]], 11000, { champion: true })),
+    trial('hoenn-liga-sidney', 'Liga de Hoenn — Sidney', 'hoenn-estrada-vitoria', [92, 37.9], boss('Sidney', 'Elite dos Quatro', 'sidney', [['mightyena', 84], ['shiftry', 84], ['cacturne', 84], ['crawdaunt', 85], ['absol', 86]], 6600)),
+    trial('hoenn-liga-phoebe', 'Liga de Hoenn — Phoebe', 'hoenn-estrada-vitoria', [95.2, 39.6], boss('Phoebe', 'Elite dos Quatro', 'phoebe', [['dusclops', 85], ['banette', 85], ['sableye', 85], ['banette', 85], ['dusclops', 87]], 6800)),
+    trial('hoenn-liga-glacia', 'Liga de Hoenn — Glacia', 'hoenn-estrada-vitoria', [92.4, 42.4], boss('Glacia', 'Elite dos Quatro', 'glacia', [['sealeo', 86], ['glalie', 86], ['sealeo', 86], ['glalie', 86], ['walrein', 88]], 7000)),
+    trial('hoenn-liga-drake', 'Liga de Hoenn — Drake', 'hoenn-estrada-vitoria', [95.6, 44.1], boss('Drake', 'Elite dos Quatro', 'drake', [['shelgon', 87], ['altaria', 87], ['flygon', 87], ['flygon', 87], ['salamence', 89]], 7200)),
+    trial('hoenn-liga-campeao', 'Liga de Hoenn — Campeão', 'hoenn-estrada-vitoria', [94, 34.5], boss('Steven', 'Campeão da Liga de Hoenn', 'steven', [['skarmory', 88], ['claydol', 88], ['aggron', 89], ['cradily', 89], ['armaldo', 89], ['metagross', 91]], 11000, { champion: true })),
   ],
 };
 
@@ -590,7 +590,7 @@ const sinnoh = {
   name: 'Sinnoh',
   trainerSuffix: ['-gen4', ''],
   routes: [
-    r('sinnoh-rotas-201-203', 'Rotas 201–203 e Oreburgh', 'De Twinleaf até a cidade mineira de Oreburgh.', 60, 'meadow', [30, 78], [
+    r('sinnoh-rotas-201-203', 'Rotas 201–203 e Oreburgh', 'De Twinleaf até a cidade mineira de Oreburgh.', 60, 'meadow', [23.4, 69.1], [
       ['starly', 20, 74, 77],
       ['bidoof', 20, 74, 77],
       ['kricketot', 15, 74, 77, 'night'],
@@ -605,7 +605,7 @@ const sinnoh = {
         reward: { tm: 'stone-edge' },
       }),
     }),
-    r('floresta-eterna', 'Floresta Eterna', 'Uma floresta antiga com uma mansão abandonada.', 65, 'forest', [38, 54], [
+    r('floresta-eterna', 'Floresta Eterna', 'Uma floresta antiga com uma mansão abandonada.', 65, 'forest', [27.3, 52.5], [
       ['buneary', 10, 76, 79],
       ['wurmple', 10, 76, 79],
       ['beautifly', 10, 76, 79, 'day'],
@@ -622,7 +622,7 @@ const sinnoh = {
         reward: { tm: 'energy-ball' },
       }),
     }),
-    r('rota-209-hearthome', 'Rota 209 e Hearthome', 'A cidade dos concursos e a torre perdida do cemitério.', 70, 'meadow', [56, 58], [
+    r('rota-209-hearthome', 'Rota 209 e Hearthome', 'A cidade dos concursos e a torre perdida do cemitério.', 70, 'meadow', [53.7, 63.5], [
       ['ponyta', 15, 78, 81],
       ['staravia', 15, 78, 81],
       ['bibarel', 15, 78, 81],
@@ -637,7 +637,7 @@ const sinnoh = {
         reward: { tm: 'shadow-claw' },
       }),
     }),
-    r('rota-215-veilstone', 'Rota 215 e Veilstone', 'Chuva constante até a cidade esculpida na rocha.', 75, 'route', [72, 46], [
+    r('rota-215-veilstone', 'Rota 215 e Veilstone', 'Chuva constante até a cidade esculpida na rocha.', 75, 'route', [74.2, 51.1], [
       ['kadabra', 10, 80, 83],
       ['ponyta', 15, 80, 83],
       ['rapidash', 5, 81, 83],
@@ -653,7 +653,7 @@ const sinnoh = {
         reward: { tm: 'drain-punch' },
       }),
     }),
-    r('grande-pantano', 'Grande Pântano e Pastoria', 'Um pântano enorme com o safári de Sinnoh.', 80, 'river', [68, 72], [
+    r('grande-pantano', 'Grande Pântano e Pastoria', 'Um pântano enorme com o safári de Sinnoh.', 80, 'river', [67.4, 80.1], [
       ['croagunk', 15, 82, 85],
       ['skorupi', 15, 82, 85],
       ['carnivine', 10, 82, 85],
@@ -668,7 +668,7 @@ const sinnoh = {
         reward: { tm: 'waterfall' },
       }),
     }),
-    r('mina-ferro-canalave', 'Ilha de Ferro e Canalave', 'Uma ilha de mineração e a cidade do canal.', 85, 'cave', [10, 50], [
+    r('mina-ferro-canalave', 'Ilha de Ferro e Canalave', 'Uma ilha de mineração e a cidade do canal.', 85, 'cave', [22.9, 40.7], [
       ['geodude', 15, 84, 87],
       ['graveler', 15, 84, 87],
       ['onix', 15, 84, 87],
@@ -683,7 +683,7 @@ const sinnoh = {
         reward: { tm: 'flash-cannon' },
       }),
     }),
-    r('rota-216-217', 'Rotas 216–217 e Snowpoint', 'Uma nevasca permanente no norte de Sinnoh.', 85, 'icecave', [44, 16], [
+    r('rota-216-217', 'Rotas 216–217 e Snowpoint', 'Uma nevasca permanente no norte de Sinnoh.', 85, 'icecave', [39.1, 26.2], [
       ['snover', 25, 86, 89],
       ['sneasel', 15, 86, 89, 'night'],
       ['swinub', 15, 86, 89],
@@ -697,7 +697,7 @@ const sinnoh = {
         reward: { tm: 'blizzard' },
       }),
     }),
-    r('rota-222-sunyshore', 'Rota 222 e Sunyshore', 'A cidade solar à beira-mar, cheia de painéis.', 90, 'beach', [86, 64], [
+    r('rota-222-sunyshore', 'Rota 222 e Sunyshore', 'A cidade solar à beira-mar, cheia de painéis.', 90, 'beach', [85.9, 71.8], [
       ['luxio', 15, 88, 91],
       ['electabuzz', 10, 88, 91],
       ['chatot', 15, 88, 91],
@@ -712,7 +712,7 @@ const sinnoh = {
         reward: { tm: 'charge-beam' },
       }),
     }),
-    r('sinnoh-estrada-vitoria', 'Estrada da Vitória (Sinnoh)', 'Uma caverna enorme na base do Monte Coronet.', 100, 'cave', [86, 30], [
+    r('sinnoh-estrada-vitoria', 'Estrada da Vitória (Sinnoh)', 'Uma caverna enorme na base do Monte Coronet.', 100, 'cave', [85.9, 55.2], [
       ['golbat', 15, 89, 92],
       ['onix', 10, 89, 92],
       ['steelix', 5, 90, 92],
@@ -724,11 +724,11 @@ const sinnoh = {
     ], {
       boss: boss('Barry', 'Seu rival', 'barry', [['staraptor', 91], ['heracross', 91], ['floatzel', 91], ['snorlax', 92], ['$rival:3', 94]], 8000, { rival: true }),
     }),
-    trial('sinnoh-liga-aaron', 'Liga de Sinnoh — Aaron', 'sinnoh-estrada-vitoria', [94, 22], boss('Aaron', 'Elite dos Quatro', 'aaron', [['dustox', 91], ['beautifly', 91], ['vespiquen', 91], ['heracross', 92], ['drapion', 93]], 8200)),
-    trial('sinnoh-liga-bertha', 'Liga de Sinnoh — Bertha', 'sinnoh-estrada-vitoria', [94, 16], boss('Bertha', 'Elite dos Quatro', 'bertha', [['whiscash', 91], ['gliscor', 92], ['golem', 92], ['rhyperior', 92], ['hippowdon', 93]], 8400)),
-    trial('sinnoh-liga-flint', 'Liga de Sinnoh — Flint', 'sinnoh-estrada-vitoria', [94, 10], boss('Flint', 'Elite dos Quatro', 'flint', [['houndoom', 92], ['flareon', 92], ['rapidash', 92], ['infernape', 93], ['magmortar', 94]], 8600)),
-    trial('sinnoh-liga-lucian', 'Liga de Sinnoh — Lucian', 'sinnoh-estrada-vitoria', [94, 4], boss('Lucian', 'Elite dos Quatro', 'lucian', [['mr-mime', 93], ['girafarig', 93], ['medicham', 93], ['alakazam', 94], ['bronzong', 94]], 8800)),
-    trial('sinnoh-liga-campeao', 'Liga de Sinnoh — Campeã', 'sinnoh-estrada-vitoria', [80, 4], boss('Cynthia', 'Campeã da Liga de Sinnoh', 'cynthia', [['spiritomb', 94], ['roserade', 94], ['togekiss', 94], ['lucario', 94], ['milotic', 94], ['garchomp', 96]], 13000, { champion: true })),
+    trial('sinnoh-liga-aaron', 'Liga de Sinnoh — Aaron', 'sinnoh-estrada-vitoria', [84, 47], boss('Aaron', 'Elite dos Quatro', 'aaron', [['dustox', 91], ['beautifly', 91], ['vespiquen', 91], ['heracross', 92], ['drapion', 93]], 8200)),
+    trial('sinnoh-liga-bertha', 'Liga de Sinnoh — Bertha', 'sinnoh-estrada-vitoria', [87.4, 45.6], boss('Bertha', 'Elite dos Quatro', 'bertha', [['whiscash', 91], ['gliscor', 92], ['golem', 92], ['rhyperior', 92], ['hippowdon', 93]], 8400)),
+    trial('sinnoh-liga-flint', 'Liga de Sinnoh — Flint', 'sinnoh-estrada-vitoria', [85, 42.1], boss('Flint', 'Elite dos Quatro', 'flint', [['houndoom', 92], ['flareon', 92], ['rapidash', 92], ['infernape', 93], ['magmortar', 94]], 8600)),
+    trial('sinnoh-liga-lucian', 'Liga de Sinnoh — Lucian', 'sinnoh-estrada-vitoria', [88.4, 41.4], boss('Lucian', 'Elite dos Quatro', 'lucian', [['mr-mime', 93], ['girafarig', 93], ['medicham', 93], ['alakazam', 94], ['bronzong', 94]], 8800)),
+    trial('sinnoh-liga-campeao', 'Liga de Sinnoh — Campeã', 'sinnoh-estrada-vitoria', [86.4, 38], boss('Cynthia', 'Campeã da Liga de Sinnoh', 'cynthia', [['spiritomb', 94], ['roserade', 94], ['togekiss', 94], ['lucario', 94], ['milotic', 94], ['garchomp', 96]], 13000, { champion: true })),
   ],
 };
 
@@ -740,7 +740,7 @@ const unova = {
   name: 'Unova',
   trainerSuffix: [''],
   routes: [
-    r('unova-rotas-1-3', 'Rotas 1–3 e Striaton', 'De Nuvema até o restaurante-ginásio dos trigêmeos.', 60, 'meadow', [72, 86], [
+    r('unova-rotas-1-3', 'Rotas 1–3 e Striaton', 'De Nuvema até o restaurante-ginásio dos trigêmeos.', 60, 'meadow', [88.3, 71.7], [
       ['patrat', 20, 82, 85],
       ['lillipup', 20, 82, 85],
       ['purrloin', 15, 82, 85, 'night'],
@@ -756,7 +756,7 @@ const unova = {
         reward: { tm: 'seed-bomb' },
       }),
     }),
-    r('nacrene-resort', 'Resort do Deserto e Nacrene', 'Ruínas no deserto e a cidade do museu.', 65, 'desert', [62, 70], [
+    r('nacrene-resort', 'Resort do Deserto e Nacrene', 'Ruínas no deserto e a cidade do museu.', 65, 'desert', [77, 66.3], [
       ['sandile', 20, 84, 87],
       ['darumaka', 15, 84, 87],
       ['scraggy', 15, 84, 87],
@@ -770,7 +770,7 @@ const unova = {
         reward: { tm: 'retaliate' },
       }),
     }),
-    r('pinwheel-castelia', 'Floresta Pinwheel e Castelia', 'Uma floresta densa e a cidade dos arranha-céus.', 70, 'forest', [54, 80], [
+    r('pinwheel-castelia', 'Floresta Pinwheel e Castelia', 'Uma floresta densa e a cidade dos arranha-céus.', 70, 'forest', [50.8, 82.4], [
       ['sewaddle', 15, 86, 89],
       ['swadloon', 10, 86, 89],
       ['venipede', 15, 86, 89],
@@ -787,7 +787,7 @@ const unova = {
         reward: { tm: 'struggle-bug' },
       }),
     }),
-    r('rota-5-nimbasa', 'Rota 5 e Nimbasa', 'A cidade dos parques de diversão e das luzes.', 75, 'plains', [56, 54], [
+    r('rota-5-nimbasa', 'Rota 5 e Nimbasa', 'A cidade dos parques de diversão e das luzes.', 75, 'plains', [51.6, 53.2], [
       ['blitzle', 15, 88, 91],
       ['zebstrika', 5, 90, 91],
       ['minccino', 15, 88, 91],
@@ -801,7 +801,7 @@ const unova = {
         reward: { tm: 'volt-switch' },
       }),
     }),
-    r('rota-6-driftveil', 'Rota 6 e Driftveil', 'O porto industrial e as estações que mudam a rota.', 80, 'route', [40, 50], [
+    r('rota-6-driftveil', 'Rota 6 e Driftveil', 'O porto industrial e as estações que mudam a rota.', 80, 'route', [28.1, 56.2], [
       ['deerling', 15, 90, 93],
       ['karrablast', 10, 90, 93],
       ['shelmet', 10, 90, 93],
@@ -816,7 +816,7 @@ const unova = {
         reward: { tm: 'bulldoze' },
       }),
     }),
-    r('caverna-chargestone', 'Caverna Chargestone e Mistralton', 'Pedras flutuantes carregadas de eletricidade.', 85, 'cave', [32, 36], [
+    r('caverna-chargestone', 'Caverna Chargestone e Mistralton', 'Pedras flutuantes carregadas de eletricidade.', 85, 'cave', [19.5, 45.4], [
       ['joltik', 15, 92, 95],
       ['galvantula', 5, 93, 95],
       ['ferroseed', 15, 92, 95],
@@ -832,7 +832,7 @@ const unova = {
         reward: { tm: 'acrobatics' },
       }),
     }),
-    r('montanha-twist', 'Montanha Twist e Icirrus', 'Uma mina gelada no inverno e a cidade dos pântanos.', 85, 'icecave', [38, 16], [
+    r('montanha-twist', 'Montanha Twist e Icirrus', 'Uma mina gelada no inverno e a cidade dos pântanos.', 85, 'icecave', [22.7, 33.5], [
       ['cubchoo', 15, 94, 97],
       ['beartic', 5, 96, 97],
       ['vanillite', 15, 94, 97],
@@ -847,7 +847,7 @@ const unova = {
         reward: { tm: 'frost-breath' },
       }),
     }),
-    r('dragonspiral', 'Torre Dragonspiral e Opelucid', 'A torre mais antiga de Unova, morada de um dragão lendário.', 90, 'mountain', [62, 18], [
+    r('dragonspiral', 'Torre Dragonspiral e Opelucid', 'A torre mais antiga de Unova, morada de um dragão lendário.', 90, 'mountain', [6.2, 16.1], [
       ['druddigon', 10, 96, 99],
       ['golett', 15, 96, 99],
       ['mienfoo', 15, 96, 99],
@@ -864,7 +864,7 @@ const unova = {
         boost: 1.05,
       }),
     }),
-    r('unova-estrada-vitoria', 'Estrada da Vitória (Unova)', 'A última subida antes da Liga Pokémon de Unova.', 100, 'cave', [80, 12], [
+    r('unova-estrada-vitoria', 'Estrada da Vitória (Unova)', 'A última subida antes da Liga Pokémon de Unova.', 100, 'cave', [50.8, 34.6], [
       ['boldore', 15, 97, 100],
       ['durant', 15, 97, 100],
       ['heatmor', 15, 97, 100],
@@ -877,11 +877,11 @@ const unova = {
     ], {
       boss: boss('Cheren', 'Seu rival', 'cheren', [['unfezant', 99], ['liepard', 99], ['gigalith', 99], ['$rival:3', 100]], 9600, { rival: true, boost: 1.08 }),
     }),
-    trial('unova-liga-shauntal', 'Liga de Unova — Shauntal', 'unova-estrada-vitoria', [84, 6], boss('Shauntal', 'Elite dos Quatro', 'shauntal', [['cofagrigus', 99], ['jellicent', 99], ['golurk', 99], ['chandelure', 100]], 10000, { boost: 1.1 })),
-    trial('unova-liga-marshal', 'Liga de Unova — Marshal', 'unova-estrada-vitoria', [90, 6], boss('Marshal', 'Elite dos Quatro', 'marshal', [['throh', 99], ['sawk', 99], ['mienshao', 99], ['conkeldurr', 100]], 10200, { boost: 1.12 })),
-    trial('unova-liga-grimsley', 'Liga de Unova — Grimsley', 'unova-estrada-vitoria', [96, 6], boss('Grimsley', 'Elite dos Quatro', 'grimsley', [['scrafty', 99], ['liepard', 99], ['krookodile', 99], ['bisharp', 100]], 10400, { boost: 1.14 })),
-    trial('unova-liga-caitlin', 'Liga de Unova — Caitlin', 'unova-estrada-vitoria', [96, 14], boss('Caitlin', 'Elite dos Quatro', 'caitlin', [['reuniclus', 99], ['musharna', 99], ['sigilyph', 99], ['gothitelle', 100]], 10600, { boost: 1.16 })),
-    trial('unova-liga-campeao', 'Liga de Unova — Campeão', 'unova-estrada-vitoria', [96, 22], boss('Alder', 'Campeão da Liga de Unova', 'alder', [['accelgor', 100], ['bouffalant', 100], ['druddigon', 100], ['vanilluxe', 100], ['escavalier', 100], ['volcarona', 100]], 16000, { champion: true, boost: 1.2 })),
+    trial('unova-liga-shauntal', 'Liga de Unova — Shauntal', 'unova-estrada-vitoria', [46.9, 41.8], boss('Shauntal', 'Elite dos Quatro', 'shauntal', [['cofagrigus', 99], ['jellicent', 99], ['golurk', 99], ['chandelure', 100]], 10000, { boost: 1.1 })),
+    trial('unova-liga-marshal', 'Liga de Unova — Marshal', 'unova-estrada-vitoria', [48.8, 38.8], boss('Marshal', 'Elite dos Quatro', 'marshal', [['throh', 99], ['sawk', 99], ['mienshao', 99], ['conkeldurr', 100]], 10200, { boost: 1.12 })),
+    trial('unova-liga-grimsley', 'Liga de Unova — Grimsley', 'unova-estrada-vitoria', [52.3, 38.8], boss('Grimsley', 'Elite dos Quatro', 'grimsley', [['scrafty', 99], ['liepard', 99], ['krookodile', 99], ['bisharp', 100]], 10400, { boost: 1.14 })),
+    trial('unova-liga-caitlin', 'Liga de Unova — Caitlin', 'unova-estrada-vitoria', [54.3, 41.8], boss('Caitlin', 'Elite dos Quatro', 'caitlin', [['reuniclus', 99], ['musharna', 99], ['sigilyph', 99], ['gothitelle', 100]], 10600, { boost: 1.16 })),
+    trial('unova-liga-campeao', 'Liga de Unova — Campeão', 'unova-estrada-vitoria', [50.4, 43.6], boss('Alder', 'Campeão da Liga de Unova', 'alder', [['accelgor', 100], ['bouffalant', 100], ['druddigon', 100], ['vanilluxe', 100], ['escavalier', 100], ['volcarona', 100]], 16000, { champion: true, boost: 1.2 })),
   ],
 };
 

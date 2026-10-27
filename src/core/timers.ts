@@ -7,6 +7,7 @@ import { updateRoamer, updateRocket } from './events';
 import { expeditionDone } from './expeditions';
 import { fossilTimers } from './fossils';
 import { gardenTimers } from './garden';
+import { sampleHistory } from './history';
 import type { GameEvent, GameState } from './game';
 import { refreshMissions } from './missions';
 import { rngFrom } from './rng';
@@ -35,5 +36,6 @@ export function updateTimers(state: GameState, now: number): GameEvent[] {
   updateRoamer(state, now, rng, events);
   updateRocket(state, now, rng, events);
   refreshMissions(state, now, events);
+  sampleHistory(state, now);
   return events;
 }

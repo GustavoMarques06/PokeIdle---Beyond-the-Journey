@@ -1,23 +1,22 @@
-// MOCHILA: bolsos de itens e o POKé MART (loja), no estilo da mochila do FRLG.
+// MOCHILA: bolsos de itens e de TMs, no estilo da mochila do FRLG. As compras ficam na
+// tela LOJA (ShopScreen).
 
 import { useState } from 'react';
-import { BERRIES, FOSSILS, SHOP_CATALOG, getMove, getRoute, getSpecies } from '../../game-data';
-import { applyEvolutionItem, buy, shopEntries, type GameState } from '../../core/game';
+import { BERRIES, FOSSILS, getMove, getSpecies } from '../../game-data';
+import { applyEvolutionItem, type GameState } from '../../core/game';
 import { eatBerry } from '../../core/garden';
 import { itemEvolution } from '../../core/progression';
 import { ItemIcon, Money, PokemonSprite, TypeBadge, Window } from '../components/common';
-import { ITEM_DESCRIPTIONS, UPGRADE_TEXT, itemName, moveName, speciesName } from '../i18n/pt-BR';
+import { ITEM_DESCRIPTIONS, itemName, moveName, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
-type Pocket = 'items' | 'tms' | 'mart';
+type Pocket = 'items' | 'tms';
 
 export function BagScreen({ state }: { state: GameState }) {
   const engine = useEngine();
   const [pocket, setPocket] = useState<Pocket>('items');
   const owned = Object.entries(state.items).filter(([, n]) => n > 0);
   const [selected, setSelected] = useState<string | null>(owned[0]?.[0] ?? null);
-  const available = shopEntries(state);
-  const locked = SHOP_CATALOG.filter((e) => !available.includes(e));
   const eligible = selected
     ? state.collection.filter((p) => itemEvolution(p, selected, state.env.period) !== undefined)
     : [];
@@ -32,9 +31,6 @@ export function BagScreen({ state }: { state: GameState }) {
         </button>
         <button className={`pocket ${pocket === 'tms' ? 'active' : ''}`} onClick={() => setPocket('tms')}>
           <ItemIcon id="tm-case" size={30} /> TMs · {state.tms.length}
-        </button>
-        <button className={`pocket ${pocket === 'mart' ? 'active' : ''}`} onClick={() => setPocket('mart')}>
-          <ItemIcon id="coin-case" size={30} /> POKé MART
         </button>
         <span className="bag-money frame frame-menu">
           <Money value={state.coins} />
@@ -57,7 +53,7 @@ export function BagScreen({ state }: { state: GameState }) {
                   </button>
                 </li>
               ))}
-              {!owned.length && <li className="hint">A mochila está vazia. Visite o POKé MART.</li>}
+              {!owned.length && <li className="hint">A mochila está vazia. Compre itens na LOJA.</li>}
             </ul>
           </Window>
           {selected && (
@@ -97,58 +93,8 @@ export function BagScreen({ state }: { state: GameState }) {
             </div>
           )}
         </>
-      ) : pocket === 'tms' ? (
-        <TmPocket state={state} />
       ) : (
-        <Window frame="menu" title="POKé MART" icon={<ItemIcon id="coin-case" size={24} />}>
-          <ul className="item-list mart">
-            {available.map((entry) => {
-              const isUpgrade = entry.kind === 'upgrade';
-              const bought = isUpgrade && state.upgrades.includes(entry.id);
-              return (
-                <li key={entry.id} className="mart-row">
-                  <ItemIcon id={isUpgrade ? 'dowsing-machine' : entry.id} size={30} />
-                  <div className="mart-info">
-                    <span className="item-name">{itemName(entry.id).toUpperCase()}</span>
-                    <small>
-                      {isUpgrade ? UPGRADE_TEXT[entry.id]?.description : ITEM_DESCRIPTIONS[entry.id]}
-                    </small>
-                  </div>
-                  <div className="mart-buy">
-                    {bought ? (
-                      <span className="tag tag-active">ADQUIRIDO</span>
-                    ) : (
-                      <>
-                        <button
-                          className="pbtn small"
-                          disabled={state.coins < entry.price}
-                          onClick={() => engine.dispatch((s) => buy(s, entry.id))}
-                        >
-                          <Money value={entry.price} />
-                        </button>
-                        {!isUpgrade && (
-                          <button
-                            className="pbtn small"
-                            disabled={state.coins < entry.price * 10}
-                            onClick={() => engine.dispatch((s) => buy(s, entry.id, 10))}
-                          >
-                            ×10
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          {locked.length > 0 && (
-            <p className="hint">
-              Mais produtos depois de vencer:{' '}
-              {[...new Set(locked.map((e) => getRoute(e.requiresBoss!).boss?.name))].join(', ')}.
-            </p>
-          )}
-        </Window>
+        <TmPocket state={state} />
       )}
     </div>
   );

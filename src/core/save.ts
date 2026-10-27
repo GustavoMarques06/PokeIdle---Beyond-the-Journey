@@ -7,10 +7,12 @@ import { DEFAULT_SETTINGS, EMPTY_STATS, freshBattle, type GameState } from './ga
 import { emptyHunt } from './hunt';
 import { emptyLegends } from './legendary';
 import { emptyMissions } from './missions';
+import { natureFor } from './pokemon';
+import type { Ivs } from './stats';
 import { emptyTower } from './tower';
 
-export const SAVE_FORMAT_VERSION = 4;
-export const GAME_VERSION = '0.3.0';
+export const SAVE_FORMAT_VERSION = 5;
+export const GAME_VERSION = '0.4.0';
 export const SAVE_KEY = 'pokeidle.save';
 export const BACKUP_KEY = 'pokeidle.save.backup';
 
@@ -90,6 +92,15 @@ const MIGRATIONS: Record<number, Migration> = {
     state.lastTimerAt = meta.savedAt;
     const battle = state.battle as Record<string, unknown> | undefined;
     if (battle) battle.team = [];
+  },
+  // Formato 4 → 5 (jogo 0.4): naturezas, reservas da equipe de batalha, desafios e histórico.
+  4: ({ state }) => {
+    const collection = (state.collection ?? []) as { uid: number; ivs: Ivs; nature?: string }[];
+    for (const p of collection) p.nature ??= natureFor(p.uid, p.ivs);
+    state.battleTeam = [];
+    state.challenge = null;
+    state.challengesWon = [];
+    state.history = [];
   },
 };
 
@@ -212,10 +223,16 @@ function normalize(state: GameState): void {
   state.nextRocketAt ??= 0;
   state.tower = { ...emptyTower(), ...state.tower };
   state.hallOfFame ??= [];
+  state.challenge ??= null;
+  state.challengesWon ??= [];
+  state.history ??= [];
   if (state.roamer && !state.routes[state.roamer.routeId]) state.roamer = null;
   if (state.rocket && !state.routes[state.rocket.routeId]) state.rocket = null;
   const uids = new Set(state.collection.map((p) => p.uid));
   state.passives = (state.passives ?? []).filter((uid) => uids.has(uid) && uid !== state.activeUid);
+  state.battleTeam = (state.battleTeam ?? []).filter(
+    (uid) => uids.has(uid) && uid !== state.activeUid && !state.passives.includes(uid),
+  );
   state.daycare.uids = state.daycare.uids.filter((uid) => uids.has(uid) && uid !== state.activeUid);
   for (const run of state.expeditions) run.uids = run.uids.filter((uid) => uids.has(uid));
   // Batalhas contra treinadores não são retomadas ao carregar: volta para a rota.
@@ -226,12 +243,13 @@ function normalize(state: GameState): void {
   state.battle.team ??= [];
 }
 
-/** Grava o save; o save anterior válido vira backup. */
-export function saveGame(storage: SaveStorage, state: GameState, now: number): void {
+/** Grava o save; o save anterior válido vira backup. Devolve o tamanho gravado (bytes). */
+export function saveGame(storage: SaveStorage, state: GameState, now: number): number {
   const raw = serialize(state, now);
   const previous = storage.getItem(SAVE_KEY);
   if (previous && parseSave(previous).ok) storage.setItem(BACKUP_KEY, previous);
   storage.setItem(SAVE_KEY, raw);
+  return new TextEncoder().encode(raw).length;
 }
 
 export interface LoadResult {

@@ -137,11 +137,12 @@ describe('ritmo da campanha', () => {
   // Bot simples: fica na rota até liberar o chefe, desafia e avança.
   // Serve de alarme de balanceamento: nem trivial, nem impossível.
   for (const starter of STARTERS) {
-    it(`inicial ${starter} vence o Lt. Surge entre 20 min e 10 h de jogo ativo`, () => {
+    // A progressão é lenta de propósito (BALANCE.progression / rewards).
+    it(`inicial ${starter} vence o Lt. Surge entre 2 h e 15 h de jogo ativo`, () => {
       const s = newGame(starter, 0, 42);
       let minutes = 0;
       const last = 'rota-5-6';
-      while (minutes < 600 && !routeCleared(s, last)) {
+      while (minutes < 900 && !routeCleared(s, last)) {
         advance(s, MINUTE, 0);
         minutes++;
         const r = s.currentRouteId;
@@ -150,7 +151,7 @@ describe('ritmo da campanha', () => {
           selectRoute(s, ROUTES[ROUTES.findIndex((x) => x.id === r) + 1].id);
       }
       expect(routeCleared(s, last)).toBe(true);
-      expect(minutes).toBeGreaterThanOrEqual(20);
-    });
+      expect(minutes).toBeGreaterThanOrEqual(120);
+    }, 120_000);
   }
 });

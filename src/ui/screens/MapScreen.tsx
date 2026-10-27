@@ -1,8 +1,9 @@
-// MAPA: o mapa da região (rotas posicionadas como no Town Map dos jogos), com abas por
-// região, marcadores de errantes e da Equipe Rocket, e o painel da rota escolhida.
+// MAPA: a arte oficial do mapa de cada região, com as áreas marcadas no lugar onde ficam
+// nos jogos, abas por região, marcadores de errantes e da Equipe Rocket, e o painel da
+// área escolhida. O botão Ampliar abre o mapa grande numa janela.
 
 import { useState } from 'react';
-import { REGIONS, getRoute, type Route } from '../../game-data';
+import { DEPT_STORE, REGIONS, assetUrl, getRoute, type Route } from '../../game-data';
 import {
   canChallengeBoss,
   challengeBoss,
@@ -13,10 +14,24 @@ import {
 } from '../../core/game';
 import { Badges } from '../components/Hud';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
+import { useHotkeys } from '../hotkeys';
 import { speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
 const MAX_ICONS = 9;
+
+/**
+ * Arte oficial de cada região (public/maps/<id>.webp) e seu tamanho, para manter a proporção.
+ * Fontes: FireRed/LeafGreen, HeartGold/SoulSilver, Omega Ruby/Alpha Sapphire, Platinum e
+ * Black 2/White 2 (via Bulbapedia). As posições das áreas (Route.map) são % desta imagem.
+ */
+const MAP_ART: Record<string, { w: number; h: number; game: string }> = {
+  kanto: { w: 1000, h: 750, game: 'FireRed/LeafGreen' },
+  johto: { w: 1400, h: 750, game: 'HeartGold/SoulSilver' },
+  hoenn: { w: 1250, h: 884, game: 'Omega Ruby/Alpha Sapphire' },
+  sinnoh: { w: 1024, h: 724, game: 'Platinum' },
+  unova: { w: 1280, h: 837, game: 'Black 2/White 2' },
+};
 
 function regionUnlocked(state: GameState, regionId: string): boolean {
   return REGIONS.find((r) => r.id === regionId)!.routes.some((id) => state.routes[id]?.unlocked);
@@ -31,6 +46,17 @@ export function MapScreen({ state }: { state: GameState }) {
   const routes = region.routes.map(getRoute);
   const selected =
     routes.find((r) => r.id === selectedId) ?? routes.find((r) => r.id === current.id) ?? routes[0];
+  const details = (
+    <RouteDetails
+      state={state}
+      route={selected}
+      onGo={() => engine.dispatch((s, now) => selectRoute(s, selected.id, now))}
+      onChallenge={() => engine.dispatch((s) => challengeBoss(s, selected.id))}
+    />
+  );
+
+  const [enlarged, setEnlarged] = useState(false);
+  useHotkeys({ Escape: () => setEnlarged(false) }, enlarged);
 
   const pickRegion = (id: string) => {
     setRegionId(id);
@@ -66,59 +92,80 @@ export function MapScreen({ state }: { state: GameState }) {
         })}
       </div>
 
-      <RegionMap state={state} routes={routes} selectedId={selected.id} onSelect={setSelectedId} />
-
-      <RouteDetails
+      <RegionMap
         state={state}
-        route={selected}
-        onGo={() => engine.dispatch((s, now) => selectRoute(s, selected.id, now))}
-        onChallenge={() => engine.dispatch((s) => challengeBoss(s, selected.id))}
+        regionId={region.id}
+        routes={routes}
+        selectedId={selected.id}
+        onSelect={setSelectedId}
+        onEnlarge={() => setEnlarged(true)}
       />
+
+      {details}
+
+      {enlarged && (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Mapa de ${region.name}`}
+          onClick={(e) => e.target === e.currentTarget && setEnlarged(false)}
+        >
+          <div className="modal map-modal frame frame-paper">
+            <header className="window-title">
+              <ItemIcon id="town-map" size={24} />
+              <h3>MAPA DE {region.name.toUpperCase()}</h3>
+              <span className="window-actions">
+                <button className="pbtn small" onClick={() => setEnlarged(false)}>
+                  Fechar
+                </button>
+              </span>
+            </header>
+            <RegionMap
+              state={state}
+              regionId={region.id}
+              routes={routes}
+              selectedId={selected.id}
+              onSelect={setSelectedId}
+            />
+            {details}
+          </div>
+        </div>
+      )}
     </Window>
   );
 }
 
 function RegionMap({
   state,
+  regionId,
   routes,
   selectedId,
   onSelect,
+  onEnlarge,
 }: {
   state: GameState;
+  regionId: string;
   routes: Route[];
   selectedId: string;
   onSelect: (id: string) => void;
+  onEnlarge?: () => void;
 }) {
-  const points = routes.map((r) => `${r.map[0]},${r.map[1]}`).join(' ');
+  const art = MAP_ART[regionId];
   return (
-    <div className="region-map" role="group" aria-label="Mapa da região">
-      <svg className="region-land" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-        {routes.map((r) => (
-          <ellipse
-            key={`sh-${r.id}`}
-            cx={r.map[0] + 0.8}
-            cy={r.map[1] + 1.2}
-            rx={10}
-            ry={11}
-            className="land-shadow"
-          />
-        ))}
-        {routes.map((r) => (
-          <ellipse key={`l-${r.id}`} cx={r.map[0]} cy={r.map[1]} rx={10} ry={11} className="land" />
-        ))}
-        {routes.map((r) => (
-          <ellipse
-            key={`g-${r.id}`}
-            cx={r.map[0]}
-            cy={r.map[1]}
-            rx={6.5}
-            ry={7.5}
-            className={`land-${r.scene}`}
-          />
-        ))}
-        <polyline points={points} className="map-path-shadow" />
-        <polyline points={points} className="map-path" />
-      </svg>
+    <div
+      className="region-map"
+      role="group"
+      aria-label="Mapa da região"
+      style={art ? { aspectRatio: `${art.w} / ${art.h}` } : undefined}
+    >
+      <img
+        className="region-art"
+        src={assetUrl(`maps/${regionId}.webp`)}
+        alt=""
+        draggable={false}
+        title={art ? `Mapa de ${art.game}` : undefined}
+      />
 
       {routes.map((r) => {
         const prog = state.routes[r.id];
@@ -150,6 +197,11 @@ function RegionMap({
                 <PokemonSprite speciesId={state.roamer!.speciesId} kind="icon" />
               </span>
             )}
+            {r.id === DEPT_STORE.routeId && (
+              <span className="node-shop" title={DEPT_STORE.name}>
+                <ItemIcon id="dowsing-machine" size={18} />
+              </span>
+            )}
             {rocket && (
               <span className="node-rocket" title="Equipe Rocket!">
                 <PixelIcon name="rocket" scale={1} />
@@ -159,6 +211,11 @@ function RegionMap({
         );
       })}
       <span className="map-label">{routes.find((r) => r.id === selectedId)?.name.toUpperCase()}</span>
+      {onEnlarge && (
+        <button className="pbtn small map-enlarge" onClick={onEnlarge} title="Ver o mapa grande">
+          Ampliar
+        </button>
+      )}
     </div>
   );
 }
@@ -199,6 +256,8 @@ function RouteDetails({
             {route.description}
             {route.kind === 'trial' && ` Enquanto espera, você treina em ${wild.name}.`}
             {route.safari && ' Zona Safari: captura facilitada.'}
+            {route.id === DEPT_STORE.routeId &&
+              ` Aqui fica a ${DEPT_STORE.name}, que vende todos os itens (menu LOJA).`}
           </p>
           {route.kind === 'wild' && (
             <div className="node-progress">

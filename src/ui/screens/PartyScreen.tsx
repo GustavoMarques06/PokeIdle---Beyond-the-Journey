@@ -1,10 +1,12 @@
-// Tela POKéMON: equipe (ativo + apoio) no estilo FRLG, Caixa com a coleção e ficha de resumo.
+// Tela POKéMON: equipe (ativo + reservas + apoio) no estilo FRLG, Caixa com a coleção e ficha de resumo.
 
 import { useState } from 'react';
 import {
   MASTERY_BONUS_PER_LEVEL,
   PASSIVE_SLOTS,
+  RESERVE_SLOTS,
   getItem,
+  getNature,
   getMove,
   getRoute,
   getSpecies,
@@ -29,6 +31,7 @@ import { addPassive, canTransfer, removePassive, transferPokemon, transferValue 
 import { learnableMoves, setMoveset } from '../../core/moveset';
 import { isPerfect, movesOf, potential, statsOf, type PokemonInstance } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
+import { addReserve, removeReserve, reservePokemon, reserveSlotsUnlocked } from '../../core/team';
 import { evolutionHint } from '../components/ActiveCard';
 import {
   Bar,
@@ -44,6 +47,7 @@ import {
 import {
   BONUS_NAMES,
   STAT_NAMES,
+  STATUS_TEXT,
   TYPE_NAMES,
   formatPercent,
   itemName,
@@ -59,12 +63,14 @@ function PartySlot({
   active,
   selected,
   bonus,
+  role,
   onClick,
 }: {
   p: PokemonInstance;
   active?: boolean;
   selected: boolean;
   bonus?: PassiveContribution;
+  role?: string;
   onClick: () => void;
 }) {
   const stats = statsOf(p);
@@ -84,6 +90,7 @@ function PartySlot({
         {p.currentHp}/{stats.hp}
       </span>
       {active && <span className="party-role">ATIVO · LUTANDO</span>}
+      {role && <span className="party-role">{role}</span>}
       {bonus && (
         <span className="party-bonus">
           {bonus.duplicate
@@ -100,6 +107,8 @@ export function PartyScreen({ state }: { state: GameState }) {
   const [sort, setSort] = useState<Sort>('level');
   const unlocked = passiveSlotsUnlocked(state);
   const contributions = passiveContributions(state);
+  const reserves = reservePokemon(state);
+  const reserveSlots = reserveSlotsUnlocked(state);
   const active = state.collection.find((p) => p.uid === state.activeUid)!;
   const current = state.collection.find((p) => p.uid === selected) ?? active;
   const box = [...state.collection].sort((a, b) =>
@@ -119,6 +128,40 @@ export function PartyScreen({ state }: { state: GameState }) {
           selected={selected === active.uid}
           onClick={() => setSelected(active.uid)}
         />
+        <div className="party-support party-reserves">
+          {RESERVE_SLOTS.map((slot, i) => {
+            if (i >= reserveSlots) {
+              return (
+                <div key={i} className="party-slot frame frame-slotEmpty locked">
+                  <PixelIcon name="lock" scale={2} />
+                  <span>
+                    {state.challenge === 'solo'
+                      ? 'Reserva bloqueada pelo desafio'
+                      : `Reserva libera ao concluir ${getRoute(slot.requiresRoute).name}`}
+                  </span>
+                </div>
+              );
+            }
+            const p = reserves[i];
+            if (!p) {
+              return (
+                <div key={i} className="party-slot frame frame-slotEmpty">
+                  <span>RESERVA {i + 1} — vazia</span>
+                  <small>Entra quando o ativo desmaia. Escolha na Caixa e use “Reserva”.</small>
+                </div>
+              );
+            }
+            return (
+              <PartySlot
+                key={i}
+                p={p}
+                role={`RESERVA ${i + 1} · ${p.currentHp > 0 ? 'PRONTA' : 'DESMAIADA'}`}
+                selected={selected === p.uid}
+                onClick={() => setSelected(p.uid)}
+              />
+            );
+          })}
+        </div>
         <div className="party-support">
           {PASSIVE_SLOTS.map((slot, i) => {
             if (i >= unlocked) {
@@ -170,7 +213,7 @@ export function PartyScreen({ state }: { state: GameState }) {
           {box.map((p) => (
             <li key={p.uid}>
               <button
-                className={`pc-cell ${p.uid === selected ? 'selected' : ''} ${p.uid === state.activeUid ? 'is-active' : ''} ${state.passives.includes(p.uid) ? 'is-support' : ''} ${busyLabel(state, p.uid) ? 'is-away' : ''}`}
+                className={`pc-cell ${p.uid === selected ? 'selected' : ''} ${p.uid === state.activeUid ? 'is-active' : ''} ${state.passives.includes(p.uid) ? 'is-support' : ''} ${state.battleTeam.includes(p.uid) ? 'is-reserve' : ''} ${busyLabel(state, p.uid) ? 'is-away' : ''}`}
                 onClick={() => setSelected(p.uid)}
                 title={`${speciesName(p.speciesId)} Nv. ${p.level}`}
               >
@@ -242,6 +285,9 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
   const isActive = p.uid === state.activeUid;
   const isSupport = state.passives.includes(p.uid);
   const freeSlot = state.passives.length < passiveSlotsUnlocked(state);
+  const isReserve = reservePokemon(state).some((r) => r.uid === p.uid);
+  const freeReserve = reservePokemon(state).length < reserveSlotsUnlocked(state);
+  const nature = getNature(p.nature);
   const mastery = masteryOf(state, p.speciesId);
   const itemEvos = species.evolutions.filter((e) => e.trigger === 'item');
   const hint = evolutionHint(state, p.uid);
@@ -274,6 +320,15 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
           <dd>
             {potential(p.ivs)}% {isPerfect(p.ivs) && <span className="tag tag-active">PERFEITO</span>}
           </dd>
+          <dt>NATUREZA</dt>
+          <dd>
+            {nature?.name ?? 'Neutra'}
+            {nature?.up && nature.down && (
+              <small className="nature-mods">
+                +{STAT_NAMES[nature.up]} · −{STAT_NAMES[nature.down]}
+              </small>
+            )}
+          </dd>
           <dt>ORIGEM</dt>
           <dd>{p.caughtOn}</dd>
           <dt>MAESTRIA</dt>
@@ -297,7 +352,17 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
         <table className="stat-table">
           <tbody>
             {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => (
-              <tr key={k}>
+              <tr
+                key={k}
+                className={k === nature?.up ? 'nat-up' : k === nature?.down ? 'nat-down' : ''}
+                title={
+                  k === nature?.up
+                    ? '+10% pela natureza'
+                    : k === nature?.down
+                      ? '−10% pela natureza'
+                      : undefined
+                }
+              >
                 <th>{STAT_NAMES[k].toUpperCase()}</th>
                 <td>{k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}</td>
                 <td className="iv">IV{p.ivs[k]}</td>
@@ -319,6 +384,15 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
                 <span className="move-name">{moveName(m).toUpperCase()}</span>
                 <span className="move-meta">
                   <TypeBadge type={mv.type} /> POD {mv.power}
+                  {mv.ailment && (
+                    <span
+                      className="move-ailment"
+                      title={`${STATUS_TEXT[mv.ailment].name}: ${mv.ailmentChance}%`}
+                    >
+                      {' '}
+                      {STATUS_TEXT[mv.ailment].short} {mv.ailmentChance}%
+                    </span>
+                  )}
                 </span>
               </li>
             );
@@ -338,7 +412,7 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
             Enviar à batalha
           </button>
         )}
-        {!isActive && !isSupport && !away && freeSlot && (
+        {!isActive && !isSupport && !isReserve && !away && freeSlot && (
           <button className="pbtn" onClick={() => engine.dispatch((s) => addPassive(s, p.uid))}>
             Apoio
           </button>
@@ -346,6 +420,16 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
         {isSupport && (
           <button className="pbtn" onClick={() => engine.dispatch((s) => removePassive(s, p.uid))}>
             Tirar do apoio
+          </button>
+        )}
+        {!isActive && !isSupport && !isReserve && !away && freeReserve && (
+          <button className="pbtn" onClick={() => engine.dispatch((s) => addReserve(s, p.uid))}>
+            Reserva
+          </button>
+        )}
+        {isReserve && (
+          <button className="pbtn" onClick={() => engine.dispatch((s) => removeReserve(s, p.uid))}>
+            Tirar da reserva
           </button>
         )}
         {p.pendingEvolution && (

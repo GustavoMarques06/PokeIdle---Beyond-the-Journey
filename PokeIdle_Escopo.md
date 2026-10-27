@@ -2,13 +2,35 @@
 
 ## Escopo do projeto (Game Design + arquitetura técnica)
 
-**Status:** Documento inicial de escopo\
+**Status:** Documento inicial de escopo (histórico — ver "Estado atual" abaixo)\
 **Plataforma-alvo:** PC\
 **Formato:** RPG Idle single-player\
 **Direção visual:** Pixel art 2D\
 **Combate:** Um Pokémon ativo; os demais concedem bônus passivos\
 **Nome:** PokéIdle --- Beyond the Journey _(nome provisório; validar
 marca e propriedade intelectual antes de qualquer publicação)_
+
+---
+
+## Estado atual (versão 0.4, outubro de 2026)
+
+Este documento descreve o plano original. **Todas as fases da seção 8 foram concluídas** e as decisões
+da seção 14 já foram tomadas — estão registradas no [README](README.md#decisões-tomadas-seção-14-do-escopo).
+As seções 13 ("Próximo passo concreto") e 14 ficam como registro histórico.
+
+O que mudou em relação ao plano:
+
+- **Conteúdo:** 5 regiões (Kanto a Unova), 80 áreas e as espécies das Gerações I–V, em vez de um conjunto reduzido.
+- **Combate:** além do ativo e dos bônus passivos (seção 4.6), há até duas **reservas** que entram quando o
+  ativo desmaia ou têm vantagem de tipo; golpes causam **status** e os Pokémon têm **naturezas**.
+- **Longo prazo:** prestígio com **desafios** opcionais, Torre de Batalha, lendários, creche, expedições,
+  jardim, fósseis, missões e um painel de **estatísticas** (EXP/moedas por hora) para acompanhar as métricas
+  da seção 11.
+- **Plataforma:** no app desktop o save fica em arquivos na pasta de dados do usuário, com backups diários; há
+  notificações do sistema e atalhos de teclado (requisito "controles acessíveis por mouse e teclado").
+
+Itens da seção 9 ("Fora do escopo inicial") continuam fora: multiplayer, servidor/nuvem, microtransações e
+exploração livre.
 
 ---
 

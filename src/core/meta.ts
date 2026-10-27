@@ -4,6 +4,7 @@
 import {
   ACHIEVEMENTS,
   BALANCE,
+  CHALLENGES,
   PRESTIGE,
   PRESTIGE_UPGRADES,
   RESEARCH,
@@ -11,8 +12,10 @@ import {
   ROUTES,
   getSpecies,
   type AchievementDef,
+  type ChallengeId,
 } from '../game-data';
 import { masteryLevel, passivePokemon, passiveSlotsUnlocked, prestigeLevel, researchLevel } from './bonuses';
+import { busyUids } from './collection';
 import { freshBattle, type GameEvent, type GameState } from './game';
 import { potential, statsOf, type PokemonInstance } from './pokemon';
 import { expForLevel } from './stats';
@@ -23,7 +26,7 @@ import { expForLevel } from './stats';
 export function addPassive(state: GameState, uid: number): boolean {
   const slots = passiveSlotsUnlocked(state);
   if (state.passives.includes(uid) || passivePokemon(state).length >= slots) return false;
-  if (uid === state.activeUid || !state.collection.some((p) => p.uid === uid)) return false;
+  if (busyUids(state).has(uid) || !state.collection.some((p) => p.uid === uid)) return false;
   state.passives = passivePokemon(state).map((p) => p.uid);
   state.passives.push(uid);
   return true;
@@ -48,7 +51,9 @@ export function transferValue(p: PokemonInstance): number {
 /** Só duplicatas podem ser transferidas, e nunca o ativo ou um passivo. */
 export function canTransfer(state: GameState, uid: number): boolean {
   const p = state.collection.find((x) => x.uid === uid);
-  if (!p || uid === state.activeUid || state.passives.includes(uid)) return false;
+  if (!p || uid === state.activeUid || state.passives.includes(uid) || state.battleTeam.includes(uid)) {
+    return false;
+  }
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return false;
   return state.collection.some((x) => x.uid !== uid && x.speciesId === p.speciesId);
 }
@@ -71,6 +76,7 @@ export function surplusDuplicates(state: GameState): PokemonInstance[] {
   for (const p of state.collection) bySpecies.set(p.speciesId, [...(bySpecies.get(p.speciesId) ?? []), p]);
   const protectedUids = new Set([
     state.activeUid,
+    ...state.battleTeam,
     ...state.passives,
     ...state.daycare.uids,
     ...state.expeditions.flatMap((e) => e.uids),
@@ -115,16 +121,21 @@ export function canPrestige(state: GameState): boolean {
   return !!state.routes[PRESTIGE.requiresBoss]?.bossDefeated;
 }
 
-/** Pontos que uma nova jornada daria agora. */
+/** Bônus do desafio da jornada atual (0 sem desafio). */
+export function challengeBonus(state: GameState): number {
+  return CHALLENGES.find((c) => c.id === state.challenge)?.bonus ?? 0;
+}
+
+/** Pontos que uma nova jornada daria agora (já com o bônus do desafio). */
 export function prestigePreview(state: GameState): number {
   const bosses = ROUTES.filter((r) => r.boss && state.routes[r.id]?.bossDefeated).length;
   const species = Object.values(state.pokedex).filter((d) => d.caught).length;
   const best = Math.max(...state.collection.map((p) => p.level));
-  return (
+  const base =
     bosses * PRESTIGE.pointsPerBoss +
     Math.floor(species / 5) * PRESTIGE.pointsPerFiveSpecies +
-    Math.floor(best / 10) * PRESTIGE.pointsPerTenLevels
-  );
+    Math.floor(best / 10) * PRESTIGE.pointsPerTenLevels;
+  return Math.floor(base * (1 + challengeBonus(state)));
 }
 
 export function resetLevel(state: GameState): number {
@@ -134,13 +145,18 @@ export function resetLevel(state: GameState): number {
 /**
  * Nova jornada: volta à Rota 1 com moedas, itens e níveis zerados. Mantém coleção
  * (espécies e evoluções), Pokédex, pesquisa, maestria, conquistas e melhorias da loja.
+ * `challenge` define as regras extras da próxima jornada (null = sem desafio).
  */
-export function prestigeReset(state: GameState): number {
+export function prestigeReset(state: GameState, challenge: ChallengeId | null = null): number {
   if (!canPrestige(state)) return 0;
   const gained = prestigePreview(state);
   state.prestige.points += gained;
   state.prestige.totalEarned += gained;
   state.prestige.count++;
+  if (state.challenge && !state.challengesWon.includes(state.challenge)) {
+    state.challengesWon.push(state.challenge);
+  }
+  state.challenge = challenge;
 
   state.routes = Object.fromEntries(
     ROUTES.map((r, i) => [r.id, { unlocked: i === 0, kills: 0, bossDefeated: false }]),
@@ -152,6 +168,7 @@ export function prestigeReset(state: GameState): number {
   state.roamer = null;
   applyJourneyStart(state);
   state.passives = [];
+  state.battleTeam = [];
   const level = resetLevel(state);
   for (const p of state.collection) {
     p.level = level;
@@ -178,6 +195,11 @@ export function buyPrestige(state: GameState, id: string): boolean {
   state.prestige.points -= cost;
   state.prestige.levels[id] = level + 1;
   return true;
+}
+
+/** Desiste do desafio da jornada atual (as regras normais voltam; o bônus se perde). */
+export function abandonChallenge(state: GameState): void {
+  state.challenge = null;
 }
 
 // --- Conquistas --------------------------------------------------------------------

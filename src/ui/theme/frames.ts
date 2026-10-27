@@ -1,6 +1,6 @@
 // Molduras em pixel art geradas como SVG 12×12 e usadas como `border-image` (9-slice).
 // Cada pixel do SVG vira 2–3 px de tela, então qualquer painel ganha cantos pixelados
-// sem imagens externas. As cores seguem os tokens de src/ui/styles.css.
+// sem imagens externas. As cores seguem os tokens de src/ui/styles/base.css.
 
 import { ICONS, iconSvg } from './icons';
 

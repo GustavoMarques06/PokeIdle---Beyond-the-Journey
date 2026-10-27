@@ -4,28 +4,35 @@ import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/600.css';
 import '@fontsource/silkscreen/400.css';
 import '@fontsource/silkscreen/700.css';
-import './ui/styles.css';
+import './ui/styles/index.css';
 import { GameEngine } from './engine/GameEngine';
+import { createStorage } from './engine/storage';
 import { App } from './ui/App';
+import { installNotifications } from './ui/notify';
 import { EngineContext } from './ui/useGame';
 import { installFrames } from './ui/theme/frames';
 
 installFrames();
 
-const engine = new GameEngine(window.localStorage);
-engine.load();
-engine.start();
+async function boot(): Promise<void> {
+  const engine = new GameEngine(await createStorage());
+  engine.load();
+  engine.start();
+  installNotifications(engine);
 
-// Salva ao esconder a janela ou fechar o jogo.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') engine.save();
-});
-window.addEventListener('beforeunload', () => engine.save());
+  // Salva ao esconder a janela ou fechar o jogo.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') engine.save();
+  });
+  window.addEventListener('beforeunload', () => engine.save());
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <EngineContext.Provider value={engine}>
-      <App />
-    </EngineContext.Provider>
-  </StrictMode>,
-);
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <EngineContext.Provider value={engine}>
+        <App />
+      </EngineContext.Provider>
+    </StrictMode>,
+  );
+}
+
+void boot();

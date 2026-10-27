@@ -2,7 +2,7 @@
 
 import { ACHIEVEMENTS, getRoute } from '../../game-data';
 import type { GameEvent } from '../../core/game';
-import { itemName, moveName, speciesName } from './pt-BR';
+import { STATUS_TEXT, itemName, moveName, speciesName } from './pt-BR';
 
 export interface BattleLine {
   text: string;
@@ -48,7 +48,27 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
         if (r.effectiveness > 1) text += ' É super efetivo!';
         else if (r.effectiveness < 1) text += ' Não é muito efetivo…';
       }
+      if (r.status) {
+        const target = e.side === 'player' ? foeLabel(e.target, ctx) : speciesName(e.target);
+        text += ` ${target} ${STATUS_TEXT[r.status].inflicted}!`;
+      }
       return { text, important: false };
+    }
+    case 'switched':
+      return {
+        text:
+          e.reason === 'fainted'
+            ? `${speciesName(e.from)} desmaiou! Vai, ${speciesName(e.to)}!`
+            : `Volte, ${speciesName(e.from)}! Vai, ${speciesName(e.to)}!`,
+        important: true,
+      };
+    case 'statusSkip':
+    case 'statusCured':
+    case 'statusDamage': {
+      const who = e.side === 'player' ? speciesName(e.speciesId) : foeLabel(e.speciesId, ctx);
+      const t = STATUS_TEXT[e.status];
+      const phrase = e.type === 'statusSkip' ? t.skip : e.type === 'statusCured' ? t.cured : t.damage;
+      return { text: `${who} ${phrase}!`, important: false };
     }
     case 'enemyFainted':
       return {

@@ -7,10 +7,13 @@ export const BALANCE = {
   maxMoves: 4,
 
   combat: {
-    /** Intervalo entre ataques quando as velocidades dos dois lados são iguais. */
-    baseAttackIntervalMs: 1600,
-    minAttackIntervalMs: 700,
-    maxAttackIntervalMs: 3200,
+    /**
+     * Intervalo entre ataques quando as velocidades dos dois lados são iguais. Lento o
+     * bastante para dar tempo de ler a caixa de diálogo e ver as animações de cada golpe.
+     */
+    baseAttackIntervalMs: 2500,
+    minAttackIntervalMs: 1200,
+    maxAttackIntervalMs: 5000,
     critChance: 1 / 16,
     critMultiplier: 1.5,
     stab: 1.5,
@@ -21,18 +24,28 @@ export const BALANCE = {
     playerDamageScale: 0.45,
     enemyDamageScale: 0.3,
     randomMin: 0.85,
-    spawnDelayMs: 700,
-    victoryDelayMs: 600,
-    defeatRecoveryMs: 3000,
+    spawnDelayMs: 1600,
+    victoryDelayMs: 1500,
+    defeatRecoveryMs: 4000,
     /** Fração do HP máximo recuperada após cada vitória em rota. */
     healOnVictory: 0.35,
   },
 
+  /**
+   * Progressão lenta de propósito: cada rota pede várias vezes as vitórias definidas no
+   * mundo (scripts/world.mjs) e cada vitória rende pouca EXP e poucas moedas.
+   */
+  progression: {
+    /** Multiplica as vitórias necessárias para liberar o chefe ou a próxima rota. */
+    killsMultiplier: 5,
+  },
+
+  /** Recompensas por vitória. */
   rewards: {
-    expMultiplier: 0.5,
+    expMultiplier: 0.2,
     bossExpMultiplier: 1.5,
-    coinsBase: 3,
-    coinsPerLevel: 1.2,
+    coinsBase: 1.5,
+    coinsPerLevel: 0.6,
     bossCoinMultiplier: 3,
   },
 
@@ -83,6 +96,40 @@ export const BALANCE = {
     /** Espécies favorecidas pelo clima/período aparecem com mais frequência. */
     encounterBoost: 1.5,
   },
+
+  /** Efeitos de status dos golpes (queimadura, veneno, paralisia, sono, congelamento). */
+  status: {
+    /** Fração da chance oficial do golpe (as lutas do idle têm muito mais ataques). */
+    chanceScale: 1,
+    /** Dano por ação de quem está queimado/envenenado (fração do HP máximo). */
+    burnDamage: 1 / 16,
+    poisonDamage: 1 / 8,
+    /** Queimadura reduz o dano físico causado. */
+    burnAttackMultiplier: 0.5,
+    /** Paralisia: chance de perder a vez e intervalo entre ataques maior. */
+    paralysisSkipChance: 0.25,
+    paralysisIntervalMultiplier: 1.5,
+    sleepTurns: [1, 3] as [number, number],
+    thawChance: 0.25,
+  },
+
+  /** Equipe de batalha: reservas que entram quando o ativo desmaia ou têm vantagem. */
+  team: {
+    /** Fração da EXP de cada vitória que as reservas recebem. */
+    reserveExpShare: 0.5,
+    /** A troca por vantagem só acontece se a reserva for bem melhor (duelo estimado este tanto mais curto). */
+    switchMargin: 0.75,
+  },
+
+  /** Histórico para o painel de estatísticas. */
+  history: {
+    sampleMinutes: 15,
+    /** 24 h de amostras. */
+    maxSamples: 96,
+  },
+
+  /** Desafio "Natureza feroz". */
+  fierceEnemyDamage: 1.5,
 
   hunt: {
     /** A espécie-alvo aparece com mais frequência. */
@@ -222,6 +269,31 @@ export const SHOP: ShopEntry[] = [
   { id: 'soothe-bell', kind: 'item', price: 1500, requiresBoss: 'rota-24-25' },
   { id: 'everstone', kind: 'item', price: 800, requiresBoss: 'rota-5-6' },
 ];
+
+/**
+ * Loja de Departamentos de Celadon: mercado à parte, que vende todos os itens usáveis do
+ * jogo, mas só para quem estiver na área dela. O catálogo é montado em index.ts.
+ */
+export const DEPT_STORE = {
+  routeId: 'rota-7-8-celadon',
+  name: 'Loja de Departamentos de Celadon',
+  prices: {
+    'poke-ball': 25,
+    'great-ball': 80,
+    'ultra-ball': 200,
+    'master-ball': 100_000,
+    'rare-candy': 4000,
+    everstone: 800,
+    'soothe-bell': 1500,
+  } as Record<string, number>,
+  /** Pedras e itens de evolução (as quatro pedras básicas custam o mesmo que no Poké Mart). */
+  evolutionItem: 1500,
+  basicStones: ['moon-stone', 'thunder-stone', 'water-stone', 'leaf-stone', 'fire-stone'],
+  basicStone: 600,
+  /** Berries que não estão à venda no Poké Mart. */
+  rareBerry: 400,
+  fossil: 3000,
+};
 
 /** Pedras e itens de evolução que não estão no SHOP fixo: preço e chefe que os libera. */
 export const EVOLUTION_ITEM_SHOP = { price: 2000, requiresBoss: 'liga-campeao' };

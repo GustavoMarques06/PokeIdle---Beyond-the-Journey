@@ -1,0 +1,455 @@
+/* =============================================================================
+   PokéIdle — linguagem visual inspirada em FireRed/LeafGreen, Emerald e HGSS.
+   Molduras: border-image 9-slice gerado em src/ui/theme/frames.ts (--frame-*).
+   Cenários: canvas 256×144 pintado em src/ui/battle/scene.ts (--u = px por pixel).
+   ============================================================================= */
+
+:root {
+  /* Tinta e papel */
+  --ink: #283050;
+  --ink-soft: #485068;
+  --ink-muted: #6a7390;
+  --cream: #f8f8e8;
+  --paper: #ffffff;
+
+  /* Menus */
+  --menu-blue: #4878c8;
+  --menu-blue-dark: #284888;
+  --menu-blue-light: #a8c8f0;
+  --menu-select: #f8e8a0;
+
+  /* Mundo */
+  --grass: #58b858;
+  --grass-dark: #307830;
+  --grass-light: #98e070;
+  --dirt: #c8a060;
+  --dirt-dark: #8a6838;
+  --sky: #a8d8f8;
+
+  /* Estados */
+  --red: #e83838;
+  --red-dark: #a01818;
+  --gold: #f8c830;
+  --gold-dark: #b88010;
+  --exp: #48b8f8;
+  --exp-dark: #2878c8;
+  --hp-good: #58d080;
+  --hp-good-hi: #88f8a8;
+  --hp-warn: #f8c030;
+  --hp-warn-hi: #f8e070;
+  --hp-bad: #f05838;
+  --hp-bad-hi: #f89878;
+
+  /* Tipografia */
+  --font-text: 'Pixelify Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-label: 'Silkscreen', 'Pixelify Sans', monospace;
+
+  /* Espaçamento */
+  --gap: 8px;
+  --gap-lg: 12px;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--tile-grass, #a8d880) repeat;
+  background-size: 32px 32px;
+  color: var(--ink);
+  font: 15px/1.35 var(--font-text);
+  /* A Pixelify Sans junta "fi" numa ligadura que parece um "A". */
+  font-variant-ligatures: none;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+ul,
+ol,
+dl,
+dd {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+img,
+canvas,
+.sprite,
+.item-icon,
+.pixel-icon {
+  image-rendering: pixelated;
+  user-select: none;
+}
+
+.silhouette {
+  filter: brightness(0) opacity(0.55);
+}
+
+.hint {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* --- Molduras ---------------------------------------------------------------- */
+.frame {
+  border: 8px solid transparent;
+  border-image-slice: 4 fill;
+  border-image-width: 8px;
+  border-image-repeat: stretch;
+  background: none;
+}
+.frame-dialog {
+  border-width: 12px;
+  border-image-width: 12px;
+  border-image-source: var(--frame-dialog);
+}
+.frame-menu {
+  border-image-source: var(--frame-menu);
+}
+.frame-status {
+  border-image-source: var(--frame-status);
+}
+.frame-slot {
+  border-image-source: var(--frame-slot);
+}
+.frame-slotActive {
+  border-image-source: var(--frame-slotActive);
+}
+.frame-slotEmpty {
+  border-image-source: var(--frame-slotEmpty);
+}
+.frame-dex {
+  border-width: 12px;
+  border-image-width: 12px;
+  border-image-source: var(--frame-dex);
+}
+.frame-screen {
+  border-image-source: var(--frame-screen);
+}
+.frame-card {
+  border-width: 12px;
+  border-image-width: 12px;
+  border-image-source: var(--frame-card);
+}
+.frame-paper {
+  border-image-source: var(--frame-paper);
+}
+.frame-toast {
+  border-image-source: var(--frame-toast);
+}
+.frame-sign {
+  border-image-source: var(--frame-sign);
+}
+
+.window {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: 2px;
+}
+
+.window + .window {
+  margin-top: var(--gap);
+}
+
+.window-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -2px -2px 2px;
+  padding: 2px 4px 6px;
+  border-bottom: 2px solid var(--menu-blue-light);
+}
+
+.window-title h3 {
+  flex: 1;
+  font: 700 13px var(--font-label);
+  letter-spacing: 0.5px;
+}
+
+.window-actions select {
+  font-size: 11px;
+}
+
+/* --- Botões -------------------------------------------------------------------- */
+.pbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 2px 10px;
+  border: 8px solid transparent;
+  border-image: var(--frame-button) 4 fill / 8px stretch;
+  background: none;
+  color: var(--ink);
+  font: 700 12px var(--font-label);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.pbtn:hover:not(:disabled) {
+  border-image-source: var(--frame-buttonHover);
+}
+.pbtn:active:not(:disabled) {
+  border-image-source: var(--frame-buttonPressed);
+  transform: translateY(1px);
+}
+.pbtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.pbtn.primary {
+  border-image-source: var(--frame-buttonPrimary);
+}
+.pbtn.danger {
+  border-image-source: var(--frame-buttonDanger);
+  color: #fff;
+}
+.pbtn.evolve {
+  border-image-source: var(--frame-slotActive);
+}
+.pbtn.small {
+  min-height: 30px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+select,
+input,
+textarea {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--paper);
+  padding: 2px 6px;
+  box-shadow: inset 2px 2px 0 #d8e0f0;
+}
+
+select {
+  font: 700 11px var(--font-label);
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  font-size: 12px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 2px solid var(--ink);
+  font: 700 11px var(--font-label);
+}
+.tag-active {
+  background: var(--hp-good);
+  color: var(--ink);
+}
+
+.lv {
+  font: 700 0.9em var(--font-label);
+}
+
+.shiny-star {
+  width: 13px;
+  height: 13px;
+  margin-left: 3px;
+  vertical-align: -1px;
+}
+
+.money {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 700 14px var(--font-label);
+}
+
+/* --- Rótulos de tipo (estilo GBA) ------------------------------------------ */
+.types {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.type-badge {
+  --t: #a8a878;
+  display: inline-block;
+  min-width: 52px;
+  padding: 1px 4px 0;
+  border: 2px solid color-mix(in srgb, var(--t) 55%, #000);
+  background: linear-gradient(var(--t) 0 55%, color-mix(in srgb, var(--t) 80%, #000) 55%);
+  color: #fff;
+  font: 700 10px var(--font-label);
+  text-align: center;
+  text-shadow: 1px 1px 0 color-mix(in srgb, var(--t) 40%, #000);
+  letter-spacing: 0.3px;
+}
+.type-normal {
+  --t: #a8a878;
+}
+.type-fire {
+  --t: #f08030;
+}
+.type-water {
+  --t: #6890f0;
+}
+.type-grass {
+  --t: #78c850;
+}
+.type-electric {
+  --t: #e8c020;
+}
+.type-ice {
+  --t: #78c8c8;
+}
+.type-fighting {
+  --t: #c03028;
+}
+.type-poison {
+  --t: #a040a0;
+}
+.type-ground {
+  --t: #d8b058;
+}
+.type-flying {
+  --t: #a890f0;
+}
+.type-psychic {
+  --t: #f85888;
+}
+.type-bug {
+  --t: #a8b820;
+}
+.type-rock {
+  --t: #b8a038;
+}
+.type-ghost {
+  --t: #705898;
+}
+.type-dragon {
+  --t: #7038f8;
+}
+.type-dark {
+  --t: #705848;
+}
+.type-steel {
+  --t: #a8a8c8;
+}
+.type-fairy {
+  --t: #e890b0;
+}
+
+/* --- Barras ------------------------------------------------------------------ */
+.hpbar,
+.expbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+
+.hpbar-label,
+.expbar-label {
+  padding: 0 0.35em;
+  background: var(--ink-soft);
+  color: var(--gold);
+  font: 700 0.62em/1.5 var(--font-label);
+}
+
+.expbar-label {
+  color: var(--exp);
+}
+
+.hpbar-track,
+.expbar-track {
+  flex: 1;
+  height: 0.62em;
+  min-height: 6px;
+  padding: 0.12em;
+  background: var(--ink-soft);
+}
+
+.hpbar-fill,
+.expbar-fill {
+  display: block;
+  height: 100%;
+  transition: width 0.3s steps(6, end);
+}
+
+.hpbar-track,
+.expbar-track {
+  position: relative;
+}
+
+.hpbar-fill.tone-good {
+  background: linear-gradient(var(--hp-good-hi) 0 40%, var(--hp-good) 40%);
+}
+.hpbar-fill.tone-warn {
+  background: linear-gradient(var(--hp-warn-hi) 0 40%, var(--hp-warn) 40%);
+}
+.hpbar-fill.tone-bad {
+  background: linear-gradient(var(--hp-bad-hi) 0 40%, var(--hp-bad) 40%);
+}
+.expbar-fill {
+  background: linear-gradient(#a0e8f8 0 40%, var(--exp) 40%);
+}
+
+.pbar {
+  display: inline-block;
+  width: 100%;
+  min-width: 60px;
+  height: 8px;
+  padding: 1px;
+  background: var(--ink-soft);
+  vertical-align: middle;
+}
+.pbar-fill {
+  display: block;
+  height: 100%;
+  transition: width 0.3s steps(6, end);
+}
+.pbar-gold .pbar-fill {
+  background: linear-gradient(#f8e888 0 45%, var(--gold) 45%);
+}
+.pbar-exp .pbar-fill {
+  background: linear-gradient(#a0e8f8 0 45%, var(--exp) 45%);
+}
+.pbar-grass .pbar-fill {
+  background: linear-gradient(var(--grass-light) 0 45%, var(--grass) 45%);
+}
+

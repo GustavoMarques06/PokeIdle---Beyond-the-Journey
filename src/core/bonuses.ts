@@ -37,6 +37,7 @@ export function passiveSlotsUnlocked(state: GameState): number {
 }
 
 export function passivePokemon(state: GameState): PokemonInstance[] {
+  if (state.challenge === 'solo') return [];
   return state.passives
     .map((uid) => state.collection.find((p) => p.uid === uid))
     .filter((p): p is PokemonInstance => !!p && p.uid !== state.activeUid)
@@ -136,6 +137,8 @@ export interface Modifiers {
   shiny: number;
   /** Multiplicador do dano recebido (< 1 = menos dano). */
   damageTaken: number;
+  /** Multiplicador do dano dos inimigos imposto por desafios (1 = normal). */
+  enemyDamage: number;
   /** Multiplicador do intervalo entre ataques (< 1 = mais rápido). */
   attackInterval: number;
   /** Fração do HP curada após cada vitória. */
@@ -209,6 +212,7 @@ export function computeModifiers(state: GameState): Modifiers {
       (route.safari ? BALANCE.capture.safariBonus : 1),
     shiny: (1 + 0.5 * prestigeLevel(state, 'shiny')) * (1 + dex.shiny + buff(state, 'shiny')),
     damageTaken: (1 - passive.defense) * (1 - masteryBonus),
+    enemyDamage: state.challenge === 'fierce' ? BALANCE.fierceEnemyDamage : 1,
     attackInterval: 1 / ((1 + passive.speed) * (1 + buff(state, 'speed'))),
     heal: BALANCE.combat.healOnVictory + passive.heal + researchTotal(state, 'heal') + buff(state, 'heal'),
     typeDamage,
@@ -227,7 +231,7 @@ export function combatScales(mods: Modifiers, enemyTypes: TypeName[]): DuelScale
   const typeBonus = Math.max(0, ...enemyTypes.map((t) => mods.typeDamage[t] ?? 0));
   return {
     playerDamage: BALANCE.combat.playerDamageScale * mods.damage * (1 + typeBonus),
-    enemyDamage: BALANCE.combat.enemyDamageScale * mods.damageTaken,
+    enemyDamage: BALANCE.combat.enemyDamageScale * mods.damageTaken * mods.enemyDamage,
     playerInterval: mods.attackInterval,
   };
 }

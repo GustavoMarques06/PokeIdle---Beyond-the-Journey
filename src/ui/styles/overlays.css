@@ -1,0 +1,142 @@
+/* =============================================================================
+   JANELAS FLUTUANTES
+   ============================================================================= */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(16 24 48 / 0.55);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(560px, 100%);
+}
+
+.modal-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 17px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  padding: 0 4px;
+}
+
+.report-grid dt {
+  font: 700 12px/2 var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.report-grid dd {
+  justify-self: end;
+  font: 700 16px var(--font-label);
+}
+
+.report-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.report-line .sprite {
+  width: 40px;
+  height: 40px;
+}
+
+.report-line.rare {
+  color: var(--gold-dark);
+}
+
+.notice {
+  position: fixed;
+  z-index: 50;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.toasts {
+  position: fixed;
+  z-index: 30;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 380px;
+  min-height: 44px;
+  padding: 0 6px 0 0;
+  font-size: 14px;
+  animation: toast-in 0.25s steps(4, end);
+  overflow: hidden;
+}
+
+.toast .sprite {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.toast .pixel-icon {
+  margin: 0 6px;
+}
+
+.toast.rare::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.85) 50%, transparent 65%);
+  background-size: 300% 100%;
+  animation: shine 1.2s steps(10, end) 2;
+  pointer-events: none;
+}
+
+@keyframes shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    translate: 24px 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

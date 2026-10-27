@@ -1,0 +1,8 @@
+/* Folha de estilos do jogo, dividida por área. A ordem dos imports é a da cascata. */
+@import './base.css'; /* tokens, molduras, botões, rótulos de tipo, barras */
+@import './game.css'; /* tela principal: HUD, cena de batalha, diálogo, coluna lateral */
+@import './screens.css'; /* telas secundárias: equipe, Pokédex, mochila, mapa, treinador, melhorias */
+@import './intro.css'; /* abertura (laboratório) e ajustes para telas altas */
+@import './overlays.css'; /* janelas flutuantes */
+@import './systems.css'; /* ambiente, mapa da região, atividades, missões, golpes, TMs */
+@import './compact.css'; /* telas de 1280 px */

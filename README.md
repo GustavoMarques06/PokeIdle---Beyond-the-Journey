@@ -9,7 +9,7 @@ armazenamento local.
 ```bash
 npm install
 npm run dev          # navegador, em http://localhost:5173
-npm test             # testes unitários (fórmulas, save, offline, bônus, prestígio, ritmo da campanha)
+npm test             # testes: regras do jogo, save, offline, motor, armazenamento e um teste de fumaça da interface
 npm run lint
 npm run build        # gera dist/ (caminhos relativos)
 
@@ -31,7 +31,7 @@ O script [scripts/fetch-pokeapi.mjs](scripts/fetch-pokeapi.mjs) gera:
 | Saída                                                              | Conteúdo                                                                                                                    |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `src/game-data/generated/species.json`                             | atributos-base, tipos, EXP-base, taxa de captura, curva de EXP, evoluções e golpes aprendidos por nível (FireRed/LeafGreen) |
-| `src/game-data/generated/moves.json`                               | golpes de dano (tipo, poder, precisão, categoria)                                                                           |
+| `src/game-data/generated/moves.json`                               | golpes de dano (tipo, poder, precisão, categoria e efeito de status com sua chance)                                         |
 | `src/game-data/generated/type-chart.json`                          | tabela de efetividade de tipos                                                                                              |
 | `src/game-data/generated/items.json`                               | Poké Balls e pedras de evolução                                                                                             |
 | `public/sprites/pokemon/{front,back,front-shiny,back-shiny,icon}/` | sprites animados de Black/White, variantes shiny e ícones                                                                   |
@@ -68,7 +68,7 @@ Inspirada em FireRed/LeafGreen, Emerald e HeartGold/SoulSilver, adaptada para ja
   e tapete oval, com uma única fonte de luz (janelas) e sombras coerentes. O inicial escolhido aparece em pé no tapete,
   em escala inteira (pixels nítidos); ao lado ficam o menu de regiões e uma janela de status (tipos, atributos-base,
   linha evolutiva, forte/fraco contra). Tudo é clicável; ←/→ trocam de inicial e ↑/↓ de região.
-- **Tokens** de cor, tipografia e espaçamento no topo de [src/ui/styles.css](src/ui/styles.css). Fontes: Silkscreen
+- **Tokens** de cor, tipografia e espaçamento no topo de [src/ui/styles/base.css](src/ui/styles/base.css). Fontes: Silkscreen
   (rótulos) e Pixelify Sans (textos), empacotadas localmente.
 
 ### Origem dos assets
@@ -96,17 +96,23 @@ src/
   game-data/   conteúdo orientado por dados
     routes.ts      regiões, rotas, chefes, errantes, fósseis, expedições, prêmios (de generated/world.json)
     balance.ts     números de balanceamento e loja
-    meta.ts        bônus passivos, pesquisa, maestria, conquistas, prestígio
+    meta.ts        bônus passivos, reservas, pesquisa, maestria, conquistas, prestígio, desafios
+    natures.ts     as 25 naturezas
     activities.ts  berries, missões, marcos da Pokédex, Torre de Batalha, caça-níqueis
     generated/     JSON gerados da PokéAPI + scripts/world.mjs
   core/        regras puras e testáveis (sem React)
     rng.ts         PRNG determinístico com estado salvo
     stats.ts       atributos (fórmula da 3ª geração) e curvas de EXP
     combat.ts      dano, tipos, escolha de golpe, velocidade, estimativa de duelo
+    status.ts      queimadura, veneno, paralisia, sono e congelamento
+    team.ts        equipe de batalha: reservas, troca ao desmaiar e por vantagem de tipo
     progression.ts EXP com escala por nível, subida de nível, evolução
     capture.ts     chance de captura
     bonuses.ts     todos os modificadores (equipe passiva, pesquisa, maestria, prestígio)
-    game.ts        estado do jogo, batalhas (selvagem, chefe, Rocket, Torre), rival, Hall da Fama, ações
+    game.ts        ponto de entrada que reexporta os três abaixo
+    state.ts       formato do estado, eventos e consultas
+    battle.ts      simulação: encontros, turnos, recompensas, chefes, Rocket, Torre, captura
+    actions.ts     ações do jogador (rota, desafios, trocar ativo, loja, evolução)
     meta.ts        equipe passiva, laboratório, prestígio, conquistas, nível de treinador
     collection.ts  coleção, Pokédex, TMs e desbloqueio das atividades
     env.ts         dia/noite e clima (relógio real, determinístico por bloco de 2 h)
@@ -117,16 +123,20 @@ src/
     tower.ts       Torre de Batalha       gamecorner.ts   fichas, caça-níqueis e prêmios
     missions.ts    missões diárias/semanais  dex.ts       marcos e medalhas de tipo
     timers.ts      cronômetros de tempo real (chamado pelo motor a cada segundo)
+    history.ts     amostras a cada 15 min para o painel de estatísticas
     offline.ts     progresso offline (função pura, separada do loop visual)
     save.ts        save versionado, migrações, backup, exportar/importar
   engine/      GameEngine: loop de passo fixo (100 ms), autosave, conquistas, detecção de pausas longas
+    storage.ts     onde o save fica: localStorage no navegador, arquivos no app desktop
   ui/
     battle/        cenário (canvas), campo de batalha, caixa de diálogo/comandos, evolução
     components/    HUD, ficha do ativo, menu do jogo, abertura, componentes visuais comuns
     screens/       Pokémon, Pokédex, Mochila, Mapa (mapa visual por região), Atividades, Missões, Treinador, Melhorias
     theme/         molduras 9-slice e ícones em pixel art
     i18n/          textos em pt-BR e mensagens de batalha
-src-tauri/     casca desktop (Tauri 2)
+    styles/        CSS por área (index.css importa na ordem da cascata)
+    hotkeys.ts     atalhos de teclado   notify.ts  notificações do sistema
+src-tauri/     casca desktop (Tauri 2): comandos de save em arquivo e plugin de notificações
 ```
 
 ## O que está implementado
@@ -176,6 +186,17 @@ src-tauri/     casca desktop (Tauri 2)
   com 3 IVs em 31.
   Os quase lendários (Dragonite, Tyranitar, Salamence, Metagross, Garchomp, Hydreigon) seguem a mesma regra, mas com
   taxa de captura normal (45), 15 bolas, espera de 30 min e 2 IVs em 31.
+- **Equipe de batalha** — a partir de Mt. Moon e da Rota 4, até duas reservas lutam junto com o ativo: entram quando
+  ele desmaia e, com a troca automática ligada, quando têm vantagem clara contra o inimigo. Recebem metade da EXP de
+  cada vitória (também offline). Reservas não podem estar no apoio, na creche nem em expedições.
+- **Naturezas e status** — cada Pokémon tem uma das 25 naturezas (+10%/−10% em dois atributos; saves antigos recebem
+  uma natureza fixa calculada a partir do Pokémon). Golpes como Ember, Thunderbolt e Poison Sting podem queimar,
+  paralisar, envenenar, adormecer ou congelar, com as chances e imunidades de tipo dos jogos. O status some ao fim de
+  cada batalha.
+- **Desafios** — ao começar uma nova jornada, escolha um desafio opcional: Lobo solitário (sem apoio nem reservas,
+  +50% de pontos), Mochila vazia (loja sem Poké Balls, +30%) ou Natureza feroz (inimigos com +50% de dano, +40%).
+- **Estatísticas** — Treinador → Estatísticas mostra EXP, moedas, vitórias e capturas por hora (última hora e 24 h)
+  e um gráfico do ritmo ao longo do dia.
 - **Torre de Batalha, Game Corner e missões** — andares infinitos com ranking e loja de BP; fichas, caça-níqueis
   (retorno ~86%) e prêmios; 3 missões diárias e 3 semanais; marcos da Pokédex com bônus permanentes e medalhas por
   tipo completo.
@@ -192,8 +213,26 @@ src-tauri/     casca desktop (Tauri 2)
 
 ## Save
 
-O save é versionado (formato atual: 4) e migra automaticamente saves antigos. O save anterior é mantido como
-backup e restaurado se o principal estiver corrompido. Exportar/importar fica em Config.
+O save é versionado (formato atual: 5) e migra automaticamente saves antigos. O save anterior é mantido como
+backup e restaurado se o principal estiver corrompido. Exportar/importar fica em Treinador → Salvar, junto com o
+tamanho atual do save. Ações seguidas do jogador são agrupadas numa única gravação (400 ms).
+
+- **Navegador:** `localStorage`.
+- **App desktop:** arquivos JSON em `%APPDATA%\com.pokeidle.beyondthejourney\saves\`, gravados de forma atômica
+  (arquivo temporário + renomear), com um backup por dia (os 7 mais recentes). O `localStorage` do WebView continua
+  como espelho; na abertura vale o mais recente dos dois, e um save antigo que só exista no `localStorage` é
+  importado automaticamente.
+
+## Atalhos de teclado
+
+`1`–`8` abrem as telas do menu · `Q` lança Poké Ball · `W` lança Great/Ultra Ball · `D` desafia o chefe ou a Equipe
+Rocket · `F` foge/desiste · `Esc` fecha avisos. A lista também fica em Treinador.
+
+## Notificações
+
+Com a opção ligada (Treinador → Opções), o jogo avisa pelo sistema quando, em segundo plano, um ovo choca, uma
+expedição volta, uma berry ou fóssil fica pronto, aparece um errante ou a Equipe Rocket, ou um Pokémon pode evoluir.
+No app desktop usa o plugin de notificações do Tauri; no navegador, a API Notification.
 
 ## Balanceamento
 

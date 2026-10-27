@@ -36,6 +36,12 @@ export function OfflineReport({ report, onClose }: { report: Report; onClose: ()
               <dd>{formatNumber(report.kills)}</dd>
               <dt>EXP</dt>
               <dd>{formatNumber(report.exp)}</dd>
+              {report.reserveExp > 0 && (
+                <>
+                  <dt>EXP RESERVAS</dt>
+                  <dd>{formatNumber(report.reserveExp)} cada</dd>
+                </>
+              )}
               <dt>DINHEIRO</dt>
               <dd>
                 <Money value={report.coins} />

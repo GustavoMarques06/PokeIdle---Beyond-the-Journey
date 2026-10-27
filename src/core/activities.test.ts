@@ -356,9 +356,9 @@ describe('lendários', () => {
     expect(challengeLegendary(s, ARTICUNO, 0)).toBe(true);
     s.upgrades.push('auto-capture');
     s.items['ultra-ball'] = 100;
-    advance(s, 1000, 0);
+    advance(s, BALANCE.combat.spawnDelayMs + 100, 0);
     for (let i = 0; i < 400 && s.battle.kind === 'legendary' && s.battle.enemy!.hp > 1; i++)
-      advance(s, 1000, 0);
+      advance(s, BALANCE.combat.spawnDelayMs + 100, 0);
     // Foi enfraquecido até 1 de HP, mas não foi derrotado nem capturado sozinho.
     expect(s.battle.kind).toBe('legendary');
     expect(s.battle.enemy!.hp).toBe(1);
@@ -377,7 +377,7 @@ describe('lendários', () => {
     const s = unlocked();
     s.items['master-ball'] = 1;
     challengeLegendary(s, ARTICUNO, 0);
-    advance(s, 1000, 0);
+    advance(s, BALANCE.combat.spawnDelayMs + 100, 0);
     const events = throwBall(s, 'master-ball', 0);
     expect(events.some((e) => e.type === 'legendaryEnded' && e.reason === 'caught')).toBe(true);
     expect(s.legends.caught).toContain(ARTICUNO);
@@ -392,7 +392,7 @@ describe('lendários', () => {
     const s = unlocked();
     s.items['poke-ball'] = 500;
     challengeLegendary(s, ARTICUNO, 0);
-    advance(s, 1000, 0);
+    advance(s, BALANCE.combat.spawnDelayMs + 100, 0);
     for (let i = 0; i < BALANCE.legendary.throwLimit && s.battle.kind === 'legendary'; i++) {
       throwBall(s, 'poke-ball', 0);
     }
@@ -414,7 +414,7 @@ describe('quase lendários', () => {
     const DRAGONITE = 149;
     expect(legendaryRules(DRAGONITE)).toBe(BALANCE.pseudo);
     expect(challengeLegendary(s, DRAGONITE, 0)).toBe(true);
-    advance(s, 1000, 0);
+    advance(s, BALANCE.combat.spawnDelayMs + 100, 0);
     s.battle.enemy!.hp = 1;
     const pseudo = currentCaptureChance(s, 'ultra-ball');
     s.battle.team[0].speciesId = 144;

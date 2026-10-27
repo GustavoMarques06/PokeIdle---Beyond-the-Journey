@@ -27,12 +27,16 @@ const SAVE_TRIGGERS = new Set<GameEvent['type']>([
 
 /** Intervalo dos cronômetros de tempo real (ovos, berries, eventos). */
 const TIMERS_MS = 1000;
+/** Ações do jogador em sequência (vários cliques) viram uma única gravação. */
+const ACTION_SAVE_DELAY_MS = 400;
 
 export class GameEngine {
   state: GameState | null = null;
   version = 0;
   offlineReport: OfflineReport | null = null;
   notice: string | null = null;
+  /** Tamanho do último save gravado (bytes), exibido nas Opções. */
+  saveBytes = 0;
 
   private listeners = new Set<Listener>();
   private eventListeners = new Set<EventListener>();
@@ -41,6 +45,7 @@ export class GameEngine {
   private accumulator = 0;
   private lastSave = 0;
   private lastTimers = 0;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private storage: SaveStorage,
@@ -97,6 +102,7 @@ export class GameEngine {
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    this.save();
   }
 
   newGame(starterId: number, trainerName?: string, avatar?: PlayerAvatar): void {
@@ -109,6 +115,7 @@ export class GameEngine {
   }
 
   resetSave(): void {
+    this.cancelScheduledSave();
     clearSave(this.storage);
     this.state = null;
     this.offlineReport = null;
@@ -132,15 +139,31 @@ export class GameEngine {
     this.emit();
   }
 
+  /** Grava agora (e cancela uma gravação agendada). */
   save(): void {
+    this.cancelScheduledSave();
     if (!this.state) return;
     const now = this.clock();
     try {
-      saveGame(this.storage, this.state, now);
+      this.saveBytes = saveGame(this.storage, this.state, now);
       this.lastSave = now;
     } catch (err) {
       console.error('Falha ao salvar', err);
     }
+  }
+
+  /** Agenda uma gravação em breve; chamadas seguidas são agrupadas. */
+  scheduleSave(): void {
+    if (this.saveTimer) return;
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      this.save();
+    }, ACTION_SAVE_DELAY_MS);
+  }
+
+  private cancelScheduledSave(): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = null;
   }
 
   /** Executa uma ação do jogador e notifica a UI. */
@@ -149,7 +172,7 @@ export class GameEngine {
     const out = action(this.state, this.clock());
     const events = Array.isArray(out) ? (out as GameEvent[]) : [];
     events.push(...checkAchievements(this.state));
-    this.save();
+    this.scheduleSave();
     this.emit(events);
   }
 

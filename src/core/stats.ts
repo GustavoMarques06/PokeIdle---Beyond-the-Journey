@@ -1,20 +1,24 @@
 import type { BaseStats, GrowthRate, Species } from '../game-data';
-import { BALANCE } from '../game-data';
+import { BALANCE, NATURE_MULTIPLIER, getNature } from '../game-data';
 
 export type Stats = BaseStats;
 export type Ivs = BaseStats;
 
-/** Fórmula de atributos da 3ª geração, sem EVs e sem natureza. */
-export function calcStats(species: Species, level: number, ivs: Ivs): Stats {
+/** Fórmula de atributos da 3ª geração, sem EVs; a natureza (se houver) ajusta ±10%. */
+export function calcStats(species: Species, level: number, ivs: Ivs, nature?: string): Stats {
   const b = species.baseStats;
-  const other = (base: number, iv: number) => Math.floor(((2 * base + iv) * level) / 100) + 5;
+  const n = getNature(nature);
+  const mult = (key: keyof Stats) =>
+    key === n?.up ? NATURE_MULTIPLIER.up : key === n?.down ? NATURE_MULTIPLIER.down : 1;
+  const other = (key: Exclude<keyof Stats, 'hp'>) =>
+    Math.floor((Math.floor(((2 * b[key] + ivs[key]) * level) / 100) + 5) * mult(key));
   return {
     hp: Math.floor(((2 * b.hp + ivs.hp) * level) / 100) + level + 10,
-    atk: other(b.atk, ivs.atk),
-    def: other(b.def, ivs.def),
-    spAtk: other(b.spAtk, ivs.spAtk),
-    spDef: other(b.spDef, ivs.spDef),
-    spe: other(b.spe, ivs.spe),
+    atk: other('atk'),
+    def: other('def'),
+    spAtk: other('spAtk'),
+    spDef: other('spDef'),
+    spe: other('spe'),
   };
 }
 

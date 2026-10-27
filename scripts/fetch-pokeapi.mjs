@@ -176,6 +176,7 @@ async function cropIcon(sheetPath, num, dest) {
 
 const idFromUrl = (url) => Number(url.split('/').filter(Boolean).pop());
 const englishName = (names, fallback) => names.find((n) => n.language.name === 'en')?.name ?? fallback;
+const AILMENTS = new Set(['burn', 'poison', 'paralysis', 'sleep', 'freeze']);
 const STAT_KEYS = { hp: 'hp', attack: 'atk', defense: 'def', 'special-attack': 'spAtk', 'special-defense': 'spDef', speed: 'spe' };
 const GENERATION_NUMBERS = { 'generation-i': 1, 'generation-ii': 2, 'generation-iii': 3, 'generation-iv': 4, 'generation-v': 5 };
 const LOCATION_ITEM_BY_TYPE = { grass: 'leaf-stone', bug: 'leaf-stone', ice: 'ice-stone', electric: 'thunder-stone', steel: 'thunder-stone', rock: 'thunder-stone' };
@@ -314,6 +315,12 @@ async function main() {
       category: m.damage_class.name,
       priority: m.priority,
     };
+    // Efeito de status secundário (queimadura, veneno, paralisia, sono, congelamento).
+    const ailment = AILMENTS.has(m.meta?.ailment?.name) ? m.meta.ailment.name : null;
+    if (ailment && m.meta.ailment_chance > 0) {
+      moves[m.name].ailment = ailment;
+      moves[m.name].ailmentChance = m.meta.ailment_chance;
+    }
   }
 
   console.log('Buscando tabela de tipos...');
