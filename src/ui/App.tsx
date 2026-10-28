@@ -7,7 +7,8 @@ import { ActiveCard } from './components/ActiveCard';
 import { GameMenu, MENU_ITEMS } from './components/GameMenu';
 import { Hud } from './components/Hud';
 import { OfflineReport } from './components/OfflineReport';
-import { StarterSelect } from './intro/StarterSelect';
+import { ProfessorCall } from './components/ProfessorCall';
+import { Intro } from './intro/Intro';
 import { Toasts } from './components/Toasts';
 import { useHotkeys } from './hotkeys';
 import { PartyScreen } from './screens/PartyScreen';
@@ -35,6 +36,14 @@ const UpgradesScreen = lazy(() =>
 export function App() {
   const engine = useEngine();
   const state = useGameState();
+  // Quem abre o jogo com save começa na tela de título (CONTINUAR); quem acabou de criar ou
+  // carregar uma jornada entra direto.
+  const [atTitle, setAtTitle] = useState(() => engine.state !== null);
+  const inGame = !!state && !atTitle;
+  const inGameRef = useRef(inGame);
+  useEffect(() => {
+    inGameRef.current = inGame;
+  }, [inGame]);
 
   // Áudio: liberado no primeiro gesto do usuário e alimentado pelos eventos do jogo.
   useEffect(() => {
@@ -57,7 +66,8 @@ export function App() {
     document.documentElement.classList.toggle('large-text', largeText);
     document.documentElement.classList.toggle('reduced-motion', reducedMotion);
   }, [highContrast, largeText, reducedMotion]);
-  useGameEvents(useCallback((events: GameEvent[]) => audio.play(events), []));
+  // Na abertura, a batalha que segue rodando ao fundo fica em silêncio.
+  useGameEvents(useCallback((events: GameEvent[]) => inGameRef.current && audio.play(events), []));
 
   useHotkeys({
     Escape: () => {
@@ -76,14 +86,17 @@ export function App() {
           </button>
         </div>
       )}
-      {state ? <GameScreen state={state} /> : <StarterSelect />}
-      {state && engine.offlineReport && (
+      {inGame ? <GameScreen state={state} /> : <Intro save={state} onEnter={() => setAtTitle(false)} />}
+      {inGame && !engine.offlineReport && <ProfessorCall state={state} />}
+      {inGame && engine.offlineReport && (
         <OfflineReport report={engine.offlineReport} onClose={() => engine.dismissOfflineReport()} />
       )}
-      <Toasts />
+      {inGame && <Toasts />}
     </>
   );
 }
+
+const BOSS_MUSIC = new Set<GameState['battle']['kind']>(['boss', 'legendary', 'raid']);
 
 function GameScreen({ state }: { state: GameState }) {
   const [screen, setScreen] = useState<ScreenId>('party');
@@ -98,6 +111,9 @@ function GameScreen({ state }: { state: GameState }) {
     if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
   }, []);
   useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [String(i + 1), () => open(item.id, true)])));
+  // Música: tema de chefe nas lutas que valem algo (líder, rival, Elite, lendário, raide).
+  const bossFight = BOSS_MUSIC.has(state.battle.kind);
+  useEffect(() => audio.setTrack(bossFight ? 'boss' : 'game'), [bossFight]);
   // Onboarding: quem já jogava antes desta versão não vê como NOVAS as atividades que já conhece.
   const engine = useEngine();
   const onboarded = state.flags.includes('onboarding');
@@ -112,7 +128,7 @@ function GameScreen({ state }: { state: GameState }) {
   }, [engine, onboarded]);
 
   return (
-    <div className="game">
+    <div className="game game-enter">
       <nav className="skip-links" aria-label="Atalhos de navegação">
         <a href="#game-menu">Pular para o menu</a>
         <a href="#screen-area">Pular para a tela aberta</a>

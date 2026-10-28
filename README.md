@@ -12,6 +12,8 @@ transferência leva o jogo de um aparelho para outro.
 
 ## Sobre o jogo
 
+- **Uma abertura com história**: tela de "Pressione Start", o Prof. Carvalho apresentando o mundo, e a
+  escolha do inicial no laboratório, com o rival da região levando o que tem vantagem sobre o seu.
 - **6 regiões** (Kanto, Johto, Hoenn, Sinnoh, Unova e Kalos), **96 áreas**, **48 ginásios**, Elite Four e
   Campeão em cada uma. Kalos é o pós-jogo: tudo no nível 100, com selvagens e líderes reforçados.
 - **668 espécies** das Gerações I a VI, com sprites no estilo Black/White (frente, costas e shiny): animados
@@ -35,6 +37,22 @@ transferência leva o jogo de um aparelho para outro.
 | Pokédex com diário de pesquisa por espécie    | Cartão de treinador com medalhas e moldura  |
 
 ## Funcionalidades
+
+### Abertura
+
+|                                              |                                                      |                                                         |
+| -------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------- |
+| ![Pressione Start](screenshots/abertura.png) | ![Prólogo](screenshots/prologo.png)                  | ![Laboratório](screenshots/laboratorio.png)             |
+| Tela de título com o lendário de cada região | O professor apresenta o mundo e pergunta quem é você | Abra uma Poké Bola, conheça o inicial e diga SIM ou NÃO |
+
+- Tela de "Pressione Start" em tela cheia, no estilo das telas de título de GBA, e menu com CONTINUAR (com a
+  ficha do save), NOVO JOGO e CARREGAR JOGO (código de transferência ou arquivo, direto do início).
+- Prólogo com o Prof. Carvalho: o mundo, as seis regiões, a ideia de progresso com o jogo fechado, avatar,
+  nome e o aviso sobre o rival. Dá para pular a história.
+- Laboratório: três Poké Bolas por região (setas na placa da parede trocam a região). A bola se abre, o
+  Pokémon aparece com o grito e uma frase do professor, e a ficha mostra atributos, evoluções e vantagens.
+  Depois do SIM, dá para dar um apelido, e o rival da região chega para levar a bola com vantagem.
+- Tema musical próprio na abertura (com botão para desligar) e a placa da Rota 1 ao entrar no jogo.
 
 ### Batalha e campanha
 
@@ -91,6 +109,12 @@ semanais, e um Pokémon acompanhante que ganha amizade com o tempo e às vezes a
 - Notificações do sistema com o jogo em segundo plano, por categoria (creche, expedições, visitantes,
   progresso, shiny), agrupando avisos repetidos.
 - Layout de uma coluna para celular, com o menu como barra de abas, e PWA instalável que abre sem internet.
+- Primeiros passos guiados: nos primeiros minutos, o professor dá uma dica por vez na caixa de mensagens da
+  batalha (o selvagem, a Poké Ball, a Caixa, a barra da rota, o progresso offline).
+- O professor volta a falar a cada região liberada, com o lendário dela em silhueta.
+- Apelidos: o inicial pode ganhar um no laboratório, e qualquer Pokémon pode ser renomeado na ficha.
+- Espaços trancados da equipe aparecem um de cada vez: só o próximo a liberar fica visível.
+- Tema de batalha contra chefes e fanfarra ao ganhar uma insígnia ou entrar no Hall da Fama.
 - Cada atividade aparece como NOVA quando é liberada e mostra uma dica na primeira visita.
 - Histórico de cada Pokémon e MVP da semana; fotos da batalha em PNG com legenda.
 - Opções de acessibilidade: contraste alto, texto maior, velocidade das animações e "Reduzir animações"
@@ -110,6 +134,9 @@ semanais, e um Pokémon acompanhante que ganha amizade com o tempo e às vezes a
 | `B`       | Colher a árvore de berry da área                               |
 | `P`       | Tirar uma foto da batalha                                      |
 | `Esc`     | Fechar avisos e relatórios                                     |
+
+Na abertura: qualquer tecla passa da tela de "Pressione Start"; no laboratório, `←` `→` escolhem a bola, `↑`
+`↓` trocam a região, `Enter` ou `Z` abrem e confirmam, e `Esc` ou `X` respondem NÃO.
 
 A lista também aparece no jogo, na tela Treinador.
 
@@ -193,7 +220,8 @@ restaurado se o principal estiver corrompido.
 
 Para levar o jogo a outro navegador ou computador, use Treinador > Salvar e transferir: o código de
 transferência (`PKI1.…`) é o save comprimido com gzip e um checksum que recusa códigos cortados ou
-alterados. Também dá para baixar e abrir o mesmo código como arquivo `.pkidle`. Textos exportados por versões
+alterados. Também dá para baixar e abrir o mesmo código como arquivo `.pkidle`, inclusive direto da tela
+inicial (CARREGAR JOGO), sem precisar começar uma jornada antes. Textos exportados por versões
 anteriores continuam sendo aceitos.
 
 ## Testes e balanceamento

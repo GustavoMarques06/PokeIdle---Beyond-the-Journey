@@ -1300,3 +1300,13 @@ button.tag-dot:disabled {
   align-items: center;
   gap: 6px;
 }
+
+.nickname-form {
+  display: flex;
+  gap: 4px;
+}
+
+.nickname-form input {
+  width: 9em;
+  min-width: 0;
+}

@@ -140,3 +140,57 @@
     height: 22px;
   }
 }
+
+/* Abertura no celular: cena, diálogo e (quando aberta) a ficha do inicial empilhados. */
+@media (max-width: 900px) {
+  .lab-screen {
+    --lab-w: 100%;
+    --gap: 6px;
+    justify-content: flex-start;
+    padding: 6px;
+  }
+
+  /* Diálogo (com SIM / NÃO) logo abaixo da cena; a ficha do inicial vem depois. */
+  .lab-stage {
+    display: contents;
+  }
+
+  .lab-dialog {
+    order: 1;
+  }
+
+  .lab-card {
+    position: static;
+    order: 2;
+    width: 100%;
+  }
+
+  .lab-dialog,
+  .prologue-dialog {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  .dialog-speech p {
+    font-size: 16px;
+  }
+
+  .lab-choice {
+    flex-direction: row;
+    justify-self: end;
+  }
+
+  .prologue-stage,
+  .prologue-dialog {
+    width: 100%;
+  }
+
+  .prologue-answer {
+    flex-wrap: wrap;
+  }
+
+  .name-field {
+    width: 150px;
+  }
+}

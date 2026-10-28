@@ -3,6 +3,7 @@
 @import './game.css'; /* tela principal: HUD, cena de batalha, diálogo, coluna lateral */
 @import './screens.css'; /* telas secundárias: equipe, Pokédex, mochila, mapa, treinador, melhorias */
 @import './intro.css'; /* abertura (laboratório) e ajustes para telas altas */
+@import './prologue.css'; /* tela de título e prólogo com o Professor */
 @import './overlays.css'; /* janelas flutuantes */
 @import './systems.css'; /* ambiente, mapa da região, atividades, missões, golpes, TMs */
 @import './effects.css'; /* efeitos de golpe, shiny, Poké Ball, status, barras, transições */

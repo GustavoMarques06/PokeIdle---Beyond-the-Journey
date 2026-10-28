@@ -18,7 +18,7 @@ import { emptyTournament } from './tournament';
 import { emptyTraining } from './training';
 
 export const SAVE_FORMAT_VERSION = 6;
-export const GAME_VERSION = '0.7.0';
+export const GAME_VERSION = '0.8.0';
 export const SAVE_KEY = 'pokeidle.save';
 export const BACKUP_KEY = 'pokeidle.save.backup';
 

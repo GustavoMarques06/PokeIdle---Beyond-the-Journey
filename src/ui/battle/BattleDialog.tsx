@@ -28,6 +28,7 @@ import {
   type GameState,
 } from '../../core/game';
 import { ItemIcon, PixelIcon, TrainerSprite } from '../components/common';
+import { Coach } from '../components/Coach';
 import { useHotkeys } from '../hotkeys';
 import { battleText } from '../i18n/battleText';
 import { ENCOUNTER_MODE_NAMES, speciesName } from '../i18n/pt-BR';
@@ -319,6 +320,8 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             {!log.length && <li>Nada por enquanto.</li>}
           </ol>
         )}
+        {/* Nos primeiros minutos, o professor fala nesta mesma caixa, como nos portáteis. */}
+        <Coach state={state} />
       </div>
 
       <div className="battle-deck">

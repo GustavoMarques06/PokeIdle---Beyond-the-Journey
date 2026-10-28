@@ -30,7 +30,7 @@ import {
 } from '../../core/game';
 import { rngFrom } from '../../core/rng';
 import { reservePokemon } from '../../core/team';
-import { isPerfect, statsOf } from '../../core/pokemon';
+import { isPerfect, pokemonName, statsOf } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
 import { ExpBar, HpBar, ItemIcon, PixelIcon, Shiny } from '../components/common';
 import { STATUS_TEXT, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
@@ -393,9 +393,10 @@ export function BattleScene({ state }: { state: GameState }) {
     return () => clearTimeout(t);
   }, [treeMsg]);
 
-  // Troca de área: escurece e mostra o nome dela, como nos jogos portáteis.
+  // Troca de área (e a chegada ao jogo, vindo da abertura): escurece e mostra o nome dela,
+  // como nos jogos portáteis.
   const [areaBanner, setAreaBanner] = useState<{ id: number; name: string; region: string } | null>(null);
-  const lastRoute = useRef(b.routeId);
+  const lastRoute = useRef<string | null>(null);
   useEffect(() => {
     if (lastRoute.current === b.routeId) return;
     lastRoute.current = b.routeId;
@@ -460,7 +461,7 @@ export function BattleScene({ state }: { state: GameState }) {
     if (!wrapRef.current) return;
     const caption = [
       state.trainerName,
-      `${speciesName(player.speciesId)} Nv${player.level}`,
+      `${pokemonName(player)} Nv${player.level}`,
       enemy ? `vs ${speciesName(enemy.speciesId)}${enemy.shiny ? ' ★' : ''} Nv${enemy.level}` : '',
       route.name,
     ]
@@ -605,7 +606,7 @@ export function BattleScene({ state }: { state: GameState }) {
       <div className="status-box status-player frame frame-status">
         <div className="status-name">
           <span>
-            {getSpecies(player.speciesId).name.toUpperCase()}
+            {pokemonName(player).toUpperCase()}
             {player.shiny && <Shiny />}
             <StatusTag status={b.playerStatus} />
             {player.held && <ItemIcon id={player.held} size={14} className="held-mark" />}

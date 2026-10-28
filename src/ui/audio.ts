@@ -24,6 +24,7 @@ export type Sfx =
   | 'splash'
   | 'coin'
   | 'merchant'
+  | 'fanfare'
   | 'click';
 
 type Wave = OscillatorType;
@@ -40,6 +41,49 @@ const LEAD = [
 const BASS = [48, 55, 53, 55, 45, 52, 50, 52, 48, 55, 53, 55, 43, 50, 47, 50];
 const STEP_MS = 125;
 
+// Tema original da abertura: mais lento e esperançoso (I–vi–IV–V), com baixo em arpejo.
+const INTRO_LEAD = [
+  67, 0, 72, 0, 76, 0, 74, 72, 74, 0, 76, 0, 79, 0, 0, 0, 76, 0, 74, 0, 72, 0, 69, 0, 71, 0, 72, 0, 74, 0, 0,
+  0, 69, 0, 72, 0, 77, 0, 76, 74, 72, 0, 74, 0, 76, 0, 77, 0, 79, 0, 0, 0, 77, 0, 76, 0, 74, 0, 0, 0, 71, 0,
+  0, 0,
+];
+const INTRO_BASS = [48, 55, 52, 55, 45, 52, 48, 52, 41, 48, 45, 48, 43, 50, 47, 50];
+const INTRO_STEP_MS = 160;
+const INTRO_MUSIC_KEY = 'pokeidle.introMusic';
+
+// Tema original de batalha contra chefe (líderes, rival, Elite): Lá menor, Am–F–G–E, mais
+// rápido, com baixo em colcheias alternando oitavas e caixa no contratempo.
+const BOSS_LEAD = [
+  69, 0, 72, 69, 76, 0, 74, 72, 74, 0, 72, 0, 71, 0, 69, 0, 65, 0, 69, 72, 77, 0, 76, 74, 72, 0, 74, 0, 76, 0,
+  0, 0, 67, 0, 71, 74, 79, 0, 77, 76, 74, 0, 76, 0, 77, 0, 79, 0, 76, 0, 0, 75, 76, 0, 80, 0, 83, 0, 81, 0,
+  80, 0, 76, 0,
+];
+/** Fundamental de cada compasso (Lá, Fá, Sol, Mi). */
+const BOSS_ROOTS = [45, 41, 43, 40];
+const BOSS_STEP_MS = 110;
+
+/** Fanfarra de insígnia / Hall da Fama: subida em arpejo e nota longa no fim. */
+const FANFARE: [number, number][] = [
+  [67, 1],
+  [72, 1],
+  [76, 1],
+  [79, 2],
+  [76, 1],
+  [79, 1],
+  [84, 4],
+];
+
+/** Qual música toca: a do jogo (segue as Opções) ou o tema da abertura (botão próprio). */
+export type MusicTrack = 'game' | 'intro' | 'boss';
+
+function readIntroMusic(): boolean {
+  try {
+    return localStorage.getItem(INTRO_MUSIC_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 class AudioManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -55,6 +99,8 @@ class AudioManager {
   private musicTimer: ReturnType<typeof setInterval> | null = null;
   private musicStep = 0;
   private nextNoteAt = 0;
+  private track: MusicTrack = 'game';
+  private introMusic = readIntroMusic();
 
   /** Navegadores só liberam áudio após um gesto do usuário. */
   unlock(): void {
@@ -84,6 +130,28 @@ class AudioManager {
     this.syncMusic();
   }
 
+  setTrack(track: MusicTrack): void {
+    if (track === this.track) return;
+    this.track = track;
+    this.musicStep = 0;
+    this.stopMusic();
+    this.syncMusic();
+  }
+
+  get introMusicOn(): boolean {
+    return this.introMusic;
+  }
+
+  setIntroMusic(on: boolean): void {
+    this.introMusic = on;
+    try {
+      localStorage.setItem(INTRO_MUSIC_KEY, on ? 'on' : 'off');
+    } catch {
+      // Sem armazenamento (aba privada): vale só nesta sessão.
+    }
+    this.syncMusic();
+  }
+
   private applyVolume(): void {
     if (this.master) this.master.gain.value = this.settings.volume * 0.5;
   }
@@ -109,7 +177,8 @@ class AudioManager {
     }
     el.volume = Math.min(1, this.settings.volume * 0.7);
     el.currentTime = 0;
-    void el.play().catch(() => {});
+    // Navegadores antigos (e o jsdom) não devolvem uma Promise aqui.
+    void el.play()?.catch(() => {});
   }
 
   // --- efeitos ------------------------------------------------------------------
@@ -198,6 +267,15 @@ class AudioManager {
       case 'boss':
         this.arpeggio([60, 64, 67, 72, 67, 72, 76, 84], t, 0.1, 'square', 0.08);
         return;
+      case 'fanfare': {
+        let at = t;
+        for (const [note, beats] of FANFARE) {
+          this.tone(hz(note), at, 0.11 * beats * 1.2, 'square', 0.07);
+          this.tone(hz(note - 12), at, 0.11 * beats * 1.2, 'triangle', 0.08);
+          at += 0.11 * beats;
+        }
+        return;
+      }
       case 'achievement':
         this.arpeggio([76, 79, 84, 88], t, 0.07, 'triangle', 0.12);
         return;
@@ -281,7 +359,8 @@ class AudioManager {
           this.sfx('evolve');
           break;
         case 'bossDefeated':
-          this.sfx('boss');
+          // Insígnia ou título de campeão: fanfarra; os outros chefes, o arpejo de sempre.
+          this.sfx(e.badge || e.champion ? 'fanfare' : 'boss');
           break;
         case 'effect':
         case 'itemFound':
@@ -309,27 +388,67 @@ class AudioManager {
   // --- música -----------------------------------------------------------------------
 
   private syncMusic(): void {
-    const shouldPlay = this.settings.music && this.settings.volume > 0 && !!this.ctx;
+    const enabled = this.track === 'intro' ? this.introMusic : this.settings.music;
+    const shouldPlay = enabled && this.settings.volume > 0 && !!this.ctx;
     if (shouldPlay && !this.musicTimer) {
       this.nextNoteAt = this.ctx!.currentTime + 0.1;
       this.musicTimer = setInterval(() => this.scheduleMusic(), 50);
-    } else if (!shouldPlay && this.musicTimer) {
-      clearInterval(this.musicTimer);
-      this.musicTimer = null;
-    }
+    } else if (!shouldPlay) this.stopMusic();
+  }
+
+  private stopMusic(): void {
+    if (!this.musicTimer) return;
+    clearInterval(this.musicTimer);
+    this.musicTimer = null;
   }
 
   /** Agenda as notas dos próximos ~200 ms (lookahead), para não depender da precisão do timer. */
   private scheduleMusic(): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
-    const step = STEP_MS / 1000;
+    if (this.track === 'boss') return this.scheduleBoss();
+    const intro = this.track === 'intro';
+    const leadNotes = intro ? INTRO_LEAD : LEAD;
+    const bassNotes = intro ? INTRO_BASS : BASS;
+    const step = (intro ? INTRO_STEP_MS : STEP_MS) / 1000;
     while (this.nextNoteAt < this.ctx.currentTime + 0.2) {
-      const i = this.musicStep % LEAD.length;
-      const lead = LEAD[i];
-      if (lead) this.tone(hz(lead), this.nextNoteAt, step * 1.8, 'square', 0.035);
-      if (i % 4 === 0)
-        this.tone(hz(BASS[(i / 4) % BASS.length]), this.nextNoteAt, step * 3.5, 'triangle', 0.09);
-      if (i % 8 === 4) this.noise(this.nextNoteAt, 0.04, 0.03);
+      const i = this.musicStep % leadNotes.length;
+      const lead = leadNotes[i];
+      if (lead) this.tone(hz(lead), this.nextNoteAt, step * 1.8, intro ? 'triangle' : 'square', 0.035);
+      if (intro) {
+        // Arpejo do acorde (fundamental, quinta, terça, quinta) em colcheias.
+        if (i % 2 === 0) {
+          const chord = bassNotes.slice(Math.floor(i / 16) * 4, Math.floor(i / 16) * 4 + 4);
+          this.tone(hz(chord[(i / 2) % 4]), this.nextNoteAt, step * 1.6, 'square', 0.025);
+        }
+        if (i % 16 === 0)
+          this.tone(
+            hz(bassNotes[(i / 4) % bassNotes.length] - 12),
+            this.nextNoteAt,
+            step * 14,
+            'triangle',
+            0.08,
+          );
+      } else {
+        if (i % 4 === 0)
+          this.tone(hz(bassNotes[(i / 4) % bassNotes.length]), this.nextNoteAt, step * 3.5, 'triangle', 0.09);
+        if (i % 8 === 4) this.noise(this.nextNoteAt, 0.04, 0.03);
+      }
+      this.musicStep++;
+      this.nextNoteAt += step;
+    }
+  }
+
+  private scheduleBoss(): void {
+    const step = BOSS_STEP_MS / 1000;
+    while (this.nextNoteAt < this.ctx!.currentTime + 0.2) {
+      const i = this.musicStep % BOSS_LEAD.length;
+      const lead = BOSS_LEAD[i];
+      if (lead) this.tone(hz(lead), this.nextNoteAt, step * 1.7, 'square', 0.032);
+      if (i % 2 === 0) {
+        const root = BOSS_ROOTS[Math.floor(i / 16) % BOSS_ROOTS.length];
+        this.tone(hz(root + ((i / 2) % 2 ? 12 : 0)), this.nextNoteAt, step * 1.8, 'triangle', 0.09);
+      }
+      if (i % 8 === 4) this.noise(this.nextNoteAt, 0.05, 0.04);
       this.musicStep++;
       this.nextNoteAt += step;
     }

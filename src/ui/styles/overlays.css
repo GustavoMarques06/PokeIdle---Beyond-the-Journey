@@ -139,3 +139,130 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Fala do Prof. Carvalho ao liberar uma região. */
+.professor-call {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+  width: min(720px, 100%);
+}
+
+/* Professor à frente, à direita; atrás e à esquerda, o lendário da região em silhueta
+   com o brilho da cor dela. */
+.professor-call-art {
+  position: relative;
+  width: 230px;
+  height: 180px;
+}
+
+.professor-call-legend {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 78%;
+  height: 88%;
+  display: grid;
+  place-items: center;
+}
+
+.professor-call-legend .sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: brightness(0) drop-shadow(0 0 6px var(--glow, #fff));
+  opacity: 0.8;
+  animation: call-legend 2.4s steps(1, end) infinite;
+}
+
+@keyframes call-legend {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.professor-call-sprite {
+  position: absolute;
+  right: -10px;
+  bottom: 0;
+  width: 160px;
+  height: 160px;
+  image-rendering: pixelated;
+}
+
+.professor-call .dialog-speech p {
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.professor-call .pbtn {
+  align-self: flex-end;
+  margin-top: 6px;
+}
+
+@media (max-width: 600px) {
+  .professor-call {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .professor-call-art {
+    width: 170px;
+    height: 120px;
+  }
+
+  .professor-call-sprite {
+    width: 96px;
+    height: 96px;
+  }
+
+  .professor-call .dialog-speech p {
+    font-size: 16px;
+  }
+}
+
+/* Dica do professor nos primeiros minutos: ocupa a caixa de mensagens da batalha (deixa
+   a cena e os botões de bola livres), como uma fala de GBA. */
+.coach {
+  position: absolute;
+  z-index: 5;
+  inset: -12px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 10px;
+  padding: 2px 6px;
+  animation: coach-in 0.25s steps(3, end);
+}
+
+.coach .trainer-sprite {
+  grid-row: 1 / -1;
+  align-self: center;
+}
+
+.coach .dialog-speech p {
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.coach .pbtn {
+  grid-column: 2;
+  justify-self: end;
+  min-width: 56px;
+}
+
+@keyframes coach-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .coach .dialog-speech p {
+    font-size: 15px;
+  }
+}

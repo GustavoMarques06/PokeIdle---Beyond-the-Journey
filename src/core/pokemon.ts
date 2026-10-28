@@ -48,6 +48,8 @@ export interface PokemonInstance {
   record?: BattleRecord;
   /** Favorito: não pode ser transferido (nem pela limpeza de duplicatas). */
   favorite?: boolean;
+  /** Apelido dado pelo jogador. Ausente = nome da espécie. */
+  nickname?: string;
   /** Etiqueta da Caixa (ver boxes.ts). */
   tag?: 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'gray';
 }
@@ -238,4 +240,18 @@ export function levelUpMoves(species: Species, level: number): string[] {
 export function potential(ivs: Ivs): number {
   const total = ivs.hp + ivs.atk + ivs.def + ivs.spAtk + ivs.spDef + ivs.spe;
   return Math.round((total / (31 * 6)) * 100);
+}
+
+export const NICKNAME_MAX = 12;
+
+/** Nome exibido: o apelido, se houver, ou o nome da espécie. */
+export function pokemonName(p: Pick<PokemonInstance, 'speciesId' | 'nickname'>): string {
+  return p.nickname || getSpecies(p.speciesId).name;
+}
+
+/** Dá (ou tira, com texto vazio ou igual ao nome da espécie) o apelido de um Pokémon. */
+export function setNickname(p: PokemonInstance, name: string): void {
+  const clean = name.trim().replace(/\s+/g, ' ').slice(0, NICKNAME_MAX);
+  if (clean && clean.toLowerCase() !== getSpecies(p.speciesId).name.toLowerCase()) p.nickname = clean;
+  else delete p.nickname;
 }

@@ -3,7 +3,7 @@
 import { getItem, getSpecies, type Evolution } from '../../game-data';
 import { masteryOf, passivePokemon } from '../../core/bonuses';
 import { activePokemon, type GameState } from '../../core/game';
-import { friendshipOf, statsOf } from '../../core/pokemon';
+import { friendshipOf, pokemonName, statsOf } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
 import { expForLevel } from '../../core/stats';
 import { speciesName } from '../i18n/pt-BR';
@@ -62,7 +62,7 @@ export function ActiveCard({ state, onOpen }: { state: GameState; onOpen: () => 
       <div className="active-info">
         <div className="active-name">
           <strong>
-            {species.name.toUpperCase()}
+            {pokemonName(p).toUpperCase()}
             {p.shiny && <Shiny />}
           </strong>
           <span className="lv">Nv{p.level}</span>

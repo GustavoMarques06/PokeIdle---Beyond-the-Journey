@@ -26,6 +26,10 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
+function pressStart() {
+  fireEvent.click(document.querySelector('.start-screen')!);
+}
+
 function mount(engine: GameEngine) {
   return render(
     <EngineContext.Provider value={engine}>
@@ -41,7 +45,7 @@ describe('interface', () => {
     engine.load();
     mount(engine);
     expect(engine.state).toBeNull();
-    expect(document.querySelector('.intro')).not.toBeNull();
+    expect(document.querySelector('.start-screen')).not.toBeNull();
 
     act(() => engine.newGame(4, 'Teste'));
     expect(document.querySelector('.game')).not.toBeNull();
@@ -70,10 +74,125 @@ describe('interface', () => {
     expect(reloaded.state?.trainerName).toBe('Teste');
   });
 
+  it('abertura: título, prólogo com nome e avatar, laboratório e começo da jornada', async () => {
+    const engine = new GameEngine(memoryStorage());
+    engine.load();
+    mount(engine);
+    pressStart();
+    fireEvent.click(screen.getByText('NOVO JOGO'));
+    expect(document.querySelector('.prologue')).not.toBeNull();
+
+    // "Pular história" vai direto às perguntas sobre o treinador.
+    fireEvent.click(screen.getByText('Pular história'));
+    const dialog = () => document.querySelector('.prologue-dialog')!;
+    fireEvent.click(dialog()); // completa a fala
+    fireEvent.click(screen.getByRole('radio', { name: /Menina/ }));
+    fireEvent.click(screen.getByText('Sou assim!'));
+    fireEvent.click(dialog());
+    fireEvent.change(screen.getByLabelText('Nome do treinador'), { target: { value: 'Ana' } });
+    fireEvent.click(screen.getByText('OK'));
+    fireEvent.click(dialog());
+    expect(dialog().textContent).toContain('ANA');
+    fireEvent.click(screen.getByText('Sim'));
+
+    // Rival e despedida: cada clique completa a fala e o seguinte avança.
+    while (document.querySelector('.prologue')) {
+      await act(async () => {
+        fireEvent.click(dialog());
+        await new Promise((r) => setTimeout(r, 0));
+      });
+      if (document.querySelector('.prologue.leaving')) {
+        await act(() => new Promise((r) => setTimeout(r, 1500)));
+      }
+    }
+    // Laboratório: abrir uma bola, recusar, trocar de região e aceitar outra.
+    expect(document.querySelector('.lab-screen')).not.toBeNull();
+    const labDialog = () => document.querySelector('.lab-dialog')!;
+    fireEvent.click(screen.getByLabelText(/Charmander/));
+    fireEvent.click(labDialog()); // completa a fala
+    fireEvent.click(screen.getByText('NÃO'));
+    expect(document.querySelector('.lab-starter')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Próxima região'));
+    expect(document.querySelector('.lab-sign')!.textContent).toContain('Johto');
+    fireEvent.click(screen.getByLabelText(/Totodile/));
+    fireEvent.click(labDialog());
+    expect(document.querySelector('.lab-card')).not.toBeNull();
+    fireEvent.click(screen.getByText('SIM'));
+    // "Recebeu": um clique completa a fala, o seguinte avança para o apelido.
+    fireEvent.click(labDialog());
+    fireEvent.click(labDialog());
+    fireEvent.click(labDialog());
+    fireEvent.click(screen.getByText('SIM'));
+    fireEvent.click(labDialog());
+    fireEvent.change(screen.getByLabelText('Apelido do inicial'), { target: { value: 'Croco' } });
+    fireEvent.click(screen.getByText('OK'));
+    // O rival da região (Johto) chega e leva a bola com vantagem; a fala seguinte começa o jogo.
+    expect(document.querySelector('.lab-rival')).not.toBeNull();
+    fireEvent.click(labDialog());
+    expect(labDialog().textContent).toContain('CROCO');
+    for (let i = 0; i < 3 && !engine.state; i++) fireEvent.click(labDialog());
+    expect(engine.state?.starterId).toBe(158);
+    expect(engine.state?.collection[0].nickname).toBe('Croco');
+    expect(engine.state?.trainerName).toBe('Ana');
+    expect(engine.state?.trainerAvatar).toBe('leaf');
+  });
+
+  it('com save, o título mostra a ficha e CONTINUAR leva ao jogo', () => {
+    const engine = new GameEngine(memoryStorage());
+    engine.newGame(1, 'Bia');
+    mount(engine);
+    expect(document.querySelector('.start-screen')).not.toBeNull();
+    // Qualquer tecla passa do "Pressione Start" para o menu.
+    fireEvent.keyDown(window, { key: 'x' });
+    expect(document.querySelector('.title-screen')).not.toBeNull();
+    expect(document.querySelector('.save-summary')!.textContent).toContain('BIA');
+    fireEvent.click(screen.getByText('CONTINUAR'));
+    expect(document.querySelector('.game')).not.toBeNull();
+  });
+
+  it('o tutorial aparece num jogo novo, uma dica por vez, e some para quem já jogava', () => {
+    const engine = new GameEngine(memoryStorage());
+    engine.newGame(1, 'Bia');
+    mount(engine);
+    pressStart();
+    fireEvent.click(screen.getByText('CONTINUAR'));
+    expect(document.querySelector('.coach')!.textContent).toContain('primeira rota');
+    fireEvent.click(document.querySelector('.coach .pbtn')!);
+    expect(engine.state!.flags).toContain('coach:battle');
+    cleanup();
+
+    const veteran = new GameEngine(memoryStorage());
+    veteran.newGame(1, 'Bia');
+    veteran.state!.stats.totalKills = 300;
+    mount(veteran);
+    pressStart();
+    fireEvent.click(screen.getByText('CONTINUAR'));
+    expect(document.querySelector('.coach')).toBeNull();
+  });
+
+  it('o Professor fala uma vez ao liberar uma região nova', () => {
+    const engine = new GameEngine(memoryStorage());
+    engine.newGame(1, 'Bia');
+    mount(engine);
+    pressStart();
+    fireEvent.click(screen.getByText('CONTINUAR'));
+    expect(document.querySelector('.professor-call')).toBeNull();
+    act(() => engine.dispatch((s) => void (s.routes['johto-rotas-29-31'].unlocked = true)));
+    // Um clique completa a fala (máquina de escrever); o botão aparece no fim.
+    fireEvent.click(document.querySelector('.professor-call')!);
+    expect(document.querySelector('.professor-call')!.textContent).toContain('Johto');
+    expect(document.querySelector('.professor-call-legend')).not.toBeNull();
+    fireEvent.click(screen.getByText('Vamos lá!'));
+    expect(document.querySelector('.professor-call')).toBeNull();
+    expect(engine.state!.flags).toContain('professor:johto');
+  });
+
   it('atalhos de batalha: Q lança a Poké Ball quando há um selvagem', async () => {
     const engine = new GameEngine(memoryStorage());
     engine.newGame(7);
     mount(engine);
+    pressStart();
+    fireEvent.click(screen.getByText('CONTINUAR'));
     const s = engine.state!;
     act(() =>
       engine.dispatch((st) => {

@@ -619,3 +619,26 @@ html.reduced-motion .hpbar-fill,
 html.reduced-motion .expbar-fill {
   transition: none;
 }
+
+/* Chegada ao jogo (vindo da abertura): a tela surge de um clarão branco, continuando a
+   saída do laboratório; depois a placa da área entra na cena de batalha. */
+.game-enter::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #fff;
+  pointer-events: none;
+  animation: game-enter 0.7s steps(7, end) forwards;
+}
+
+@keyframes game-enter {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+html.reduced-motion .game-enter::after {
+  display: none;
+}

@@ -219,6 +219,65 @@ export const T = {
     totalCaptures: 'Capturas',
     playTime: 'Tempo de jogo',
   },
+  intro: {
+    newGameConfirm: (name: string) =>
+      `Já existe uma jornada salva neste aparelho (${name}). Ao escolher o inicial, ela será substituída. Continuar?`,
+    loadConfirm: (incoming: string, current: string) =>
+      `Carregar o jogo de ${incoming}? A jornada de ${current} neste aparelho será substituída.`,
+    musicOn: 'Música da abertura: ligada',
+    musicOff: 'Música da abertura: desligada',
+  },
+  /** Laboratório do professor: a escolha do inicial, fala a fala. */
+  starterLab: {
+    browse: (name: string, region: string) =>
+      `Estas são as Poké Bolas de ${region}, ${name}. Cada uma guarda um Pokémon diferente. Qual delas você vai abrir?`,
+    ask: (species: string, type: string) => `Quer ficar com ${species}, o Pokémon do tipo ${type}?`,
+    received: (name: string, species: string) => `${name} recebeu ${species}!`,
+    nickAsk: (species: string) => `Quer dar um apelido a ${species}?`,
+    nickPrompt: (species: string) => `Qual vai ser o apelido de ${species}?`,
+    rival: (species: string, rivalMon: string, rivalName: string) =>
+      `Olha só quem chegou: ${rivalName}, que vai ser o seu rival! A escolha foi ${rivalMon}, que tem vantagem sobre ${species}. Vai ser uma bela disputa!`,
+    hintKeys: '← → BOLA · ↑ ↓ REGIÃO · ENTER ABRIR',
+    hintTouch: 'Toque numa Poké Bola · ◀ ▶ trocam a região',
+  },
+  /** Uma frase do professor sobre cada inicial, dita ao abrir a Poké Bola. */
+  starterFlavor: {
+    1: 'Bulbasaur é calmo e resistente; a semente nas costas cresce junto com ele.',
+    4: 'Charmander é cheio de energia. Dizem que a chama da cauda mostra o humor dele!',
+    7: 'Squirtle se esconde no casco quando está em perigo... e responde com jatos d’água.',
+    152: 'Chikorita adora sol e solta um perfume suave que acalma quem está por perto.',
+    155: 'Cyndaquil é tímido, mas as chamas das costas acendem quando ele se assusta.',
+    158: 'Totodile morde tudo o que se mexe, e é por carinho! Cuidado com os dedos.',
+    252: 'Treecko é frio e confiante; sobe em paredes lisas como se fosse chão.',
+    255: 'Torchic guarda uma chama dentro do corpo. Um abraço dele é bem quentinho.',
+    258: 'Mudkip sente o ambiente pela barbatana da cabeça, e é forte como uma rocha!',
+    387: 'Turtwig faz fotossíntese pelo casco; quando tem sede, a folhinha da cabeça murcha.',
+    390: 'Chimchar é ágil e travesso. Nem a chuva apaga o fogo da cauda dele!',
+    393: 'Piplup é orgulhoso e não gosta de receber ordens... mas é leal até o fim.',
+    495: 'Snivy é inteligente e sereno; quanto mais sol pega, mais rápido fica.',
+    498: 'Tepig adora frutinhas tostadas pelo fogo do próprio focinho.',
+    501: 'Oshawott luta com a concha da barriga como se fosse uma lâmina.',
+    650: 'Chespin é curioso e corajoso; os espinhos da cabeça endurecem quando ele se defende.',
+    653: 'Fennekin mastiga gravetos para ganhar energia, e as orelhas soltam um calor enorme.',
+    656: 'Froakie se protege com bolhas que parecem espuma. Está sempre alerta!',
+  } as Record<number, string>,
+  /** Falas do Prof. Carvalho ao chegar a cada região (Kanto é o prólogo). */
+  professor: {
+    arrival: {
+      johto: (n: string) =>
+        `${n}! Fiquei sabendo que você venceu a Liga de Kanto. Parabéns! A oeste fica Johto, terra de tradições antigas e de Pokémon que você nunca viu. Os líderes de lá são orgulhosos… mostre a eles do que você é capaz!`,
+      hoenn: (n: string) =>
+        `${n}, agora são duas Ligas vencidas! Hoenn é feita de mar, vulcões e florestas tropicais. Leve Pokémon que saibam nadar e aguentar o calor!`,
+      sinnoh: (n: string) =>
+        `Sinnoh, ao norte, é cheia de montanhas nevadas e lendas sobre a origem do mundo. Dizem que o tempo e o espaço guardam segredos por lá. Fico curioso para saber o que você vai descobrir, ${n}.`,
+      unova: (n: string) =>
+        `${n}, Unova fica longe daqui: cidades enormes, pontes gigantes e espécies completamente diferentes. É quase como começar de novo, mas desta vez com toda a sua experiência.`,
+      kalos: (n: string) =>
+        `${n}… você foi mais longe do que qualquer treinador que conheci. Kalos é o maior desafio de todos: selvagens no nível 100 e líderes reforçados. Daqui para a frente, é além da jornada!`,
+    } as Record<string, (name: string) => string>,
+    finale: (n: string) =>
+      `A Liga de Kalos é sua! ${n}, você viu o mundo inteiro ao lado dos seus Pokémon. Mas uma jornada assim não termina: há uma Pokédex para completar, shinies para encontrar e uma nova jornada esperando quando você quiser recomeçar.`,
+  },
   offline: {
     title: 'Bem-vindo de volta!',
     away: (t: string) => `Você ficou fora por ${t}.`,

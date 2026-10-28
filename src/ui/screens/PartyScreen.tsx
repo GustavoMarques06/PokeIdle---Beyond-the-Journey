@@ -51,7 +51,17 @@ import {
 } from '../../core/boxes';
 import { addPassive, canTransfer, removePassive, transferPokemon, transferValue } from '../../core/meta';
 import { learnableMoves, setMoveset } from '../../core/moveset';
-import { evsOf, isPerfect, movesOf, potential, statsOf, type PokemonInstance } from '../../core/pokemon';
+import {
+  NICKNAME_MAX,
+  evsOf,
+  isPerfect,
+  movesOf,
+  pokemonName,
+  potential,
+  setNickname,
+  statsOf,
+  type PokemonInstance,
+} from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
 import { addReserve, removeReserve, reservePokemon, reserveSlotsUnlocked } from '../../core/team';
 import { evolutionHint } from '../components/ActiveCard';
@@ -105,7 +115,7 @@ function PartySlot({
     >
       <PokemonSprite speciesId={p.speciesId} kind="icon" className="party-icon" />
       <span className="party-name">
-        {speciesName(p.speciesId).toUpperCase()}
+        {pokemonName(p).toUpperCase()}
         {p.shiny && <Shiny />}
       </span>
       <span className="party-lv">Nv{p.level}</span>
@@ -146,7 +156,9 @@ export function PartyScreen({ state }: { state: GameState }) {
         />
         <div className="party-support party-reserves">
           {RESERVE_SLOTS.map((slot, i) => {
-            if (i >= reserveSlots) {
+            // Só o próximo espaço trancado aparece: os outros surgem quando liberarem.
+            if (i > reserveSlots) return null;
+            if (i === reserveSlots) {
               return (
                 <div key={i} className="party-slot frame frame-slotEmpty locked">
                   <PixelIcon name="lock" scale={2} />
@@ -180,7 +192,8 @@ export function PartyScreen({ state }: { state: GameState }) {
         </div>
         <div className="party-support">
           {PASSIVE_SLOTS.map((slot, i) => {
-            if (i >= unlocked) {
+            if (i > unlocked) return null;
+            if (i === unlocked) {
               return (
                 <div key={i} className="party-slot frame frame-slotEmpty locked">
                   <PixelIcon name="lock" scale={2} />
@@ -519,6 +532,48 @@ function BattleRecordRow({ p, weekWins }: { p: PokemonInstance; weekWins: number
   );
 }
 
+/** Apelido: texto com botão; Enter ou "OK" grava, vazio volta ao nome da espécie. */
+function NicknameField({ p }: { p: PokemonInstance }) {
+  const engine = useEngine();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(p.nickname ?? '');
+  const save = () => {
+    engine.dispatch((s) => {
+      const target = s.collection.find((x) => x.uid === p.uid);
+      if (target) setNickname(target, text);
+    });
+    setEditing(false);
+  };
+  if (!editing) {
+    return (
+      <button className="link-btn" onClick={() => setEditing(true)}>
+        {p.nickname ? `${p.nickname} · trocar` : 'dar apelido'}
+      </button>
+    );
+  }
+  return (
+    <form
+      className="nickname-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save();
+      }}
+    >
+      <input
+        value={text}
+        maxLength={NICKNAME_MAX}
+        placeholder={getSpecies(p.speciesId).name}
+        onChange={(e) => setText(e.target.value)}
+        aria-label="Apelido"
+        autoFocus
+      />
+      <button type="submit" className="pbtn small">
+        OK
+      </button>
+    </form>
+  );
+}
+
 function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
   const mvp = weeklyMvp(state, state.lastTimerAt);
   const engine = useEngine();
@@ -542,7 +597,7 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
     <Window
       title={
         <>
-          Nº{String(species.id).padStart(3, '0')} {species.name.toUpperCase()}{' '}
+          Nº{String(species.id).padStart(3, '0')} {pokemonName(p).toUpperCase()}{' '}
           <span className="lv">Nv{p.level}</span>
         </>
       }
@@ -563,7 +618,14 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
             ))}
           </dd>
           <dt>ESPÉCIE</dt>
-          <dd>{species.genus}</dd>
+          <dd>
+            {species.genus}
+            {p.nickname && <small className="nature-mods">{species.name}</small>}
+          </dd>
+          <dt>APELIDO</dt>
+          <dd>
+            <NicknameField key={p.uid} p={p} />
+          </dd>
           <dt>POTENCIAL</dt>
           <dd>
             {potential(p.ivs)}% {isPerfect(p.ivs) && <span className="tag tag-active">PERFEITO</span>}
