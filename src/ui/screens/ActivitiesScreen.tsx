@@ -1,8 +1,7 @@
 // ATIVIDADES: tudo que roda em paralelo às batalhas — creche, expedições, jardim,
 // fósseis, Torre de Batalha, torneio, Safari, Game Corner e caça ao shiny.
 
-import { useState, type ReactNode } from 'react';
-import { activityUnlocked, type Activity } from '../../core/collection';
+import { useEffect, useState, type ReactNode } from 'react';
 import { expeditionDone } from '../../core/expeditions';
 import type { GameState } from '../../core/game';
 import { plotReady } from '../../core/garden';
@@ -19,44 +18,22 @@ import { SafariPanel } from './activities/SafariPanel';
 import { TournamentPanel } from './activities/TournamentPanel';
 import { TowerPanel } from './activities/TowerPanel';
 import { TrainingPanel } from './activities/TrainingPanel';
+import { TAB_TIPS, seenFlag, tabOpen, tipFlag, unseenTabs, type Tab } from './activities/tabs';
+import { useEngine } from '../useGame';
 
-type Tab =
-  | 'daycare'
-  | 'expeditions'
-  | 'garden'
-  | 'fossils'
-  | 'training'
-  | 'raids'
-  | 'hunt'
-  | 'legendary'
-  | 'tower'
-  | 'tournament'
-  | 'safari'
-  | 'gamecorner';
-
-const TABS: { id: Tab; label: string; icon: ReactNode; unlock?: Activity }[] = [
-  { id: 'daycare', label: 'CRECHE', icon: <PixelIcon name="egg" scale={2} />, unlock: 'daycare' },
-  {
-    id: 'expeditions',
-    label: 'EXPEDIÇÕES',
-    icon: <ItemIcon id="explorer-kit" size={22} />,
-    unlock: 'expeditions',
-  },
-  { id: 'garden', label: 'JARDIM', icon: <ItemIcon id="oran-berry" size={22} />, unlock: 'garden' },
-  { id: 'fossils', label: 'FÓSSEIS', icon: <ItemIcon id="helix-fossil" size={22} />, unlock: 'fossils' },
-  { id: 'training', label: 'TREINO', icon: <ItemIcon id="macho-brace" size={22} />, unlock: 'training' },
-  { id: 'raids', label: 'RAIDES', icon: <PixelIcon name="boss" scale={2} />, unlock: 'raids' },
+const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
+  { id: 'daycare', label: 'CRECHE', icon: <PixelIcon name="egg" scale={2} /> },
+  { id: 'expeditions', label: 'EXPEDIÇÕES', icon: <ItemIcon id="explorer-kit" size={22} /> },
+  { id: 'garden', label: 'JARDIM', icon: <ItemIcon id="oran-berry" size={22} /> },
+  { id: 'fossils', label: 'FÓSSEIS', icon: <ItemIcon id="helix-fossil" size={22} /> },
+  { id: 'training', label: 'TREINO', icon: <ItemIcon id="macho-brace" size={22} /> },
+  { id: 'raids', label: 'RAIDES', icon: <PixelIcon name="boss" scale={2} /> },
   { id: 'hunt', label: 'CAÇA SHINY', icon: <PixelIcon name="target" scale={2} /> },
   { id: 'legendary', label: 'LENDÁRIOS', icon: <PixelIcon name="star" scale={2} /> },
-  { id: 'tower', label: 'TORRE', icon: <PixelIcon name="trophy" scale={2} />, unlock: 'tower' },
-  { id: 'tournament', label: 'TORNEIO', icon: <PixelIcon name="star" scale={2} />, unlock: 'tournament' },
-  { id: 'safari', label: 'SAFARI', icon: <ItemIcon id="safari-ball" size={22} />, unlock: 'safari' },
-  {
-    id: 'gamecorner',
-    label: 'GAME CORNER',
-    icon: <ItemIcon id="coin-case" size={22} />,
-    unlock: 'gamecorner',
-  },
+  { id: 'tower', label: 'TORRE', icon: <PixelIcon name="trophy" scale={2} /> },
+  { id: 'tournament', label: 'TORNEIO', icon: <PixelIcon name="star" scale={2} /> },
+  { id: 'safari', label: 'SAFARI', icon: <ItemIcon id="safari-ball" size={22} /> },
+  { id: 'gamecorner', label: 'GAME CORNER', icon: <ItemIcon id="coin-case" size={22} /> },
 ];
 
 /** As 12 abas em três grupos de quatro. */
@@ -67,8 +44,18 @@ const GROUPS: { label: string; tabs: Tab[] }[] = [
 ];
 
 export function ActivitiesScreen({ state }: { state: GameState }) {
-  const [tab, setTab] = useState<Tab>('daycare');
+  const engine = useEngine();
+  // Abre na primeira atividade nova, se houver; senão, na creche.
+  const [tab, setTab] = useState<Tab>(() => unseenTabs(state)[0] ?? 'daycare');
   const now = state.lastTimerAt;
+  const unseen = new Set(unseenTabs(state));
+  const open = tabOpen(state, tab);
+  const isNew = open && unseen.has(tab);
+  const showTip = open && !state.flags.includes(tipFlag(tab));
+  // Abrir a aba conta como "vista": o selo NOVO some (a dica fica até o jogador fechá-la).
+  useEffect(() => {
+    if (isNew) engine.dispatch((s) => void s.flags.push(seenFlag(tab)));
+  }, [engine, isNew, tab]);
   const ready: Partial<Record<Tab, boolean>> = {
     daycare: state.eggs.some((e) => e.progress / e.cycles > 0.9),
     expeditions: state.expeditions.some((r) => expeditionDone(r, now)),
@@ -86,17 +73,19 @@ export function ActivitiesScreen({ state }: { state: GameState }) {
             <h4>{g.label}</h4>
             {g.tabs.map((id) => {
               const t = TABS.find((x) => x.id === id)!;
-              const open = !t.unlock || activityUnlocked(state, t.unlock);
+              const isOpen = tabOpen(state, t.id);
               return (
                 <button
                   key={t.id}
                   role="tab"
                   aria-selected={tab === t.id}
-                  className={`activity-tab ${tab === t.id ? 'active' : ''} ${open ? '' : 'locked'}`}
+                  aria-label={`${t.label}${isOpen ? '' : ' (bloqueada)'}${unseen.has(t.id) ? ' (nova)' : ''}`}
+                  className={`activity-tab ${tab === t.id ? 'active' : ''} ${isOpen ? '' : 'locked'}`}
                   onClick={() => setTab(t.id)}
                 >
-                  {open ? t.icon : <PixelIcon name="lock" scale={2} />}
+                  {isOpen ? t.icon : <PixelIcon name="lock" scale={2} />}
                   <span>{t.label}</span>
+                  {unseen.has(t.id) && <span className="new-badge">NOVO</span>}
                   {ready[t.id] && <span className="menu-alert" />}
                 </button>
               );
@@ -104,6 +93,19 @@ export function ActivitiesScreen({ state }: { state: GameState }) {
           </div>
         ))}
       </div>
+      {showTip && (
+        <div className="activity-tip frame frame-dialog" role="note">
+          <p>
+            <strong>Dica:</strong> {TAB_TIPS[tab]}
+          </p>
+          <button
+            className="pbtn small"
+            onClick={() => engine.dispatch((s) => void s.flags.push(tipFlag(tab)))}
+          >
+            Entendi
+          </button>
+        </div>
+      )}
       {tab === 'daycare' && <DaycarePanel state={state} />}
       {tab === 'expeditions' && <ExpeditionsPanel state={state} />}
       {tab === 'garden' && <GardenPanel state={state} />}

@@ -43,6 +43,7 @@ export const STARTERS = [
   { generation: 3, region: 'Hoenn', starters: ['treecko', 'torchic', 'mudkip'] },
   { generation: 4, region: 'Sinnoh', starters: ['turtwig', 'chimchar', 'piplup'] },
   { generation: 5, region: 'Unova', starters: ['snivy', 'tepig', 'oshawott'] },
+  { generation: 6, region: 'Kalos', starters: ['chespin', 'fennekin', 'froakie'] },
 ];
 
 const RARE_STARTERS = STARTERS.flatMap((g) => g.starters).map((s) => [s, 0.25, 15, 18]);
@@ -886,7 +887,212 @@ const unova = {
   ],
 };
 
-export const REGIONS = [kanto, johto, hoenn, sinnoh, unova];
+// ---------------------------------------------------------------------------------
+// KALOS (pós-jogo: tudo no Nv. 100, com `boost` crescente nos selvagens e nos chefes)
+// Os Pokémon da Geração VI usam os sprites estáticos no estilo Black/White do Showdown.
+
+const kalos = {
+  id: 'kalos',
+  name: 'Kalos',
+  trainerSuffix: [''],
+  routes: [
+    r('kalos-rotas-1-4', 'Rotas 1–4 e Santalune', 'De Vaniville, pela Floresta de Santalune, até a cidade de Viola.', 90, 'meadow', [67, 71], [
+      ['fletchling', 20, 100, 100],
+      ['bunnelby', 20, 100, 100],
+      ['scatterbug', 15, 100, 100],
+      ['spewpa', 5, 100, 100],
+      ['pikachu', 5, 100, 100],
+      ['flabebe', 15, 100, 100, 'day'],
+      ['skiddo', 10, 100, 100],
+      ['litleo', 10, 100, 100],
+      ['noibat', 10, 100, 100, 'night'],
+    ], {
+      boost: 1.05,
+      boss: boss('Viola', 'Líder do Ginásio de Santalune', 'viola', [['surskit', 100], ['vivillon', 100]], 17000, {
+        badge: { id: 'bug', name: 'Insígnia do Inseto', sprite: 41 },
+        reward: { tm: 'x-scissor' },
+        boost: 1.22,
+      }),
+    }),
+    r('kalos-rotas-5-7', 'Rotas 5–7 e Camphrier', 'Trilhas de patinadores, o castelo do Barão e as colinas de flores.', 95, 'route', [44, 54.5], [
+      ['pancham', 15, 100, 100],
+      ['furfrou', 10, 100, 100],
+      ['skiddo', 10, 100, 100],
+      ['espurr', 15, 100, 100],
+      ['honedge', 10, 100, 100, 'night'],
+      ['ralts', 10, 100, 100],
+      ['spritzee', 10, 100, 100, 'day'],
+      ['swirlix', 10, 100, 100, 'day'],
+      ['smeargle', 5, 100, 100],
+    ], {
+      boost: 1.08,
+      boss: boss('Calem', 'Seu rival', 'calem', [['meowstic', 100], ['absol', 100], ['$rival:3', 100]], 18000, { rival: true, boost: 1.24 }),
+    }),
+    r('gruta-cintilante', 'Gruta Cintilante e Cyllage', 'Cristais que brilham no escuro e fósseis antigos.', 100, 'cave', [24.7, 71.5], [
+      ['binacle', 15, 100, 100],
+      ['carbink', 10, 100, 100],
+      ['roggenrola', 15, 100, 100],
+      ['boldore', 10, 100, 100],
+      ['onix', 10, 100, 100],
+      ['machop', 10, 100, 100],
+      ['cubone', 10, 100, 100],
+      ['kangaskhan', 3, 100, 100],
+      ['noibat', 10, 100, 100, 'night'],
+    ], {
+      boost: 1.1,
+      boss: boss('Grant', 'Líder do Ginásio de Cyllage', 'grant', [['amaura', 100], ['tyrunt', 100]], 19000, {
+        badge: { id: 'cliff', name: 'Insígnia do Penhasco', sprite: 42 },
+        reward: { tm: 'rock-slide' },
+        boost: 1.26,
+      }),
+    }),
+    r('kalos-rotas-10-11', 'Trilha dos Menires e Shalour', 'Menires misteriosos e a Torre da Maestria.', 100, 'mountain', [35.4, 27], [
+      ['hawlucha', 10, 100, 100],
+      ['dedenne', 10, 100, 100],
+      ['nosepass', 10, 100, 100],
+      ['golett', 10, 100, 100],
+      ['skarmory', 10, 100, 100],
+      ['hippopotas', 10, 100, 100],
+      ['inkay', 15, 100, 100, 'night'],
+      ['throh', 8, 100, 100],
+      ['sawk', 8, 100, 100],
+    ], {
+      boost: 1.12,
+      boss: boss('Korrina', 'Líder do Ginásio de Shalour', 'korrina', [['mienfoo', 100], ['machoke', 100], ['hawlucha', 100]], 20000, {
+        badge: { id: 'rumble', name: 'Insígnia do Estrondo', sprite: 43 },
+        reward: { tm: 'power-up-punch' },
+        boost: 1.28,
+      }),
+    }),
+    r('kalos-coumarine', 'Baía Azure e Coumarine', 'Praias, o monotrilho e o farol sobre a baía.', 105, 'beach', [17, 37], [
+      ['skrelp', 15, 100, 100],
+      ['clauncher', 15, 100, 100],
+      ['wingull', 15, 100, 100],
+      ['tauros', 10, 100, 100],
+      ['miltank', 10, 100, 100],
+      ['mareep', 10, 100, 100],
+      ['exeggcute', 10, 100, 100],
+      ['chatot', 5, 100, 100, 'day'],
+    ], {
+      boost: 1.14,
+      boss: boss('Ramos', 'Líder do Ginásio de Coumarine', 'ramos', [['jumpluff', 100], ['weepinbell', 100], ['gogoat', 100]], 21000, {
+        badge: { id: 'plant', name: 'Insígnia da Planta', sprite: 44 },
+        reward: { tm: 'energy-ball' },
+        boost: 1.3,
+      }),
+    }),
+    r('kalos-lumiose', 'Ermos de Lumiose e Lumiose', 'Turbinas no deserto e a Cidade Luz, com a Torre Prisma.', 105, 'desert', [54.7, 36], [
+      ['helioptile', 20, 100, 100],
+      ['trapinch', 15, 100, 100],
+      ['dugtrio', 10, 100, 100],
+      ['slugma', 10, 100, 100],
+      ['sandile', 10, 100, 100],
+      ['krokorok', 5, 100, 100],
+      ['gible', 3, 100, 100],
+      ['flabebe', 10, 100, 100, 'day'],
+    ], {
+      boost: 1.16,
+      boss: boss('Clemont', 'Líder do Ginásio de Lumiose', 'clemont', [['emolga', 100], ['magneton', 100], ['heliolisk', 100]], 22000, {
+        badge: { id: 'voltage', name: 'Insígnia da Voltagem', sprite: 45 },
+        reward: { tm: 'thunderbolt' },
+        boost: 1.32,
+      }),
+    }),
+    r('laboratorio-lysandre', 'Laboratório de Lysandre', 'Sob o café de Lumiose, a Equipe Flare prepara a arma suprema.', 100, 'city', [57.5, 39.5], [
+      ['klefki', 15, 100, 100],
+      ['magneton', 15, 100, 100],
+      ['porygon2', 10, 100, 100],
+      ['electrode', 10, 100, 100],
+      ['croagunk', 10, 100, 100],
+      ['houndour', 10, 100, 100, 'night'],
+      ['liepard', 10, 100, 100],
+      ['mightyena', 10, 100, 100],
+    ], {
+      boost: 1.18,
+      boss: boss('Lysandre', 'Chefe da Equipe Flare', 'lysandre', [['mienshao', 100], ['honchkrow', 100], ['pyroar', 100], ['gyarados', 100]], 23000, {
+        reward: { items: { 'ultra-ball': 10, 'master-ball': 1 } },
+        boost: 1.33,
+      }),
+    }),
+    r('kalos-laverre', 'Pântano Assombrado e Laverre', 'Uma mata nebulosa e a cidade da árvore gigante.', 110, 'dampcave', [53.3, 13.5], [
+      ['goomy', 10, 100, 100],
+      ['sliggoo', 3, 100, 100],
+      ['pumpkaboo', 15, 100, 100, 'night'],
+      ['phantump', 15, 100, 100, 'night'],
+      ['haunter', 10, 100, 100],
+      ['stunfisk', 10, 100, 100],
+      ['quagsire', 10, 100, 100],
+      ['carnivine', 10, 100, 100],
+      ['spritzee', 10, 100, 100, 'day'],
+    ], {
+      boost: 1.2,
+      boss: boss('Valerie', 'Líder do Ginásio de Laverre', 'valerie', [['mawile', 100], ['mr-mime', 100], ['sylveon', 100]], 24000, {
+        badge: { id: 'fairy', name: 'Insígnia da Fada', sprite: 46 },
+        reward: { tm: 'dazzling-gleam' },
+        boost: 1.34,
+      }),
+    }),
+    r('kalos-anistar', 'Rota 18 e Anistar', 'Túneis de minério e o relógio de sol de Anistar.', 110, 'mountain', [76.6, 39.5], [
+      ['lairon', 15, 100, 100],
+      ['aron', 10, 100, 100],
+      ['durant', 10, 100, 100],
+      ['heatmor', 10, 100, 100],
+      ['larvitar', 10, 100, 100],
+      ['pupitar', 5, 100, 100],
+      ['torkoal', 10, 100, 100],
+      ['shuckle', 5, 100, 100],
+      ['graveler', 10, 100, 100],
+    ], {
+      boost: 1.22,
+      boss: boss('Olympia', 'Líder do Ginásio de Anistar', 'olympia', [['sigilyph', 100], ['slowking', 100], ['meowstic', 100]], 25000, {
+        badge: { id: 'psychic', name: 'Insígnia Psíquica', sprite: 47 },
+        reward: { tm: 'psyshock' },
+        boost: 1.36,
+      }),
+    }),
+    r('kalos-snowbelle', 'Rotas 17–20 e Snowbelle', 'A trilha gelada dos Mamoswine e a Mata Sinuosa.', 115, 'icecave', [86, 31], [
+      ['bergmite', 15, 100, 100],
+      ['avalugg', 3, 100, 100],
+      ['snover', 15, 100, 100],
+      ['mamoswine', 5, 100, 100],
+      ['cryogonal', 10, 100, 100],
+      ['sneasel', 10, 100, 100, 'night'],
+      ['trevenant', 5, 100, 100, 'night'],
+      ['gourgeist', 5, 100, 100, 'night'],
+      ['amoonguss', 10, 100, 100],
+      ['zoroark', 3, 100, 100],
+    ], {
+      boost: 1.24,
+      boss: boss('Wulfric', 'Líder do Ginásio de Snowbelle', 'wulfric', [['abomasnow', 100], ['cryogonal', 100], ['avalugg', 100]], 26000, {
+        badge: { id: 'iceberg', name: 'Insígnia do Iceberg', sprite: 48 },
+        reward: { tm: 'ice-beam' },
+        boost: 1.38,
+      }),
+    }),
+    r('kalos-estrada-vitoria', 'Estrada da Vitória (Kalos)', 'Ruínas, pontes e cavernas até a Liga de Kalos.', 120, 'cave', [93.5, 21], [
+      ['noibat', 15, 100, 100],
+      ['noivern', 5, 100, 100],
+      ['druddigon', 10, 100, 100],
+      ['gurdurr', 10, 100, 100],
+      ['fraxure', 10, 100, 100],
+      ['haxorus', 3, 100, 100],
+      ['lickitung', 10, 100, 100],
+      ['ursaring', 10, 100, 100],
+      ['skarmory', 10, 100, 100],
+      ['sliggoo', 5, 100, 100],
+    ], {
+      boost: 1.26,
+      boss: boss('Calem', 'Seu rival', 'calem', [['meowstic', 100], ['absol', 100], ['altaria', 100], ['jolteon', 100], ['$rival:3', 100]], 28000, { rival: true, boost: 1.4 }),
+    }),
+    trial('kalos-liga-malva', 'Liga de Kalos — Malva', 'kalos-estrada-vitoria', [90, 12], boss('Malva', 'Elite dos Quatro', 'malva', [['pyroar', 100], ['torkoal', 100], ['chandelure', 100], ['talonflame', 100]], 30000, { boost: 1.42 })),
+    trial('kalos-liga-siebold', 'Liga de Kalos — Siebold', 'kalos-estrada-vitoria', [93, 9], boss('Siebold', 'Elite dos Quatro', 'siebold', [['clawitzer', 100], ['starmie', 100], ['gyarados', 100], ['barbaracle', 100]], 31000, { boost: 1.44 })),
+    trial('kalos-liga-wikstrom', 'Liga de Kalos — Wikstrom', 'kalos-estrada-vitoria', [96.5, 9], boss('Wikstrom', 'Elite dos Quatro', 'wikstrom', [['klefki', 100], ['probopass', 100], ['scizor', 100], ['aegislash', 100]], 32000, { boost: 1.46 })),
+    trial('kalos-liga-drasna', 'Liga de Kalos — Drasna', 'kalos-estrada-vitoria', [99, 12], boss('Drasna', 'Elite dos Quatro', 'drasna', [['dragalge', 100], ['druddigon', 100], ['altaria', 100], ['noivern', 100]], 33000, { boost: 1.48 })),
+    trial('kalos-liga-campeao', 'Liga de Kalos — Campeã', 'kalos-estrada-vitoria', [95, 4], boss('Diantha', 'Campeã da Liga de Kalos', 'diantha', [['hawlucha', 100], ['tyrantrum', 100], ['aurorus', 100], ['gourgeist', 100], ['goodra', 100], ['gardevoir', 100]], 40000, { champion: true, boost: 1.55 })),
+  ],
+};
+
+export const REGIONS = [kanto, johto, hoenn, sinnoh, unova, kalos];
 
 // ---------------------------------------------------------------------------------
 // Pokémon errantes: aparecem por tempo limitado numa rota aleatória já liberada.
@@ -919,6 +1125,7 @@ export const ROAMERS = [
   { species: 'thundurus', requires: 'unova-liga-campeao', bonusLevel: 10 },
   { species: 'landorus', requires: 'unova-liga-campeao', bonusLevel: 10 },
   { species: 'mewtwo', requires: 'unova-liga-campeao', bonusLevel: 12 },
+  { species: 'zygarde', requires: 'kalos-anistar', bonusLevel: 0 },
 ];
 
 // ---------------------------------------------------------------------------------
@@ -934,6 +1141,8 @@ export const FOSSILS = [
   { item: 'armor-fossil', species: 'shieldon', hours: 4 },
   { item: 'cover-fossil', species: 'tirtouga', hours: 5 },
   { item: 'plume-fossil', species: 'archen', hours: 5 },
+  { item: 'jaw-fossil', species: 'tyrunt', hours: 6 },
+  { item: 'sail-fossil', species: 'amaura', hours: 6 },
 ];
 
 // ---------------------------------------------------------------------------------
@@ -947,6 +1156,7 @@ export const TM_POOL = [
   'shadow-claw', 'drain-punch', 'waterfall', 'hyper-voice', 'charge-beam', 'seed-bomb', 'retaliate',
   'struggle-bug', 'volt-switch', 'acrobatics', 'frost-breath', 'dragon-tail', 'psyshock', 'facade',
   'poison-jab', 'u-turn', 'wild-charge', 'scald', 'flame-charge', 'heat-wave',
+  'dazzling-gleam', 'power-up-punch',
 ];
 
 // ---------------------------------------------------------------------------------
@@ -1121,6 +1331,23 @@ export const EXPEDITIONS = [
       { w: 20, item: 'rare-candy', qty: [1, 3] },
     ],
   },
+  {
+    id: 'cristais',
+    name: 'Minerar cristais em Kalos',
+    description: 'A Gruta Cintilante guarda fósseis e Pokémon de pedra preciosa.',
+    requires: 'gruta-cintilante',
+    types: ['rock', 'fairy', 'steel'],
+    rewards: [
+      { w: 12, item: 'jaw-fossil', qty: [1, 1] },
+      { w: 12, item: 'sail-fossil', qty: [1, 1] },
+      { w: 10, species: 'carbink', level: [95, 100] },
+      { w: 8, species: 'goomy', level: [95, 100] },
+      { w: 10, tm: true },
+      { w: 24, coins: [3000, 5000] },
+      { w: 14, item: 'rare-candy', qty: [2, 3] },
+      { w: 10, item: 'shiny-stone', qty: [1, 1] },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------------
@@ -1173,4 +1400,10 @@ export const EXTRA_SPECIES = [
   'keldeo',
   'meloetta',
   'genesect',
+  'xerneas',
+  'yveltal',
+  'zygarde',
+  'diancie',
+  'hoopa',
+  'volcanion',
 ];

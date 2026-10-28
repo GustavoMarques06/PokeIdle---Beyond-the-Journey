@@ -30,6 +30,7 @@ import type { MerchantState } from './market';
 import type { CompanionState } from './companion';
 import type { DexResearchEntry } from './dexresearch';
 import type { MvpState } from './records';
+import type { NuzlockeState } from './nuzlocke';
 import type { SafariState } from './safari';
 import type { TournamentState } from './tournament';
 import type { GardenPlot } from './garden';
@@ -70,6 +71,8 @@ export interface Settings {
   illustratedScenes: boolean;
   /** Avisos do sistema operacional quando algo acontece com o jogo em segundo plano. */
   notifications: boolean;
+  /** Categorias de aviso desligadas (ver NOTIFY_CATEGORIES em ui/notify.ts). */
+  notifyOff: string[];
   /** Troca automática para a reserva com vantagem contra cada inimigo. */
   autoSwitch: boolean;
   /** Velocidade das animações e do texto da batalha (1 = normal). */
@@ -162,6 +165,8 @@ export interface BattleState {
   raidMs?: number;
   /** Revanche contra um chefe já vencido (sem insígnia, TM nem desbloqueios). */
   rematch?: boolean;
+  /** Subida da Torre semanal (regra e andares da semana). */
+  weekly?: boolean;
 }
 
 export interface HallOfFameEntry {
@@ -262,6 +267,10 @@ export interface GameState {
   forms: Record<number, string[]>;
   /** Vitórias da semana por Pokémon (MVP da semana). */
   mvp: MvpState;
+  /** Regras do desafio Nuzlocke na jornada atual (áreas já usadas e quem caiu). */
+  nuzlocke?: NuzlockeState;
+  /** Nomes das etiquetas da Caixa que o jogador mudou (ver boxes.ts). */
+  tagNames?: Partial<Record<NonNullable<PokemonInstance['tag']>, string>>;
 }
 
 export type EncounterMode = 'land' | WaterMode;
@@ -303,6 +312,7 @@ export const DEFAULT_SETTINGS: Settings = {
   music: false,
   illustratedScenes: true,
   notifications: false,
+  notifyOff: [],
   autoSwitch: true,
   animSpeed: 1,
   highContrast: false,
@@ -434,7 +444,9 @@ export type GameEvent =
   | { type: 'tournamentEnded'; place: TournamentPlace }
   | { type: 'missionDone'; id: string }
   | { type: 'missionsRefreshed'; scope: 'daily' | 'weekly' }
-  | { type: 'weatherChanged'; weather: string };
+  | { type: 'weatherChanged'; weather: string }
+  /** O desafio da jornada falhou (Nuzlocke sem ninguém para lutar). */
+  | { type: 'challengeFailed'; challenge: ChallengeId };
 
 // ---------------------------------------------------------------------------
 // Criação e consultas
@@ -513,6 +525,7 @@ export function newGame(
     dexResearch: {},
     forms: {},
     mvp: { week: 0, wins: {} },
+    tagNames: {},
   };
   const rng = rngFrom(state);
   const starter = addToCollection(

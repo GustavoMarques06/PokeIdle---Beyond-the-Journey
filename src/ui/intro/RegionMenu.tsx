@@ -4,7 +4,7 @@
 import { STARTER_GENERATIONS, getSpecies } from '../../game-data';
 import { PokemonSprite, Window } from '../components/common';
 
-const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
 export function RegionMenu({
   generation,

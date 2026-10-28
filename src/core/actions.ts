@@ -18,8 +18,9 @@ import { evolve, itemEvolution, setLevel } from './progression';
 import { raidTeam } from './raids';
 import { canRematch } from './rematch';
 import { rngFrom } from './rng';
+import { isFallen } from './nuzlocke';
 import { healTeam } from './team';
-import { endTowerRun, towerUnlocked } from './tower';
+import { endTowerRun, syncWeekly, towerUnlocked, weeklyBlocker, weeklyRule } from './tower';
 import { tournamentLost } from './tournament';
 import {
   type BattleKind,
@@ -129,6 +130,17 @@ export function challengeTower(state: GameState): boolean {
   return true;
 }
 
+/** Sobe a Torre semanal: equipe do tipo da semana, andares iguais para todos. */
+export function challengeWeeklyTower(state: GameState, now: number): boolean {
+  if (weeklyBlocker(state, now)) return false;
+  syncWeekly(state, now);
+  healTeam(state);
+  const start = weeklyRule(now).mod.startFloor ?? 1;
+  state.tower.floor = start;
+  state.battle = towerBattle(state, state.currentRouteId, start, now);
+  return true;
+}
+
 export function setTrainerName(state: GameState, name: string): void {
   const clean = name.trim().slice(0, 12);
   if (clean) state.trainerName = clean;
@@ -170,6 +182,7 @@ export function challengeLegendary(state: GameState, speciesId: number, now: num
 
 export function setActive(state: GameState, uid: number): void {
   if (!state.collection.some((p) => p.uid === uid) || uid === state.activeUid) return;
+  if (isFallen(state, uid)) return;
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return;
   if (state.training.slots.some((s) => s.uid === uid)) return;
   // Se o novo ativo estava numa vaga passiva ou de reserva, o antigo ativo assume a vaga.

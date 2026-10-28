@@ -459,8 +459,8 @@
 
   .region-head {
     grid-template-columns: 40px minmax(0, 1fr) auto;
-    padding: 6px 8px;
-    font-size: 24px;
+    padding: 2px 8px;
+    font-size: 22px;
   }
 
   .region-numeral {
@@ -469,10 +469,11 @@
     font-size: 15px;
   }
 
+  /* Seis regiões: ícones um pouco menores para sobrar espaço para a ficha do inicial. */
   .region-icons .sprite {
-    width: 80px;
-    height: 60px;
-    margin: 0 -14px;
+    width: 60px;
+    height: 45px;
+    margin: 0 -10px;
   }
 
   .starter-pick {

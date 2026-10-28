@@ -2004,3 +2004,71 @@ html.reduced-motion .scene-toast {
 .dex-form small {
   font: 700 8px var(--font-label);
 }
+
+/* --- Torre semanal ---------------------------------------------------------------------- */
+.weekly-rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.weekly-rule strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13px var(--font-label);
+}
+
+.weekly-rule small {
+  display: block;
+}
+
+.weekly-milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.weekly-milestones li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 2px solid var(--ink-soft);
+  background: var(--paper);
+  font: 700 10px var(--font-label);
+}
+
+.weekly-milestones li.done {
+  border-color: var(--gold-dark);
+  background: var(--gold);
+}
+
+/* --- Onboarding: atividades novas e dica da primeira visita -------------------------------- */
+.new-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  padding: 0 3px;
+  border: 1px solid var(--ink);
+  background: var(--red);
+  color: #fff;
+  font: 700 8px var(--font-label);
+  animation: blink-soft 1s steps(2, end) infinite;
+}
+
+.activity-tip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.activity-tip p {
+  flex: 1 1 260px;
+  margin: 0;
+}

@@ -46,6 +46,10 @@ export interface PokemonInstance {
   form?: string;
   /** Histórico de batalha deste Pokémon (ver records.ts). */
   record?: BattleRecord;
+  /** Favorito: não pode ser transferido (nem pela limpeza de duplicatas). */
+  favorite?: boolean;
+  /** Etiqueta da Caixa (ver boxes.ts). */
+  tag?: 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'gray';
 }
 
 /** Feitos de um Pokémon como ativo. */

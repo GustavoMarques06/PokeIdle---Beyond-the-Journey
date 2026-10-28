@@ -1,6 +1,6 @@
 // TREINADOR: cartão de treinador (com moldura e vitrine de medalhas), medalhas, opções e salvamento.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ACHIEVEMENTS,
   CARD_FRAMES,
@@ -22,16 +22,21 @@ import {
   toggleShowcase,
   trainerLevel,
 } from '../../core/meta';
-import { exportSave, importSave } from '../../core/save';
+import {
+  decodeTransferCode,
+  encodeTransferCode,
+  TRANSFER_EXTENSION,
+  transferFileName,
+} from '../../core/transfer';
 import { Bar, ItemIcon, Money, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { Badges } from '../components/Hud';
 import { StatsPanel } from '../components/StatsPanel';
 import { HOTKEY_HELP } from '../hotkeys';
-import { requestNotificationPermission } from '../notify';
+import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
-type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed'>;
+type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff'>;
 
 const TOGGLES: { key: Toggle; label: string; requires?: string }[] = [
   { key: 'autoEvolve', label: T.settings.autoEvolve },
@@ -75,8 +80,6 @@ function formatBytes(n: number): string {
 export function TrainerScreen({ state }: { state: GameState }) {
   const engine = useEngine();
   const [name, setName] = useState(state.trainerName);
-  const [exported, setExported] = useState('');
-  const [importText, setImportText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const trainer = trainerLevel(state);
   const caught = SPECIES.filter((s) => state.pokedex[s.id]?.caught).length;
@@ -91,26 +94,6 @@ export function TrainerScreen({ state }: { state: GameState }) {
   const companion = state.companion
     ? state.collection.find((p) => p.uid === state.companion!.uid)
     : undefined;
-
-  const onExport = async () => {
-    const text = exportSave(state, Date.now());
-    setExported(text);
-    try {
-      await navigator.clipboard.writeText(text);
-      setMessage(T.settings.copied);
-    } catch {
-      setMessage(null);
-    }
-  };
-
-  const onImport = () => {
-    const result = importSave(importText);
-    if (result.ok) {
-      engine.replaceState(result.file.state);
-      setImportText('');
-      setMessage(T.settings.importOk);
-    } else setMessage(`Erro: ${result.error}`);
-  };
 
   return (
     <div className="trainer-screen">
@@ -378,6 +361,26 @@ export function TrainerScreen({ state }: { state: GameState }) {
               </button>
             </label>
           ))}
+          {state.settings.notifications && (
+            <fieldset className="notify-categories">
+              <legend>Avisar sobre</legend>
+              {NOTIFY_CATEGORIES.map((c) => (
+                <label key={c.id} className="box-check">
+                  <input
+                    type="checkbox"
+                    checked={!state.settings.notifyOff.includes(c.id)}
+                    onChange={(e) =>
+                      engine.dispatch((s) => {
+                        const off = s.settings.notifyOff.filter((id) => id !== c.id);
+                        s.settings.notifyOff = e.target.checked ? off : [...off, c.id];
+                      })
+                    }
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </fieldset>
+          )}
           <label className="option-row">
             <span>Velocidade das animações</span>
             <select
@@ -410,6 +413,11 @@ export function TrainerScreen({ state }: { state: GameState }) {
             />
           </label>
         </div>
+        {message && (
+          <p className="hint" role="status">
+            {message}
+          </p>
+        )}
       </Window>
 
       <Window title="ATALHOS DE TECLADO" icon={<ItemIcon id="teachy-tv" size={24} />}>
@@ -425,36 +433,123 @@ export function TrainerScreen({ state }: { state: GameState }) {
         </dl>
       </Window>
 
-      <Window title="SALVAR" icon={<ItemIcon id="fame-checker" size={24} />}>
-        <div className="save-tools">
-          <p className="hint">
-            O jogo salva sozinho a cada 15 s e após eventos importantes
-            {engine.saveBytes > 0 && ` · tamanho do save: ${formatBytes(engine.saveBytes)}`}.
-          </p>
-          <button className="pbtn small" onClick={onExport}>
+      <SaveTools state={state} />
+    </div>
+  );
+}
+
+/** Salvar: código de transferência (copiar/colar), arquivo .pkidle e recomeçar. */
+function SaveTools({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const [code, setCode] = useState('');
+  const [importText, setImportText] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const generate = async () => {
+    const { code, rawBytes } = await encodeTransferCode(state, Date.now());
+    setCode(code);
+    const size = `${formatBytes(code.length)} (o save tem ${formatBytes(rawBytes)})`;
+    try {
+      await navigator.clipboard.writeText(code);
+      setMessage(`${T.settings.copied} ${size}`);
+    } catch {
+      setMessage(`Código gerado: ${size}. Copie o texto abaixo.`);
+    }
+    return code;
+  };
+
+  const download = async () => {
+    const text = code || (await generate());
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = transferFileName(state, Date.now());
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const load = async (text: string) => {
+    const result = await decodeTransferCode(text);
+    if (!result.ok) return setMessage(`Erro: ${result.error}`);
+    const incoming = result.file.state;
+    const summary = `${incoming.trainerName}: ${incoming.collection.length} Pokémon, salvo em ${new Date(result.file.meta.savedAt).toLocaleString('pt-BR')}`;
+    if (
+      !window.confirm(`Carregar o jogo de ${summary}?
+
+O jogo atual neste aparelho será substituído.`)
+    )
+      return;
+    engine.replaceState(incoming);
+    setImportText('');
+    setMessage(T.settings.importOk);
+  };
+
+  return (
+    <Window title="SALVAR E TRANSFERIR" icon={<ItemIcon id="fame-checker" size={24} />}>
+      <div className="save-tools">
+        <p className="hint">
+          O jogo salva sozinho a cada 15 s e após eventos importantes
+          {engine.saveBytes > 0 && ` · tamanho do save: ${formatBytes(engine.saveBytes)}`}. Para jogar em
+          outro navegador ou computador, gere o código de transferência (ou baixe o arquivo) e carregue-o lá.
+        </p>
+        <div className="save-row">
+          <button className="pbtn small" onClick={() => void generate()}>
             {T.settings.export}
           </button>
-          {exported && <textarea readOnly value={exported} rows={3} onFocus={(e) => e.target.select()} />}
-          <textarea
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            rows={3}
-            placeholder={T.settings.importPlaceholder}
-          />
-          <button className="pbtn small" disabled={!importText.trim()} onClick={onImport}>
-            {T.settings.import}
-          </button>
-          {message && <p className="hint">{message}</p>}
-          <button
-            className="pbtn small danger"
-            onClick={() => {
-              if (window.confirm(T.settings.resetConfirm)) engine.resetSave();
-            }}
-          >
-            {T.settings.reset}
+          <button className="pbtn small" onClick={() => void download()}>
+            Baixar arquivo {TRANSFER_EXTENSION}
           </button>
         </div>
-      </Window>
-    </div>
+        {code && (
+          <textarea
+            readOnly
+            value={code}
+            rows={3}
+            aria-label="Código de transferência"
+            onFocus={(e) => e.target.select()}
+          />
+        )}
+        <textarea
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+          rows={3}
+          aria-label="Código para carregar"
+          placeholder={T.settings.importPlaceholder}
+        />
+        <div className="save-row">
+          <button className="pbtn small" disabled={!importText.trim()} onClick={() => void load(importText)}>
+            {T.settings.import}
+          </button>
+          <button className="pbtn small" onClick={() => fileInput.current?.click()}>
+            Abrir arquivo…
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept={`${TRANSFER_EXTENSION},.txt,.json`}
+            hidden
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) await load(await file.text());
+            }}
+          />
+        </div>
+        {message && (
+          <p className="hint" role="status">
+            {message}
+          </p>
+        )}
+        <button
+          className="pbtn small danger"
+          onClick={() => {
+            if (window.confirm(T.settings.resetConfirm)) engine.resetSave();
+          }}
+        >
+          {T.settings.reset}
+        </button>
+      </div>
+    </Window>
   );
 }

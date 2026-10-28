@@ -4,6 +4,7 @@
 import { BALANCE, RESERVE_SLOTS } from '../game-data';
 import { combatScales, type Modifiers } from './bonuses';
 import { busyUids, findPokemon, routeDone } from './collection';
+import { isFallen } from './nuzlocke';
 import { combatantOf, estimateDuel } from './combat';
 import { statsOf, type PokemonInstance } from './pokemon';
 import type { EnemyState, GameEvent, GameState } from './state';
@@ -22,7 +23,7 @@ export function reservePokemon(state: GameState): PokemonInstance[] {
 }
 
 export function addReserve(state: GameState, uid: number): boolean {
-  if (!findPokemon(state, uid) || busyUids(state).has(uid)) return false;
+  if (!findPokemon(state, uid) || busyUids(state).has(uid) || isFallen(state, uid)) return false;
   if (reservePokemon(state).length >= reserveSlotsUnlocked(state)) return false;
   state.battleTeam = [...reservePokemon(state).map((p) => p.uid), uid];
   return true;

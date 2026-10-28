@@ -1333,3 +1333,9 @@
   color: #c890e0;
   font-size: calc(var(--u) * 5.5);
 }
+
+.deck-note {
+  margin: 0 0 4px;
+  font: 700 10px var(--font-label);
+  color: var(--red);
+}

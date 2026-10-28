@@ -1,0 +1,142 @@
+/* Celulares e janelas estreitas: uma coluna só (HUD, batalha, ficha e tela aberta) e o menu
+   fixo embaixo, como uma barra de abas que rola para o lado. */
+@media (max-width: 900px) {
+  .game {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: auto;
+    min-height: 100vh;
+    padding: 6px 6px calc(76px + env(safe-area-inset-bottom));
+    --gap: 6px;
+    gap: 6px;
+  }
+
+  .hud {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .hud-plate {
+    min-height: 40px;
+  }
+
+  .hud-route {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .hud-journey {
+    display: none;
+  }
+
+  .badges {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .battle-column {
+    --scene-w: 100%;
+  }
+
+  .battle-ui {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .dialog {
+    min-height: 88px;
+  }
+
+  .dialog-text {
+    font-size: 15px;
+  }
+
+  .side-column {
+    min-height: auto;
+  }
+
+  .screen-area {
+    flex: none;
+    overflow: visible;
+  }
+
+  .game-menu {
+    position: fixed;
+    z-index: 60;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    scrollbar-width: none;
+  }
+
+  .game-menu .menu-item {
+    flex: 1 0 68px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-height: 60px;
+    padding: 3px 2px;
+    font-size: 9px;
+  }
+
+  .menu-item.active::before,
+  .menu-item:hover::before {
+    display: none;
+  }
+
+  .game-menu .menu-item.active {
+    box-shadow: inset 0 -4px 0 var(--red);
+  }
+
+  .toasts {
+    left: 8px;
+    right: 8px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+}
+
+/* Telas de celular em pé: textos e grades um pouco mais compactos. */
+@media (max-width: 520px) {
+  .active-card {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .summary-top {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .summary-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pc-box {
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  }
+}
+
+/* Toque: alvos de pelo menos ~40 px (a recomendação é 44 px; os botões pequenos ficam perto). */
+@media (pointer: coarse) {
+  .pbtn.small {
+    min-height: 40px;
+    padding: 0 10px;
+  }
+
+  .pc-cell {
+    min-height: 52px;
+  }
+
+  button.tag-dot {
+    width: 30px;
+    height: 30px;
+  }
+
+  .box-check input {
+    width: 22px;
+    height: 22px;
+  }
+}

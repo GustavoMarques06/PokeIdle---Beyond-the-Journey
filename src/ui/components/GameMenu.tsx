@@ -7,6 +7,7 @@ import type { GameState } from '../../core/game';
 import { plotReady } from '../../core/garden';
 import { claimableMissions } from '../../core/missions';
 import type { ScreenId } from '../battle/BattleDialog';
+import { unseenTabs } from '../screens/activities/tabs';
 import { ItemIcon, PixelIcon } from './common';
 
 export const MENU_ITEMS: { id: ScreenId; label: string; icon: ReactNode }[] = [
@@ -28,27 +29,29 @@ export function GameMenu({
 }: {
   state: GameState;
   current: ScreenId;
-  onSelect: (id: ScreenId) => void;
+  onSelect: (id: ScreenId, viaKeyboard?: boolean) => void;
 }) {
   const now = state.lastTimerAt;
   const alerts: Partial<Record<ScreenId, boolean>> = {
     party: state.collection.some((p) => p.pendingEvolution),
     dex: claimableMilestones(state) > 0,
     activities:
+      unseenTabs(state).length > 0 ||
       state.garden.some((p) => plotReady(p, now)) ||
       state.expeditions.some((r) => expeditionDone(r, now)) ||
       state.fossils.some((f) => now >= f.readyAt),
     missions: claimableMissions(state) > 0,
   };
   return (
-    <nav className="game-menu frame frame-menu" aria-label="Menu">
+    <nav className="game-menu frame frame-menu" aria-label="Menu" id="game-menu">
       {MENU_ITEMS.map((item, i) => (
         <button
           key={item.id}
           title={`${item.label} (tecla ${i + 1})`}
           className={`menu-item ${current === item.id ? 'active' : ''}`}
           aria-current={current === item.id}
-          onClick={() => onSelect(item.id)}
+          // detail 0 = ativado pelo teclado (Enter/Espaço), não pelo mouse ou toque.
+          onClick={(e) => onSelect(item.id, e.detail === 0)}
         >
           {item.icon}
           <span>{item.label}</span>

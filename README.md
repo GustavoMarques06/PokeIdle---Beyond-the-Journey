@@ -4,16 +4,18 @@ RPG idle de coleção de Pokémon em pixel art, no estilo dos portáteis da Game
 A batalha roda sozinha, inclusive com o jogo fechado; você decide a equipe, a rota, quando desafiar os
 líderes e como gastar o que ganhou.
 
-Feito com React, TypeScript e Vite. Roda no navegador ou como aplicativo para Windows (Tauri 2). Não há
-servidor: o save fica no seu computador.
+Feito com React, TypeScript e Vite. Roda no navegador (inclusive no celular, e pode ser instalado como app),
+ou como aplicativo para Windows (Tauri 2). Não há servidor: o save fica no seu aparelho, e um código de
+transferência leva o jogo de um aparelho para outro.
 
 ![Batalha](screenshots/batalha.png)
 
 ## Sobre o jogo
 
-- **5 regiões** (Kanto, Johto, Hoenn, Sinnoh e Unova), **80 áreas**, **40 ginásios**, Elite Four e Campeão
-  em cada uma.
-- **589 espécies** das Gerações I a V, todas com sprites animados de Black/White (frente, costas e shiny).
+- **6 regiões** (Kanto, Johto, Hoenn, Sinnoh, Unova e Kalos), **96 áreas**, **48 ginásios**, Elite Four e
+  Campeão em cada uma. Kalos é o pós-jogo: tudo no nível 100, com selvagens e líderes reforçados.
+- **668 espécies** das Gerações I a VI, com sprites no estilo Black/White (frente, costas e shiny): animados
+  até a Geração V e na maior parte da VI; o resto da VI usa os sprites estáticos do mesmo estilo.
 - **Batalha automática** em tempo real, com tipos, habilidades, itens segurados, status, clima e dia/noite.
 - **Progresso offline**: ao voltar, um relatório mostra o que a equipe fez enquanto você estava fora.
 - **Muito para fazer em paralelo**: creche, expedições, jardim, raides, torneio semanal, Safari, Torre de
@@ -53,17 +55,17 @@ servidor: o save fica no seu computador.
 - Evolução por nível, pedras e outros itens, amizade e condição (Tyrogue, Wurmple).
 - Formas colecionáveis: as 28 letras do Unown, Deerling/Sawsbuck nas quatro estações, Castform pelo clima e
   os padrões de manchas do Spinda.
-- 53 lendários e quase lendários, enfrentados numa batalha manual depois de vencer o Campeão da região.
+- 60 lendários e quase lendários, enfrentados numa batalha manual depois de vencer o Campeão da região.
 - Pesca (Old, Good e Super Rod) e Surf em 21 áreas com água, com espécies que não aparecem na grama.
 - Jogo do Safari com espécies exclusivas: Chansey, Scyther, Pinsir, Tauros, Heracross, Dratini...
 
 ### Atividades
 
-| Grupo    | Atividades                                                                      |
-| -------- | ------------------------------------------------------------------------------- |
-| Criação  | Creche e ovos, jardim de berries, laboratório de fósseis, Campo de Treino (EVs) |
-| Desafios | Raides com chefes gigantes, lendários, Torre de Batalha, torneio semanal        |
-| Explorar | Expedições de 1, 4 ou 8 horas, Safari, caça ao shiny, Game Corner               |
+| Grupo    | Atividades                                                                       |
+| -------- | -------------------------------------------------------------------------------- |
+| Criação  | Creche e ovos, jardim de berries, laboratório de fósseis, Campo de Treino (EVs)  |
+| Desafios | Raides com chefes gigantes, lendários, Torre de Batalha e Torre semanal, torneio |
+| Explorar | Expedições de 1, 4 ou 8 horas, Safari, caça ao shiny, Game Corner                |
 
 Também há errantes, a Equipe Rocket, revanches contra líderes, árvores de berry nas rotas, missões diárias e
 semanais, e um Pokémon acompanhante que ganha amizade com o tempo e às vezes acha itens.
@@ -72,16 +74,28 @@ semanais, e um Pokémon acompanhante que ganha amizade com o tempo e às vezes a
 
 - Equipe de apoio: Pokémon que não lutam, mas dão bônus pelo tipo (dano, EXP, moedas, captura...).
 - Laboratório: duplicatas e espécies novas viram pontos de pesquisa para bônus permanentes.
-- Maestria por linha evolutiva, prestígio (nova jornada com pontos para melhorias) e desafios opcionais.
-- 46 medalhas em bronze, prata, ouro e platina, com vitrine e molduras para o cartão de treinador.
+- Maestria por linha evolutiva, prestígio (nova jornada com pontos para melhorias) e desafios opcionais:
+  Lobo solitário, Mochila vazia, Natureza feroz e Nuzlocke (só a primeira captura de cada área vale, e quem
+  desmaia contra treinadores fica fora da jornada).
+- Torre semanal: toda segunda-feira, um tipo obrigatório para a equipe e um modificador (Feroz, Sem descanso,
+  Direto ao topo…). Os andares saem de uma semente da semana, então são iguais para todos e dá para comparar.
+- Caixa com busca, filtros (tipo, etiqueta, shiny, perfeitos, repetidos), favoritos protegidos de
+  transferência, seis etiquetas com nome editável e seleção múltipla para etiquetar ou transferir em lote.
+- 47 medalhas em bronze, prata, ouro e platina, com vitrine e molduras para o cartão de treinador.
 - Economia com Poké Mart, Loja de Departamentos de Celadon, venda de itens e mercador viajante. A loja mostra
   quanto tempo de jogo cada preço representa no seu ritmo atual.
 
 ### Qualidade de vida
 
-- Relatório offline, notificações do sistema com o jogo em segundo plano e atalhos de teclado.
+- Relatório offline e atalhos de teclado.
+- Notificações do sistema com o jogo em segundo plano, por categoria (creche, expedições, visitantes,
+  progresso, shiny), agrupando avisos repetidos.
+- Layout de uma coluna para celular, com o menu como barra de abas, e PWA instalável que abre sem internet.
+- Cada atividade aparece como NOVA quando é liberada e mostra uma dica na primeira visita.
 - Histórico de cada Pokémon e MVP da semana; fotos da batalha em PNG com legenda.
-- Opções de acessibilidade: contraste alto, texto maior, velocidade das animações e "Reduzir animações".
+- Opções de acessibilidade: contraste alto, texto maior, velocidade das animações e "Reduzir animações"
+  (ligado de início se o sistema pede menos movimento), links para pular ao menu e à tela aberta, e alvos de
+  toque maiores em telas sensíveis ao toque.
 
 ## Controles
 
@@ -170,12 +184,17 @@ art/           artes de origem (não vão para o jogo sem passar pelos scripts)
 
 ## Save
 
-- **Navegador:** `localStorage`.
+- **Navegador:** `localStorage` (como PWA, o mesmo armazenamento).
 - **Desktop:** arquivos JSON em `%APPDATA%\com.pokeidle.beyondthejourney\saves\`, gravados de forma atômica,
   com um backup por dia (os 7 mais recentes).
 
 O save é versionado e saves antigos são migrados automaticamente. O save anterior fica como backup e é
-restaurado se o principal estiver corrompido. Exportar e importar ficam em Treinador > Salvar.
+restaurado se o principal estiver corrompido.
+
+Para levar o jogo a outro navegador ou computador, use Treinador > Salvar e transferir: o código de
+transferência (`PKI1.…`) é o save comprimido com gzip e um checksum que recusa códigos cortados ou
+alterados. Também dá para baixar e abrir o mesmo código como arquivo `.pkidle`. Textos exportados por versões
+anteriores continuam sendo aceitos.
 
 ## Testes e balanceamento
 

@@ -161,6 +161,8 @@ export interface Route {
   farm?: string;
   /** Zona Safari: captura facilitada. */
   safari?: boolean;
+  /** Multiplicador de atributos dos selvagens (Kalos, onde tudo já está no Nv. 100). */
+  boost?: number;
 }
 
 export interface Region {

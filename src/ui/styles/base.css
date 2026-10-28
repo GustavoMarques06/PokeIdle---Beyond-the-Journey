@@ -452,3 +452,32 @@ textarea {
 .pbar-grass .pbar-fill {
   background: linear-gradient(var(--grass-light) 0 45%, var(--grass) 45%);
 }
+
+/* --- Acessibilidade: links para pular direto ao menu e à tela aberta ------------------- */
+.skip-links {
+  position: absolute;
+}
+
+.skip-links a {
+  position: fixed;
+  z-index: 200;
+  top: 8px;
+  left: -9999px;
+  padding: 6px 10px;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 13px var(--font-label);
+}
+
+.skip-links a:focus {
+  left: 8px;
+}
+
+.screen-area:focus {
+  outline: none;
+}
+
+.screen-area:focus-visible {
+  outline: 3px solid var(--gold);
+}

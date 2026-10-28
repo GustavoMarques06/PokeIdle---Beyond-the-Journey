@@ -1,7 +1,9 @@
 // Salvamento local versionado, com backup e migrações explícitas.
 
 import { ROUTES, hasSpecies, isHeldItem, lineRoot } from '../game-data';
+import { isTagId } from './boxes';
 import { emptyDaycare } from './daycare';
+import { emptyNuzlocke } from './nuzlocke';
 import { environmentAt } from './env';
 import { DEFAULT_SETTINGS, EMPTY_STATS, freshBattle, type GameState } from './game';
 import { emptyHunt } from './hunt';
@@ -16,7 +18,7 @@ import { emptyTournament } from './tournament';
 import { emptyTraining } from './training';
 
 export const SAVE_FORMAT_VERSION = 6;
-export const GAME_VERSION = '0.6.0';
+export const GAME_VERSION = '0.7.0';
 export const SAVE_KEY = 'pokeidle.save';
 export const BACKUP_KEY = 'pokeidle.save.backup';
 
@@ -212,6 +214,15 @@ function normalize(state: GameState): void {
   for (const [i, r] of ROUTES.entries()) {
     state.routes[r.id] ??= { unlocked: i === 0, kills: 0, bossDefeated: false };
   }
+  // Região nova no fim do mundo (Kalos): quem já venceu o último Campeão segue em frente.
+  for (let i = 1; i < ROUTES.length; i++) {
+    const prev = ROUTES[i - 1];
+    const prevProg = state.routes[prev.id];
+    const done = prev.boss
+      ? prevProg.bossDefeated
+      : prevProg.unlocked && prevProg.kills >= prev.killsRequired;
+    if (done && prev.boss?.champion) state.routes[ROUTES[i].id].unlocked = true;
+  }
   if (!state.routes[state.currentRouteId]?.unlocked) state.currentRouteId = ROUTES[0].id;
   if (!state.collection.some((p) => p.uid === state.activeUid)) state.activeUid = state.collection[0].uid;
   state.trainerName ??= 'Treinador';
@@ -277,6 +288,9 @@ function normalize(state: GameState): void {
   state.forms ??= {};
   for (const p of state.collection) if (p.form) recordForm(state, p.speciesId, p.form);
   state.mvp ??= { week: 0, wins: {} };
+  state.tagNames ??= {};
+  if (state.challenge === 'nuzlocke') state.nuzlocke ??= emptyNuzlocke();
+  for (const p of state.collection) if (p.tag && !isTagId(p.tag)) delete p.tag;
   for (const p of state.collection) {
     if (p.held && !isHeldItem(p.held)) delete p.held;
   }

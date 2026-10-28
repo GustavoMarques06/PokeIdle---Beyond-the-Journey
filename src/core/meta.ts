@@ -19,6 +19,7 @@ import {
 } from '../game-data';
 import { masteryLevel, passivePokemon, passiveSlotsUnlocked, prestigeLevel, researchLevel } from './bonuses';
 import { busyUids } from './collection';
+import { emptyNuzlocke } from './nuzlocke';
 import { freshBattle, type GameEvent, type GameState } from './game';
 import { potential, statsOf, type PokemonInstance } from './pokemon';
 import { expForLevel } from './stats';
@@ -54,9 +55,8 @@ export function transferValue(p: PokemonInstance): number {
 /** Só duplicatas podem ser transferidas, e nunca o ativo ou um passivo. */
 export function canTransfer(state: GameState, uid: number): boolean {
   const p = state.collection.find((x) => x.uid === uid);
-  if (!p || uid === state.activeUid || state.passives.includes(uid) || state.battleTeam.includes(uid)) {
-    return false;
-  }
+  if (!p || p.favorite || uid === state.activeUid || state.passives.includes(uid)) return false;
+  if (state.battleTeam.includes(uid)) return false;
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return false;
   if (state.training.slots.some((s) => s.uid === uid)) return false;
   return state.collection.some((x) => x.uid !== uid && x.speciesId === p.speciesId);
@@ -96,7 +96,7 @@ export function surplusDuplicates(state: GameState): PokemonInstance[] {
         b.level - a.level ||
         potential(b.ivs) - potential(a.ivs),
     );
-    out.push(...ranked.slice(1).filter((p) => !protectedUids.has(p.uid) && !p.shiny));
+    out.push(...ranked.slice(1).filter((p) => !protectedUids.has(p.uid) && !p.shiny && !p.favorite));
   }
   return out;
 }
@@ -162,6 +162,7 @@ export function prestigeReset(state: GameState, challenge: ChallengeId | null = 
     state.challengesWon.push(state.challenge);
   }
   state.challenge = challenge;
+  state.nuzlocke = emptyNuzlocke();
 
   state.routes = Object.fromEntries(
     ROUTES.map((r, i) => [r.id, { unlocked: i === 0, kills: 0, bossDefeated: false }]),
@@ -207,6 +208,7 @@ export function buyPrestige(state: GameState, id: string): boolean {
 /** Desiste do desafio da jornada atual (as regras normais voltam; o bônus se perde). */
 export function abandonChallenge(state: GameState): void {
   state.challenge = null;
+  state.nuzlocke = emptyNuzlocke();
 }
 
 // --- Conquistas --------------------------------------------------------------------

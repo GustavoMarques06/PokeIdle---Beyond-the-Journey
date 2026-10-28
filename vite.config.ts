@@ -6,9 +6,9 @@ export default defineConfig({
   // Caminhos relativos para funcionar empacotado (ex.: Tauri) sem servidor.
   base: './',
   build: {
-    // O maior arquivo é o de dados (espécies, golpes, mundo: ~730 kB, ~95 kB com gzip),
+    // O maior arquivo é o de dados (espécies, golpes, mundo: ~875 kB, ~120 kB com gzip),
     // que é só conteúdo e fica em cache; o código do jogo fica bem abaixo disso.
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 950,
     rolldownOptions: {
       output: {
         // React e os dados gerados mudam pouco: ficam em arquivos próprios, que o

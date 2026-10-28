@@ -322,6 +322,33 @@ export const WATER_SPOTS: Record<string, WaterSpot> = {
       ['swanna', 20],
     ],
   },
+  // --- Kalos ---
+  'kalos-coumarine': {
+    fish: [
+      ['magikarp', 50, 'old-rod'],
+      ['clauncher', 30, 'good-rod'],
+      ['skrelp', 30, 'good-rod'],
+      ['gyarados', 10, 'super-rod'],
+      ['clawitzer', 5, 'super-rod'],
+    ],
+    surf: [
+      ['tentacool', 40],
+      ['wingull', 30],
+      ['pelipper', 15],
+      ['lapras', 3],
+    ],
+  },
+  'kalos-laverre': {
+    fish: [
+      ['magikarp', 50, 'old-rod'],
+      ['poliwag', 30, 'good-rod'],
+      ['quagsire', 20, 'super-rod'],
+    ],
+    surf: [
+      ['quagsire', 40],
+      ['goomy', 10],
+    ],
+  },
 };
 
 /** Nome e imagem das varas e da HM (as varas e o Surf são melhorias do Poké Mart). */

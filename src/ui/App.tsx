@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { GameEvent, GameState } from '../core/game';
 import { audio } from './audio';
 import { BattleDialog, type ScreenId } from './battle/BattleDialog';
@@ -11,6 +11,7 @@ import { StarterSelect } from './intro/StarterSelect';
 import { Toasts } from './components/Toasts';
 import { useHotkeys } from './hotkeys';
 import { PartyScreen } from './screens/PartyScreen';
+import { seenFlag, tipFlag, unseenTabs } from './screens/activities/tabs';
 import { useEngine, useGameEvents, useGameState } from './useGame';
 
 // A tela de equipe abre primeiro; as demais são carregadas quando o jogador as abre.
@@ -48,7 +49,9 @@ export function App() {
   if (state) audio.configure(state.settings);
   const highContrast = state?.settings.highContrast ?? false;
   const largeText = state?.settings.largeText ?? false;
-  const reducedMotion = state?.settings.reducedMotion ?? false;
+  // Sem save ainda, segue a preferência do sistema (o jogador pode mudar nas Opções).
+  const reducedMotion =
+    state?.settings.reducedMotion ?? !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   useEffect(() => {
     document.documentElement.classList.toggle('hc', highContrast);
     document.documentElement.classList.toggle('large-text', largeText);
@@ -84,20 +87,54 @@ export function App() {
 
 function GameScreen({ state }: { state: GameState }) {
   const [screen, setScreen] = useState<ScreenId>('party');
-  useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [String(i + 1), () => setScreen(item.id)])));
+  const area = useRef<HTMLDivElement>(null);
+  const open = useCallback((id: ScreenId, viaKeyboard = false) => {
+    setScreen(id);
+    // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.
+    if (window.matchMedia?.('(max-width: 900px)').matches) {
+      requestAnimationFrame(() => area.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+    // Pelo teclado, o foco vai para a tela aberta (leitores de tela anunciam o conteúdo novo).
+    if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
+  }, []);
+  useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [String(i + 1), () => open(item.id, true)])));
+  // Onboarding: quem já jogava antes desta versão não vê como NOVAS as atividades que já conhece.
+  const engine = useEngine();
+  const onboarded = state.flags.includes('onboarding');
+  useEffect(() => {
+    if (onboarded) return;
+    engine.dispatch((s) => {
+      if (s.stats.totalKills > 200) {
+        for (const tab of unseenTabs(s)) s.flags.push(seenFlag(tab), tipFlag(tab));
+      }
+      s.flags.push('onboarding');
+    });
+  }, [engine, onboarded]);
 
   return (
     <div className="game">
-      <Hud state={state} onOpenMap={() => setScreen('map')} />
+      <nav className="skip-links" aria-label="Atalhos de navegação">
+        <a href="#game-menu">Pular para o menu</a>
+        <a href="#screen-area">Pular para a tela aberta</a>
+      </nav>
+      <Hud state={state} onOpenMap={() => open('map')} />
       <main className="battle-column">
         <BattleScene state={state} />
-        <BattleDialog state={state} onOpen={setScreen} />
+        <BattleDialog state={state} onOpen={open} />
       </main>
       <aside className="side-column">
-        <ActiveCard state={state} onOpen={() => setScreen('party')} />
-        <GameMenu state={state} current={screen} onSelect={setScreen} />
+        <ActiveCard state={state} onOpen={() => open('party')} />
+        <GameMenu state={state} current={screen} onSelect={open} />
         {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
-        <div className="screen-area screen-enter" key={screen}>
+        <div
+          className="screen-area screen-enter"
+          key={screen}
+          ref={area}
+          id="screen-area"
+          tabIndex={-1}
+          role="region"
+          aria-label={MENU_ITEMS.find((m) => m.id === screen)?.label}
+        >
           <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
             {screen === 'party' && <PartyScreen state={state} />}
             {screen === 'dex' && <DexScreen state={state} />}

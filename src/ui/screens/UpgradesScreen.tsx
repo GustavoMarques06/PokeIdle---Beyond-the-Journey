@@ -151,6 +151,20 @@ export function UpgradesScreen({ state }: { state: GameState }) {
               <strong>Desafio em andamento: {current.name}.</strong> {current.description} Ao concluir a
               jornada: +{formatPercent(challengeBonus(state))} de pontos.
             </p>
+            {state.challenge === 'nuzlocke' && state.nuzlocke && (
+              <p className="hint">
+                Áreas com captura usada: {state.nuzlocke.routes.length} · fora da jornada:{' '}
+                {state.nuzlocke.fallen.length}
+                {state.nuzlocke.fallen.length > 0 && (
+                  <span className="transfer-icons">
+                    {state.nuzlocke.fallen.slice(0, 12).map((uid) => {
+                      const p = state.collection.find((x) => x.uid === uid);
+                      return p ? <PokemonSprite key={uid} speciesId={p.speciesId} kind="icon" /> : null;
+                    })}
+                  </span>
+                )}
+              </p>
+            )}
             <button
               className="pbtn small danger"
               onClick={() => {

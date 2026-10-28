@@ -103,4 +103,17 @@ describe('notificações', () => {
     expect(pickNotifications([hatched], last, 30_000)).toHaveLength(0);
     expect(pickNotifications([hatched], last, 61_000)).toHaveLength(1);
   });
+
+  it('juntam eventos iguais, respeitam categorias desligadas e avisam shiny', () => {
+    const egg = (uid: number) =>
+      ({ type: 'hatched', uid, speciesId: 1, shiny: false, isNew: false }) as const;
+    const caught = (shiny: boolean) =>
+      ({ type: 'captured', uid: 9, speciesId: 25, shiny, isNew: false }) as const;
+    const grouped = pickNotifications([egg(1), egg(2), egg(3)], new Map(), 0);
+    expect(grouped).toEqual([{ type: 'hatched', text: '3 ovos chocaram na creche.' }]);
+    expect(pickNotifications([egg(1)], new Map(), 0, ['breeding'])).toHaveLength(0);
+    expect(pickNotifications([caught(false)], new Map(), 0)).toHaveLength(0);
+    expect(pickNotifications([caught(true)], new Map(), 0)[0].text).toContain('Shiny capturado');
+    expect(pickNotifications([caught(true)], new Map(), 0, ['rare'])).toHaveLength(0);
+  });
 });

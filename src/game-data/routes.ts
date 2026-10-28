@@ -19,7 +19,7 @@ export const TM_POOL = WORLD.tmPool;
 export const EXPEDITIONS = WORLD.expeditions;
 export const PRIZES = WORLD.prizes;
 
-/** Iniciais das Gerações I–V (as que têm sprites animados), agrupados para a tela de escolha. */
+/** Iniciais das Gerações I–VI, agrupados por região para a tela de escolha. */
 export const STARTER_GENERATIONS = WORLD.starters;
 export const STARTERS = STARTER_GENERATIONS.flatMap((g) => g.ids);
 

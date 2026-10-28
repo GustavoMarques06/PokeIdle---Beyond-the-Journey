@@ -32,7 +32,23 @@ import {
   weeklyMvp,
   type GameState,
 } from '../../core/game';
+import { isFallen } from '../../core/nuzlocke';
 import { rngFrom } from '../../core/rng';
+import {
+  EMPTY_FILTER,
+  TAG_IDS,
+  filterActive,
+  filterBox,
+  renameTag,
+  setFavorite,
+  setTag,
+  tagName,
+  toggleFavorite,
+  transferMany,
+  transferPlan,
+  type BoxFilter,
+  type TagId,
+} from '../../core/boxes';
 import { addPassive, canTransfer, removePassive, transferPokemon, transferValue } from '../../core/meta';
 import { learnableMoves, setMoveset } from '../../core/moveset';
 import { evsOf, isPerfect, movesOf, potential, statsOf, type PokemonInstance } from '../../core/pokemon';
@@ -64,7 +80,7 @@ import {
 } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
-type Sort = 'level' | 'dex' | 'recent';
+type Sort = 'level' | 'dex' | 'recent' | 'potential';
 
 function PartySlot({
   p,
@@ -112,20 +128,12 @@ function PartySlot({
 
 export function PartyScreen({ state }: { state: GameState }) {
   const [selected, setSelected] = useState(state.activeUid);
-  const [sort, setSort] = useState<Sort>('level');
   const unlocked = passiveSlotsUnlocked(state);
   const contributions = passiveContributions(state);
   const reserves = reservePokemon(state);
   const reserveSlots = reserveSlotsUnlocked(state);
   const active = state.collection.find((p) => p.uid === state.activeUid)!;
   const current = state.collection.find((p) => p.uid === selected) ?? active;
-  const box = [...state.collection].sort((a, b) =>
-    sort === 'level'
-      ? b.level - a.level || a.uid - b.uid
-      : sort === 'dex'
-        ? a.speciesId - b.speciesId
-        : b.uid - a.uid,
-  );
 
   return (
     <div className="party-screen">
@@ -206,24 +214,224 @@ export function PartyScreen({ state }: { state: GameState }) {
       <TeamBonuses state={state} />
       <Summary state={state} p={current} />
 
-      <Window
-        title={`CAIXA · ${state.collection.length} POKéMON`}
-        icon={<ItemIcon id="pokemon-box" size={24} />}
-        actions={
-          <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Ordenar">
-            <option value="level">Nível</option>
-            <option value="dex">Nº Pokédex</option>
-            <option value="recent">Recentes</option>
-          </select>
-        }
-      >
-        <ul className="pc-box">
-          {box.map((p) => (
+      <BoxWindow state={state} selected={selected} onSelect={setSelected} />
+    </div>
+  );
+}
+
+/** Caixa: filtros, ordenação, etiquetas e seleção múltipla para ações em lote. */
+function BoxWindow({
+  state,
+  selected,
+  onSelect,
+}: {
+  state: GameState;
+  selected: number;
+  onSelect: (uid: number) => void;
+}) {
+  const engine = useEngine();
+  const [sort, setSort] = useState<Sort>('level');
+  const [filter, setFilter] = useState<BoxFilter>(EMPTY_FILTER);
+  const [showFilters, setShowFilters] = useState(false);
+  const [multi, setMulti] = useState(false);
+  const [picked, setPicked] = useState<number[]>([]);
+  const [editTags, setEditTags] = useState(false);
+  const patch = (p: Partial<BoxFilter>) => setFilter((f) => ({ ...f, ...p }));
+  const box = filterBox(state, filter, speciesName).sort((a, b) =>
+    sort === 'level'
+      ? b.level - a.level || a.uid - b.uid
+      : sort === 'dex'
+        ? a.speciesId - b.speciesId || b.level - a.level
+        : sort === 'potential'
+          ? potential(b.ivs) - potential(a.ivs) || b.level - a.level
+          : b.uid - a.uid,
+  );
+  const pickedSet = new Set(picked);
+  const plan = transferPlan(state, picked);
+  const planPoints = plan.reduce((sum, p) => sum + transferValue(p), 0);
+  const allFavorite =
+    picked.length > 0 && picked.every((uid) => state.collection.find((p) => p.uid === uid)?.favorite);
+  const togglePick = (uid: number) =>
+    setPicked((list) => (list.includes(uid) ? list.filter((x) => x !== uid) : [...list, uid]));
+  const exitMulti = () => {
+    setMulti(false);
+    setPicked([]);
+  };
+  const checks = [
+    ['favorites', 'Favoritos'],
+    ['shiny', 'Shiny'],
+    ['perfect', 'Perfeitos'],
+    ['duplicates', 'Repetidos'],
+  ] as const;
+
+  return (
+    <Window
+      title={`CAIXA · ${filterActive(filter) ? `${box.length} DE ` : ''}${state.collection.length} POKéMON`}
+      icon={<ItemIcon id="pokemon-box" size={24} />}
+      actions={
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Ordenar">
+          <option value="level">Nível</option>
+          <option value="dex">Nº Pokédex</option>
+          <option value="potential">Potencial</option>
+          <option value="recent">Recentes</option>
+        </select>
+      }
+    >
+      <div className="box-toolbar">
+        <input
+          type="search"
+          value={filter.text}
+          onChange={(e) => patch({ text: e.target.value })}
+          placeholder="Buscar nome ou nº…"
+          aria-label="Buscar na Caixa"
+        />
+        <button
+          className={`pbtn small ${showFilters || filterActive(filter) ? 'on' : ''}`}
+          aria-expanded={showFilters}
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          Filtros{filterActive(filter) ? ' •' : ''}
+        </button>
+        <button
+          className={`pbtn small ${multi ? 'on' : ''}`}
+          aria-pressed={multi}
+          onClick={() => (multi ? exitMulti() : setMulti(true))}
+        >
+          {multi ? 'Concluir seleção' : 'Selecionar vários'}
+        </button>
+      </div>
+
+      {showFilters && (
+        <div className="box-filters frame frame-dialog">
+          <label>
+            Tipo
+            <select
+              value={filter.type}
+              onChange={(e) => patch({ type: e.target.value as BoxFilter['type'] })}
+            >
+              <option value="">Todos</option>
+              {Object.entries(TYPE_NAMES).map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Etiqueta
+            <select value={filter.tag} onChange={(e) => patch({ tag: e.target.value as BoxFilter['tag'] })}>
+              <option value="">Todas</option>
+              <option value="none">Sem etiqueta</option>
+              {TAG_IDS.map((t) => (
+                <option key={t} value={t}>
+                  {tagName(state, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {checks.map(([key, label]) => (
+            <label key={key} className="box-check">
+              <input
+                type="checkbox"
+                checked={filter[key]}
+                onChange={(e) => patch({ [key]: e.target.checked })}
+              />
+              {label}
+            </label>
+          ))}
+          <button
+            className="pbtn small"
+            onClick={() => setFilter(EMPTY_FILTER)}
+            disabled={!filterActive(filter)}
+          >
+            Limpar filtros
+          </button>
+          <button className="pbtn small" onClick={() => setEditTags((v) => !v)} aria-expanded={editTags}>
+            Renomear etiquetas
+          </button>
+          {editTags && (
+            <ul className="tag-names">
+              {TAG_IDS.map((t) => (
+                <li key={t}>
+                  <span className={`tag-dot tag-${t}`} aria-hidden />
+                  <input
+                    defaultValue={tagName(state, t)}
+                    maxLength={16}
+                    aria-label={`Nome da etiqueta ${tagName(state, t)}`}
+                    onBlur={(e) => engine.dispatch((s) => renameTag(s, t, e.target.value))}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {multi && (
+        <div className="box-bulk frame frame-dialog" role="toolbar" aria-label="Ações para os selecionados">
+          <span>
+            <strong>{picked.length}</strong> selecionado(s)
+          </span>
+          <button className="pbtn small" onClick={() => setPicked(box.map((p) => p.uid))}>
+            Todos os {box.length} filtrados
+          </button>
+          <button className="pbtn small" disabled={!picked.length} onClick={() => setPicked([])}>
+            Limpar
+          </button>
+          <button
+            className="pbtn small"
+            disabled={!picked.length}
+            onClick={() => engine.dispatch((s) => setFavorite(s, picked, !allFavorite))}
+          >
+            {allFavorite ? 'Tirar dos favoritos' : 'Favoritar'}
+          </button>
+          <span className="tag-picker" role="group" aria-label="Etiquetar">
+            {TAG_IDS.map((t) => (
+              <button
+                key={t}
+                className={`tag-dot tag-${t}`}
+                title={`Etiquetar: ${tagName(state, t)}`}
+                aria-label={`Etiquetar: ${tagName(state, t)}`}
+                disabled={!picked.length}
+                onClick={() => engine.dispatch((s) => setTag(s, picked, t))}
+              />
+            ))}
+            <button
+              className="tag-dot tag-none"
+              title="Tirar etiqueta"
+              aria-label="Tirar etiqueta"
+              disabled={!picked.length}
+              onClick={() => engine.dispatch((s) => setTag(s, picked, null))}
+            />
+          </span>
+          <button
+            className="pbtn small danger"
+            disabled={!plan.length}
+            title="Só duplicatas livres e que não são favoritas; sempre fica ao menos um de cada espécie."
+            onClick={() => {
+              const ask = `Transferir ${plan.length} Pokémon para o Laboratório por ${planPoints} pontos de pesquisa?`;
+              if (!window.confirm(ask)) return;
+              engine.dispatch((s) => void transferMany(s, picked));
+              setPicked([]);
+            }}
+          >
+            Transferir {plan.length} (+{planPoints} pesquisa)
+          </button>
+        </div>
+      )}
+
+      {!box.length && <p className="hint">Nenhum Pokémon com esses filtros.</p>}
+      <ul className="pc-box">
+        {box.map((p) => {
+          const on = multi ? pickedSet.has(p.uid) : p.uid === selected;
+          return (
             <li key={p.uid}>
               <button
-                className={`pc-cell ${p.uid === selected ? 'selected' : ''} ${p.uid === state.activeUid ? 'is-active' : ''} ${state.passives.includes(p.uid) ? 'is-support' : ''} ${state.battleTeam.includes(p.uid) ? 'is-reserve' : ''} ${busyLabel(state, p.uid) ? 'is-away' : ''}`}
-                onClick={() => setSelected(p.uid)}
-                title={`${speciesName(p.speciesId)} Nv. ${p.level}`}
+                className={`pc-cell ${on ? 'selected' : ''} ${p.uid === state.activeUid ? 'is-active' : ''} ${state.passives.includes(p.uid) ? 'is-support' : ''} ${state.battleTeam.includes(p.uid) ? 'is-reserve' : ''} ${busyLabel(state, p.uid) ? 'is-away' : ''}`}
+                onClick={() => (multi ? togglePick(p.uid) : onSelect(p.uid))}
+                aria-pressed={multi ? on : undefined}
+                aria-label={`${speciesName(p.speciesId)} nível ${p.level}${p.shiny ? ', shiny' : ''}${p.favorite ? ', favorito' : ''}${p.tag ? `, ${tagName(state, p.tag)}` : ''}`}
+                title={`${speciesName(p.speciesId)} Nv. ${p.level}${p.favorite ? ' · favorito' : ''}${p.tag ? ` · ${tagName(state, p.tag)}` : ''}`}
               >
                 <PokemonSprite speciesId={p.speciesId} kind="icon" />
                 <span>Nv{p.level}</span>
@@ -234,17 +442,20 @@ export function PartyScreen({ state }: { state: GameState }) {
                     31
                   </span>
                 )}
+                {p.favorite && <PixelIcon name="star" scale={1} className="pc-fav" />}
+                {p.tag && <span className={`pc-tag tag-dot tag-${p.tag}`} aria-hidden />}
               </button>
             </li>
-          ))}
-        </ul>
-      </Window>
-    </div>
+          );
+        })}
+      </ul>
+    </Window>
   );
 }
 
 /** Onde o Pokémon está, quando não está disponível para a batalha. */
 function busyLabel(state: GameState, uid: number): string | null {
+  if (isFallen(state, uid)) return 'FORA DA JORNADA';
   if (state.daycare.uids.includes(uid)) return 'NA CRECHE';
   if (state.training.slots.some((s) => s.uid === uid)) return 'NO TREINO';
   if (state.expeditions.some((e) => e.uids.includes(uid))) return 'EM EXPEDIÇÃO';
@@ -523,6 +734,31 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
             <ItemIcon id="everstone" size={24} /> {p.evolutionLocked ? 'Liberar evolução' : 'Travar evolução'}
           </button>
         )}
+        <button
+          className={`pbtn ${p.favorite ? 'on' : ''}`}
+          aria-pressed={!!p.favorite}
+          title="Favoritos não podem ser transferidos, nem pela limpeza de duplicatas."
+          onClick={() => engine.dispatch((s) => toggleFavorite(s, p.uid))}
+        >
+          <PixelIcon name="star" scale={1} /> {p.favorite ? 'Favorito' : 'Favoritar'}
+        </button>
+        <label className="tag-select">
+          <span className={`tag-dot ${p.tag ? `tag-${p.tag}` : 'tag-none'}`} aria-hidden />
+          <select
+            value={p.tag ?? ''}
+            aria-label="Etiqueta"
+            onChange={(e) =>
+              engine.dispatch((s) => setTag(s, [p.uid], (e.target.value || null) as TagId | null))
+            }
+          >
+            <option value="">Sem etiqueta</option>
+            {TAG_IDS.map((t) => (
+              <option key={t} value={t}>
+                {tagName(state, t)}
+              </option>
+            ))}
+          </select>
+        </label>
         {canTransfer(state, p.uid) && (
           <button
             className="pbtn danger"

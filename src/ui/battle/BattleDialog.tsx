@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { getRoute } from '../../game-data';
 import { legendaryRules } from '../../core/legendary';
+import { canCaptureHere } from '../../core/nuzlocke';
 import {
   activePokemon,
   canChallengeBoss,
@@ -323,6 +324,9 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
       <div className="battle-deck">
         <section className="deck-panel deck-balls frame frame-menu" aria-label="Bolas">
           <h3 className="deck-title">BOLAS</h3>
+          {b.kind === 'wild' && !canCaptureHere(state) && (
+            <p className="deck-note">Nuzlocke: a captura desta área já foi usada.</p>
+          )}
           <div className="deck-grid">
             {ballCard('poke-ball', 'POKé BALL', 'Q')}
             {secondBall ? (

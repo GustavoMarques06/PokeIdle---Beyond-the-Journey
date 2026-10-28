@@ -7,3 +7,4 @@
 @import './systems.css'; /* ambiente, mapa da região, atividades, missões, golpes, TMs */
 @import './effects.css'; /* efeitos de golpe, shiny, Poké Ball, status, barras, transições */
 @import './compact.css'; /* telas de 1280 px */
+@import './mobile.css'; /* celulares e janelas estreitas */

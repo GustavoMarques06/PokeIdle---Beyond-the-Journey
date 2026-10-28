@@ -229,7 +229,7 @@ export const PRESTIGE = {
 };
 
 /** Desafios opcionais de uma jornada: regras mais duras em troca de pontos de prestígio extras. */
-export type ChallengeId = 'solo' | 'frugal' | 'fierce';
+export type ChallengeId = 'solo' | 'frugal' | 'fierce' | 'nuzlocke';
 
 export interface ChallengeDef {
   id: ChallengeId;
@@ -257,6 +257,13 @@ export const CHALLENGES: ChallengeDef[] = [
     name: 'Natureza feroz',
     description: 'Os inimigos causam +50% de dano.',
     bonus: 0.4,
+  },
+  {
+    id: 'nuzlocke',
+    name: 'Nuzlocke',
+    description:
+      'Só a primeira captura de cada área vale. Quem desmaia contra líderes, rivais, a Liga ou a Equipe Rocket fica fora da jornada; sem ninguém para lutar, o desafio falha.',
+    bonus: 0.8,
   },
 ];
 
@@ -540,9 +547,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'champion-5',
     tier: 'platinum',
     name: 'Mestre Pokémon',
-    description: 'Seja campeão nas cinco regiões.',
+    description: 'Seja campeão em cinco regiões.',
     goal: { kind: 'champions', n: 5 },
     reward: { research: 60 },
+  },
+  {
+    id: 'champion-6',
+    tier: 'platinum',
+    name: 'Lenda de Kalos',
+    description: 'Seja campeão nas seis regiões, incluindo Kalos.',
+    goal: { kind: 'champions', n: 6 },
+    reward: { research: 100 },
   },
   {
     id: 'raids-1',

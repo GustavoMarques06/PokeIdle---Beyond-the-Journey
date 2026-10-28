@@ -6,7 +6,7 @@ import '@fontsource/silkscreen/400.css';
 import '@fontsource/silkscreen/700.css';
 import './ui/styles/index.css';
 import { GameEngine } from './engine/GameEngine';
-import { createStorage } from './engine/storage';
+import { createStorage, isTauri } from './engine/storage';
 import { App } from './ui/App';
 import { installNotifications } from './ui/notify';
 import { EngineContext } from './ui/useGame';
@@ -36,3 +36,10 @@ async function boot(): Promise<void> {
 }
 
 void boot();
+
+// PWA: no navegador (fora do Tauri), o jogo pode ser instalado e abre sem internet.
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isTauri()) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('Service worker falhou', err));
+  });
+}

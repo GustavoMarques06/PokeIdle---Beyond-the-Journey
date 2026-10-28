@@ -28,8 +28,8 @@ const MAX_ICONS = 9;
 
 /**
  * Arte oficial de cada região (public/maps/<id>.webp) e seu tamanho, para manter a proporção.
- * Fontes: FireRed/LeafGreen, HeartGold/SoulSilver, Omega Ruby/Alpha Sapphire, Platinum e
- * Black 2/White 2 (via Bulbapedia). As posições das áreas (Route.map) são % desta imagem.
+ * Fontes: FireRed/LeafGreen, HeartGold/SoulSilver, Omega Ruby/Alpha Sapphire, Platinum,
+ * Black 2/White 2 e X/Y (via Bulbapedia). As posições das áreas (Route.map) são % desta imagem.
  */
 const MAP_ART: Record<string, { w: number; h: number; game: string }> = {
   kanto: { w: 1000, h: 750, game: 'FireRed/LeafGreen' },
@@ -37,6 +37,7 @@ const MAP_ART: Record<string, { w: number; h: number; game: string }> = {
   hoenn: { w: 1250, h: 884, game: 'Omega Ruby/Alpha Sapphire' },
   sinnoh: { w: 1024, h: 724, game: 'Platinum' },
   unova: { w: 1280, h: 837, game: 'Black 2/White 2' },
+  kalos: { w: 1032, h: 676, game: 'X/Y' },
 };
 
 function regionUnlocked(state: GameState, regionId: string): boolean {

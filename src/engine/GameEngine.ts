@@ -110,6 +110,10 @@ export class GameEngine {
   newGame(starterId: number, trainerName?: string, avatar?: PlayerAvatar): void {
     const now = this.clock();
     this.state = newGame(starterId, now, (Math.random() * 2 ** 32) | 0, trainerName, avatar);
+    // Quem pediu ao sistema menos movimento começa com "Reduzir animações" ligado.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.state.settings.reducedMotion = true;
+    }
     updateTimers(this.state, now);
     this.offlineReport = null;
     this.save();

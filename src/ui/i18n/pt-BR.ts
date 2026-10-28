@@ -207,10 +207,10 @@ export const T = {
     sfx: 'Efeitos sonoros',
     cries: 'Gritos dos Pokémon',
     music: 'Música',
-    export: 'Exportar save',
-    import: 'Importar save',
-    importPlaceholder: 'Cole aqui o texto do save exportado…',
-    copied: 'Copiado para a área de transferência.',
+    export: 'Gerar código de transferência',
+    import: 'Carregar código',
+    importPlaceholder: 'Cole aqui o código de transferência (PKI1…) ou um save exportado antes…',
+    copied: 'Código copiado para a área de transferência.',
     reset: 'Apagar save e recomeçar',
     resetConfirm: 'Tem certeza? Todo o progresso será perdido.',
     importOk: 'Save importado com sucesso.',
@@ -410,6 +410,8 @@ export function describeEvent(e: GameEvent): string | null {
       return e.scope === 'daily' ? 'Novas missões diárias!' : 'Novas missões semanais!';
     case 'weatherChanged':
       return `O tempo mudou: ${WEATHER_NAMES[e.weather] ?? e.weather}.`;
+    case 'challengeFailed':
+      return 'Nuzlocke encerrado: não sobrou ninguém para lutar. As regras normais voltaram.';
     case 'effect':
       return effectText(e);
     case 'itemFound':
@@ -498,6 +500,7 @@ export const REGION_NAMES: Record<string, string> = {
   hoenn: 'Hoenn',
   sinnoh: 'Sinnoh',
   unova: 'Unova',
+  kalos: 'Kalos',
 };
 
 export const WEATHER_NAMES: Record<string, string> = {
@@ -543,6 +546,7 @@ export const MISSION_TEXT: Record<string, (target: number, type?: string) => str
 
 /** Eventos importantes o bastante para virar notificação. */
 export const TOAST_EVENTS = new Set<GameEvent['type']>([
+  'challengeFailed',
   'levelUp',
   'learnedMove',
   'evolved',

@@ -30,11 +30,21 @@ import { endLegendary, legendaryDef, legendaryRules } from './legendary';
 import { progressMission } from './missions';
 import { beforeAction, canInflict, rollAilment, statusDamage, statusInterval } from './status';
 import { bestMatchup, healTeam, nextHealthyReserve, reservePokemon, switchIn } from './team';
+import { canCaptureHere, onNuzlockeFaint, recordNuzlockeCapture, replaceFallenActive } from './nuzlocke';
 import { isPerfect, legendaryIvs, randomIvs, rollShiny, statsOf, type PokemonInstance } from './pokemon';
 import { checkEvolution, coinYield, expYield, grantExp, type ExpResult } from './progression';
 import { pickWeighted, randInt, rngFrom, type Rng } from './rng';
 import type { Ivs } from './stats';
-import { endTowerRun, floorTeam, isBossFloor, towerFloorCleared } from './tower';
+import {
+  endTowerRun,
+  floorTeam,
+  isBossFloor,
+  towerFloorCleared,
+  weeklyBlocker,
+  weeklyFloorCleared,
+  weeklyRng,
+  weeklyRule,
+} from './tower';
 import { activeMode, modeEncounters } from './water';
 import { addResearch, researchBonus } from './dexresearch';
 import { battleForm, recordForm, rollForm } from './forms';
@@ -91,6 +101,7 @@ export function step(
     if (b.phase === 'defeat') {
       const p = activePokemon(state);
       healTeam(state);
+      replaceFallenActive(state, events);
       if (b.kind === 'tower') {
         events.push({ type: 'towerEnded', floor: endTowerRun(state, now, p.speciesId) });
       }
@@ -375,9 +386,11 @@ function onFaint(state: GameState, side: Side, now: number, events: GameEvent[],
   const player = activePokemon(state);
   addFriendship(player, -BALANCE.friendship.faint);
   addRecord(player, { faints: 1 });
+  const fell = onNuzlockeFaint(state, player.uid);
   const reserve = nextHealthyReserve(state);
   if (reserve) {
     switchIn(state, reserve.uid, 'fainted', events);
+    if (fell) state.battleTeam = state.battleTeam.filter((uid) => uid !== player.uid);
     resetPlayerTimer(state, mods, 0.5);
     return true;
   }
@@ -481,6 +494,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     const mode = activeMode(state, encounterRoute(route).id);
     if (mode !== 'land') water = mode;
     speciesId = enc.speciesId;
+    boost = encounterRoute(route).boost;
     form = rollForm(speciesId, rng, now);
     level = randInt(rng, enc.minLevel, enc.maxLevel);
     ivs = randomIvs(rng);
@@ -636,7 +650,7 @@ function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, 
     }
     if (b.kind === 'raid') return onRaidDefeated(state, enemy, events, now);
     if (b.kind === 'rocket') return onRocketDefeated(state, events);
-    if (b.kind === 'tower') return onTowerFloor(state, events);
+    if (b.kind === 'tower') return onTowerFloor(state, events, now);
     if (b.kind === 'tournament') return tournamentWon(state, events);
   }
 
@@ -804,15 +818,30 @@ function onRocketDefeated(state: GameState, events: GameEvent[]): void {
   state.battle = { ...freshBattle(b.routeId), phase: 'victory', phaseMs: BALANCE.combat.victoryDelayMs };
 }
 
-function onTowerFloor(state: GameState, events: GameEvent[]): void {
+function onTowerFloor(state: GameState, events: GameEvent[], now: number): void {
   const b = state.battle;
   const floor = b.floor ?? 1;
-  const points = towerFloorCleared(state, floor);
+  let points = towerFloorCleared(state, floor, !b.weekly);
+  if (b.weekly) points += weeklyFloorCleared(state, floor, now);
   progressMission(state, 'tower-floors', 1, events);
   events.push({ type: 'towerFloor', floor, points });
-  healTeam(state, BALANCE.tower.healPerFloor);
+  // A semana virou ou a equipe deixou de cumprir a regra: a subida semanal termina aqui.
+  if (
+    b.weekly &&
+    (weeklyRule(now).week !== state.tower.weekly.week || weeklyBlocker(state, now) === 'type')
+  ) {
+    state.tower.floor = floor + 1;
+    events.push({ type: 'towerEnded', floor: endTowerRun(state, now, activePokemon(state).speciesId) });
+    healTeam(state);
+    state.battle = { ...freshBattle(b.routeId), phase: 'victory', phaseMs: BALANCE.combat.victoryDelayMs };
+    return;
+  }
+  const heal = b.weekly
+    ? (weeklyRule(now).mod.heal ?? BALANCE.tower.healPerFloor)
+    : BALANCE.tower.healPerFloor;
+  if (heal > 0) healTeam(state, heal);
   state.battle = {
-    ...towerBattle(state, b.routeId, floor + 1),
+    ...towerBattle(state, b.routeId, floor + 1, b.weekly ? now : undefined),
     phase: 'victory',
     phaseMs: BALANCE.combat.victoryDelayMs * 2,
   };
@@ -861,7 +890,12 @@ function bestBall(state: GameState, enemy: EnemyState): string | undefined {
 
 export function canThrowBall(state: GameState): boolean {
   const b = state.battle;
-  return (b.kind === 'wild' || b.kind === 'legendary') && b.phase === 'fighting' && !!b.enemy;
+  return (
+    (b.kind === 'wild' || b.kind === 'legendary') &&
+    b.phase === 'fighting' &&
+    !!b.enemy &&
+    canCaptureHere(state)
+  );
 }
 
 /** Chance de captura do inimigo atual, já com bônus. */
@@ -909,6 +943,7 @@ function attemptCapture(
   }
 
   const isNew = !dexEntry(state, enemy.speciesId).caught;
+  if (state.battle.kind === 'wild') recordNuzlockeCapture(state, state.battle.routeId);
   const routeName = getRoute(state.battle.routeId).name;
   const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, routeName);
   p.currentHp = enemy.hp > 0 ? Math.min(statsOf(p).hp, enemy.hp) : 1;
@@ -955,6 +990,7 @@ function maybeAutoCapture(
 ): void {
   const enemy = state.battle.enemy;
   if (!enemy || !state.upgrades.includes('auto-capture') || !state.settings.autoCapture) return;
+  if (!canCaptureHere(state)) return;
   if (!canThrowBall(state) || enemy.captureAttempted || state.battle.kind === 'legendary') return;
   const dex = dexEntry(state, enemy.speciesId);
   if (dex.caught && !enemy.shiny && !enemy.roamer) return;
@@ -965,14 +1001,22 @@ function maybeAutoCapture(
 
 const TOWER_TRAINERS = ROUTES.flatMap((r) => (r.boss ? [{ sprite: r.boss.trainer, name: r.boss.name }] : []));
 
-export function towerBattle(state: GameState, routeId: string, floor: number): BattleState {
-  const rng = rngFrom(state);
+/** Batalha de um andar. Com `weeklyAt`, usa a regra e a semente da semana desse instante. */
+export function towerBattle(
+  state: GameState,
+  routeId: string,
+  floor: number,
+  weeklyAt?: number,
+): BattleState {
+  const rule = weeklyAt === undefined ? null : weeklyRule(weeklyAt);
+  const rng = rule ? weeklyRng(rule.week, floor) : rngFrom(state);
   const t = TOWER_TRAINERS[Math.floor(rng.next() * TOWER_TRAINERS.length)];
   return {
     ...freshBattle(routeId),
     kind: 'tower',
     floor,
-    team: floorTeam(floor, rng),
+    team: floorTeam(floor, rng, rule?.mod.boost ?? 1),
     trainer: { ...t, title: isBossFloor(floor) ? 'Cérebro da Torre' : `Andar ${floor}` },
+    ...(rule ? { weekly: true } : {}),
   };
 }

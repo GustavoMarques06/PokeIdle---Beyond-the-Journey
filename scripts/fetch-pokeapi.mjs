@@ -10,7 +10,8 @@
 //   public/audio/cries/<id>.ogg
 //
 // Fontes:
-//   Pokémon: Black/White animado (PokéAPI); ícones Gen VII; gritos "legacy".
+//   Pokémon: Black/White animado (PokéAPI) até a Geração V; a Geração VI usa os sprites
+//   estáticos no estilo Black/White do Showdown. Ícones Gen VII; gritos "legacy".
 //   Treinadores e fundos: Pokémon Showdown. Insígnias: repositório da PokéAPI.
 
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -27,10 +28,13 @@ const SPRITE_OUT = path.join(PUBLIC, 'sprites');
 const API = 'https://pokeapi.co/api/v2';
 const SHOWDOWN = 'https://play.pokemonshowdown.com';
 const FRESH = process.argv.includes('--fresh');
-const MAX_ID = 649; // Gerações I–V: todas têm sprites animados no estilo Black/White.
+const MAX_ID = 721; // Gerações I–VI (a VI sem animação: não há sprites animados no estilo Black/White).
 
-const LEARNSET_VERSION_GROUPS = ['firered-leafgreen', 'emerald', 'heartgold-soulsilver', 'platinum', 'black-2-white-2'];
-const TM_VERSION_GROUP = 'black-2-white-2';
+const LEARNSET_VERSION_GROUPS = [
+  'firered-leafgreen', 'emerald', 'heartgold-soulsilver', 'platinum', 'black-2-white-2', 'x-y', 'omega-ruby-alpha-sapphire',
+];
+/** Máquinas e tutores: Black 2/White 2; quem não existia lá (Geração VI) usa X/Y. */
+const TM_VERSION_GROUPS = ['black-2-white-2', 'x-y'];
 const FALLBACK_MOVE = 'tackle';
 // Golpes que o combate simples não modela (autodestruição, recarga, dois turnos, poder variável…).
 const MOVE_BLACKLIST = new Set([
@@ -178,7 +182,9 @@ const idFromUrl = (url) => Number(url.split('/').filter(Boolean).pop());
 const englishName = (names, fallback) => names.find((n) => n.language.name === 'en')?.name ?? fallback;
 const AILMENTS = new Set(['burn', 'poison', 'paralysis', 'sleep', 'freeze']);
 const STAT_KEYS = { hp: 'hp', attack: 'atk', defense: 'def', 'special-attack': 'spAtk', 'special-defense': 'spDef', speed: 'spe' };
-const GENERATION_NUMBERS = { 'generation-i': 1, 'generation-ii': 2, 'generation-iii': 3, 'generation-iv': 4, 'generation-v': 5 };
+const GENERATION_NUMBERS = { 'generation-i': 1, 'generation-ii': 2, 'generation-iii': 3, 'generation-iv': 4, 'generation-v': 5, 'generation-vi': 6 };
+/** Evolução por saber um golpe de certo tipo (Sylveon) vira uma pedra. */
+const MOVE_TYPE_ITEM = { fairy: 'shiny-stone' };
 const LOCATION_ITEM_BY_TYPE = { grass: 'leaf-stone', bug: 'leaf-stone', ice: 'ice-stone', electric: 'thunder-stone', steel: 'thunder-stone', rock: 'thunder-stone' };
 const EXTRA_EVOLUTION_ITEMS = ['shiny-stone', 'dusk-stone', 'dawn-stone'];
 
@@ -199,9 +205,11 @@ function parseEvolution(details, toTypes) {
   const anyLevel = details.find((x) => x.min_level);
   const anyHappiness = details.find((x) => x.min_happiness);
   const anyLocation = details.find((x) => x.location);
+  const anyMoveType = details.find((x) => MOVE_TYPE_ITEM[x.known_move_type?.name]);
   if (d.trigger.name === 'use-item' && anyItem) return withTime({ trigger: 'item', item: anyItem.item.name });
   if (d.trigger.name === 'trade') return anyHeld ? { trigger: 'item', item: anyHeld.held_item.name } : { trigger: 'level', minLevel: 38 };
   if (anyHeld) return withTime({ trigger: 'item', item: anyHeld.held_item.name });
+  if (anyMoveType && !anyLevel) return { trigger: 'item', item: MOVE_TYPE_ITEM[anyMoveType.known_move_type.name] };
   if (anyLevel) return withTime({ trigger: 'level', minLevel: anyLevel.min_level });
   if (anyHappiness) return withTime({ trigger: 'item', item: 'soothe-bell' });
   if (anyLocation) return { trigger: 'item', item: LOCATION_ITEM_BY_TYPE[toTypes[0]] ?? 'shiny-stone' };
@@ -290,13 +298,15 @@ async function main() {
     const list = group ? levelUp(group) : [];
     for (const l of list) moveNames.add(l.move);
     learnsets.set(id, list);
-    const tm = pokemon.moves
-      .filter((m) =>
-        m.version_group_details.some(
-          (v) => v.version_group.name === TM_VERSION_GROUP && ['machine', 'tutor'].includes(v.move_learn_method.name),
-        ),
-      )
-      .map((m) => m.move.name);
+    const taught = (group) =>
+      pokemon.moves
+        .filter((m) =>
+          m.version_group_details.some(
+            (v) => v.version_group.name === group && ['machine', 'tutor'].includes(v.move_learn_method.name),
+          ),
+        )
+        .map((m) => m.move.name);
+    const tm = TM_VERSION_GROUPS.map(taught).find((list) => list.length > 0) ?? [];
     for (const m of tm) moveNames.add(m);
     machines.set(id, tm);
   }
@@ -382,7 +392,15 @@ async function main() {
 
     const bw = pokemon.sprites.versions['generation-v']['black-white'];
     const sdId = pokemon.name.replace(/[^a-z0-9]/g, '');
-    const candidates = (key, sdFolder) => [bw.animated[key], `${SHOWDOWN}/sprites/${sdFolder}/${sdId}.png`, bw[key], pokemon.sprites[key]];
+    // Formas padrão com sufixo (aegislash-shield, meowstic-male…) têm o arquivo pelo nome da espécie.
+    const sdSpecies = sp.name.replace(/[^a-z0-9]/g, '');
+    const candidates = (key, sdFolder) => [
+      bw.animated[key],
+      `${SHOWDOWN}/sprites/${sdFolder}/${sdId}.png`,
+      `${SHOWDOWN}/sprites/${sdFolder}/${sdSpecies}.png`,
+      bw[key],
+      pokemon.sprites[key],
+    ];
     const entry = {
       id,
       slug: sp.name,
@@ -522,6 +540,7 @@ async function main() {
       kind: rt.kind ?? 'wild',
       ...(rt.farm ? { farm: rt.farm } : {}),
       ...(rt.safari ? { safari: true } : {}),
+      ...(rt.boost ? { boost: rt.boost } : {}),
       encounters: rt.encounters.map(([s, weight, minLevel, maxLevel, time]) => ({
         speciesId: idOf(s),
         weight,

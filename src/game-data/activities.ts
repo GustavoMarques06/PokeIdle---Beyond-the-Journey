@@ -197,6 +197,60 @@ export const TOWER_SHOP: TowerShopEntry[] = [
   { id: 'master', name: 'Master Ball', price: 300, give: { items: { 'master-ball': 1 } } },
 ];
 
+// --- Torre semanal -------------------------------------------------------------------------------
+// Toda segunda-feira a Torre ganha uma regra nova: um tipo obrigatório para a equipe e um
+// modificador. Os andares saem de uma semente da semana, então são os mesmos para todos.
+
+/** Tipos na ordem da rotação (um por semana). */
+export const WEEKLY_TOWER_TYPES = [
+  'fire',
+  'water',
+  'grass',
+  'electric',
+  'psychic',
+  'fighting',
+  'dragon',
+  'ghost',
+  'steel',
+  'ice',
+  'dark',
+  'fairy',
+  'ground',
+  'rock',
+  'flying',
+  'bug',
+  'poison',
+  'normal',
+] as const;
+
+export interface WeeklyTowerMod {
+  id: string;
+  name: string;
+  description: string;
+  /** Multiplicador extra nos atributos dos inimigos. */
+  boost?: number;
+  /** Fração do HP recuperada entre andares (padrão: a da Torre normal). */
+  heal?: number;
+  /** Andar em que a subida começa. */
+  startFloor?: number;
+}
+
+export const WEEKLY_TOWER_MODS: WeeklyTowerMod[] = [
+  { id: 'classic', name: 'Clássica', description: 'Sem regra extra.' },
+  { id: 'fierce', name: 'Feroz', description: 'Os inimigos têm +15% em todos os atributos.', boost: 1.15 },
+  { id: 'no-rest', name: 'Sem descanso', description: 'Ninguém se cura entre os andares.', heal: 0 },
+  { id: 'summit', name: 'Direto ao topo', description: 'A subida começa no andar 21.', startFloor: 21 },
+];
+
+/** Marcos da semana: o andar e os BP extras (uma vez por semana cada). */
+export const WEEKLY_TOWER_MILESTONES: { floor: number; bp: number }[] = [
+  { floor: 10, bp: 20 },
+  { floor: 25, bp: 40 },
+  { floor: 40, bp: 80 },
+  { floor: 60, bp: 120 },
+  { floor: 100, bp: 250 },
+];
+
 // --- Game Corner ---------------------------------------------------------------------------------
 
 export interface SlotSymbol {
@@ -243,6 +297,7 @@ export const LEGENDARY_REGION_UNLOCK: Record<string, string> = {
   hoenn: 'hoenn-liga-campeao',
   sinnoh: 'sinnoh-liga-campeao',
   unova: 'unova-liga-campeao',
+  kalos: 'kalos-liga-campeao',
 };
 
 export const LEGENDARIES: LegendaryDef[] = [
@@ -299,4 +354,11 @@ export const LEGENDARIES: LegendaryDef[] = [
   { speciesId: 647, regionId: 'unova', level: 98, boost: 1.1 }, // Keldeo
   { speciesId: 648, regionId: 'unova', level: 99, boost: 1.1 }, // Meloetta
   { speciesId: 649, regionId: 'unova', level: 100, boost: 1.15 }, // Genesect
+  { speciesId: 706, regionId: 'kalos', level: 100, boost: 1.3, tier: 'pseudo' }, // Goodra
+  { speciesId: 716, regionId: 'kalos', level: 100, boost: 1.45 }, // Xerneas
+  { speciesId: 717, regionId: 'kalos', level: 100, boost: 1.45 }, // Yveltal
+  { speciesId: 718, regionId: 'kalos', level: 100, boost: 1.5 }, // Zygarde
+  { speciesId: 719, regionId: 'kalos', level: 100, boost: 1.35 }, // Diancie
+  { speciesId: 720, regionId: 'kalos', level: 100, boost: 1.4 }, // Hoopa
+  { speciesId: 721, regionId: 'kalos', level: 100, boost: 1.4 }, // Volcanion
 ];
