@@ -1,7 +1,7 @@
 // Laboratório: a escolha do inicial como um ritual, em falas do professor.
 //   escolher a bola → ela se abre e o Pokémon salta no tapete → "Quer ficar com ele?"
-//   SIM → "<nome> recebeu <Pokémon>!" → apelido (opcional) → o rival da região chega e
-//   leva o que tem vantagem → começa o jogo.
+//   SIM → "<nome> recebeu <Pokémon>!" → apelido (opcional) → o rival chega e leva o que
+//   tem vantagem → começa o jogo.
 //   NÃO → a bola fecha e dá para escolher outra (ou trocar de região nas setas da placa).
 // Nome e avatar já vêm do prólogo. Teclado como nos portáteis: setas, Enter/Z e Esc/X.
 
@@ -25,15 +25,9 @@ const ADVANCE_PHASES: Phase[] = ['received', 'rival'];
 const QUESTION_PHASES: Phase[] = ['ask', 'nickAsk'];
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
-/** Rival de cada região (na ordem de STARTER_GENERATIONS), como nos chefes do jogo. */
-const RIVALS = [
-  { name: 'Blue', sprite: 'kanto-blue' },
-  { name: 'Silver', sprite: 'johto-silver' },
-  { name: 'May', sprite: 'hoenn-may' },
-  { name: 'Barry', sprite: 'sinnoh-barry' },
-  { name: 'Cheren', sprite: 'unova-cheren' },
-  { name: 'Calem', sprite: 'kalos-calem' },
-];
+/** Toda jornada começa em Kanto, então o primeiro rival é sempre o de lá, qualquer que seja
+ *  a região do inicial (os rivais das outras regiões aparecem quando o jogador chega nelas). */
+const FIRST_RIVAL = { name: 'Blue', sprite: 'kanto-blue' };
 
 export function StarterSelect({
   name,
@@ -57,7 +51,6 @@ export function StarterSelect({
   const chosen = group.ids[focus];
   const species = getSpecies(chosen);
   const rival = getSpecies(group.ids[(focus + 1) % group.ids.length]);
-  const rivalTrainer = RIVALS[regionIndex] ?? RIVALS[0];
   const trainerName = (name.trim() || (avatar === 'red' ? 'Red' : 'Leaf')).toUpperCase();
   const partner = (nickname.trim() || species.name).toUpperCase();
   const type = (TYPE_NAMES[species.types[0]] ?? species.types[0]).toLowerCase();
@@ -68,7 +61,7 @@ export function StarterSelect({
     received: T.starterLab.received(trainerName, species.name.toUpperCase()),
     nickAsk: T.starterLab.nickAsk(species.name.toUpperCase()),
     naming: T.starterLab.nickPrompt(species.name.toUpperCase()),
-    rival: T.starterLab.rival(partner, rival.name.toUpperCase(), rivalTrainer.name.toUpperCase()),
+    rival: T.starterLab.rival(partner, rival.name.toUpperCase(), FIRST_RIVAL.name.toUpperCase()),
   };
   const { shown, done, finish } = useTypewriter(texts[phase], reduced);
 
@@ -164,7 +157,7 @@ export function StarterSelect({
           focus={focus}
           opened={phase === 'browse' ? null : chosen}
           taken={phase === 'rival' ? rival.id : null}
-          rivalSprite={phase === 'rival' ? rivalTrainer.sprite : null}
+          rivalSprite={phase === 'rival' ? FIRST_RIVAL.sprite : null}
           onFocus={setFocus}
           onPick={open}
           onPrevRegion={() => changeRegion(-1)}

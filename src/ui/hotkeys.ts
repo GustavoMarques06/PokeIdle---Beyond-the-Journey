@@ -37,11 +37,13 @@ export function useHotkeys(map: HotkeyMap, enabled = true): void {
 
 /** Lista exibida nas Opções. */
 export const HOTKEY_HELP: [string, string][] = [
-  ['1 – 9', 'abrir as telas do menu (Pokémon, Pokédex, Mochila, Loja…)'],
+  ['1 – 9, 0', 'abrir as telas do menu (Pokémon, Pokédex, Mochila, Loja… e o PC no 0)'],
   ['Q', 'lançar Poké Ball'],
-  ['W', 'lançar Great/Ultra Ball'],
+  ['W', 'lançar a melhor bola para a situação'],
   ['D', 'desafiar o chefe, a raide, a Equipe Rocket ou fazer a revanche'],
   ['F', 'fugir / desistir do desafio'],
+  ['A', 'alternar a batalha entre automática e manual'],
+  ['Esc', 'voltar ao menu de comandos da batalha'],
   ['E', 'alternar entre grama, pesca e surf (em rotas com água)'],
   ['B', 'colher a árvore de berry da rota'],
   ['P', 'tirar uma foto da batalha'],

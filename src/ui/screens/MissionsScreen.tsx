@@ -5,6 +5,7 @@ import type { GameState } from '../../core/game';
 import { Bar, ItemIcon, PixelIcon, Window } from '../components/common';
 import { MISSION_TEXT, formatDuration, formatNumber, itemName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
+import { audio } from '../audio';
 
 function rewardText(m: Mission): string {
   const r = m.reward;
@@ -45,7 +46,10 @@ function MissionList({ state, scope }: { state: GameState; scope: MissionScope }
               {done && !m.claimed && (
                 <button
                   className="pbtn small primary"
-                  onClick={() => engine.dispatch((s) => void claimMission(s, scope, m.id))}
+                  onClick={() => {
+                    engine.dispatch((s) => void claimMission(s, scope, m.id));
+                    audio.sfx('itemGet');
+                  }}
                 >
                   Receber
                 </button>

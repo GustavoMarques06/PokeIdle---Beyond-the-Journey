@@ -26,21 +26,30 @@ export function EvolutionOverlay({
   to,
   shiny,
   reducedMotion,
+  onReveal,
   onDone,
 }: {
   from: number;
   to: number;
   shiny: boolean;
   reducedMotion: boolean;
+  /** O clarão revelou a nova forma: o resto da interface pode mostrá-la. */
+  onReveal: () => void;
   onDone: () => void;
 }) {
   const [stage, setStage] = useState<Stage>(reducedMotion ? 'done' : 'start');
   // O pai recria `onDone` a cada render (o jogo atualiza 10×/s); guardar numa ref evita
   // que os temporizadores das etapas sejam reiniciados sem parar.
   const doneRef = useRef(onDone);
+  const revealRef = useRef(onReveal);
   useEffect(() => {
     doneRef.current = onDone;
+    revealRef.current = onReveal;
   });
+
+  useEffect(() => {
+    if (stage === 'done') revealRef.current();
+  }, [stage]);
 
   useEffect(() => {
     const next = () => {
@@ -60,7 +69,10 @@ export function EvolutionOverlay({
   return (
     <div
       className={`evolution stage-${stage}`}
-      onClick={() => doneRef.current()}
+      onClick={() => {
+        revealRef.current();
+        doneRef.current();
+      }}
       role="dialog"
       aria-label="Evolução"
     >

@@ -2,7 +2,7 @@
 // tela LOJA (ShopScreen).
 
 import { useState } from 'react';
-import { BERRIES, FOSSILS, getMove, getSpecies, isHeldItem, vitaminStat } from '../../game-data';
+import { BERRIES, FOSSILS, getLure, getMove, getSpecies, isHeldItem, vitaminStat } from '../../game-data';
 import {
   applyEvolutionItem,
   equipItem,
@@ -15,9 +15,10 @@ import {
 import { passivePokemon } from '../../core/bonuses';
 import { reservePokemon } from '../../core/team';
 import { eatBerry } from '../../core/garden';
+import { activeLure, applyLure } from '../../core/lures';
 import { itemEvolution } from '../../core/progression';
 import { ItemIcon, Money, PokemonSprite, TypeBadge, Window } from '../components/common';
-import { itemDescription, itemName, moveName, speciesName } from '../i18n/pt-BR';
+import { formatDuration, itemDescription, itemName, moveName, speciesName } from '../i18n/pt-BR';
 import { audio } from '../audio';
 import { useEngine } from '../useGame';
 
@@ -37,6 +38,8 @@ export function BagScreen({ state }: { state: GameState }) {
   const team = [activePokemon(state), ...reservePokemon(state), ...passivePokemon(state)];
   const holdable = !!selected && isHeldItem(selected);
   const vitamin = !!selected && !!vitaminStat(selected);
+  const lure = selected ? getLure(selected) : undefined;
+  const lureNow = lure ? activeLure(state, lure.kind) : null;
 
   return (
     <div className="bag-screen">
@@ -83,6 +86,27 @@ export function BagScreen({ state }: { state: GameState }) {
                   >
                     Comer agora
                   </button>
+                )}
+                {lure && (state.items[selected] ?? 0) > 0 && (
+                  <div className="item-use">
+                    <button
+                      className="pbtn small primary"
+                      onClick={() => {
+                        engine.dispatch((s) => applyLure(s, selected));
+                        audio.sfx('click');
+                      }}
+                    >
+                      Usar ({lure.minutes} min)
+                    </button>
+                    {lureNow && (
+                      <span className="hint">
+                        Ativo: {itemName(lureNow.item)}, {formatDuration(lureNow.ms)} restantes
+                        {lure.kind === 'incense' && lureNow.item !== selected
+                          ? ' (usar troca o incenso)'
+                          : ''}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {(holdable || vitamin) && (
                   <div className="item-use">

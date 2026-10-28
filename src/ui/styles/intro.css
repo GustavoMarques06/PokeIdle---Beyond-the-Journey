@@ -244,7 +244,7 @@
 }
 
 .status-evo-arrow small {
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .status-matchups {
@@ -265,7 +265,7 @@
 
 .status-row-types .type-badge {
   min-width: 46px;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .more-types {
@@ -446,7 +446,7 @@
 }
 
 .lab-hint {
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   color: var(--ink-muted);
   letter-spacing: 0.5px;
 }

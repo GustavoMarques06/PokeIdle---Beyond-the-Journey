@@ -1,6 +1,7 @@
-// POKéDEX: aparelho vermelho com tela de detalhes e grade de espécies, filtros por região e tipo.
+// POKéDEX: o aparelho vermelho. Lente e LEDs na tampa, tela principal com a espécie, botão do
+// grito, direcional (↑↓ espécie, ←→ aba), tela de abas e a lista no visor escuro.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import {
   DEX_MILESTONES,
   ROUTES,
@@ -24,6 +25,7 @@ import {
   type GameState,
 } from '../../core/game';
 import { setHuntTarget } from '../../core/hunt';
+import { audio } from '../audio';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, Shiny, TypeBadge, Window } from '../components/common';
 import { STAT_NAMES, TYPE_NAMES, formatNumber, formatPercent, itemName, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
@@ -44,12 +46,36 @@ function evolutionLine(speciesId: number): number[] {
   return out;
 }
 
+type Tab = 'stats' | 'line' | 'research' | 'where';
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'stats', label: 'DADOS' },
+  { id: 'line', label: 'EVOLUÇÃO' },
+  { id: 'research', label: 'PESQUISA' },
+  { id: 'where', label: 'HABITAT' },
+];
+
+const num = (id: number) => String(id).padStart(3, '0');
+
+/**
+ * A lista desenha só as linhas à vista (mais uma folga): com 668 espécies, renderizar todas
+ * criava centenas de linhas e disparava o download de centenas de ícones a cada abertura.
+ * ROW_H e LIST_PAD seguem .dex-row e .dex-list (screens.css); LIST_H é o max-height da lista.
+ */
+const ROW_H = 34;
+const LIST_PAD = 4;
+const LIST_H = 340;
+const OVERSCAN = 6;
+
 export function DexScreen({ state }: { state: GameState }) {
   const engine = useEngine();
   const [region, setRegion] = useState<number | 'all'>('all');
   const [type, setType] = useState<string>('all');
   const [status, setStatus] = useState<Status>('all');
   const [selected, setSelected] = useState<number>(state.collection[0].speciesId);
+  const [tab, setTab] = useState<Tab>('stats');
+  const listRef = useRef<HTMLUListElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   const seen = SPECIES.filter((s) => state.pokedex[s.id]?.seen).length;
   const caught = SPECIES.filter((s) => state.pokedex[s.id]?.caught).length;
@@ -79,150 +105,285 @@ export function DexScreen({ state }: { state: GameState }) {
       ];
     }),
   ];
+  const total = Object.values(sp.baseStats).reduce((a, v) => a + v, 0);
+
+  // Janela da lista: só as linhas entre `first` e `last` são desenhadas.
+  const first = Math.max(0, Math.floor((scrollTop - LIST_PAD) / ROW_H) - OVERSCAN);
+  const last = Math.min(list.length, Math.ceil((scrollTop + LIST_H) / ROW_H) + OVERSCAN);
+  const selectedIndex = list.findIndex((s) => s.id === selected);
+
+  // A linha selecionada fica sempre à vista na lista (sem rolar a página inteira). A posição
+  // vem do índice, porque a linha pode ainda não estar desenhada.
+  useEffect(() => {
+    const box = listRef.current;
+    if (!box || selectedIndex < 0) return;
+    const top = LIST_PAD + selectedIndex * ROW_H;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (top + ROW_H > box.scrollTop + box.clientHeight) box.scrollTop = top + ROW_H - box.clientHeight;
+  }, [selectedIndex]);
+
+  /** Direcional ↑↓: anda pela lista filtrada. */
+  const step = (dir: 1 | -1) => {
+    if (!list.length) return;
+    setSelected(list[(selectedIndex + dir + list.length) % list.length].id);
+    audio.sfx('cursor');
+  };
+  /** Direcional ←→: troca a aba da segunda tela. */
+  const stepTab = (dir: 1 | -1) => {
+    const at = TABS.findIndex((t) => t.id === tab);
+    setTab(TABS[(at + dir + TABS.length) % TABS.length].id);
+    audio.sfx('cursor');
+  };
+  const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).tagName === 'SELECT') return;
+    const act = {
+      ArrowUp: () => step(-1),
+      ArrowDown: () => step(1),
+      ArrowLeft: () => stepTab(-1),
+      ArrowRight: () => stepTab(1),
+    }[e.key];
+    if (!act) return;
+    e.preventDefault();
+    act();
+  };
 
   return (
-    <div className="dex frame frame-dex">
-      <div className="dex-header">
-        <PixelIcon name="pokedex" scale={2} />
-        <strong>POKéDEX</strong>
-        <span>
-          VISTOS {seen} · CAPTURADOS {caught}/{SPECIES.length}
-        </span>
-      </div>
+    <>
+      <div className="dex-device" onKeyDown={onKeyDown}>
+        {/* Tampa: lente azul (pisca a cada espécie nova), LEDs e o visor com os totais. */}
+        <div className="dex-top">
+          <span key={selected} className="dex-lens" aria-hidden />
+          <span className="dex-leds" aria-hidden>
+            <i className="led-red" />
+            <i className="led-yellow" />
+            <i className="led-green" />
+          </span>
+          <strong className="dex-brand">POKéDEX</strong>
+          <span className="dex-totals">
+            <span>
+              VISTOS <b>{seen}</b>
+            </span>
+            <span>
+              CAPT. <b>{caught}</b>/{SPECIES.length}
+            </span>
+          </span>
+        </div>
 
-      <div className="dex-screen frame frame-screen">
-        <div className="dex-detail">
-          <div className="dex-portrait">
-            <PokemonSprite speciesId={selected} kind="front" silhouette={!known} pixelScale={2} />
-          </div>
-          <div className="dex-facts">
-            <div className="dex-title">
-              Nº{String(sp.id).padStart(3, '0')} {known ? sp.name.toUpperCase() : '?????'}
-              {entry?.shinyCaught && <Shiny />}
+        <div className="dex-body">
+          {/* Tela principal, na moldura cinza com o ponto vermelho e o alto-falante. */}
+          <div className="dex-bezel">
+            <div className="dex-lcd dex-main">
+              <div className="dex-portrait">
+                <PokemonSprite speciesId={selected} kind="front" silhouette={!known} pixelScale={2} />
+              </div>
+              <div className="dex-facts">
+                <span className="dex-no">Nº{num(sp.id)}</span>
+                <strong className="dex-title">
+                  {known ? sp.name.toUpperCase() : '?????'}
+                  {entry?.shinyCaught && <Shiny />}
+                </strong>
+                <span className="dex-genus">{known ? sp.genus : 'Pokémon desconhecido'}</span>
+                {known && (
+                  <span className="types">
+                    {sp.types.map((t) => (
+                      <TypeBadge key={t} type={t} />
+                    ))}
+                  </span>
+                )}
+                <span className={`dex-state ${entry?.caught ? 'caught' : known ? 'seen' : ''}`}>
+                  {entry?.caught && <PixelIcon name="miniBall" scale={2} />}
+                  {entry?.caught ? 'CAPTURADO' : known ? 'VISTO' : 'NÃO ENCONTRADO'}
+                </span>
+              </div>
             </div>
-            <div className="dex-genus">{known ? sp.genus : 'Pokémon desconhecido'}</div>
-            {known && (
-              <div className="types">
-                {sp.types.map((t) => (
-                  <TypeBadge key={t} type={t} />
-                ))}
+            <div className="dex-bezel-foot" aria-hidden>
+              <i className="dex-bezel-dot" />
+              <span className="dex-speaker" />
+            </div>
+          </div>
+
+          {/* Controles: botão do grito, visor verde e direcional. */}
+          <div className="dex-controls">
+            <button
+              className="dex-round"
+              onClick={() => audio.cry(selected)}
+              disabled={!known}
+              title={known ? 'Ouvir o grito' : 'Espécie ainda não vista'}
+              aria-label="Ouvir o grito"
+            />
+            <span className="dex-green">
+              {known ? sp.types.map((t) => TYPE_NAMES[t].toUpperCase()).join(' / ') : '???'}
+              {known && <small>BST {total}</small>}
+            </span>
+            <div className="dex-dpad" role="group" aria-label="Direcional">
+              <button
+                className="up"
+                onClick={() => step(-1)}
+                title="Espécie anterior (↑)"
+                aria-label="Espécie anterior"
+              />
+              <button
+                className="left"
+                onClick={() => stepTab(-1)}
+                title="Aba anterior (←)"
+                aria-label="Aba anterior"
+              />
+              <span className="mid" />
+              <button
+                className="right"
+                onClick={() => stepTab(1)}
+                title="Próxima aba (→)"
+                aria-label="Próxima aba"
+              />
+              <button
+                className="down"
+                onClick={() => step(1)}
+                title="Próxima espécie (↓)"
+                aria-label="Próxima espécie"
+              />
+            </div>
+          </div>
+
+          {/* Segunda tela: uma aba por vez, em vez de tudo empilhado. */}
+          <div className="dex-tabs" role="tablist" aria-label="Informações da espécie">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={tab === t.id ? 'active' : ''}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="dex-lcd dex-info" role="tabpanel">
+            {!known ? (
+              <p className="dex-unknown">Sem dados. Encontre esta espécie para registrá-la.</p>
+            ) : tab === 'stats' ? (
+              <table className="dex-stats">
+                <tbody>
+                  {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => (
+                    <tr key={k}>
+                      <th>{STAT_NAMES[k].toUpperCase()}</th>
+                      <td>{sp.baseStats[k]}</td>
+                      <td className="dex-statbar">
+                        <span className="dex-stat-track">
+                          <span
+                            className={`dex-stat-fill ${sp.baseStats[k] >= 100 ? 'high' : sp.baseStats[k] < 50 ? 'low' : ''}`}
+                            style={{ width: `${Math.min(100, (sp.baseStats[k] / 160) * 100)}%` }}
+                          />
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : tab === 'line' ? (
+              <>
+                <div className="dex-line">
+                  {evolutionLine(selected).map((id, i) => (
+                    <span key={id} className="dex-line-step">
+                      {i > 0 && <span className="dex-arrow">›</span>}
+                      <button
+                        className={id === selected ? 'current' : ''}
+                        onClick={() => setSelected(id)}
+                        title={state.pokedex[id]?.seen ? speciesName(id) : '???'}
+                      >
+                        <PokemonSprite speciesId={id} kind="icon" silhouette={!state.pokedex[id]?.seen} />
+                        <small>{state.pokedex[id]?.seen ? speciesName(id) : '???'}</small>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                {formSet(selected) && <FormCollection state={state} speciesId={selected} />}
+              </>
+            ) : tab === 'research' ? (
+              <ResearchJournal state={state} speciesId={selected} />
+            ) : (
+              <div className="dex-where">
+                <p>
+                  <b>ONDE APARECE</b>
+                  {habitats.length ? habitats.join(', ') : 'evolução, ovo ou evento'}
+                </p>
+                <div className="dex-hunt">
+                  <span>
+                    <b>ENCONTROS</b> {formatNumber(state.hunt.counts[selected] ?? 0)}
+                  </span>
+                  {state.hunt.target === selected ? (
+                    <span className="tag tag-active">ALVO DA CAÇA</span>
+                  ) : (
+                    <button
+                      className="pbtn small"
+                      onClick={() => engine.dispatch((s) => setHuntTarget(s, selected))}
+                    >
+                      <PixelIcon name="target" scale={1} /> Caçar shiny
+                    </button>
+                  )}
+                </div>
               </div>
             )}
-            <div className="dex-state">
-              {entry?.caught ? (
-                <>
-                  <PixelIcon name="miniBall" scale={2} /> CAPTURADO
-                </>
-              ) : known ? (
-                'VISTO'
-              ) : (
-                'NÃO ENCONTRADO'
-              )}
-            </div>
           </div>
-        </div>
-        {known && (
-          <>
-            <table className="dex-stats">
-              <tbody>
-                {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => (
-                  <tr key={k}>
-                    <th>{STAT_NAMES[k].toUpperCase()}</th>
-                    <td>{sp.baseStats[k]}</td>
-                    <td className="dex-statbar">
-                      <Bar value={sp.baseStats[k]} max={160} tone="grass" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="dex-line">
-              {evolutionLine(selected).map((id, i) => (
-                <span key={id} className="dex-line-step">
-                  {i > 0 && <span className="dex-arrow">›</span>}
-                  <button
-                    onClick={() => setSelected(id)}
-                    title={state.pokedex[id]?.seen ? speciesName(id) : '???'}
-                  >
-                    <PokemonSprite speciesId={id} kind="icon" silhouette={!state.pokedex[id]?.seen} />
-                  </button>
-                </span>
+
+          <div className="dex-filters">
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              aria-label="Região"
+            >
+              <option value="all">Região</option>
+              {REGIONS.map((r) => (
+                <option key={r.generation} value={r.generation}>
+                  {r.region}
+                </option>
               ))}
-            </div>
-          </>
-        )}
-        <div className="dex-habitat">
-          HABITAT: {habitats.length ? habitats.join(', ') : known ? 'evolução, ovo ou evento' : '???'}
-        </div>
-        {known && <ResearchJournal state={state} speciesId={selected} />}
-        {known && formSet(selected) && <FormCollection state={state} speciesId={selected} />}
-        {known && (
-          <div className="dex-hunt">
-            ENCONTROS: {formatNumber(state.hunt.counts[selected] ?? 0)}
-            {state.hunt.target === selected ? (
-              <span className="tag tag-active">ALVO DA CAÇA</span>
-            ) : (
-              <button
-                className="pbtn small"
-                onClick={() => engine.dispatch((s) => setHuntTarget(s, selected))}
-              >
-                <PixelIcon name="target" scale={1} /> Caçar shiny
-              </button>
-            )}
+            </select>
+            <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Tipo">
+              <option value="all">Tipo</option>
+              {TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {TYPE_NAMES[t]}
+                </option>
+              ))}
+            </select>
+            <select value={status} onChange={(e) => setStatus(e.target.value as Status)} aria-label="Estado">
+              <option value="all">Estado</option>
+              <option value="caught">Capturados</option>
+              <option value="seen">Só vistos</option>
+              <option value="missing">Faltando</option>
+            </select>
           </div>
-        )}
-      </div>
 
-      <div className="dex-filters">
-        <select
-          value={region}
-          onChange={(e) => setRegion(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          aria-label="Região"
-        >
-          <option value="all">Região</option>
-          {REGIONS.map((r) => (
-            <option key={r.generation} value={r.generation}>
-              {r.region}
-            </option>
-          ))}
-        </select>
-        <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Tipo">
-          <option value="all">Tipo</option>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {TYPE_NAMES[t]}
-            </option>
-          ))}
-        </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value as Status)} aria-label="Estado">
-          <option value="all">Estado</option>
-          <option value="caught">Capturados</option>
-          <option value="seen">Só vistos</option>
-          <option value="missing">Faltando</option>
-        </select>
+          {/* Lista no visor escuro: número, ícone, nome e a Poké Ball de capturado. */}
+          <ul className="dex-list" ref={listRef} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
+            {first > 0 && <li className="dex-spacer" style={{ height: first * ROW_H }} aria-hidden />}
+            {list.slice(first, last).map((s) => {
+              const d = state.pokedex[s.id];
+              return (
+                <li key={s.id}>
+                  <button
+                    className={`dex-row ${selected === s.id ? 'selected' : ''} ${d?.caught ? 'caught' : d?.seen ? 'seen' : ''}`}
+                    onClick={() => setSelected(s.id)}
+                  >
+                    <span className="dex-row-num">{num(s.id)}</span>
+                    <PokemonSprite speciesId={s.id} kind="icon" silhouette={!d?.seen} />
+                    <span className="dex-row-name">{d?.seen ? s.name.toUpperCase() : '----------'}</span>
+                    {d?.caught && <PixelIcon name="miniBall" scale={2} className="dex-caught" />}
+                  </button>
+                </li>
+              );
+            })}
+            {last < list.length && (
+              <li className="dex-spacer" style={{ height: (list.length - last) * ROW_H }} aria-hidden />
+            )}
+            {!list.length && <li className="dex-empty">Nenhuma espécie com esses filtros.</li>}
+          </ul>
+        </div>
       </div>
-
-      <ul className="dex-grid frame frame-screen">
-        {list.map((s) => {
-          const d = state.pokedex[s.id];
-          return (
-            <li key={s.id}>
-              <button
-                className={`dex-cell ${selected === s.id ? 'selected' : ''} ${d?.caught ? 'caught' : d?.seen ? 'seen' : ''}`}
-                onClick={() => setSelected(s.id)}
-              >
-                <span className="dex-num">{String(s.id).padStart(3, '0')}</span>
-                <PokemonSprite speciesId={s.id} kind="icon" silhouette={!d?.seen} />
-                {d?.caught && <PixelIcon name="miniBall" scale={1} className="dex-caught" />}
-              </button>
-            </li>
-          );
-        })}
-        {!list.length && <li className="dex-empty">Nenhuma espécie com esses filtros.</li>}
-      </ul>
 
       <DexRewards state={state} />
-    </div>
+    </>
   );
 }
 

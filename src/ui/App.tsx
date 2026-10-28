@@ -1,13 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import type { GameEvent, GameState } from '../core/game';
 import { audio } from './audio';
 import { BattleDialog, type ScreenId } from './battle/BattleDialog';
 import { BattleScene } from './battle/BattleScene';
-import { ActiveCard } from './components/ActiveCard';
-import { GameMenu, MENU_ITEMS } from './components/GameMenu';
+import { GameMenu, MENU_ITEMS, menuKey } from './components/GameMenu';
 import { Hud } from './components/Hud';
 import { OfflineReport } from './components/OfflineReport';
 import { ProfessorCall } from './components/ProfessorCall';
+import { SaveIndicator } from './components/SaveIndicator';
 import { Intro } from './intro/Intro';
 import { Toasts } from './components/Toasts';
 import { useHotkeys } from './hotkeys';
@@ -15,21 +15,37 @@ import { PartyScreen } from './screens/PartyScreen';
 import { seenFlag, tipFlag, unseenTabs } from './screens/activities/tabs';
 import { useEngine, useGameEvents, useGameState } from './useGame';
 
-// A tela de equipe abre primeiro; as demais são carregadas quando o jogador as abre.
-const ActivitiesScreen = lazy(() =>
+// A tela de equipe abre primeiro; as demais vêm em pedaços separados, baixados em segundo
+// plano logo depois que o jogo abre (preloadScreens). Sem isso, a primeira abertura de cada
+// aba mostrava "Carregando…" por no mínimo ~300 ms (o React segura o aviso para não piscar).
+const screenLoaders: (() => Promise<unknown>)[] = [];
+type ScreenModule = { default: ComponentType<{ state: GameState }> };
+
+function lazyScreen(load: () => Promise<ScreenModule>) {
+  screenLoaders.push(load);
+  return lazy(load);
+}
+
+/** Baixa (no teste: compila) todas as telas sob demanda. */
+export function preloadScreens(): Promise<void> {
+  return Promise.all(screenLoaders.map((load) => load())).then(() => undefined);
+}
+
+const ActivitiesScreen = lazyScreen(() =>
   import('./screens/ActivitiesScreen').then((m) => ({ default: m.ActivitiesScreen })),
 );
-const BagScreen = lazy(() => import('./screens/BagScreen').then((m) => ({ default: m.BagScreen })));
-const DexScreen = lazy(() => import('./screens/DexScreen').then((m) => ({ default: m.DexScreen })));
-const MapScreen = lazy(() => import('./screens/MapScreen').then((m) => ({ default: m.MapScreen })));
-const ShopScreen = lazy(() => import('./screens/ShopScreen').then((m) => ({ default: m.ShopScreen })));
-const MissionsScreen = lazy(() =>
+const BagScreen = lazyScreen(() => import('./screens/BagScreen').then((m) => ({ default: m.BagScreen })));
+const DexScreen = lazyScreen(() => import('./screens/DexScreen').then((m) => ({ default: m.DexScreen })));
+const MapScreen = lazyScreen(() => import('./screens/MapScreen').then((m) => ({ default: m.MapScreen })));
+const ShopScreen = lazyScreen(() => import('./screens/ShopScreen').then((m) => ({ default: m.ShopScreen })));
+const MissionsScreen = lazyScreen(() =>
   import('./screens/MissionsScreen').then((m) => ({ default: m.MissionsScreen })),
 );
-const TrainerScreen = lazy(() =>
+const TrainerScreen = lazyScreen(() =>
   import('./screens/TrainerScreen').then((m) => ({ default: m.TrainerScreen })),
 );
-const UpgradesScreen = lazy(() =>
+const PcScreen = lazyScreen(() => import('./screens/PcScreen').then((m) => ({ default: m.PcScreen })));
+const UpgradesScreen = lazyScreen(() =>
   import('./screens/UpgradesScreen').then((m) => ({ default: m.UpgradesScreen })),
 );
 
@@ -92,15 +108,49 @@ export function App() {
         <OfflineReport report={engine.offlineReport} onClose={() => engine.dismissOfflineReport()} />
       )}
       {inGame && <Toasts />}
+      {inGame && <SaveIndicator />}
     </>
   );
 }
 
 const BOSS_MUSIC = new Set<GameState['battle']['kind']>(['boss', 'legendary', 'raid']);
 
+const IDLE_MS = 12_000;
+
+/** true depois de IDLE_MS sem mouse, toque ou teclado: o HUD esmaece e a batalha fica em foco. */
+function useIdle(): boolean {
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    let timer = 0;
+    const wake = () => {
+      setIdle(false);
+      clearTimeout(timer);
+      timer = window.setTimeout(() => setIdle(true), IDLE_MS);
+    };
+    const events = ['pointermove', 'pointerdown', 'keydown', 'wheel'] as const;
+    for (const e of events) window.addEventListener(e, wake, { passive: true });
+    wake();
+    return () => {
+      clearTimeout(timer);
+      for (const e of events) window.removeEventListener(e, wake);
+    };
+  }, []);
+  return idle;
+}
+
 function GameScreen({ state }: { state: GameState }) {
   const [screen, setScreen] = useState<ScreenId>('party');
   const area = useRef<HTMLDivElement>(null);
+  const idle = useIdle();
+  // Baixa as outras telas quando o navegador estiver ocioso (ou logo depois, sem essa API).
+  useEffect(() => {
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(() => void preloadScreens(), { timeout: 2000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(() => void preloadScreens(), 200);
+    return () => window.clearTimeout(id);
+  }, []);
   const open = useCallback((id: ScreenId, viaKeyboard = false) => {
     setScreen(id);
     // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.
@@ -110,7 +160,7 @@ function GameScreen({ state }: { state: GameState }) {
     // Pelo teclado, o foco vai para a tela aberta (leitores de tela anunciam o conteúdo novo).
     if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
   }, []);
-  useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [String(i + 1), () => open(item.id, true)])));
+  useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [menuKey(i), () => open(item.id, true)])));
   // Música: tema de chefe nas lutas que valem algo (líder, rival, Elite, lendário, raide).
   const bossFight = BOSS_MUSIC.has(state.battle.kind);
   useEffect(() => audio.setTrack(bossFight ? 'boss' : 'game'), [bossFight]);
@@ -128,7 +178,7 @@ function GameScreen({ state }: { state: GameState }) {
   }, [engine, onboarded]);
 
   return (
-    <div className="game game-enter">
+    <div className={`game game-enter ${idle ? 'idle' : ''}`}>
       <nav className="skip-links" aria-label="Atalhos de navegação">
         <a href="#game-menu">Pular para o menu</a>
         <a href="#screen-area">Pular para a tela aberta</a>
@@ -139,7 +189,6 @@ function GameScreen({ state }: { state: GameState }) {
         <BattleDialog state={state} onOpen={open} />
       </main>
       <aside className="side-column">
-        <ActiveCard state={state} onOpen={() => open('party')} />
         <GameMenu state={state} current={screen} onSelect={open} />
         {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
         <div
@@ -152,7 +201,7 @@ function GameScreen({ state }: { state: GameState }) {
           aria-label={MENU_ITEMS.find((m) => m.id === screen)?.label}
         >
           <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
-            {screen === 'party' && <PartyScreen state={state} />}
+            {screen === 'party' && <PartyScreen state={state} onOpenPc={() => open('pc')} />}
             {screen === 'dex' && <DexScreen state={state} />}
             {screen === 'bag' && <BagScreen state={state} />}
             {screen === 'shop' && <ShopScreen state={state} />}
@@ -161,6 +210,7 @@ function GameScreen({ state }: { state: GameState }) {
             {screen === 'missions' && <MissionsScreen state={state} />}
             {screen === 'trainer' && <TrainerScreen state={state} />}
             {screen === 'upgrades' && <UpgradesScreen state={state} />}
+            {screen === 'pc' && <PcScreen state={state} />}
           </Suspense>
         </div>
       </aside>

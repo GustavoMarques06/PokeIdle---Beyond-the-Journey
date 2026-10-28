@@ -1,4 +1,5 @@
 import { BALANCE, getSpecies, type Evolution, type TimeOfDay } from '../game-data';
+import { genderOf } from './gender';
 import { friendshipOf, heldOf, knownMoves, statsOf, type PokemonInstance } from './pokemon';
 import { expForLevel, levelFromExp } from './stats';
 
@@ -33,6 +34,9 @@ export function coinYield(level: number, isBoss: boolean, receiverLevel: number)
 
 const timeMatches = (e: Evolution, period: TimeOfDay) => !e.time || e.time === period;
 
+/** Evolução de um gênero só (Gallade, Froslass, Vespiquen). */
+const genderMatches = (e: Evolution, p: PokemonInstance) => !e.gender || genderOf(p) === e.gender;
+
 /** Pedra Eterna (na Mochila, travando) ou segurada impede evoluir. */
 export const evolutionBlocked = (p: PokemonInstance) => !!p.evolutionLocked || !!heldOf(p)?.everstone;
 
@@ -52,7 +56,11 @@ export function levelEvolution(
   if (evolutionBlocked(p)) return undefined;
   return getSpecies(p.speciesId).evolutions.find(
     (e): e is Extract<Evolution, { trigger: 'level' }> =>
-      e.trigger === 'level' && p.level >= e.minLevel && timeMatches(e, period) && conditionMet(e, p),
+      e.trigger === 'level' &&
+      p.level >= e.minLevel &&
+      timeMatches(e, period) &&
+      genderMatches(e, p) &&
+      conditionMet(e, p),
   );
 }
 
@@ -64,7 +72,10 @@ export function friendshipEvolution(
   const friendship = friendshipOf(p);
   return getSpecies(p.speciesId).evolutions.find(
     (e): e is Extract<Evolution, { trigger: 'friendship' }> =>
-      e.trigger === 'friendship' && friendship >= e.minFriendship && timeMatches(e, period),
+      e.trigger === 'friendship' &&
+      friendship >= e.minFriendship &&
+      timeMatches(e, period) &&
+      genderMatches(e, p),
   );
 }
 
@@ -91,7 +102,7 @@ export function itemEvolution(
   period: TimeOfDay = 'day',
 ): number | undefined {
   return getSpecies(p.speciesId).evolutions.find(
-    (e) => e.trigger === 'item' && e.item === item && timeMatches(e, period),
+    (e) => e.trigger === 'item' && e.item === item && timeMatches(e, period) && genderMatches(e, p),
   )?.to;
 }
 

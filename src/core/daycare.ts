@@ -1,12 +1,13 @@
 // Creche: dois Pokémon compatíveis produzem ovos com as vitórias do jogador.
 // Os ovos chocam com vitórias ou com o tempo real (o que vier antes).
 
-import { BALANCE, getSpecies, lineRoot, speciesId } from '../game-data';
+import { BALANCE, getSpecies, hasMove, lineRoot, speciesId } from '../game-data';
 import { computeModifiers } from './bonuses';
 import { activityUnlocked, addToCollection, busyUids, findPokemon } from './collection';
 import type { GameEvent, GameState } from './game';
+import { genderOf } from './gender';
 import { progressMission } from './missions';
-import { isPerfect, randomIvs, rollShiny, type PokemonInstance } from './pokemon';
+import { isPerfect, movesOf, randomIvs, rollShiny, type PokemonInstance } from './pokemon';
 import { setLevel } from './progression';
 import { rngFrom } from './rng';
 import type { Ivs } from './stats';
@@ -19,6 +20,8 @@ export interface Egg {
   /** Ciclos necessários para chocar e ciclos já cumpridos. */
   cycles: number;
   progress: number;
+  /** Golpes de ovo que algum dos pais conhecia. */
+  eggMoves?: string[];
 }
 
 export interface DaycareState {
@@ -39,11 +42,22 @@ function canBreed(id: number): boolean {
 }
 
 /** Dois Pokémon podem ter ovos se compartilham um grupo de ovos (ou um deles é Ditto). */
-export function compatible(a: { speciesId: number }, b: { speciesId: number }): boolean {
-  if (!canBreed(a.speciesId) || !canBreed(b.speciesId)) return false;
-  if (a.speciesId === DITTO || b.speciesId === DITTO) return a.speciesId !== b.speciesId;
+type Parent = Pick<PokemonInstance, 'speciesId'> & Partial<Pick<PokemonInstance, 'uid' | 'gender'>>;
+
+/** Por que o par não gera ovos (null = gera). */
+export function incompatibility(a: Parent, b: Parent): 'species' | 'groups' | 'gender' | null {
+  if (!canBreed(a.speciesId) || !canBreed(b.speciesId)) return 'species';
+  if (a.speciesId === DITTO || b.speciesId === DITTO) return a.speciesId !== b.speciesId ? null : 'species';
   const groups = getSpecies(b.speciesId).eggGroups;
-  return getSpecies(a.speciesId).eggGroups.some((g) => groups.includes(g));
+  if (!getSpecies(a.speciesId).eggGroups.some((g) => groups.includes(g))) return 'groups';
+  // Fora o Ditto, é preciso um macho e uma fêmea (sem gênero só cruza com Ditto).
+  const ga = genderOf(a);
+  const gb = genderOf(b);
+  return ga && gb && ga !== gb ? null : 'gender';
+}
+
+export function compatible(a: Parent, b: Parent): boolean {
+  return incompatibility(a, b) === null;
 }
 
 export function daycarePokemon(state: GameState): PokemonInstance[] {
@@ -51,9 +65,16 @@ export function daycarePokemon(state: GameState): PokemonInstance[] {
 }
 
 /** Espécie que sai do ovo: a primeira da linha do pai que não é Ditto. */
-export function eggSpeciesOf(a: { speciesId: number }, b: { speciesId: number }): number {
-  const parent = a.speciesId === DITTO ? b : a;
+/** O ovo é da linha da mãe (ou do pai que não é Ditto). */
+export function eggSpeciesOf(a: Parent, b: Parent): number {
+  const parent = a.speciesId === DITTO ? b : b.speciesId === DITTO ? a : genderOf(b) === 'f' ? b : a;
   return lineRoot(parent.speciesId);
+}
+
+/** Golpes de ovo da espécie que algum dos pais conhece. */
+export function inheritedEggMoves(speciesId: number, a: PokemonInstance, b: PokemonInstance): string[] {
+  const known = new Set([...movesOf(a), ...movesOf(b)]);
+  return getSpecies(speciesId).eggMoves.filter((m) => known.has(m) && hasMove(m));
 }
 
 export function daycareCompatible(state: GameState): boolean {
@@ -86,6 +107,7 @@ function makeEgg(state: GameState): Egg {
   }
   const species = eggSpeciesOf(a, b);
   const shiny = rollShiny(rng, BALANCE.daycare.shinyMultiplier * computeModifiers(state).shiny);
+  const eggMoves = inheritedEggMoves(species, a, b);
   return {
     id: state.nextUid++,
     speciesId: species,
@@ -93,6 +115,7 @@ function makeEgg(state: GameState): Egg {
     shiny,
     cycles: getSpecies(species).hatchCounter,
     progress: 0,
+    ...(eggMoves.length ? { eggMoves } : {}),
   };
 }
 
@@ -140,6 +163,11 @@ export function hatchReadyEggs(state: GameState, now: number, events: GameEvent[
       'Creche',
     );
     p.friendship = BALANCE.friendship.hatch;
+    // Nasce sabendo os golpes de ovo (o resto da lista vem dos golpes de nível).
+    if (egg.eggMoves?.length) {
+      p.eggMoves = egg.eggMoves;
+      p.moveset = [...new Set([...egg.eggMoves, ...movesOf(p)])].slice(0, BALANCE.maxMoves);
+    }
     state.stats.hatched++;
     progressMission(state, 'hatch', 1, events);
     events.push({ type: 'hatched', uid: p.uid, speciesId: p.speciesId, shiny: p.shiny, isNew });

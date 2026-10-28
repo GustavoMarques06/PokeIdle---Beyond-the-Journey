@@ -26,10 +26,16 @@ export type EvoCondition = 'atk>def' | 'def>atk' | 'atk=def' | 'uid-even' | 'uid
  * Evolução por nível, por item ou por amizade (com período do dia opcional, como
  * Espeon/Umbreon).
  */
-export type Evolution =
+export type Evolution = (
   | { to: number; trigger: 'level'; minLevel: number; time?: TimeOfDay; cond?: EvoCondition }
   | { to: number; trigger: 'item'; item: string; time?: TimeOfDay }
-  | { to: number; trigger: 'friendship'; minFriendship: number; time?: TimeOfDay };
+  | { to: number; trigger: 'friendship'; minFriendship: number; time?: TimeOfDay }
+) & {
+  /** Só machos ('m') ou só fêmeas ('f') evoluem assim (Gallade, Froslass, Vespiquen). */
+  gender?: Gender;
+};
+
+export type Gender = 'm' | 'f';
 
 export interface LearnsetEntry {
   level: number;
@@ -64,6 +70,10 @@ export interface Species {
   learnset: LearnsetEntry[];
   /** Golpes de dano que a espécie aprende por máquina/tutor (Black 2/White 2). */
   tmMoves: string[];
+  /** Golpes de ovo: herdados na Creche quando um dos pais conhece o golpe. */
+  eggMoves: string[];
+  /** −1 = sem gênero; 0 a 8 = oitavos de chance de ser fêmea. */
+  genderRate: number;
   /** Geração de origem (1 a 5). */
   generation: number;
   sprites: SpeciesSprites;

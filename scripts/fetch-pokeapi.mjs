@@ -82,6 +82,11 @@ const UI_ITEMS = [
   'teachy-tv', 'pokemon-box', 'escape-rope', 'dowsing-machine', 'berry-pouch', 'oval-charm', 'tm-case', 'pokeblock-case',
 ];
 const SHOP_ITEMS = ['poke-ball', 'great-ball', 'ultra-ball', 'moon-stone', 'thunder-stone', 'water-stone', 'leaf-stone', 'fire-stone'];
+/** Bolas especiais, repelentes e incensos (ver capture.ts e lures.ts). */
+const CAPTURE_ITEMS = [
+  'net-ball', 'dusk-ball', 'quick-ball', 'timer-ball', 'repeat-ball', 'nest-ball', 'luxury-ball', 'heal-ball',
+  'repel', 'super-repel', 'max-repel', 'sea-incense', 'rose-incense', 'rock-incense', 'odd-incense',
+];
 const ICON_SHEET = { url: `${SHOWDOWN}/sprites/pokemonicons-sheet.png`, cols: 12, w: 40, h: 30 };
 
 // --- utilidades ------------------------------------------------------------------
@@ -287,6 +292,7 @@ async function main() {
   for (const p of WORLD.GAME_CORNER_PRIZES) if (p.move) moveNames.add(p.move);
   const learnsets = new Map();
   const machines = new Map();
+  const eggMovesById = new Map();
   for (const { id, pokemon } of raw) {
     const levelUp = (group) =>
       pokemon.moves.flatMap((m) =>
@@ -309,6 +315,16 @@ async function main() {
     const tm = TM_VERSION_GROUPS.map(taught).find((list) => list.length > 0) ?? [];
     for (const m of tm) moveNames.add(m);
     machines.set(id, tm);
+    // Golpes de ovo: herdados na Creche quando um dos pais conhece o golpe.
+    const bred = (group) =>
+      pokemon.moves
+        .filter((m) =>
+          m.version_group_details.some((v) => v.version_group.name === group && v.move_learn_method.name === 'egg'),
+        )
+        .map((m) => m.move.name);
+    const egg = LEARNSET_VERSION_GROUPS.map(bred).find((list) => list.length > 0) ?? [];
+    for (const m of egg) moveNames.add(m);
+    eggMovesById.set(id, egg);
   }
 
   console.log(`Buscando ${moveNames.size} golpes...`);
@@ -389,6 +405,7 @@ async function main() {
       .sort((a, b) => a.level - b.level);
     if (!learnset.some((l) => l.level <= 1)) learnset.unshift({ level: 1, move: FALLBACK_MOVE });
     const tmMoves = [...new Set(machines.get(id).filter((m) => moves[m]))].sort();
+    const eggMoves = [...new Set(eggMovesById.get(id).filter((m) => moves[m]))].sort();
 
     const bw = pokemon.sprites.versions['generation-v']['black-white'];
     const sdId = pokemon.name.replace(/[^a-z0-9]/g, '');
@@ -418,6 +435,9 @@ async function main() {
       evolutions,
       learnset,
       tmMoves,
+      eggMoves,
+      // -1 = sem gênero; 0 a 8 = oitavos de chance de ser fêmea.
+      genderRate: sp.gender_rate,
       generation: GENERATION_NUMBERS[sp.generation.name] ?? 0,
       sprites: {},
     };
@@ -465,7 +485,7 @@ async function main() {
   });
 
   // 5. Itens: básicos, interface, evoluções, recompensas, fósseis e berries.
-  const itemNames = new Set([...WORLD.EXTRA_ITEMS, ...UI_ITEMS, ...SHOP_ITEMS, ...evolutionItems]);
+  const itemNames = new Set([...WORLD.EXTRA_ITEMS, ...UI_ITEMS, ...SHOP_ITEMS, ...CAPTURE_ITEMS, ...evolutionItems]);
   for (const f of WORLD.FOSSILS) itemNames.add(f.item);
   for (const rt of routes) for (const it of Object.keys(rt.boss?.reward?.items ?? {})) itemNames.add(it);
   for (const e of WORLD.EXPEDITIONS) for (const rw of e.rewards) if (rw.item) itemNames.add(rw.item);

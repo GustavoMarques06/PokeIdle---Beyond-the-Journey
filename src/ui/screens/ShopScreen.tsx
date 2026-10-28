@@ -32,6 +32,12 @@ import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { Countdown, Locked } from './activities/shared';
 
+/** Jingle de item recebido quando a compra deu certo (sem dinheiro ou estoque, nada toca). */
+function gotItem<T>(result: T): T {
+  if (result) audio.sfx('itemGet');
+  return result;
+}
+
 type Store = 'mart' | 'dept' | 'merchant';
 
 const DEPT_SECTIONS: { id: DeptSection; label: string }[] = [
@@ -166,7 +172,7 @@ function Mart({ state, income }: { state: GameState; income: number }) {
                     <button
                       className="pbtn small"
                       disabled={state.coins < entry.price}
-                      onClick={() => engine.dispatch((s) => buy(s, entry.id))}
+                      onClick={() => engine.dispatch((s) => gotItem(buy(s, entry.id)))}
                     >
                       <Money value={entry.price} />
                     </button>
@@ -174,7 +180,7 @@ function Mart({ state, income }: { state: GameState; income: number }) {
                       <button
                         className="pbtn small"
                         disabled={state.coins < entry.price * 10}
-                        onClick={() => engine.dispatch((s) => buy(s, entry.id, 10))}
+                        onClick={() => engine.dispatch((s) => gotItem(buy(s, entry.id, 10)))}
                       >
                         ×10
                       </button>
@@ -259,7 +265,7 @@ function DeptStore({ state, income }: { state: GameState; income: number }) {
                     <button
                       className="pbtn small"
                       disabled={!here || state.coins < entry.price}
-                      onClick={() => engine.dispatch((s) => buyAtDeptStore(s, entry.id))}
+                      onClick={() => engine.dispatch((s) => gotItem(buyAtDeptStore(s, entry.id)))}
                     >
                       <Money value={entry.price} />
                     </button>
@@ -267,7 +273,7 @@ function DeptStore({ state, income }: { state: GameState; income: number }) {
                       <button
                         className="pbtn small"
                         disabled={!here || state.coins < entry.price * 10}
-                        onClick={() => engine.dispatch((s) => buyAtDeptStore(s, entry.id, 10))}
+                        onClick={() => engine.dispatch((s) => gotItem(buyAtDeptStore(s, entry.id, 10)))}
                       >
                         ×10
                       </button>
@@ -333,8 +339,7 @@ function Merchant({ state, income }: { state: GameState; income: number }) {
                     className="pbtn small"
                     disabled={o.stock <= 0 || state.coins < o.price}
                     onClick={() => {
-                      engine.dispatch((s, t) => buyFromMerchant(s, o.id, t));
-                      audio.sfx('coin');
+                      engine.dispatch((s, t) => gotItem(buyFromMerchant(s, o.id, t)));
                     }}
                   >
                     <Money value={o.price} />

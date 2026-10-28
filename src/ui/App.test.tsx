@@ -7,8 +7,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { advance } from '../core/game';
 import { memoryStorage } from '../core/save';
 import { GameEngine } from '../engine/GameEngine';
-import { App } from './App';
-import { MENU_ITEMS } from './components/GameMenu';
+import { App, preloadScreens } from './App';
+import { MENU_ITEMS, menuKey } from './components/GameMenu';
 import { pickNotifications } from './notify';
 import { EngineContext } from './useGame';
 
@@ -23,6 +23,11 @@ beforeAll(() => {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as never;
   window.scrollTo = vi.fn() as never;
 });
+
+// O Vitest compila cada tela sob demanda no primeiro import dinâmico; com a CPU disputada isso
+// passa de 1 s (no jogo, as telas já vêm compiladas). Compilar antes deixa o teste medir só
+// se as telas abrem.
+beforeAll(() => preloadScreens());
 
 afterEach(cleanup);
 
@@ -53,9 +58,9 @@ describe('interface', () => {
 
     for (const [i, item] of MENU_ITEMS.entries()) {
       await act(async () => {
-        fireEvent.keyDown(window, { key: String(i + 1) });
+        fireEvent.keyDown(window, { key: menuKey(i) });
       });
-      const button = screen.getByTitle(`${item.label} (tecla ${i + 1})`);
+      const button = screen.getByTitle(`${item.label} (tecla ${menuKey(i)})`);
       expect(button.getAttribute('aria-current')).toBe('true');
       // Telas carregadas sob demanda aparecem depois do Suspense.
       await waitFor(() => {
@@ -126,10 +131,13 @@ describe('interface', () => {
     fireEvent.click(labDialog());
     fireEvent.change(screen.getByLabelText('Apelido do inicial'), { target: { value: 'Croco' } });
     fireEvent.click(screen.getByText('OK'));
-    // O rival da região (Johto) chega e leva a bola com vantagem; a fala seguinte começa o jogo.
+    // O rival chega e leva a bola com vantagem (o de Kanto, onde toda jornada começa, mesmo
+    // com um inicial de Johto); a fala seguinte começa o jogo.
     expect(document.querySelector('.lab-rival')).not.toBeNull();
     fireEvent.click(labDialog());
     expect(labDialog().textContent).toContain('CROCO');
+    expect(labDialog().textContent).toContain('BLUE');
+    expect(labDialog().textContent).toContain('CHIKORITA');
     for (let i = 0; i < 3 && !engine.state; i++) fireEvent.click(labDialog());
     expect(engine.state?.starterId).toBe(158);
     expect(engine.state?.collection[0].nickname).toBe('Croco');
@@ -145,7 +153,7 @@ describe('interface', () => {
     // Qualquer tecla passa do "Pressione Start" para o menu.
     fireEvent.keyDown(window, { key: 'x' });
     expect(document.querySelector('.title-screen')).not.toBeNull();
-    expect(document.querySelector('.save-summary')!.textContent).toContain('BIA');
+    expect(document.querySelector('.save-card')!.textContent).toContain('BIA');
     fireEvent.click(screen.getByText('CONTINUAR'));
     expect(document.querySelector('.game')).not.toBeNull();
   });
@@ -159,6 +167,15 @@ describe('interface', () => {
     expect(document.querySelector('.coach')!.textContent).toContain('primeira rota');
     fireEvent.click(document.querySelector('.coach .pbtn')!);
     expect(engine.state!.flags).toContain('coach:battle');
+
+    // Sem nenhuma captura, a dica da Caixa não chega, mas a da rota não fica presa atrás dela.
+    act(() =>
+      engine.dispatch((s) => {
+        s.flags.push('coach:ball');
+        s.stats.totalKills = 6;
+      }),
+    );
+    expect(document.querySelector('.coach')!.textContent).toContain('barra da rota');
     cleanup();
 
     const veteran = new GameEngine(memoryStorage());
@@ -168,6 +185,29 @@ describe('interface', () => {
     pressStart();
     fireEvent.click(screen.getByText('CONTINUAR'));
     expect(document.querySelector('.coach')).toBeNull();
+  });
+
+  it('momentos clássicos: piscada de encontro, janela de nível e Centro Pokémon', () => {
+    const engine = new GameEngine(memoryStorage());
+    engine.newGame(4, 'Bia');
+    mount(engine);
+    pressStart();
+    fireEvent.click(screen.getByText('CONTINUAR'));
+    const s = engine.state!;
+    const uid = s.activeUid;
+
+    act(() => engine.dispatch(() => [{ type: 'spawn', speciesId: 19, level: 3, shiny: false, boss: false }]));
+    expect(document.querySelector('.enc-flash')).not.toBeNull();
+
+    // Janela de nível: primeiro o ganho de cada atributo ("+N").
+    act(() => engine.dispatch(() => [{ type: 'levelUp', uid, speciesId: 4, level: 6 }]));
+    const win = document.querySelector('.levelup-window')!;
+    expect(win.textContent).toContain('Nv. 6');
+    expect(win.textContent).toMatch(/ATQ\+\d/);
+
+    // Derrota: o Centro Pokémon aparece durante a recuperação.
+    act(() => engine.dispatch((st) => void (st.battle.phase = 'defeat')));
+    expect(document.querySelector('.pkcenter')!.textContent).toContain('Centro Pokémon');
   });
 
   it('o Professor fala uma vez ao liberar uma região nova', () => {

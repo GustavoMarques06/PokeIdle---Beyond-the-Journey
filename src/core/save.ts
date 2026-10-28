@@ -1,6 +1,6 @@
 // Salvamento local versionado, com backup e migrações explícitas.
 
-import { ROUTES, hasSpecies, isHeldItem, lineRoot } from '../game-data';
+import { ROUTES, getLure, hasMove, hasSpecies, isHeldItem, lineRoot } from '../game-data';
 import { isTagId } from './boxes';
 import { emptyDaycare } from './daycare';
 import { emptyNuzlocke } from './nuzlocke';
@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS, EMPTY_STATS, freshBattle, type GameState } from './ga
 import { emptyHunt } from './hunt';
 import { emptyLegends } from './legendary';
 import { emptyMissions } from './missions';
+import { isWallpaper } from './pc';
 import { natureFor } from './pokemon';
 import type { Ivs } from './stats';
 import { emptyTower } from './tower';
@@ -289,6 +290,35 @@ function normalize(state: GameState): void {
   for (const p of state.collection) if (p.form) recordForm(state, p.speciesId, p.form);
   state.mvp ??= { week: 0, wins: {} };
   state.tagNames ??= {};
+  // Repelente e incenso: só efeitos conhecidos e com tempo válido.
+  if (state.lures) {
+    for (const kind of Object.keys(state.lures) as (keyof typeof state.lures)[]) {
+      const t = state.lures[kind];
+      if (!t || getLure(t.item)?.kind !== kind || !(t.ms > 0)) delete state.lures[kind];
+    }
+  }
+  for (const p of state.collection) {
+    if (p.gender !== undefined && p.gender !== 'm' && p.gender !== 'f') delete p.gender;
+    if (p.ball !== undefined && typeof p.ball !== 'string') delete p.ball;
+    for (const key of ['eggMoves', 'relearned'] as const) {
+      const list = p[key];
+      if (list === undefined) continue;
+      const ok = Array.isArray(list) ? list.filter((m) => typeof m === 'string' && hasMove(m)) : [];
+      if (ok.length) p[key] = ok;
+      else delete p[key];
+    }
+  }
+  // PC: só mantém caixas bem formadas (a disposição em si é reconciliada em pc.ts).
+  if (state.pc) {
+    const boxes = Array.isArray(state.pc.boxes) ? state.pc.boxes : [];
+    state.pc.boxes = boxes
+      .filter((b) => b && Array.isArray(b.slots))
+      .map((b) => ({
+        ...(typeof b.name === 'string' && b.name ? { name: b.name } : {}),
+        ...(isWallpaper(b.wallpaper) ? { wallpaper: b.wallpaper } : {}),
+        slots: b.slots.map((u) => (Number.isInteger(u) && u > 0 ? u : 0)),
+      }));
+  }
   if (state.challenge === 'nuzlocke') state.nuzlocke ??= emptyNuzlocke();
   for (const p of state.collection) if (p.tag && !isTagId(p.tag)) delete p.tag;
   for (const p of state.collection) {

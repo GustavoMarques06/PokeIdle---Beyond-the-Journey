@@ -52,6 +52,14 @@ export interface PokemonInstance {
   nickname?: string;
   /** Etiqueta da Caixa (ver boxes.ts). */
   tag?: 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'gray';
+  /** Gênero. Ausente = derivado do uid (ver gender.ts). */
+  gender?: 'm' | 'f';
+  /** Bola em que foi capturado. */
+  ball?: string;
+  /** Golpes de ovo herdados na Creche. */
+  eggMoves?: string[];
+  /** Golpes da pré-evolução lembrados no Relembrador. */
+  relearned?: string[];
 }
 
 /** Feitos de um Pokémon como ativo. */

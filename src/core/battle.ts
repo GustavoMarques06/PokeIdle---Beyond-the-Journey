@@ -3,9 +3,12 @@
 
 import {
   BALANCE,
+  BALL_RULES,
   FOUND_ITEMS,
+  LURE_RULES,
   RAID_LOOT,
   ROUTES,
+  SPECIAL_BALLS,
   abilitiesOf,
   getMove,
   getRoute,
@@ -18,7 +21,9 @@ import {
   type TypeName,
 } from '../game-data';
 import { combatScales, computeModifiers, masteryLevel, type Modifiers } from './bonuses';
-import { captureChance, rollCapture } from './capture';
+import { ballMultiplier, captureChance, rollCapture, type BallContext } from './capture';
+import { rollGender } from './gender';
+import { incenseType, repelActive, tickLures } from './lures';
 import { addToCollection, dexEntry, giveItems, markCaught, unlockTm } from './collection';
 import { absorbedBy, attackInterval, calcDamage, chooseMove, combatantOf } from './combat';
 import { daycareKills } from './daycare';
@@ -31,7 +36,15 @@ import { progressMission } from './missions';
 import { beforeAction, canInflict, rollAilment, statusDamage, statusInterval } from './status';
 import { bestMatchup, healTeam, nextHealthyReserve, reservePokemon, switchIn } from './team';
 import { canCaptureHere, onNuzlockeFaint, recordNuzlockeCapture, replaceFallenActive } from './nuzlocke';
-import { isPerfect, legendaryIvs, randomIvs, rollShiny, statsOf, type PokemonInstance } from './pokemon';
+import {
+  isPerfect,
+  legendaryIvs,
+  movesOf,
+  type PokemonInstance,
+  randomIvs,
+  rollShiny,
+  statsOf,
+} from './pokemon';
 import { checkEvolution, coinYield, expYield, grantExp, type ExpResult } from './progression';
 import { pickWeighted, randInt, rngFrom, type Rng } from './rng';
 import type { Ivs } from './stats';
@@ -76,6 +89,7 @@ export function advance(state: GameState, ms: number, now: number): GameEvent[] 
     step(state, BALANCE.tickMs, rng, now, events, mods);
   }
   state.stats.playTimeMs += steps * BALANCE.tickMs;
+  tickLures(state, steps * BALANCE.tickMs);
   for (const [kind, b] of Object.entries(state.buffs)) {
     if (!b) continue;
     b.ms -= steps * BALANCE.tickMs;
@@ -111,6 +125,9 @@ export function step(
     spawnEnemy(state, rng, now, events, mods);
     return;
   }
+  // Modo manual: na vez do ativo, tudo para até o jogador escolher (como nos portáteis).
+  if (awaitingCommand(state)) return;
+  if (b.enemy) b.enemy.elapsedMs = (b.enemy.elapsedMs ?? 0) + dt;
 
   const enemy = b.enemy!;
   if (enemy.roamer && enemy.fleeMs !== undefined) {
@@ -142,10 +159,47 @@ export function step(
   const order: Side[] = b.playerTimerMs <= b.enemyTimerMs ? ['player', 'enemy'] : ['enemy', 'player'];
   for (const side of order) {
     const timer = side === 'player' ? b.playerTimerMs : b.enemyTimerMs;
+    if (side === 'player' && manualMode(state) && !b.pendingMove) continue;
     if (timer <= 0 && takeTurn(state, side, rng, now, events, mods)) return;
   }
 
-  maybeAutoCapture(state, rng, now, events, mods);
+  if (!manualMode(state)) maybeAutoCapture(state, rng, now, events, mods);
+}
+
+const manualMode = (state: GameState) => state.settings.battleMode === 'manual';
+
+/** Modo manual: chegou a vez do ativo e a batalha espera um comando. */
+export function awaitingCommand(state: GameState): boolean {
+  const b = state.battle;
+  return manualMode(state) && b.phase === 'fighting' && !!b.enemy && b.playerTimerMs <= 0 && !b.pendingMove;
+}
+
+/** LUTAR: o golpe que o ativo usa na próxima vez (no automático, vale só para essa vez). */
+export function selectMove(state: GameState, move: string): boolean {
+  const b = state.battle;
+  if (b.phase !== 'fighting' || !b.enemy || !movesOf(activePokemon(state)).includes(move)) return false;
+  b.pendingMove = move;
+  return true;
+}
+
+/** No modo manual, lançar uma bola ou trocar de Pokémon gasta a vez do ativo. */
+function spendPlayerTurn(state: GameState, mods: Modifiers): void {
+  if (!manualMode(state) || state.battle.phase !== 'fighting' || !state.battle.enemy) return;
+  state.battle.pendingMove = undefined;
+  resetPlayerTimer(state, mods, 1);
+}
+
+/** POKéMON: põe uma reserva de pé em campo (gasta a vez). */
+export function switchActive(state: GameState, uid: number): GameEvent[] {
+  const b = state.battle;
+  const events: GameEvent[] = [];
+  const target = reservePokemon(state).find((p) => p.uid === uid);
+  if (b.phase !== 'fighting' || !b.enemy || !target || target.currentHp <= 0) return events;
+  const mods = computeModifiers(state);
+  switchIn(state, uid, 'manual', events);
+  b.pendingMove = undefined;
+  resetPlayerTimer(state, mods, 1);
+  return events;
 }
 
 type Side = 'player' | 'enemy';
@@ -297,6 +351,7 @@ function takeTurn(
 
   const ready = beforeAction(status, rng);
   if (ready === 'skip') {
+    if (isPlayer) b.pendingMove = undefined;
     events.push({ type: 'statusSkip', side, speciesId: self.speciesId, status: status!.kind });
     return false;
   }
@@ -305,7 +360,14 @@ function takeTurn(
     setStatus(side, null);
   }
 
-  const moveId = isPlayer ? chooseMove(pc, ec) : chooseMove(ec, pc, rng, 0.3);
+  const picked = isPlayer ? b.pendingMove : undefined;
+  if (isPlayer) b.pendingMove = undefined;
+  const moveId =
+    picked && pc.moves.includes(picked)
+      ? picked
+      : isPlayer
+        ? chooseMove(pc, ec)
+        : chooseMove(ec, pc, rng, 0.3);
   const move = getMove(moveId);
   const damageScale = isPlayer ? scales.playerDamage : scales.enemyDamage * BALANCE.raid.rageDamage ** rage;
   const result = calcDamage(self, foe, moveId, rng, damageScale);
@@ -433,10 +495,12 @@ export function currentEncounters(state: GameState, routeId: string) {
   const timed = all.filter((e) => !e.time || e.time === state.env.period);
   const list = timed.length ? timed : all;
   const favored = encounterTypes(state, route);
+  const incense = incenseType(state);
   return list.map((e) => {
     const types = getSpecies(e.speciesId).types;
     const boost = types.some((t) => favored.includes(t)) ? BALANCE.weather.encounterBoost : 1;
-    return { ...e, weight: e.weight * boost * huntWeight(state, e.speciesId) };
+    const lure = incense && types.includes(incense) ? LURE_RULES.incenseWeight : 1;
+    return { ...e, weight: e.weight * boost * lure * huntWeight(state, e.speciesId) };
   });
 }
 
@@ -496,7 +560,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     speciesId = enc.speciesId;
     boost = encounterRoute(route).boost;
     form = rollForm(speciesId, rng, now);
-    level = randInt(rng, enc.minLevel, enc.maxLevel);
+    level = repelActive(state) ? enc.maxLevel : randInt(rng, enc.minLevel, enc.maxLevel);
     ivs = randomIvs(rng);
     shiny = rollShiny(rng, mods.shiny * huntShinyMultiplier(state, speciesId));
     recordEncounter(state, speciesId, shiny, now);
@@ -525,6 +589,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     abilitySlot,
     water,
     form,
+    gender: rollGender(speciesId, rng),
   };
   b.playerUsed = [];
   if (roamer) Object.assign(b.enemy, { roamer: true, fleeMs: BALANCE.roamers.fleeMs });
@@ -532,7 +597,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
   b.playerStatus = null;
   dexEntry(state, speciesId).seen = true;
   const spawnAt = events.length;
-  if (state.settings.autoSwitch) {
+  if (state.settings.autoSwitch && !manualMode(state)) {
     const uid = bestMatchup(state, b.enemy, mods);
     if (uid !== null) switchIn(state, uid, 'matchup', events);
   }
@@ -881,11 +946,20 @@ function unlockNext(state: GameState, routeId: string, events: GameEvent[]): voi
 // ---------------------------------------------------------------------------
 // Captura
 
-/** Bola usada pela captura automática: Ultra Ball só para shinies e errantes. */
+/**
+ * Bola usada pela captura automática: a de maior efeito no momento. A Ultra Ball fica para
+ * shinies e errantes; as especiais só entram quando a situação delas vale ao menos 2×.
+ */
 function bestBall(state: GameState, enemy: EnemyState): string | undefined {
-  const order =
-    enemy.shiny || enemy.roamer ? ['ultra-ball', 'great-ball', 'poke-ball'] : ['great-ball', 'poke-ball'];
-  return order.find((ball) => (state.items[ball] ?? 0) > 0);
+  const special = enemy.shiny || enemy.roamer;
+  const owned = (ball: string) => (state.items[ball] ?? 0) > 0;
+  const candidates = [
+    ...(special ? ['ultra-ball'] : []),
+    'great-ball',
+    'poke-ball',
+    ...SPECIAL_BALLS.filter((b) => ballMultiplierNow(state, b) >= 2),
+  ].filter(owned);
+  return candidates.sort((a, b) => ballMultiplierNow(state, b) - ballMultiplierNow(state, a))[0];
 }
 
 export function canThrowBall(state: GameState): boolean {
@@ -898,6 +972,26 @@ export function canThrowBall(state: GameState): boolean {
   );
 }
 
+const DARK_SCENES = new Set(['cave', 'icecave', 'dampcave']);
+
+/** O que as bolas especiais olham no encontro atual (null fora de batalha). */
+export function ballContext(state: GameState): BallContext | null {
+  const enemy = state.battle.enemy;
+  if (!enemy) return null;
+  return {
+    types: getSpecies(enemy.speciesId).types,
+    level: enemy.level,
+    dark: state.env.period === 'night' || DARK_SCENES.has(getRoute(state.battle.routeId).scene),
+    caught: !!state.pokedex[enemy.speciesId]?.caught,
+    elapsedMs: enemy.elapsedMs ?? 0,
+  };
+}
+
+/** Multiplicador de uma bola agora (para a interface e a captura automática). */
+export function ballMultiplierNow(state: GameState, ball: string): number {
+  return ballMultiplier(ball, ballContext(state) ?? undefined);
+}
+
 /** Chance de captura do inimigo atual, já com bônus. */
 export function currentCaptureChance(state: GameState, ball: string, mods = computeModifiers(state)): number {
   const enemy = state.battle.enemy;
@@ -906,14 +1000,16 @@ export function currentCaptureChance(state: GameState, ball: string, mods = comp
     state.battle.kind === 'legendary' && legendaryDef(enemy.speciesId)?.tier === 'pseudo'
       ? BALANCE.pseudo.captureRate
       : getSpecies(enemy.speciesId).captureRate;
-  const base = captureChance(rate, enemy.hp, enemy.maxHp, ball);
+  const base = captureChance(rate, enemy.hp, enemy.maxHp, ball, ballContext(state) ?? undefined);
   return Math.min(1, base * mods.capture * researchBonus(state, enemy.speciesId).capture);
 }
 
 export function throwBall(state: GameState, ball: string, now: number): GameEvent[] {
   const events: GameEvent[] = [];
   if (!canThrowBall(state) || (state.items[ball] ?? 0) <= 0) return events;
-  attemptCapture(state, ball, rngFrom(state), now, events, computeModifiers(state));
+  const mods = computeModifiers(state);
+  attemptCapture(state, ball, rngFrom(state), now, events, mods);
+  spendPlayerTurn(state, mods);
   return events;
 }
 
@@ -952,6 +1048,10 @@ function attemptCapture(
     enemy.held = undefined;
   }
   if (enemy.form) p.form = enemy.form;
+  if (enemy.gender) p.gender = enemy.gender;
+  p.ball = ball;
+  if (ball === 'luxury-ball') p.friendship = BALL_RULES.luxuryFriendship;
+  if (ball === 'heal-ball') p.currentHp = statsOf(p).hp;
   recordForm(state, p.speciesId, enemy.form ?? battleForm(p.speciesId, undefined, 'clear'));
   if (state.env.period === 'night') addResearch(state, p.speciesId, { night: 1 }, events);
   addRecord(activePokemon(state), { captures: 1 });

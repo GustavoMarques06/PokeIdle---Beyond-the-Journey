@@ -46,7 +46,7 @@ export function healTeam(state: GameState, fraction = 1): void {
 export function switchIn(
   state: GameState,
   uid: number,
-  reason: 'fainted' | 'matchup',
+  reason: 'fainted' | 'matchup' | 'manual',
   events: GameEvent[],
 ): void {
   const slot = state.battleTeam.indexOf(uid);

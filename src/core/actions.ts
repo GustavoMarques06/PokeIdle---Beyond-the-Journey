@@ -10,7 +10,7 @@ import {
 } from '../game-data';
 import { computeModifiers } from './bonuses';
 import { attackInterval, combatantOf } from './combat';
-import { rocketTeam } from './events';
+import { relocateRoamer, rocketTeam } from './events';
 import { breakChain } from './hunt';
 import { eliteItemOf } from './loadout';
 import { endLegendary, legendaryDef, legendaryStatus } from './legendary';
@@ -163,6 +163,17 @@ export function retreatFromBoss(state: GameState, now = Date.now()): GameEvent[]
     events.push({ type: 'towerEnded', floor: endTowerRun(state, now, activePokemon(state).speciesId) });
   }
   if (b.kind === 'legendary' && b.enemy) endLegendary(state, b.enemy.speciesId, now, 'retreat', events);
+  state.battle = freshBattle(b.routeId);
+  return events;
+}
+
+/** FUGIR: de um selvagem, sai sem recompensa e o próximo encontro começa; de treinadores, desiste. */
+export function runAway(state: GameState, now = Date.now()): GameEvent[] {
+  const b = state.battle;
+  if (b.kind !== 'wild') return retreatFromBoss(state, now);
+  if (b.phase !== 'fighting' || !b.enemy) return [];
+  const events: GameEvent[] = [{ type: 'ranAway', speciesId: b.enemy.speciesId }];
+  if (b.enemy.roamer) relocateRoamer(state, rngFrom(state));
   state.battle = freshBattle(b.routeId);
   return events;
 }

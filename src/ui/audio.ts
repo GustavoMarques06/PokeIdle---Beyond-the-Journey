@@ -25,6 +25,9 @@ export type Sfx =
   | 'coin'
   | 'merchant'
   | 'fanfare'
+  | 'heal'
+  | 'itemGet'
+  | 'cursor'
   | 'click';
 
 type Wave = OscillatorType;
@@ -96,6 +99,7 @@ class AudioManager {
   private cries = new Map<number, HTMLAudioElement>();
   private lastCry = 0;
   private lastHit = 0;
+  private lowHpTimer: ReturnType<typeof setInterval> | null = null;
   private musicTimer: ReturnType<typeof setInterval> | null = null;
   private musicStep = 0;
   private nextNoteAt = 0;
@@ -282,6 +286,25 @@ class AudioManager {
       case 'click':
         this.tone(880, t, 0.03, 'square', 0.04);
         return;
+      case 'cursor':
+        // Bipe curto e baixo do cursor passando pelos menus.
+        this.tone(1320, t, 0.025, 'square', 0.025);
+        return;
+      case 'itemGet':
+        // Jingle de item recebido: subida curta e acorde no fim.
+        this.arpeggio([72, 76, 79], t, 0.08, 'square', 0.06);
+        this.tone(hz(84), t + 0.24, 0.35, 'square', 0.06);
+        this.tone(hz(76), t + 0.24, 0.35, 'triangle', 0.07);
+        return;
+      case 'heal': {
+        // Jingle de cura do Centro Pokémon (original): seis notas e um acorde longo.
+        const notes = [76, 79, 84, 79, 81, 84];
+        notes.forEach((n, i) => this.tone(hz(n), t + i * 0.16, 0.2, 'square', 0.055));
+        this.tone(hz(88), t + 0.96, 0.6, 'square', 0.05);
+        this.tone(hz(76), t + 0.96, 0.6, 'triangle', 0.08);
+        this.tone(hz(64), t + 0.96, 0.6, 'triangle', 0.06);
+        return;
+      }
       case 'item':
         this.arpeggio([79, 84], t, 0.05, 'triangle', 0.08);
         return;
@@ -383,6 +406,31 @@ class AudioManager {
           break;
       }
     }
+  }
+
+  // --- alarme de HP baixo ---------------------------------------------------------------
+
+  /**
+   * Bipe de HP baixo, como nos portáteis. Num jogo idle o Pokémon pode ficar fraco por
+   * muito tempo, então o alarme toca alguns segundos e para (volta a tocar se o HP subir
+   * e cair de novo).
+   */
+  lowHpAlarm(on: boolean): void {
+    if (this.lowHpTimer) {
+      clearInterval(this.lowHpTimer);
+      this.lowHpTimer = null;
+    }
+    if (!on) return;
+    let beeps = 0;
+    const beep = () => {
+      if (++beeps > 8) return this.lowHpAlarm(false);
+      if (!this.settings.sfx || !this.audible) return;
+      const t = this.ctx!.currentTime + 0.01;
+      this.tone(hz(88), t, 0.08, 'square', 0.035);
+      this.tone(hz(84), t + 0.12, 0.08, 'square', 0.035);
+    };
+    beep();
+    this.lowHpTimer = setInterval(beep, 500);
   }
 
   // --- música -----------------------------------------------------------------------

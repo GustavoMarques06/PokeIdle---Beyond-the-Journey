@@ -464,16 +464,18 @@
   gap: 4px;
 }
 
+/* O nome do grupo fica numa linha própria; as quatro abas dividem a largura toda. */
 .activity-group {
   display: grid;
-  grid-template-columns: 74px repeat(4, minmax(0, 1fr));
-  align-items: center;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
   gap: 2px;
 }
 
 .activity-group > h4 {
-  margin: 0;
-  font: 700 9px var(--font-label);
+  grid-column: 1 / -1;
+  margin: 2px 0 0 4px;
+  font: 700 10px var(--font-label);
   color: var(--menu-blue-dark);
   letter-spacing: 0.05em;
 }
@@ -589,6 +591,16 @@
   max-width: min(440px, 32vw);
 }
 
+/* Com o professor falando na caixa de mensagens (primeiros minutos), os avisos vão para o
+   canto inferior direito, sobre a coluna lateral, para não cobrir a fala. */
+@media (min-width: 901px) {
+  html.coach-open .toasts {
+    left: auto;
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
 .toast {
   min-height: 36px;
   font-size: 13px;
@@ -641,4 +653,308 @@ html.reduced-motion .expbar-fill {
 
 html.reduced-motion .game-enter::after {
   display: none;
+}
+
+/* =============================================================================
+   MOMENTOS CLÁSSICOS DA BATALHA (BattleFx.tsx): encontro, treinador, nível, Centro
+   Unidade: --u = 1 pixel virtual da cena (256×144).
+   ============================================================================= */
+
+/* Encontro selvagem: duas piscadas rápidas (num idle os encontros são frequentes). */
+.enc-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation: enc-flash 0.42s steps(1, end) forwards;
+}
+
+@keyframes enc-flash {
+  0%,
+  50% {
+    opacity: 0.7;
+  }
+  25%,
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Treinador: faixas pretas se fecham e abrem, o treinador entra pela direita e o convite
+   aparece embaixo. */
+.enc-trainer {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.enc-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: #101018;
+  animation: enc-bars 1.7s steps(12, end) forwards;
+}
+
+.enc-bar.top {
+  top: 0;
+  --from: -100%;
+}
+
+.enc-bar.bottom {
+  bottom: 0;
+  --from: 100%;
+}
+
+@keyframes enc-bars {
+  0% {
+    translate: 0 var(--from);
+  }
+  18%,
+  70% {
+    translate: 0 0;
+  }
+  100% {
+    translate: 0 var(--from);
+  }
+}
+
+.enc-trainer-sprite {
+  position: absolute;
+  z-index: 1;
+  right: calc(var(--u) * 30);
+  top: calc(var(--u) * 18);
+  width: calc(var(--u) * 80);
+  height: calc(var(--u) * 80);
+  image-rendering: pixelated;
+  opacity: 0;
+  animation: enc-trainer-in 1.7s steps(10, end) forwards;
+}
+
+@keyframes enc-trainer-in {
+  0%,
+  15% {
+    opacity: 0;
+    translate: calc(var(--u) * 60) 0;
+  }
+  30%,
+  72% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--u) * -20) 0;
+  }
+}
+
+.enc-trainer-text {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--u) * 16);
+  right: calc(var(--u) * 16);
+  bottom: calc(var(--u) * 12);
+  font: 600 calc(var(--u) * 8) var(--font-text);
+  color: var(--ink);
+  text-shadow: calc(var(--u) * 0.6) calc(var(--u) * 0.6) 0 var(--text-shadow);
+  opacity: 0;
+  animation: enc-text 1.7s steps(1, end) forwards;
+}
+
+@keyframes enc-text {
+  25%,
+  72% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0;
+  }
+}
+
+/* Janela de nível: ganho de cada atributo e, depois, os valores novos. */
+.levelup-window {
+  position: absolute;
+  z-index: 8;
+  right: calc(var(--u) * 6);
+  top: calc(var(--u) * 6);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.5);
+  min-width: calc(var(--u) * 70);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2);
+  animation: levelup-in 0.2s steps(2, end);
+}
+
+.levelup-window strong {
+  font: 700 calc(var(--u) * 4.5) var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.levelup-window dl {
+  display: grid;
+  gap: calc(var(--u) * 0.6);
+}
+
+.levelup-window dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(var(--u) * 6);
+}
+
+.levelup-window dt,
+.levelup-window dd {
+  font: 700 calc(var(--u) * 5) var(--font-label);
+}
+
+.levelup-window dd {
+  color: var(--ink);
+}
+
+@keyframes levelup-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(var(--u) * -4);
+  }
+}
+
+/* Centro Pokémon: parede creme com faixa vermelha, balcão e a máquina de cura. */
+.pkcenter {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.04) 0 calc(var(--u) * 16),
+      transparent 0 calc(var(--u) * 32)
+    ),
+    linear-gradient(180deg, #f8f0d8 0 62%, #e0c8a0 62% 100%);
+  animation: pkcenter-in 0.3s steps(3, end);
+}
+
+@keyframes pkcenter-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.pkcenter-room {
+  position: absolute;
+  inset: 0;
+}
+
+.pkcenter-stripe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * 20);
+  height: calc(var(--u) * 8);
+  background: #e05050;
+  box-shadow: 0 calc(var(--u) * 2) 0 #b83838;
+}
+
+.pkcenter-counter {
+  position: absolute;
+  left: calc(var(--u) * 20);
+  right: calc(var(--u) * 20);
+  top: calc(var(--u) * 72);
+  height: calc(var(--u) * 18);
+  background: linear-gradient(180deg, #f8a8b8 0 30%, #e07890 30% 100%);
+  box-shadow: 0 calc(var(--u) * 3) 0 #a85068;
+}
+
+.pkcenter-machine {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--u) * 36);
+  translate: -50% 0;
+  width: calc(var(--u) * 56);
+  height: calc(var(--u) * 38);
+  padding: calc(var(--u) * 3);
+  background: #c8ccd8;
+  border: calc(var(--u) * 1.5) solid #687088;
+  box-shadow: inset 0 calc(var(--u) * 2) 0 #e8ecf4;
+}
+
+.pkcenter-screen {
+  display: block;
+  height: calc(var(--u) * 9);
+  margin-bottom: calc(var(--u) * 3);
+  background: #284878;
+  box-shadow: inset 0 0 0 calc(var(--u) * 1) #183058;
+}
+
+.pkcenter.done .pkcenter-screen {
+  background: #58d080;
+}
+
+.pkcenter-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--u) * 2);
+}
+
+.pkcenter-slot {
+  display: grid;
+  place-items: center;
+  height: calc(var(--u) * 9);
+  background: #8890a8;
+  box-shadow: inset 0 calc(var(--u) * 1) 0 #687088;
+}
+
+.pkcenter-slot img {
+  width: calc(var(--u) * 10);
+  height: calc(var(--u) * 10);
+  image-rendering: pixelated;
+  opacity: 0;
+  animation: pkcenter-ball 0.2s steps(2, end) forwards;
+}
+
+.pkcenter.done .pkcenter-slot img {
+  animation:
+    pkcenter-ball 0.2s steps(2, end) forwards,
+    pkcenter-glow 0.4s steps(1, end) 3;
+}
+
+@keyframes pkcenter-ball {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pkcenter-glow {
+  50% {
+    filter: brightness(2.2);
+  }
+}
+
+.pkcenter-text {
+  position: absolute;
+  left: calc(var(--u) * 10);
+  right: calc(var(--u) * 10);
+  bottom: calc(var(--u) * 6);
+  font: 600 calc(var(--u) * 6.5) / 1.35 var(--font-text);
+  color: var(--ink);
+  text-shadow: calc(var(--u) * 0.5) calc(var(--u) * 0.5) 0 var(--text-shadow);
+}
+
+html.reduced-motion .enc-flash,
+html.reduced-motion .enc-trainer {
+  display: none;
+}
+
+/* Texto das caixas de diálogo com sombra de 1 pixel para baixo e para a direita, como a
+   fonte dos portáteis (some no alto contraste, pelo token). */
+.dialog-text,
+.dialog-speech p,
+.evolution-text,
+.prologue-dialog p {
+  text-shadow: 2px 2px 0 var(--text-shadow);
 }

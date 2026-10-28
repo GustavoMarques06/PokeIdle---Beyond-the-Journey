@@ -31,14 +31,20 @@ import {
 import { rngFrom } from '../../core/rng';
 import { reservePokemon } from '../../core/team';
 import { isPerfect, pokemonName, statsOf } from '../../core/pokemon';
+import type { Stats } from '../../core/stats';
 import { levelProgress } from '../../core/progression';
-import { ExpBar, HpBar, ItemIcon, PixelIcon, Shiny } from '../components/common';
+import { ExpBar, GenderMark, HpBar, ItemIcon, PixelIcon, Shiny } from '../components/common';
+import { genderOf } from '../../core/gender';
+import { activeLure } from '../../core/lures';
 import { STATUS_TEXT, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
 import { audio } from '../audio';
 import { useHotkeys } from '../hotkeys';
 import { takePhoto } from '../photo';
 import { ENEMY_BASE, PLAYER_BASE, SCENE_H, SCENE_THEMES, SCENE_W, paintScene } from './scene';
+import { setEvolving, useShownPokemon } from '../evolutionView';
+import { EncounterModeSwitch } from './BattleDialog';
+import { EncounterFlash, LevelUpWindow, PokemonCenter, TrainerIntro } from './BattleFx';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { MoveFx, SendOutBall, ShinySparkle } from './effects';
 
@@ -226,10 +232,27 @@ export function BattleScene({ state }: { state: GameState }) {
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [sparks, setSparks] = useState<Spark[]>([]);
   const [capture, setCapture] = useState<CaptureAnim | null>(null);
-  const [levelUp, setLevelUp] = useState<{ id: number; level: number } | null>(null);
-  const [evolutions, setEvolutions] = useState<{ id: number; from: number; to: number; shiny: boolean }[]>(
-    [],
-  );
+  const [levelUp, setLevelUp] = useState<{
+    id: number;
+    name: string;
+    level: number;
+    before: Stats;
+    after: Stats;
+  } | null>(null);
+  // Encontro: piscada (selvagem) ou entrada do treinador ("X quer batalhar!").
+  const [encounter, setEncounter] = useState<{
+    id: number;
+    trainer?: { name: string; sprite: string };
+  } | null>(null);
+  const [evolutions, setEvolutions] = useState<
+    { id: number; uid: number; from: number; to: number; shiny: boolean }[]
+  >([]);
+  // Enquanto a cena roda, ficha, equipe e avisos mostram a forma antiga (ver evolutionView.ts).
+  const evolvingNow = evolutions[0];
+  useEffect(() => {
+    setEvolving(evolvingNow ? { uid: evolvingNow.uid, from: evolvingNow.from } : null);
+  }, [evolvingNow]);
+  useEffect(() => () => setEvolving(null), []);
   const [shake, setShake] = useState(0);
   const [shinyFx, setShinyFx] = useState<number | null>(null);
 
@@ -342,20 +365,42 @@ export function BattleScene({ state }: { state: GameState }) {
             enemyKey: keyOf(enemy),
           });
         } else if (e.type === 'spawn' && motion) {
+          const id = nextId.current++;
+          const trainer = st.battle.trainer;
+          if (e.boss && trainer && st.battle.bossIndex === 0) {
+            setEncounter({ id, trainer: { name: trainer.name, sprite: trainer.sprite } });
+            setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 1700 / speed);
+          } else if (st.battle.kind === 'wild') {
+            setEncounter({ id });
+            setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 420 / speed);
+          }
           if (e.shiny) {
             const id = nextId.current++;
             setShinyFx(id);
             setTimeout(() => setShinyFx((cur) => (cur === id ? null : cur)), 1300);
           }
-        } else if (e.type === 'levelUp') {
-          const id = nextId.current++;
-          setLevelUp({ id, level: e.level });
-          setTimeout(() => setLevelUp((cur) => (cur?.id === id ? null : cur)), 1500);
+        } else if (e.type === 'levelUp' && e.uid === st.activeUid) {
+          // Janela de nível do ativo: ganho de cada atributo e, depois, os valores novos.
+          const found = st.collection.find((x) => x.uid === e.uid);
+          // Se evoluiu no mesmo nível, a janela ainda é da forma antiga (a cena vem depois).
+          const evo = events.find((x) => x.type === 'evolved' && x.uid === e.uid);
+          const p = found && evo?.type === 'evolved' ? { ...found, speciesId: evo.from } : found;
+          if (p) {
+            const id = nextId.current++;
+            setLevelUp({
+              id,
+              name: pokemonName(p),
+              level: e.level,
+              before: statsOf({ ...p, level: e.level - 1 }),
+              after: statsOf({ ...p, level: e.level }),
+            });
+            setTimeout(() => setLevelUp((cur) => (cur?.id === id ? null : cur)), 3200 / speed);
+          }
         } else if (e.type === 'evolved') {
           const p = st.collection.find((x) => x.uid === e.uid);
           setEvolutions((list) => [
             ...list,
-            { id: nextId.current++, from: e.from, to: e.to, shiny: p?.shiny ?? false },
+            { id: nextId.current++, uid: e.uid, from: e.from, to: e.to, shiny: p?.shiny ?? false },
           ]);
         }
       }
@@ -410,8 +455,14 @@ export function BattleScene({ state }: { state: GameState }) {
     return () => clearTimeout(t);
   }, [b.routeId, animSpeed]);
 
-  const player = activePokemon(state);
+  const player = useShownPokemon(activePokemon(state));
   const pStats = statsOf(player);
+  // Alarme de HP baixo (barra vermelha) enquanto o ativo luta.
+  const lowHp = b.phase === 'fighting' && player.currentHp > 0 && player.currentHp / pStats.hp <= 0.2;
+  useEffect(() => {
+    audio.lowHpAlarm(lowHp);
+  }, [lowHp]);
+  useEffect(() => () => audio.lowHpAlarm(false), []);
   // Entrada com Poké Ball: o sprite é recriado a cada Pokémon novo (key), e a animação de CSS
   // roda sozinha na montagem — para o jogador sempre, para o inimigo nas lutas de treinador.
   const trainerFoe =
@@ -495,7 +546,7 @@ export function BattleScene({ state }: { state: GameState }) {
 
       {areaBanner && (
         <div
-          key={areaBanner.id}
+          key={`area-${areaBanner.id}`}
           className={`area-banner ${state.settings.reducedMotion ? 'still' : ''}`}
           style={{ ['--speed' as string]: animSpeed }}
           aria-live="polite"
@@ -515,7 +566,21 @@ export function BattleScene({ state }: { state: GameState }) {
       )}
 
       <div className="scene-hud">
-        {enemy?.water && (
+        <EncounterModeSwitch state={state} />
+        {(['repel', 'incense'] as const).map((kind) => {
+          const lure = activeLure(state, kind);
+          return lure ? (
+            <span
+              key={kind}
+              className="scene-lure"
+              title={`${itemName(lure.item)}: ${formatDuration(lure.ms)} restantes`}
+            >
+              <ItemIcon id={lure.item} size={16} />
+              {Math.ceil(lure.ms / 60_000)} min
+            </span>
+          ) : null;
+        })}
+        {enemy?.water && b.kind !== 'wild' && (
           <span className="scene-mode-tag">
             <ItemIcon id={enemy.water === 'fish' ? (bestRod(state) ?? 'old-rod') : 'surf'} size={16} />
             {enemy.water === 'fish' ? 'PESCA' : 'SURF'}
@@ -545,7 +610,7 @@ export function BattleScene({ state }: { state: GameState }) {
         </button>
       </div>
       {treeMsg && (
-        <span key={treeMsg.id} className="scene-toast">
+        <span key={`tree-${treeMsg.id}`} className="scene-toast">
           {treeMsg.text}
         </span>
       )}
@@ -566,7 +631,7 @@ export function BattleScene({ state }: { state: GameState }) {
       {capture && !staleEscape && <CaptureGhost anim={capture} />}
 
       <BattleSprite
-        key={player.uid}
+        key={`mon-${player.uid}`}
         speciesId={player.speciesId}
         form={playerForm}
         kind="back"
@@ -583,6 +648,7 @@ export function BattleScene({ state }: { state: GameState }) {
           <div className="status-name">
             <span>
               {getSpecies(enemy.speciesId).name.toUpperCase()}
+              <GenderMark gender={genderOf(enemy)} />
               {enemy.shiny && <Shiny />}
               <StatusTag status={enemy.status} />
               {enemy.held && <ItemIcon id={enemy.held} size={14} className="held-mark" />}
@@ -603,10 +669,11 @@ export function BattleScene({ state }: { state: GameState }) {
         </div>
       )}
 
-      <div className="status-box status-player frame frame-status">
+      <div className={`status-box status-player frame frame-status ${levelUp ? 'leveling' : ''}`}>
         <div className="status-name">
           <span>
             {pokemonName(player).toUpperCase()}
+            <GenderMark gender={genderOf(player)} />
             {player.shiny && <Shiny />}
             <StatusTag status={b.playerStatus} />
             {player.held && <ItemIcon id={player.held} size={14} className="held-mark" />}
@@ -624,7 +691,8 @@ export function BattleScene({ state }: { state: GameState }) {
         )}
         <HpBar value={player.currentHp} max={pStats.hp} />
         <div className="status-hp">
-          {shownHp}/ {pStats.hp}
+          <span className="hp-now">{shownHp}</span>
+          <span className="hp-max">/{pStats.hp}</span>
         </div>
         <ExpBar progress={levelProgress(player)} />
       </div>
@@ -660,15 +728,36 @@ export function BattleScene({ state }: { state: GameState }) {
         />
       ))}
       {shinyFx !== null && enemy?.shiny && (
-        <ShinySparkle key={shinyFx} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.h / 2} />
+        <ShinySparkle key={`shiny-${shinyFx}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.h / 2} />
       )}
       <SendOutBall key={`p-${player.uid}`} x={PLAYER_BASE.x} y={PLAYER_BASE.y - 12} />
       {trainerFoe && enemy && <SendOutBall key={`e-${keyOf(enemy)}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - 8} />}
 
       {levelUp && (
-        <div key={levelUp.id} className="levelup-pop frame frame-menu">
-          <PixelIcon name="arrowUp" scale={2} /> Nv. {levelUp.level}!
-        </div>
+        <LevelUpWindow
+          key={`lvl-${levelUp.id}`}
+          name={levelUp.name}
+          level={levelUp.level}
+          before={levelUp.before}
+          after={levelUp.after}
+          speed={animSpeed}
+        />
+      )}
+      {encounter &&
+        (encounter.trainer ? (
+          <TrainerIntro
+            key={`enc-${encounter.id}`}
+            name={encounter.trainer.name}
+            sprite={encounter.trainer.sprite}
+          />
+        ) : (
+          <EncounterFlash key={`enc-${encounter.id}`} />
+        ))}
+      {b.phase === 'defeat' && (
+        <PokemonCenter
+          balls={Math.min(6, 1 + reserves.length)}
+          reducedMotion={state.settings.reducedMotion}
+        />
       )}
 
       {b.kind !== 'wild' && b.trainer && (
@@ -715,13 +804,15 @@ export function BattleScene({ state }: { state: GameState }) {
         <div className="roamer-timer frame frame-menu">FOGE EM {Math.ceil(enemy.fleeMs / 1000)}s</div>
       )}
 
-      {evolutions[0] && (
+      {/* Como nos portáteis: primeiro a janela de nível, depois a evolução. */}
+      {evolutions[0] && !levelUp && (
         <EvolutionOverlay
-          key={evolutions[0].id}
+          key={`evo-${evolutions[0].id}`}
           from={evolutions[0].from}
           to={evolutions[0].to}
           shiny={evolutions[0].shiny}
           reducedMotion={state.settings.reducedMotion}
+          onReveal={() => setEvolving(null)}
           onDone={() => setEvolutions((list) => list.slice(1))}
         />
       )}

@@ -41,6 +41,7 @@ export class GameEngine {
 
   private listeners = new Set<Listener>();
   private eventListeners = new Set<EventListener>();
+  private saveListeners = new Set<() => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastTick = 0;
   private accumulator = 0;
@@ -65,6 +66,12 @@ export class GameEngine {
   onEvents(fn: EventListener): () => void {
     this.eventListeners.add(fn);
     return () => this.eventListeners.delete(fn);
+  }
+
+  /** Avisa a cada gravação bem-sucedida (o indicador "Salvando…" da interface). */
+  onSave(fn: () => void): () => void {
+    this.saveListeners.add(fn);
+    return () => this.saveListeners.delete(fn);
   }
 
   private emit(events: GameEvent[] = []): void {
@@ -153,6 +160,7 @@ export class GameEngine {
     try {
       this.saveBytes = saveGame(this.storage, this.state, now);
       this.lastSave = now;
+      for (const fn of this.saveListeners) fn();
     } catch (err) {
       console.error('Falha ao salvar', err);
     }

@@ -9,6 +9,8 @@
   --ink: #283050;
   --ink-soft: #485068;
   --ink-muted: #6a7390;
+  /* Sombra do texto das caixas de diálogo, como a fonte dos portáteis. */
+  --text-shadow: #d4ccb4;
   --cream: #f8f8e8;
   --paper: #ffffff;
 
@@ -314,7 +316,7 @@ textarea {
   border: 2px solid color-mix(in srgb, var(--t) 55%, #000);
   background: linear-gradient(var(--t) 0 55%, color-mix(in srgb, var(--t) 80%, #000) 55%);
   color: #fff;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   text-align: center;
   text-shadow: 1px 1px 0 color-mix(in srgb, var(--t) 40%, #000);
   letter-spacing: 0.3px;

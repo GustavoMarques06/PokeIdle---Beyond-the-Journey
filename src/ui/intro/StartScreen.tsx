@@ -102,6 +102,8 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat || e.ctrlKey || e.altKey || e.metaKey || e.key === 'Tab') return;
+      // Enter/Espaço num botão com foco (o de música) ficam com o próprio botão.
+      if ((e.target as HTMLElement).tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return;
       e.preventDefault();
       start();
     };

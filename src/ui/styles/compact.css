@@ -4,7 +4,8 @@
     grid-template-columns: minmax(0, 1fr) 400px;
   }
 
-  .hud-journey {
+  /* Clima e período só pelo ícone (o detalhe fica na dica ao passar o mouse). */
+  .hud-env small {
     display: none;
   }
 
@@ -16,27 +17,16 @@
     font-size: 17px;
   }
 
-  .cmd-label {
-    font-size: 10px;
+  .bc-big strong {
+    font-size: 13px;
   }
 
-  .cmd-sub {
+  .bc-big small {
     font-size: 11px;
   }
 
-  /* Menu com ícone acima do rótulo para caber em 400 px. */
   .menu-item {
-    flex-direction: column;
-    justify-content: center;
-    gap: 1px;
-    min-height: 50px;
-    padding: 3px 2px;
-    font-size: 10px;
-  }
-
-  .menu-item.active::before,
-  .menu-item:hover::before {
-    left: 6px;
+    font-size: 11px;
   }
 }
 
@@ -47,7 +37,7 @@
   padding: 0 2px;
   background: var(--gold);
   border: 1px solid var(--gold-dark);
-  font: 700 8px var(--font-label);
+  font: 700 10px var(--font-label);
 }
 
 .perfect-tag {
@@ -78,7 +68,7 @@
 }
 
 .legend-card strong {
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .legend-card small {
@@ -115,6 +105,19 @@
 
 .legend-group {
   margin: 6px 0 3px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   color: var(--ink-soft);
+}
+
+/* Até 1280 px (e a largura mínima de 1100): o HUD aperta para caber com números grandes. */
+@media (max-width: 1280px) {
+  .hud-trainer strong {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hud-seg {
+    padding: 0 12px;
+  }
 }

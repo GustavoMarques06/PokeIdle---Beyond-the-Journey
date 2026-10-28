@@ -3,7 +3,7 @@ import movesJson from './generated/moves.json';
 import typeChartJson from './generated/type-chart.json';
 import itemsJson from './generated/items.json';
 import spriteFeetJson from './generated/sprite-feet.json';
-import type { Encounter, Evolution, ItemData, Move, Region, Route, Species, TypeName } from './types';
+import type { Encounter, Evolution, Gender, ItemData, Move, Region, Route, Species, TypeName } from './types';
 import { BALANCE, DEPT_STORE, EVOLUTION_ITEM_SHOP, SHOP, type ShopEntry } from './balance';
 import { BERRIES } from './activities';
 import { SPECIES_ABILITIES, TYPE_ABILITIES, type AbilityTriple } from './abilities';
@@ -11,6 +11,7 @@ import { HELD_ITEMS, TRAINING_ITEMS, extraItemData } from './helditems';
 import { FOSSILS, REGIONS, ROUTES } from './routes';
 import { RODS, WATER_ITEMS, WATER_SPOTS, type Rod, type WaterMode } from './water';
 import { SAFARI_ITEMS } from './safari';
+import { LURES, THROWABLE_BALLS } from './captureitems';
 
 export * from './types';
 export {
@@ -36,6 +37,7 @@ export * from './helditems';
 export * from './water';
 export * from './forms';
 export * from './safari';
+export * from './captureitems';
 
 /**
  * Amizade, Hitmon* e Wurmple: a PokéAPI traz essas evoluções como "item" (Sino Calmante,
@@ -61,11 +63,20 @@ function withNaturalEvolutions(s: Species): Species {
   if (s.slug === 'wurmple') {
     return { ...s, evolutions: [level(266, 7, 'uid-even'), level(268, 7, 'uid-odd')] };
   }
-  const evolutions = s.evolutions.map((e): Evolution =>
-    e.trigger === 'item' && e.item === 'soothe-bell'
-      ? { to: e.to, trigger: 'friendship', minFriendship: BALANCE.friendship.evolve, time: e.time }
-      : e,
-  );
+  // Evoluções de um gênero só (a PokéAPI traz o gênero à parte).
+  const onlyGender: Record<string, [number, Gender]> = {
+    kirlia: [475, 'm'],
+    snorunt: [478, 'f'],
+    combee: [416, 'f'],
+  };
+  const gendered = onlyGender[s.slug];
+  const evolutions = s.evolutions
+    .map((e): Evolution =>
+      e.trigger === 'item' && e.item === 'soothe-bell'
+        ? { to: e.to, trigger: 'friendship', minFriendship: BALANCE.friendship.evolve, time: e.time }
+        : e,
+    )
+    .map((e): Evolution => (gendered && e.to === gendered[0] ? { ...e, gender: gendered[1] } : e));
   return { ...s, evolutions };
 }
 
@@ -219,7 +230,8 @@ export interface DeptEntry {
   section: DeptSection;
 }
 
-const BALL_IDS = ['poke-ball', 'great-ball', 'ultra-ball', 'master-ball'];
+const BALL_IDS = THROWABLE_BALLS;
+const LURE_IDS = Object.keys(LURES);
 const allEvolutionItems = [
   ...new Set(SPECIES.flatMap((s) => s.evolutions.flatMap((e) => (e.trigger === 'item' ? [e.item] : [])))),
 ].filter((id) => items[id] && !(id in DEPT_STORE.prices));
@@ -233,6 +245,7 @@ export const DEPT_STORE_CATALOG: DeptEntry[] = [
     section: 'evolution',
   })),
   { id: 'rare-candy', price: DEPT_STORE.prices['rare-candy'], section: 'other' },
+  ...LURE_IDS.map((id): DeptEntry => ({ id, price: DEPT_STORE.prices[id], section: 'other' })),
   ...HELD_ITEMS.filter((h) => h.price > 0).map((h): DeptEntry => ({
     id: h.id,
     price: h.price,

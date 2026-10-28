@@ -133,6 +133,8 @@ export function Prologue({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
+      // Enter/Espaço num botão com foco (pular, música, Sim/Não) ficam com o próprio botão.
+      if ((e.target as HTMLElement).tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return;
       if (e.key === 'Enter' || e.key === ' ' || e.key.toLowerCase() === 'z') {
         e.preventDefault();
         next();

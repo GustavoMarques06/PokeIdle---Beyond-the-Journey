@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameEvent } from '../../core/game';
 import { TOAST_EVENTS, describeEvent } from '../i18n/pt-BR';
+import { useEvolving } from '../evolutionView';
 import { useGameEvents } from '../useGame';
 import { PixelIcon, PokemonSprite } from './common';
 
@@ -30,26 +31,59 @@ const RARE = new Set<GameEvent['type']>([
 export function Toasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
+  // Avisos de evolução esperam o clarão da cena de evolução (não estragam a surpresa).
+  const held = useRef<Toast[]>([]);
+  const evolving = useEvolving();
+  const evolvingRef = useRef(evolving);
+  useEffect(() => {
+    evolvingRef.current = evolving;
+  });
 
-  const onEvents = useCallback((events: GameEvent[]) => {
-    const fresh: Toast[] = [];
-    for (const e of events) {
-      if (!TOAST_EVENTS.has(e.type) || e.type === 'levelUp') continue;
-      const text = describeEvent(e);
-      if (!text) continue;
-      const rare = RARE.has(e.type) || (e.type === 'captured' && (e.shiny || !!e.perfect));
-      fresh.push({
-        id: nextId.current++,
-        text,
-        speciesId: speciesOf(e),
-        rare,
-        trophy: e.type === 'achievement',
-      });
-    }
-    if (!fresh.length) return;
+  const show = useCallback((fresh: Toast[]) => {
     setToasts((t) => [...t, ...fresh].slice(-3));
     for (const t of fresh) setTimeout(() => setToasts((list) => list.filter((x) => x.id !== t.id)), 3500);
   }, []);
+
+  useEffect(() => {
+    if (evolving || !held.current.length) return;
+    // Com a cena ainda por começar (o evento chegou antes dela), espera um instante.
+    const t = setTimeout(() => {
+      if (!held.current.length) return;
+      show(held.current);
+      held.current = [];
+    }, 600);
+    return () => clearTimeout(t);
+  }, [evolving, show]);
+
+  const onEvents = useCallback(
+    (events: GameEvent[]) => {
+      const fresh: Toast[] = [];
+      for (const e of events) {
+        if (!TOAST_EVENTS.has(e.type) || e.type === 'levelUp') continue;
+        const text = describeEvent(e);
+        if (!text) continue;
+        const rare = RARE.has(e.type) || (e.type === 'captured' && (e.shiny || !!e.perfect));
+        const toast = {
+          id: nextId.current++,
+          text,
+          speciesId: speciesOf(e),
+          rare,
+          trophy: e.type === 'achievement',
+        };
+        if (e.type === 'evolved') {
+          held.current.push(toast);
+          // Se a cena não começar (fora da batalha, por exemplo), o aviso não fica preso.
+          setTimeout(() => {
+            if (evolvingRef.current || !held.current.length) return;
+            show(held.current);
+            held.current = [];
+          }, 1500);
+        } else fresh.push(toast);
+      }
+      if (fresh.length) show(fresh);
+    },
+    [show],
+  );
   useGameEvents(onEvents);
 
   return (

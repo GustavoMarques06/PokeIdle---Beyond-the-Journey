@@ -1,12 +1,17 @@
-// Parte de baixo da batalha: caixa de mensagens (texto com efeito de digitação) e, ao lado,
-// dois painéis separados no estilo FRLG — BOLAS (capturar) e AÇÕES (trocar, desafiar, fugir).
+// Parte de baixo da batalha, como nos portáteis: caixa de mensagens (com o modo AUTO/MANUAL,
+// o desafio da rota e o registro) e o menu LUTAR / MOCHILA / POKéMON / FUGIR com submenus.
+// No manual, a batalha espera o comando na vez do ativo; no automático, LUTAR escolhe o
+// golpe só da próxima vez.
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { getRoute } from '../../game-data';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { THROWABLE_BALLS, getMove, getRoute, getSpecies, typeEffectiveness } from '../../game-data';
 import { legendaryRules } from '../../core/legendary';
 import { canCaptureHere } from '../../core/nuzlocke';
 import {
+  activeMode,
   activePokemon,
+  awaitingCommand,
+  ballMultiplierNow,
   canChallengeBoss,
   canChallengeRaid,
   canChallengeRocket,
@@ -17,63 +22,33 @@ import {
   challengeRematch,
   challengeRocket,
   currentCaptureChance,
-  activeMode,
   hasWater,
   modesAt,
-  retreatFromBoss,
+  runAway,
+  selectMove,
   setEncounterMode,
+  switchActive,
   throwBall,
   type EncounterMode,
   type GameEvent,
   type GameState,
 } from '../../core/game';
-import { ItemIcon, PixelIcon, TrainerSprite } from '../components/common';
+import { movesOf, pokemonName, statsOf } from '../../core/pokemon';
+import { reservePokemon } from '../../core/team';
+import { HpBar, ItemIcon, PixelIcon, PokemonSprite, TypeBadge } from '../components/common';
 import { Coach } from '../components/Coach';
 import { useHotkeys } from '../hotkeys';
 import { battleText } from '../i18n/battleText';
-import { ENCOUNTER_MODE_NAMES, speciesName } from '../i18n/pt-BR';
+import { ENCOUNTER_MODE_NAMES, itemName, moveName } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
+
+const formatMultiplier = (x: number) => `${x.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}×`;
 
 const HOLD_MS = 2500;
 const TYPE_MS = 14;
 
 export type ScreenId =
-  'party' | 'dex' | 'bag' | 'shop' | 'map' | 'activities' | 'missions' | 'trainer' | 'upgrades';
-
-/** Um botão dos painéis: ícone, rótulo, linha de apoio e tecla de atalho. */
-function Card({
-  icon,
-  label,
-  sub,
-  hotkey,
-  tone,
-  disabled,
-  title,
-  onClick,
-}: {
-  icon: ReactNode;
-  label: string;
-  sub?: string;
-  hotkey?: string;
-  tone?: 'boss' | 'danger';
-  disabled?: boolean;
-  title?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={`cmd ${tone ? `cmd-${tone}` : ''}`}
-      disabled={disabled}
-      onClick={onClick}
-      title={title ?? (hotkey ? `Tecla ${hotkey}` : undefined)}
-    >
-      {hotkey && <kbd className="cmd-key">{hotkey}</kbd>}
-      <span className="cmd-icon">{icon}</span>
-      <span className="cmd-label">{label}</span>
-      {sub && <span className="cmd-sub">{sub}</span>}
-    </button>
-  );
-}
+  'party' | 'dex' | 'bag' | 'shop' | 'map' | 'activities' | 'missions' | 'trainer' | 'upgrades' | 'pc';
 
 /** Onde procurar Pokémon nesta rota: grama, pesca ou surf (tecla E alterna). */
 function ModeSwitch({
@@ -108,11 +83,27 @@ function ModeSwitch({
             onClick={() => onPick(m)}
           >
             <ItemIcon id={icon[m]} size={18} />
-            {ENCOUNTER_MODE_NAMES[m].toUpperCase()}
+            <span>{ENCOUNTER_MODE_NAMES[m].toUpperCase()}</span>
           </button>
         );
       })}
     </div>
+  );
+}
+
+/** Seletor grama/pesca/surf, mostrado no canto da cena nas rotas com água. */
+export function EncounterModeSwitch({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const b = state.battle;
+  const route = getRoute(b.routeId);
+  const encounterId = route.kind === 'trial' && route.farm ? route.farm : route.id;
+  if (b.kind !== 'wild' || !hasWater(encounterId)) return null;
+  return (
+    <ModeSwitch
+      modes={modesAt(state, encounterId)}
+      mode={activeMode(state, encounterId)}
+      onPick={(m) => engine.dispatch((s) => setEncounterMode(s, m))}
+    />
   );
 }
 
@@ -122,6 +113,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const [typed, setTyped] = useState(0);
   const [log, setLog] = useState<{ id: number; text: string }[]>([]);
   const [showLog, setShowLog] = useState(false);
+  const [view, setView] = useState<'main' | 'fight' | 'bag' | 'party'>('main');
   const holdUntil = useRef(0);
   const nextId = useRef(1);
 
@@ -132,17 +124,28 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
       const ctx = {
         routeId: st.battle.routeId,
         bossBattle: st.battle.kind !== 'wild' && st.battle.kind !== 'legendary',
-        playerName: speciesName(activePokemon(st).speciesId),
+        playerName: pokemonName(activePokemon(st)),
         trainerName: st.battle.trainer?.name,
+        nicknames: new Map(
+          [activePokemon(st), ...reservePokemon(st)]
+            .filter((p) => p.nickname)
+            .map((p) => [p.speciesId, p.nickname!] as const),
+        ),
       };
       const lines = events.map((e) => battleText(e, ctx)).filter((l) => l !== null);
       if (!lines.length) return;
       setLog((l) =>
         [...lines.map((x) => ({ id: nextId.current++, text: x.text })).reverse(), ...l].slice(0, 30),
       );
+      // A evolução tem cena própria (que termina com a mesma frase): vai só para o REGISTRO.
+      const live = events
+        .filter((e) => e.type !== 'evolved')
+        .map((e) => battleText(e, ctx))
+        .filter((l) => l !== null);
+      if (!live.length) return;
       const now = performance.now();
-      const important = [...lines].reverse().find((l) => l.important);
-      const pick = important ?? (now >= holdUntil.current ? lines[lines.length - 1] : null);
+      const important = [...live].reverse().find((l) => l.important);
+      const pick = important ?? (now >= holdUntil.current ? live[live.length - 1] : null);
       if (!pick) return;
       if (pick.important) holdUntil.current = now + HOLD_MS;
       setMessage(pick.text);
@@ -180,26 +183,50 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
           : `${b.trainer?.name ?? 'O treinador'} está escolhendo o próximo Pokémon…`
       : b.phase === 'defeat'
         ? 'Seu Pokémon está se recuperando…'
-        : `O que ${speciesName(activePokemon(state).speciesId)} vai fazer?`;
+        : `O que ${pokemonName(activePokemon(state))} vai fazer?`;
   const text = message ? message.slice(0, typed) : idleText;
+  // As duas mensagens anteriores ficam acima da atual, mais apagadas (a mais antiga em cima).
+  const history = log
+    .filter((l) => l.text !== message)
+    .slice(0, 2)
+    .reverse();
 
   // --- Bolas -------------------------------------------------------------------------------
   const usable = canThrowBall(state);
-  const great = state.items['great-ball'] ?? 0;
-  const ultra = state.items['ultra-ball'] ?? 0;
+  const owned = THROWABLE_BALLS.filter((ball) => (state.items[ball] ?? 0) > 0);
+  // Atalho W: a bola de maior efeito agora (Great, Ultra ou uma especial na situação dela).
+  // A Ultra só entra por padrão em shinies, errantes e lendários, ou quando é a única.
   const special = b.enemy && (b.enemy.shiny || b.enemy.roamer || b.kind === 'legendary');
-  const secondBall = ultra > 0 && (special || great <= 0) ? 'ultra-ball' : great > 0 ? 'great-ball' : null;
+  const bestBall =
+    owned
+      .filter((ball) => ball !== 'poke-ball' && ball !== 'master-ball' && (ball !== 'ultra-ball' || special))
+      .sort((x, y) => ballMultiplierNow(state, y) - ballMultiplierNow(state, x))[0] ??
+    (owned.includes('ultra-ball') ? 'ultra-ball' : null);
 
   const throwIf = (ball: string | null) => {
-    if (ball && usable && (state.items[ball] ?? 0) > 0) engine.dispatch((s, now) => throwBall(s, ball, now));
+    if (!ball || !usable || (state.items[ball] ?? 0) <= 0) return;
+    engine.dispatch((s, now) => throwBall(s, ball, now));
+    setView('main');
   };
 
-  // --- Ações ---------------------------------------------------------------------------------
+  // --- Desafios ------------------------------------------------------------------------------
   const wild = b.kind === 'wild';
   const bossReady = canChallengeBoss(state, b.routeId);
+  const prog = state.routes[b.routeId];
   const rocketHere = canChallengeRocket(state) && state.rocket?.routeId === b.routeId;
   const raidUp = canChallengeRaid(state);
   const rematchReady = canRematch(state, b.routeId) && wild;
+  const challengeLabel = !wild
+    ? null
+    : bossReady
+      ? `DESAFIAR ${route.boss!.name.toUpperCase()}`
+      : raidUp
+        ? 'RAIDE'
+        : rocketHere
+          ? 'EQUIPE ROCKET'
+          : rematchReady
+            ? `REVANCHE: ${route.boss!.name.toUpperCase()}`
+            : null;
 
   const challenge = () => {
     if (!wild) return;
@@ -216,102 +243,100 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
     engine.dispatch((s) => setEncounterMode(s, next));
   };
 
+  // --- Comandos ------------------------------------------------------------------------------
+  const fighting = b.phase === 'fighting' && !!b.enemy;
+  const manual = state.settings.battleMode === 'manual';
+  const waiting = awaitingCommand(state);
+  const player = activePokemon(state);
+  const reserves = reservePokemon(state);
+  const runLabel = wild ? 'FUGIR' : b.kind === 'boss' || b.kind === 'rocket' ? 'FUGIR' : 'DESISTIR';
+  const runHint = !wild
+    ? b.kind === 'tower'
+      ? `parar no andar ${b.floor}`
+      : b.kind === 'tournament'
+        ? `perde a vaga (${state.tournament.score[0]}–${state.tournament.score[1]})`
+        : b.kind === 'legendary'
+          ? `${legendaryRules(b.enemy?.speciesId ?? 0).throwLimit - (b.enemy?.throws ?? 0)} bolas até fugir`
+          : b.kind === 'raid'
+            ? `${Math.ceil((b.raidMs ?? 0) / 1000)} s restantes`
+            : 'sair da batalha'
+    : 'sem recompensa';
+
+  const run = () => {
+    engine.dispatch((s, now) => runAway(s, now));
+    setView('main');
+  };
+  const toggleMode = () =>
+    engine.dispatch((s) => {
+      s.settings.battleMode = s.settings.battleMode === 'manual' ? 'auto' : 'manual';
+    });
+
+  // O submenu fica aberto entre um encontro e outro (no automático eles mudam rápido); fecha
+  // depois de uma ação ou com Esc. No manual, LUTAR ganha o foco quando chega a vez.
+  const fightButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (waiting && view === 'main' && document.activeElement === document.body) fightButton.current?.focus();
+  }, [waiting, view]);
+
   useHotkeys({
+    a: toggleMode,
     e: cycleMode,
     q: () => throwIf('poke-ball'),
-    w: () => throwIf(secondBall),
+    w: () => throwIf(bestBall),
     d: challenge,
-    f: () => {
-      if (!wild) engine.dispatch((s, now) => retreatFromBoss(s, now));
-    },
+    f: run,
+    Escape: () => setView('main'),
   });
-
-  const ballCard = (ball: string, label: string, key: string) => {
-    const qty = state.items[ball] ?? 0;
-    const chance = usable ? Math.round(currentCaptureChance(state, ball) * 100) : null;
-    return (
-      <Card
-        icon={<ItemIcon id={ball} size={32} />}
-        label={label}
-        sub={`×${qty}${chance !== null && qty > 0 ? ` · ${chance}%` : ''}`}
-        hotkey={key}
-        disabled={!usable || qty <= 0}
-        title={`${chance !== null ? `Chance de captura: ${chance}%` : 'Só em batalhas contra Pokémon selvagens'} (tecla ${key})`}
-        onClick={() => throwIf(ball)}
-      />
-    );
-  };
-
-  const challengeCard = () => {
-    if (bossReady || (!raidUp && !rocketHere && !rematchReady)) {
-      return (
-        <Card
-          icon={
-            route.boss ? (
-              <TrainerSprite id={route.boss.trainer} size={40} head />
-            ) : (
-              <PixelIcon name="boss" scale={3} />
-            )
-          }
-          label="DESAFIAR"
-          sub={route.boss ? route.boss.name : 'sem chefe'}
-          hotkey="D"
-          tone={bossReady ? 'boss' : undefined}
-          disabled={!bossReady || !wild}
-          title={
-            route.boss ? `${route.boss.name} — ${route.boss.title} (tecla D)` : 'Esta área não tem chefe'
-          }
-          onClick={challenge}
-        />
-      );
-    }
-    if (raidUp && state.raid) {
-      return (
-        <Card
-          icon={<PixelIcon name="boss" scale={3} />}
-          label="RAIDE"
-          sub={`${speciesName(state.raid.speciesId)} Nv${state.raid.level}`}
-          hotkey="D"
-          tone="boss"
-          onClick={challenge}
-        />
-      );
-    }
-    if (rocketHere) {
-      return (
-        <Card
-          icon={<PixelIcon name="rocket" scale={3} />}
-          label="ROCKET"
-          sub="expulsar a equipe"
-          hotkey="D"
-          tone="boss"
-          onClick={challenge}
-        />
-      );
-    }
-    return (
-      <Card
-        icon={<TrainerSprite id={route.boss!.trainer} size={40} head />}
-        label="REVANCHE"
-        sub={route.boss!.name}
-        hotkey="D"
-        tone="boss"
-        title={`Enfrentar ${route.boss!.name} de novo, mais forte (tecla D)`}
-        onClick={challenge}
-      />
-    );
-  };
 
   return (
     <div className="battle-ui">
       <div className="dialog frame frame-dialog" aria-live="polite">
+        <ol className="dialog-history" aria-hidden>
+          {history.map((l) => (
+            <li key={l.id}>{l.text}</li>
+          ))}
+        </ol>
         <p className="dialog-text">
           {text}
           {message && typed >= message.length && <span className="dialog-caret" />}
         </p>
-        <button className="log-toggle" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog}>
-          REGISTRO {showLog ? '▼' : '▲'}
-        </button>
+        <div className="dialog-foot">
+          <div className="battle-mode" role="radiogroup" aria-label="Modo de batalha (tecla A)">
+            {(['auto', 'manual'] as const).map((m) => (
+              <button
+                key={m}
+                role="radio"
+                aria-checked={state.settings.battleMode === m}
+                className={state.settings.battleMode === m ? 'on' : ''}
+                title={
+                  m === 'auto'
+                    ? 'Automático: os golpes saem sozinhos (tecla A alterna)'
+                    : 'Manual: a batalha espera você escolher a cada vez (tecla A alterna)'
+                }
+                onClick={() => state.settings.battleMode !== m && toggleMode()}
+              >
+                {m === 'auto' ? 'AUTO' : 'MANUAL'}
+              </button>
+            ))}
+          </div>
+          {challengeLabel && (
+            <button className="dialog-challenge" onClick={challenge} title="Tecla D">
+              <PixelIcon name={rocketHere && !bossReady && !raidUp ? 'rocket' : 'boss'} scale={1} />
+              {challengeLabel}
+            </button>
+          )}
+          {wild && route.boss && !challengeLabel && !prog.bossDefeated && (
+            <span
+              className="dialog-goal"
+              title={`Vença ${route.killsRequired} Pokémon para desafiar ${route.boss.name}`}
+            >
+              {route.boss.name}: {Math.min(prog.kills, route.killsRequired)}/{route.killsRequired}
+            </span>
+          )}
+          <button className="log-toggle" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog}>
+            REGISTRO {showLog ? '▼' : '▲'}
+          </button>
+        </div>
         {showLog && (
           <ol className="battle-log frame frame-menu">
             {log.map((l) => (
@@ -324,72 +349,174 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
         <Coach state={state} />
       </div>
 
-      <div className="battle-deck">
-        <section className="deck-panel deck-balls frame frame-menu" aria-label="Bolas">
-          <h3 className="deck-title">BOLAS</h3>
-          {b.kind === 'wild' && !canCaptureHere(state) && (
-            <p className="deck-note">Nuzlocke: a captura desta área já foi usada.</p>
-          )}
-          <div className="deck-grid">
-            {ballCard('poke-ball', 'POKé BALL', 'Q')}
-            {secondBall ? (
-              ballCard(secondBall, secondBall === 'ultra-ball' ? 'ULTRA BALL' : 'GREAT BALL', 'W')
-            ) : (
-              <Card
-                icon={<ItemIcon id="coin-case" size={32} />}
-                label="LOJA"
-                sub="comprar bolas"
-                onClick={() => onOpen('shop')}
-              />
-            )}
+      {/* Menu de comandos dos portáteis: LUTAR / MOCHILA / POKéMON / FUGIR, com submenus. */}
+      <section
+        className={`battle-cmds frame frame-menu ${waiting ? 'waiting' : ''} view-${view}`}
+        aria-label="Comandos"
+      >
+        {view === 'main' && (
+          <div className="bc-main">
+            <button ref={fightButton} className="bc-big bc-fight" onClick={() => setView('fight')}>
+              <strong>LUTAR</strong>
+              <small>
+                {b.pendingMove
+                  ? `próximo: ${moveName(b.pendingMove)}`
+                  : manual
+                    ? 'escolher golpe'
+                    : 'golpes automáticos'}
+              </small>
+            </button>
+            <button className="bc-big bc-bag" onClick={() => setView('bag')}>
+              <strong>MOCHILA</strong>
+              <small>{usable ? `${owned.length} tipos de bola` : 'sem captura aqui'}</small>
+            </button>
+            <button className="bc-big bc-party" onClick={() => setView('party')}>
+              <strong>POKéMON</strong>
+              <small>{reserves.length ? `${reserves.length} na reserva` : 'ver equipe'}</small>
+            </button>
+            <button className="bc-big bc-run" disabled={!fighting} onClick={run} title="Tecla F">
+              <strong>{runLabel}</strong>
+              <small>{runHint}</small>
+            </button>
           </div>
-        </section>
+        )}
 
-        <section className="deck-panel deck-actions frame frame-menu" aria-label="Ações">
-          <h3 className="deck-title">AÇÕES</h3>
-          {wild && hasWater(encounterId) && (
-            <ModeSwitch
-              modes={modes}
-              mode={mode}
-              onPick={(m) => engine.dispatch((s) => setEncounterMode(s, m))}
+        {view === 'fight' && (
+          <div className="bc-sub">
+            <button
+              className="bc-back"
+              onClick={() => setView('main')}
+              aria-label="Voltar"
+              title="Voltar (Esc)"
             />
-          )}
-          <div className="deck-grid">
-            <Card
-              icon={<ItemIcon id="poke-ball" size={32} />}
-              label="POKéMON"
-              sub="trocar ativo"
-              onClick={() => onOpen('party')}
-            />
-            {wild ? (
-              challengeCard()
-            ) : (
-              <Card
-                icon={<ItemIcon id="escape-rope" size={32} />}
-                label={
-                  b.kind === 'tower' || b.kind === 'legendary' || b.kind === 'tournament'
-                    ? 'DESISTIR'
-                    : 'FUGIR'
-                }
-                sub={
-                  b.kind === 'tower'
-                    ? `parar no andar ${b.floor}`
-                    : b.kind === 'tournament'
-                      ? `partida ${state.tournament.score[0]}–${state.tournament.score[1]} (perde a vaga)`
-                      : b.kind === 'legendary'
-                        ? `${legendaryRules(b.enemy?.speciesId ?? 0).throwLimit - (b.enemy?.throws ?? 0)} bolas até fugir`
-                        : b.kind === 'raid'
-                          ? `${Math.ceil((b.raidMs ?? 0) / 1000)} s restantes`
-                          : 'sair da batalha'
-                }
-                hotkey="F"
-                tone="danger"
-                onClick={() => engine.dispatch((s, now) => retreatFromBoss(s, now))}
-              />
-            )}
+            <div className="bc-moves">
+              {movesOf(player).map((move) => {
+                const mv = getMove(move);
+                const eff = b.enemy ? typeEffectiveness(mv.type, getSpecies(b.enemy.speciesId).types) : 1;
+                return (
+                  <button
+                    key={move}
+                    className={`bc-move type-bg-${mv.type} ${b.pendingMove === move ? 'queued' : ''}`}
+                    disabled={!fighting}
+                    onClick={() => {
+                      engine.dispatch((s) => void selectMove(s, move));
+                      setView('main');
+                    }}
+                  >
+                    <strong>{moveName(move).toUpperCase()}</strong>
+                    <small>
+                      <TypeBadge type={mv.type} /> POD {mv.power}
+                      {eff !== 1 && (
+                        <span className={`bc-eff ${eff > 1 ? 'up' : 'down'}`}>
+                          {eff === 0 ? 'SEM EFEITO' : eff > 1 ? 'SUPER EFETIVO' : 'POUCO EFETIVO'}
+                        </span>
+                      )}
+                    </small>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </section>
-      </div>
+        )}
+
+        {view === 'bag' && (
+          <div className="bc-sub">
+            <button
+              className="bc-back"
+              onClick={() => setView('main')}
+              aria-label="Voltar"
+              title="Voltar (Esc)"
+            />
+            <div className="bc-list">
+              {!usable && (
+                <p className="bc-note">
+                  {!fighting
+                    ? 'Esperando o próximo Pokémon…'
+                    : b.kind === 'wild' && !canCaptureHere(state)
+                      ? 'Nuzlocke: a captura desta área já foi usada.'
+                      : 'Não dá para capturar nesta batalha.'}
+                </p>
+              )}
+              {owned.map((ball) => {
+                const chance = usable ? Math.round(currentCaptureChance(state, ball) * 100) : null;
+                const mult = ballMultiplierNow(state, ball);
+                return (
+                  <button
+                    key={ball}
+                    className={`bc-ball ${ball === bestBall ? 'best' : ''}`}
+                    disabled={!usable}
+                    title={`${itemName(ball)}: bola ${formatMultiplier(mult)}${ball === 'poke-ball' ? ' (tecla Q)' : ball === bestBall ? ' (tecla W)' : ''}`}
+                    onClick={() => throwIf(ball)}
+                  >
+                    <ItemIcon id={ball} size={28} />
+                    <span>
+                      <strong>{itemName(ball).toUpperCase()}</strong>
+                      <small>
+                        ×{state.items[ball]}
+                        {chance !== null && ` · ${chance}%`}
+                      </small>
+                    </span>
+                  </button>
+                );
+              })}
+              {!owned.length && <p className="bc-note">Sem bolas na mochila.</p>}
+              <button className="bc-ball bc-shop" onClick={() => onOpen('shop')}>
+                <ItemIcon id="coin-case" size={28} />
+                <span>
+                  <strong>LOJA</strong>
+                  <small>comprar bolas</small>
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === 'party' && (
+          <div className="bc-sub">
+            <button
+              className="bc-back"
+              onClick={() => setView('main')}
+              aria-label="Voltar"
+              title="Voltar (Esc)"
+            />
+            <div className="bc-list">
+              {[player, ...reserves].map((p) => {
+                const max = statsOf(p).hp;
+                const isActive = p.uid === player.uid;
+                return (
+                  <button
+                    key={p.uid}
+                    className={`bc-mon ${isActive ? 'active' : ''}`}
+                    disabled={isActive || p.currentHp <= 0 || !fighting}
+                    title={
+                      isActive ? 'Em campo' : p.currentHp <= 0 ? 'Desmaiado' : `Trocar por ${pokemonName(p)}`
+                    }
+                    onClick={() => {
+                      engine.dispatch((s) => void switchActive(s, p.uid));
+                      setView('main');
+                    }}
+                  >
+                    <PokemonSprite speciesId={p.speciesId} kind="icon" />
+                    <span>
+                      <strong>
+                        {pokemonName(p).toUpperCase()} <em>Nv{p.level}</em>
+                      </strong>
+                      <HpBar value={p.currentHp} max={max} label={false} />
+                    </span>
+                  </button>
+                );
+              })}
+              <button className="bc-mon bc-shop" onClick={() => onOpen('party')}>
+                <ItemIcon id="poke-ball" size={28} />
+                <span>
+                  <strong>EQUIPE</strong>
+                  <small>{reserves.length ? 'montar reservas' : 'escolher reservas'}</small>
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

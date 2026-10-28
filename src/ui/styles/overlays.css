@@ -266,3 +266,41 @@
     font-size: 15px;
   }
 }
+
+/* "Salvando…": centralizado no alto, por cima do HUD (some em 1,6 s), com a bola girando
+   em degraus. Não disputa espaço com os avisos nem com a barra de abas do celular. */
+.save-indicator {
+  position: fixed;
+  z-index: 25;
+  top: 10px;
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  font: 700 11px var(--font-label);
+  color: var(--ink-soft);
+  pointer-events: none;
+  animation: save-in 0.2s steps(2, end);
+}
+
+@keyframes save-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.save-indicator .item-icon {
+  animation: save-spin 0.6s steps(4, end) infinite;
+}
+
+@keyframes save-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+html.reduced-motion .save-indicator .item-icon {
+  animation: none;
+}

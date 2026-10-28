@@ -36,7 +36,7 @@ import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
-type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff'>;
+type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode'>;
 
 const TOGGLES: { key: Toggle; label: string; requires?: string }[] = [
   { key: 'autoEvolve', label: T.settings.autoEvolve },

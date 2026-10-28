@@ -8,6 +8,7 @@ import {
   daycareCompatible,
   daycarePokemon,
   eggSpeciesOf,
+  incompatibility,
   putInDaycare,
   takeFromDaycare,
 } from '../../../core/daycare';
@@ -59,7 +60,9 @@ export function DaycarePanel({ state }: { state: GameState }) {
             ? 'Deixe dois Pokémon aqui. Eles ganham 1 nível a cada ' + d.killsPerLevel + ' vitórias suas.'
             : ok
               ? `Os dois se dão muito bem! Ovo de ${speciesName(eggSpeciesOf(a, b))} a caminho.`
-              : 'Esses dois não parecem se gostar… (precisam de um grupo de ovos em comum, ou de um Ditto).'}
+              : incompatibility(a, b) === 'gender'
+                ? 'Esses dois não parecem se gostar… (precisam ser um macho e uma fêmea, ou um deles ser Ditto).'
+                : 'Esses dois não parecem se gostar… (precisam de um grupo de ovos em comum, ou de um Ditto).'}
         </p>
         {ok && (
           <div className="node-progress">

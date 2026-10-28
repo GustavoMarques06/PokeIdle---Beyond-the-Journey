@@ -17,7 +17,16 @@ export interface BattleTextContext {
   playerName: string;
   /** Treinador adversário (chefe, Rocket, Torre). */
   trainerName?: string;
+  /** Apelidos da equipe de batalha (ativo + reservas), por espécie: os eventos só trazem a espécie. */
+  nicknames?: ReadonlyMap<number, string>;
 }
+
+/** Nome de um Pokémon do jogador: o apelido, se houver, ou o nome da espécie. */
+function mine(speciesId: number, ctx: BattleTextContext): string {
+  return ctx.nicknames?.get(speciesId) ?? speciesName(speciesId);
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 function foeLabel(speciesId: number, ctx: BattleTextContext): string {
   return ctx.bossBattle ? `${speciesName(speciesId)} inimigo` : `${speciesName(speciesId)} selvagem`;
@@ -44,51 +53,58 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
         important: e.shiny || e.boss || !!e.raid || !!e.roamer || !!e.perfect || !!e.legendary,
       };
     case 'attack': {
-      const who = e.side === 'player' ? speciesName(e.attacker) : foeLabel(e.attacker, ctx);
+      const who = e.side === 'player' ? mine(e.attacker, ctx) : foeLabel(e.attacker, ctx);
       const r = e.result;
       let text = `${who} usou ${moveName(r.moveId)}!`;
       if (r.missed) text += ' Mas errou!';
-      else if (r.effectiveness === 0) text += ` Não afeta ${speciesName(e.target)}…`;
+      else if (r.effectiveness === 0)
+        text += ` Não afeta ${e.side === 'player' ? speciesName(e.target) : mine(e.target, ctx)}…`;
       else {
         if (r.crit) text += ' Um golpe crítico!';
         if (r.effectiveness > 1) text += ' É super efetivo!';
         else if (r.effectiveness < 1) text += ' Não é muito efetivo…';
       }
       if (r.status) {
-        const target = e.side === 'player' ? foeLabel(e.target, ctx) : speciesName(e.target);
+        const target = e.side === 'player' ? foeLabel(e.target, ctx) : mine(e.target, ctx);
         text += ` ${target} ${STATUS_TEXT[r.status].inflicted}!`;
       }
       return { text, important: false };
     }
+    case 'ranAway':
+      return { text: 'Fugiu em segurança!', important: true };
     case 'switched':
       return {
         text:
           e.reason === 'fainted'
-            ? `${speciesName(e.from)} desmaiou! Vai, ${speciesName(e.to)}!`
-            : `Volte, ${speciesName(e.from)}! Vai, ${speciesName(e.to)}!`,
+            ? `${mine(e.from, ctx)} desmaiou! Vai, ${mine(e.to, ctx)}!`
+            : `Volte, ${mine(e.from, ctx)}! Vai, ${mine(e.to, ctx)}!`,
         important: true,
       };
     case 'statusSkip':
     case 'statusCured':
     case 'statusDamage': {
-      const who = e.side === 'player' ? speciesName(e.speciesId) : foeLabel(e.speciesId, ctx);
+      const who = e.side === 'player' ? mine(e.speciesId, ctx) : foeLabel(e.speciesId, ctx);
       const t = STATUS_TEXT[e.status];
       const phrase = e.type === 'statusSkip' ? t.skip : e.type === 'statusCured' ? t.cured : t.damage;
       return { text: `${who} ${phrase}!`, important: false };
     }
     case 'enemyFainted':
       return {
-        text: `${foeLabel(e.speciesId, ctx)} desmaiou! ${ctx.playerName} ganhou ${e.exp} pontos de EXP e ${e.coins} moedas.`,
+        text: `${foeLabel(e.speciesId, ctx)} desmaiou! ${ctx.playerName} ganhou ${plural(e.exp, 'ponto', 'pontos')} de EXP e ${plural(e.coins, 'moeda', 'moedas')}.`,
         important: false,
       };
     case 'playerFainted':
-      return { text: `${speciesName(e.speciesId)} desmaiou! Correndo para se recuperar…`, important: true };
+      return { text: `${mine(e.speciesId, ctx)} desmaiou! Correndo para se recuperar…`, important: true };
     case 'levelUp':
-      return { text: `${speciesName(e.speciesId)} subiu para o Nv. ${e.level}!`, important: true };
+      return { text: `${mine(e.speciesId, ctx)} subiu para o Nv. ${e.level}!`, important: true };
     case 'learnedMove':
-      return { text: `${speciesName(e.speciesId)} aprendeu ${moveName(e.move)}!`, important: true };
+      return { text: `${mine(e.speciesId, ctx)} aprendeu ${moveName(e.move)}!`, important: true };
     case 'evolved':
-      return { text: `Parabéns! ${speciesName(e.from)} evoluiu para ${speciesName(e.to)}!`, important: true };
+      // Depois de evoluir, o Pokémon já é da espécie nova: o apelido está nela.
+      return {
+        text: `Parabéns! ${ctx.nicknames?.get(e.to) ?? speciesName(e.from)} evoluiu para ${speciesName(e.to)}!`,
+        important: true,
+      };
     case 'evolutionReady':
       return { text: `${speciesName(e.speciesId)} está pronto para evoluir! Abra POKéMON.`, important: true };
     case 'captureAttempt':

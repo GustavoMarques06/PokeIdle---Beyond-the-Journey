@@ -1,13 +1,24 @@
 /* --- HUD: ambiente e eventos -------------------------------------------------------- */
-.hud-env {
-  gap: 4px;
-}
-
+/* Roamer e Rocket entram deslizando e pulsam duas vezes (não para sempre). */
 .hud-events {
   gap: 4px;
-  border: 0;
+  border: none;
+  background: none;
   cursor: pointer;
-  animation: blink-soft 1.2s steps(2, end) infinite;
+  animation:
+    hud-slide-in 0.35s ease-out,
+    blink-soft 1.2s steps(2, end) 0.35s 2;
+}
+
+@keyframes hud-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+html.reduced-motion .hud-events {
+  animation: none;
 }
 
 .hud-events .sprite {
@@ -63,7 +74,7 @@
 }
 
 .weather-hail {
-  opacity: 0.9;
+  opacity: 0.75;
   --weather-ms: 640ms;
 }
 
@@ -131,7 +142,7 @@
   padding: 3px 8px;
   background: #f0e0b8;
   border: 2px solid #a07840;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   cursor: pointer;
 }
 
@@ -349,14 +360,18 @@
 .activity-tab {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 2px 4px;
+  gap: 2px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 4px 2px;
+  line-height: 1.1;
+  text-align: center;
   border: 0;
   background: none;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
   cursor: pointer;
 }
 
@@ -398,7 +413,7 @@
 }
 
 .countdown {
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   color: var(--ink-soft);
 }
 
@@ -425,7 +440,7 @@
   align-items: center;
   justify-content: center;
   min-height: 110px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   cursor: pointer;
 }
 
@@ -559,7 +574,7 @@
 }
 
 .expedition-card strong {
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .expedition-card small {
@@ -644,7 +659,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
   text-align: center;
 }
 
@@ -663,7 +678,7 @@
   background: repeating-linear-gradient(0deg, #8a6838 0 4px, #a07848 4px 8px);
   border: 3px solid #604020;
   color: #f8e8c8;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
   cursor: pointer;
 }
 
@@ -816,7 +831,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .slot-table .sprite,
@@ -868,7 +883,7 @@
   justify-content: space-between;
   gap: 6px;
   margin-top: 4px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
 }
 
 /* Missões e recompensas da Pokédex */
@@ -915,7 +930,7 @@
   grid-template-columns: 76px minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .type-medals li.done {
@@ -931,7 +946,7 @@
 
 .badge-row small {
   min-width: 56px;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
 }
 
 .hof-entry {
@@ -960,7 +975,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
 }
 
 .hof-mon .sprite {
@@ -973,7 +988,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
   list-style: none;
 }
 
@@ -1055,7 +1070,7 @@
   border: 0;
   background: var(--menu-blue-light);
   color: var(--ink);
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .depth-tabs button.active {
@@ -1145,7 +1160,7 @@
   width: 78px;
   padding: 1px 4px 1px 0;
   text-align: left;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -1243,6 +1258,7 @@
 
 /* --- ACESSIBILIDADE: contraste alto e texto maior (Treinador → Opções) ---------------- */
 html.hc {
+  --text-shadow: transparent;
   --ink: #000010;
   --ink-soft: #101028;
   --ink-muted: #20203c;
@@ -1252,18 +1268,18 @@ html.hc {
 
 html.hc .hint,
 html.hc small,
-html.hc .cmd-sub,
+html.hc .bc-big small,
 html.hc .muted {
   color: var(--ink);
 }
 
-html.hc .cmd,
+html.hc .bc-ball,
 html.hc .pbtn,
 html.hc .depth {
   border-color: var(--ink);
 }
 
-html.hc .cmd:disabled,
+html.hc .bc-big:disabled,
 html.hc .pbtn:disabled {
   opacity: 0.7;
 }
@@ -1273,7 +1289,7 @@ html.large-text .dialog-text {
 }
 
 html.large-text .hint,
-html.large-text .cmd-sub,
+html.large-text .bc-big small,
 html.large-text .item-desc p,
 html.large-text .mart-info small,
 html.large-text .depth-row small,
@@ -1282,7 +1298,7 @@ html.large-text .option-row span {
   font-size: 15px;
 }
 
-html.large-text .cmd-label,
+html.large-text .bc-big strong,
 html.large-text .item-name,
 html.large-text .pbtn {
   font-size: 13px;
@@ -1290,7 +1306,7 @@ html.large-text .pbtn {
 
 /* --- MERCADO: venda, tempo de farm e mercador viajante ------------------------------- */
 .farm-time {
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -1307,7 +1323,7 @@ html.large-text .pbtn {
   padding: 0 4px;
   background: var(--red);
   color: #fff;
-  font: 700 9px var(--font-label);
+  font: 700 10px var(--font-label);
 }
 
 .mart-row.sold-out {
@@ -1326,40 +1342,50 @@ html.large-text .pbtn {
 }
 
 /* --- PESCA E SURF ---------------------------------------------------------------------- */
-/* Fica na borda de cima do painel AÇÕES, ao lado do título, sem empurrar os botões. */
+/* No canto da cena, junto da árvore e da câmera: só ícones; o modo ativo mostra o nome. */
 .mode-switch {
-  position: absolute;
-  top: -9px;
-  right: 10px;
-  z-index: 1;
   display: flex;
   gap: 2px;
+  padding: 2px;
+  border: 2px solid var(--ink);
+  background: #f8f8e8e0;
 }
 
 .mode-btn {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 0 5px;
-  border: 2px solid var(--ink);
-  background: #f0f4ff;
-  font: 700 8px var(--font-label);
+  padding: 0 calc(var(--u) * 1);
+  border: 0;
+  background: none;
+  font: 700 calc(var(--u) * 2.8) var(--font-label);
   color: var(--menu-blue-dark);
 }
 
 .mode-btn .item-icon {
-  width: 14px;
-  height: 14px;
+  width: calc(var(--u) * 6);
+  height: calc(var(--u) * 6);
+}
+
+.mode-btn span {
+  display: none;
+}
+
+.mode-btn:hover:not(:disabled) {
+  background: #eef4ff;
 }
 
 .mode-btn.active {
-  border-color: var(--menu-blue-dark);
   background: var(--menu-blue);
   color: #fff;
 }
 
+.mode-btn.active span {
+  display: inline;
+}
+
 .mode-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.35;
 }
 
 /* Faixa de Ã¡gua sob o PokÃ©mon do jogador enquanto surfa. */
@@ -1523,7 +1549,7 @@ html.reduced-motion .pocket-alert {
 .tier-tag {
   margin-left: 4px;
   padding: 0 4px;
-  font: 700 8px var(--font-label) !important;
+  font: 700 10px var(--font-label) !important;
   color: var(--ink) !important;
 }
 
@@ -1556,7 +1582,7 @@ html.reduced-motion .pocket-alert {
 
 .medal-count {
   padding: 2px 6px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .medal-count small {
@@ -1568,14 +1594,14 @@ html.reduced-motion .pocket-alert {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .card-showcase {
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -1598,7 +1624,7 @@ html.reduced-motion .pocket-alert {
 
 .showcase-slot small {
   max-width: 96px;
-  font: 700 8px var(--font-label);
+  font: 700 10px var(--font-label);
   color: var(--ink-muted);
 }
 
@@ -1782,7 +1808,7 @@ html.reduced-motion .scene-toast {
   align-items: center;
   gap: 4px;
   padding: 2px 4px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .bracket-slot + .bracket-slot {
@@ -1832,7 +1858,7 @@ html.reduced-motion .scene-toast {
   padding: 0 4px;
   border: 2px solid var(--gold-dark);
   background: var(--gold);
-  font: 700 8px var(--font-label);
+  font: 700 10px var(--font-label);
   text-align: center;
 }
 
@@ -1849,7 +1875,7 @@ html.reduced-motion .scene-toast {
 
 .battle-record h4 {
   margin: 0 0 4px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -1927,7 +1953,7 @@ html.reduced-motion .scene-toast {
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .node-water small {
@@ -1943,32 +1969,29 @@ html.reduced-motion .scene-toast {
 }
 
 /* --- POKÃ©DEX: pesquisa e formas ------------------------------------------------------------ */
-.dex-research,
+/* Ficam dentro da tela de abas da Pokédex: sem moldura própria. */
 .dex-forms {
   margin-top: 6px;
-  padding: 4px 6px;
-  border: 2px solid #88b0a0;
-  background: #f0fff4;
-}
-
-.dex-research.complete {
-  border-color: var(--gold-dark);
-  background: #fff8d8;
+  padding-top: 6px;
+  border-top: 2px dashed #c8d4c0;
 }
 
 .dex-research-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .dex-research ul {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 8px;
-  margin: 4px 0;
-  font-size: 12px;
+  gap: 2px 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
 }
 
 .dex-research li.done {
@@ -2002,7 +2025,7 @@ html.reduced-motion .scene-toast {
 }
 
 .dex-form small {
-  font: 700 8px var(--font-label);
+  font: 400 11px var(--font-text);
 }
 
 /* --- Torre semanal ---------------------------------------------------------------------- */
@@ -2039,7 +2062,7 @@ html.reduced-motion .scene-toast {
   padding: 2px 6px;
   border: 2px solid var(--ink-soft);
   background: var(--paper);
-  font: 700 10px var(--font-label);
+  font: 700 11px var(--font-label);
 }
 
 .weekly-milestones li.done {
@@ -2056,7 +2079,7 @@ html.reduced-motion .scene-toast {
   border: 1px solid var(--ink);
   background: var(--red);
   color: #fff;
-  font: 700 8px var(--font-label);
+  font: 700 10px var(--font-label);
   animation: blink-soft 1s steps(2, end) infinite;
 }
 

@@ -91,6 +91,21 @@ export const ENCOUNTER_MODE_NAMES: Record<string, string> = {
 };
 
 export const ITEM_DESCRIPTIONS: Record<string, string> = {
+  'net-ball': 'Captura 3,5× melhor contra Pokémon de Água e Inseto.',
+  'dusk-ball': 'Captura 3× melhor à noite e em cavernas.',
+  'quick-ball': 'Captura 5× melhor nos primeiros 5 segundos do encontro.',
+  'timer-ball': 'Quanto mais longa a luta, melhor: +1× a cada 10 s, até 4×. Ótima contra lendários.',
+  'repeat-ball': 'Captura 3,5× melhor contra espécies que você já capturou.',
+  'nest-ball': 'Melhor contra Pokémon de nível baixo: até 4× (nível 1), 1× a partir do 31.',
+  'luxury-ball': 'O Pokémon capturado já chega com bastante amizade.',
+  'heal-ball': 'O Pokémon capturado chega com o HP cheio.',
+  repel: 'Por 10 min, os selvagens aparecem sempre no nível máximo da rota: mais EXP e moedas por vitória.',
+  'super-repel': 'Como o Repelente, por 20 min.',
+  'max-repel': 'Como o Repelente, por 30 min.',
+  'sea-incense': 'Por 20 min, Pokémon de Água aparecem 4× mais.',
+  'rose-incense': 'Por 20 min, Pokémon de Planta aparecem 4× mais.',
+  'rock-incense': 'Por 20 min, Pokémon de Pedra aparecem 4× mais.',
+  'odd-incense': 'Por 20 min, Pokémon Psíquicos aparecem 4× mais.',
   'poke-ball': 'Bola básica para capturar Pokémon selvagens.',
   'great-ball': 'Taxa de captura 1,5× maior que a Poké Ball.',
   'moon-stone': 'Evolui Nidorina, Nidorino, Clefairy e Jigglypuff.',
@@ -388,7 +403,11 @@ export function describeEvent(e: GameEvent): string | null {
     case 'switched':
       return e.reason === 'fainted'
         ? `${speciesName(e.from)} desmaiou! ${speciesName(e.to)} entrou na batalha.`
-        : `${speciesName(e.to)} entrou no lugar de ${speciesName(e.from)} (vantagem de tipo).`;
+        : e.reason === 'manual'
+          ? `${speciesName(e.to)} entrou no lugar de ${speciesName(e.from)}.`
+          : `${speciesName(e.to)} entrou no lugar de ${speciesName(e.from)} (vantagem de tipo).`;
+    case 'ranAway':
+      return `Fugiu do ${speciesName(e.speciesId)} selvagem.`;
     case 'statusSkip':
       return `${speciesName(e.speciesId)} ${STATUS_TEXT[e.status].skip}.`;
     case 'statusCured':

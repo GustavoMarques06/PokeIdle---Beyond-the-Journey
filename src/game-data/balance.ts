@@ -5,6 +5,8 @@ export const BALANCE = {
   tickMs: 100,
   maxLevel: 100,
   maxMoves: 4,
+  /** Relembrador: preço para lembrar um golpe da pré-evolução. */
+  relearnCost: 2500,
 
   combat: {
     /**
@@ -60,6 +62,7 @@ export const BALANCE = {
       'ultra-ball': 2,
       'master-ball': 255,
       'safari-ball': 1.5,
+      // Bolas especiais: 1× fora da situação delas (ver captureitems.ts e capture.ts).
     } as Record<string, number>,
     /** Zona Safari: chance de captura extra. */
     safariBonus: 1.5,
@@ -403,6 +406,22 @@ export const SHOP: ShopEntry[] = [
   { id: 'leaf-stone', kind: 'item', price: 2500, requiresBoss: 'rota-4' },
   { id: 'fire-stone', kind: 'item', price: 2500, requiresBoss: 'rota-4' },
   { id: 'ultra-ball', kind: 'item', price: 400, requiresBoss: 'esconderijo-rocket' },
+  // Bolas especiais, repelentes e incensos (captureitems.ts).
+  { id: 'nest-ball', kind: 'item', price: 250, requiresBoss: 'floresta-viridian' },
+  { id: 'heal-ball', kind: 'item', price: 100, requiresBoss: 'floresta-viridian' },
+  { id: 'repel', kind: 'item', price: 300, requiresBoss: 'mt-moon' },
+  { id: 'net-ball', kind: 'item', price: 300, requiresBoss: 'mt-moon' },
+  { id: 'repeat-ball', kind: 'item', price: 300, requiresBoss: 'rota-4' },
+  { id: 'quick-ball', kind: 'item', price: 350, requiresBoss: 'rota-24-25' },
+  { id: 'dusk-ball', kind: 'item', price: 300, requiresBoss: 'rota-24-25' },
+  { id: 'super-repel', kind: 'item', price: 500, requiresBoss: 'rota-5-6' },
+  { id: 'luxury-ball', kind: 'item', price: 300, requiresBoss: 'rota-5-6' },
+  { id: 'timer-ball', kind: 'item', price: 350, requiresBoss: 'torre-pokemon' },
+  { id: 'sea-incense', kind: 'item', price: 1200, requiresBoss: 'torre-pokemon' },
+  { id: 'rose-incense', kind: 'item', price: 1200, requiresBoss: 'torre-pokemon' },
+  { id: 'rock-incense', kind: 'item', price: 1200, requiresBoss: 'torre-pokemon' },
+  { id: 'odd-incense', kind: 'item', price: 1200, requiresBoss: 'torre-pokemon' },
+  { id: 'max-repel', kind: 'item', price: 700, requiresBoss: 'esconderijo-rocket' },
   { id: 'soothe-bell', kind: 'item', price: 6000, requiresBoss: 'rota-24-25' },
   { id: 'everstone', kind: 'item', price: 2000, requiresBoss: 'rota-5-6' },
   // Pesca e Surf (ver water.ts): melhorias permanentes, como a captura automática.
@@ -424,6 +443,21 @@ export const DEPT_STORE = {
     'great-ball': 150,
     'ultra-ball': 400,
     'master-ball': 300_000,
+    'net-ball': 300,
+    'dusk-ball': 300,
+    'quick-ball': 350,
+    'timer-ball': 350,
+    'repeat-ball': 300,
+    'nest-ball': 250,
+    'luxury-ball': 300,
+    'heal-ball': 100,
+    repel: 300,
+    'super-repel': 500,
+    'max-repel': 700,
+    'sea-incense': 1200,
+    'rose-incense': 1200,
+    'rock-incense': 1200,
+    'odd-incense': 1200,
     'rare-candy': 12_000,
     everstone: 2000,
     'soothe-bell': 6000,

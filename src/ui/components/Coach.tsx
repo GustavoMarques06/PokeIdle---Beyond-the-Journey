@@ -70,9 +70,11 @@ export function Coach({ state }: { state: GameState }) {
     });
   }, [engine, migrated]);
 
-  // As dicas seguem a ordem: a próxima só aparece depois que a anterior foi lida.
-  const next = migrated ? STEPS.find((step) => !state.flags.includes(stepFlag(step.id))) : undefined;
-  const step = next && next.when(state) ? next : undefined;
+  // A primeira dica ainda não lida cuja hora chegou (na ordem da lista). Não espera pelas
+  // anteriores: quem nunca captura nada também recebe as dicas da rota e do jogo fechado.
+  const step = migrated
+    ? STEPS.find((s) => !state.flags.includes(stepFlag(s.id)) && s.when(state))
+    : undefined;
   if (!step) return null;
   return (
     <CoachBubble
@@ -86,6 +88,12 @@ export function Coach({ state }: { state: GameState }) {
 function CoachBubble({ text, onClose }: { text: string; onClose: () => void }) {
   // Texto inteiro de uma vez: digitar letra a letra aqui redesenharia a tela o tempo todo
   // enquanto o jogo roda (e atrasaria o carregamento das outras telas).
+  // Os avisos costumam ocupar o canto livre da caixa de mensagens; com a fala do professor
+  // nela, eles vão para o outro lado da tela (ver effects.css).
+  useEffect(() => {
+    document.documentElement.classList.add('coach-open');
+    return () => document.documentElement.classList.remove('coach-open');
+  }, []);
   return (
     <aside className="coach frame frame-dialog" aria-live="polite">
       <TrainerSprite id="oak" size={56} head />

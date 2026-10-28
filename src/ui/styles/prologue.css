@@ -637,34 +637,252 @@
   position: relative;
 }
 
+/* --- Ficha do save (CONTINUAR) -------------------------------------------------------- */
+.title-menu {
+  width: min(100%, 600px);
+}
+
+.title-option-label {
+  display: block;
+}
+
+.title-option small {
+  display: block;
+  margin-top: 2px;
+  font: 400 13px var(--font-text);
+  color: var(--ink-muted);
+}
+
+.title-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.title-row .title-option {
+  font-size: 16px;
+}
+
 .title-option.continue {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+
+.save-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  background: #f4f8ff;
+}
+
+.save-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(var(--menu-blue) 0 60%, var(--menu-blue-dark) 60%);
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.save-head strong {
+  font: 700 16px var(--font-label);
+}
+
+.save-region {
+  padding: 0 6px;
+  border: 2px solid var(--ink);
+  background: var(--gold);
+  color: var(--ink);
+  font: 700 11px/16px var(--font-label);
+  text-shadow: none;
+}
+
+.save-head small {
+  margin-left: auto;
+  white-space: nowrap;
+  font: 400 13px var(--font-text);
+  color: #e8f0ff;
+}
+
+.save-body {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 10px;
+}
+
+/* Treinador sobre uma plataforma de batalha. */
+.save-stage {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 112px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse 42% 12% at 50% 86%, #78c058 96%, transparent 100%),
+    linear-gradient(#c8ecf8 0 64%, #a8dc88 64%);
+  overflow: hidden;
+}
+
+.save-stage .trainer-sprite {
+  margin-bottom: 4px;
+}
+
+.save-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
 
-.save-summary {
+.save-stat {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 0 2px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 2px solid var(--menu-blue-light);
+  border-radius: 6px;
+  background: #fff;
 }
 
-.save-summary dl {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 2px 14px;
+.save-stat.wide {
+  grid-column: 1 / -1;
 }
 
-.save-summary dt {
-  font: 700 10px/1.6 var(--font-label);
+.save-stat small {
+  margin: 0;
+  font: 700 10px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
-.save-summary dd {
-  font: 600 15px var(--font-text);
-  letter-spacing: 0;
-  justify-self: end;
+.save-stat b {
+  font: 700 16px var(--font-label);
+  color: var(--ink);
+}
+
+.save-stat b i {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.save-stat .pbar {
+  margin-top: 2px;
+}
+
+.save-place {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.save-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px 8px;
+}
+
+.save-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-badges small {
+  margin: 0;
+  font: 700 11px var(--font-label);
+  color: var(--ink-soft);
+}
+
+/* Equipe: cada Pokémon com nome, nível e papel; o ativo em destaque. */
+.save-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px;
+  padding: 0 10px;
+}
+
+.save-team .save-label {
+  grid-column: 1 / -1;
+  margin: 0;
+  font: 700 10px var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.save-mon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 6px 2px 2px;
+  border: 2px solid var(--menu-blue-light);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.save-mon.lead {
+  border-color: var(--gold-dark);
+  background: #fff8d8;
+}
+
+.save-mon .sprite {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: -4px -2px;
+}
+
+.save-mon-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* O nome encolhe com reticências; o símbolo de gênero fica sempre à vista. */
+.save-mon-info b {
+  display: flex;
+  min-width: 0;
+  font: 700 12px var(--font-label);
+}
+
+.save-mon-info b span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.save-mon-info b .gender {
+  flex: none;
+}
+
+.save-mon .save-mon-info small {
+  margin: 0;
+  font: 400 12px var(--font-text);
+  color: var(--ink-muted);
+}
+
+@media (max-width: 520px) {
+  .save-body {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .save-stage {
+    height: 96px;
+  }
+
+  .title-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 html.reduced-motion .gba-logo,

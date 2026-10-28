@@ -5,6 +5,7 @@ import {
   BALANCE,
   ROUTES,
   SHOP_CATALOG,
+  SPECIAL_BALLS,
   STARTER_GENERATIONS,
   getRoute,
   getSpecies,
@@ -31,6 +32,9 @@ import type { CompanionState } from './companion';
 import type { DexResearchEntry } from './dexresearch';
 import type { MvpState } from './records';
 import type { NuzlockeState } from './nuzlocke';
+import type { PcState } from './pc';
+import type { LuresState } from './lures';
+import type { Gender } from './gender';
 import type { SafariState } from './safari';
 import type { TournamentState } from './tournament';
 import type { GardenPlot } from './garden';
@@ -80,6 +84,8 @@ export interface Settings {
   /** Contraste alto e texto maior. */
   highContrast: boolean;
   largeText: boolean;
+  /** Automático: o ativo escolhe os golpes sozinho. Manual: a batalha espera o comando a cada vez. */
+  battleMode: 'auto' | 'manual';
 }
 
 /** Efeito de status em andamento. `turns` conta as ações restantes de sono. */
@@ -124,6 +130,10 @@ export interface EnemyState {
   water?: WaterMode;
   /** Forma alternativa (Unown, Deerling, Spinda). */
   form?: string;
+  /** Gênero sorteado ao aparecer (passa para o Pokémon capturado). */
+  gender?: Gender;
+  /** Tempo de luta contra este Pokémon (Quick Ball e Timer Ball). */
+  elapsedMs?: number;
 }
 
 export type BattlePhase = 'spawning' | 'fighting' | 'victory' | 'defeat';
@@ -167,6 +177,8 @@ export interface BattleState {
   rematch?: boolean;
   /** Subida da Torre semanal (regra e andares da semana). */
   weekly?: boolean;
+  /** Golpe escolhido pelo jogador para a próxima vez do ativo (LUTAR). */
+  pendingMove?: string;
 }
 
 export interface HallOfFameEntry {
@@ -271,6 +283,10 @@ export interface GameState {
   nuzlocke?: NuzlockeState;
   /** Nomes das etiquetas da Caixa que o jogador mudou (ver boxes.ts). */
   tagNames?: Partial<Record<NonNullable<PokemonInstance['tag']>, string>>;
+  /** Onde cada Pokémon está no PC (caixas, nomes e papéis de parede; ver pc.ts). */
+  pc?: PcState;
+  /** Repelente e incenso ativos (ver lures.ts). */
+  lures?: LuresState;
 }
 
 export type EncounterMode = 'land' | WaterMode;
@@ -317,6 +333,7 @@ export const DEFAULT_SETTINGS: Settings = {
   animSpeed: 1,
   highContrast: false,
   largeText: false,
+  battleMode: 'auto',
 };
 
 export const EMPTY_STATS: GameStats = {
@@ -361,7 +378,8 @@ export type GameEvent =
   | { type: 'enemyFainted'; speciesId: number; exp: number; coins: number }
   | { type: 'playerFainted'; speciesId: number }
   /** A reserva entrou no lugar do ativo (desmaio ou vantagem de tipo). */
-  | { type: 'switched'; uid: number; from: number; to: number; reason: 'fainted' | 'matchup' }
+  | { type: 'switched'; uid: number; from: number; to: number; reason: 'fainted' | 'matchup' | 'manual' }
+  | { type: 'ranAway'; speciesId: number }
   | { type: 'statusDamage'; side: 'player' | 'enemy'; speciesId: number; status: Ailment; damage: number }
   | { type: 'statusSkip'; side: 'player' | 'enemy'; speciesId: number; status: Ailment }
   | { type: 'statusCured'; side: 'player' | 'enemy'; speciesId: number; status: Ailment }
@@ -577,7 +595,7 @@ export function routeCleared(state: GameState, routeId: string): boolean {
 }
 
 /** Bolas que o desafio "Mochila vazia" tira das lojas (a Master Ball continua à venda). */
-export const BALLS = new Set(['poke-ball', 'great-ball', 'ultra-ball']);
+export const BALLS = new Set(['poke-ball', 'great-ball', 'ultra-ball', ...SPECIAL_BALLS]);
 
 export function shopEntries(state: GameState): ShopEntry[] {
   return SHOP_CATALOG.filter(

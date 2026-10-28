@@ -303,6 +303,16 @@ export function BadgeIcon({
   );
 }
 
+/** ♂ azul / ♀ vermelho (nada para espécies sem gênero). */
+export function GenderMark({ gender }: { gender: 'm' | 'f' | null | undefined }) {
+  if (!gender) return null;
+  return (
+    <span className={`gender gender-${gender}`} title={gender === 'm' ? 'Macho' : 'Fêmea'}>
+      {gender === 'm' ? '♂' : '♀'}
+    </span>
+  );
+}
+
 export function Shiny() {
   return <PixelIcon name="star" scale={1} className="shiny-star" title="Shiny" />;
 }

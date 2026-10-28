@@ -56,7 +56,9 @@ describe('creche', () => {
     const a = give(s, 'rattata');
     const b = give(s, 'ekans');
     const ditto = give(s, 'ditto');
-    expect(compatible(a, b)).toBe(true); // grupo Campo
+    a.gender = 'm';
+    b.gender = 'f';
+    expect(compatible(a, b)).toBe(true); // grupo Campo, macho e fêmea
     expect(compatible(a, give(s, 'pidgey'))).toBe(false);
     expect(compatible(a, ditto)).toBe(true);
     expect(compatible(ditto, ditto)).toBe(false);

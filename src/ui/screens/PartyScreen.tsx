@@ -1,7 +1,9 @@
-// Tela POKéMON: equipe (ativo + reservas + apoio) no estilo FRLG, Caixa com a coleção e ficha de resumo.
+// Tela POKéMON: equipe (ativo + reservas + apoio) no estilo FRLG e ficha de resumo. A coleção
+// fica no PC (PcScreen), que reaproveita a ficha daqui.
 
 import { useState } from 'react';
 import {
+  BALANCE,
   MASTERY_BONUS_PER_LEVEL,
   PASSIVE_SLOTS,
   RESERVE_SLOTS,
@@ -34,23 +36,10 @@ import {
 } from '../../core/game';
 import { isFallen } from '../../core/nuzlocke';
 import { rngFrom } from '../../core/rng';
-import {
-  EMPTY_FILTER,
-  TAG_IDS,
-  filterActive,
-  filterBox,
-  renameTag,
-  setFavorite,
-  setTag,
-  tagName,
-  toggleFavorite,
-  transferMany,
-  transferPlan,
-  type BoxFilter,
-  type TagId,
-} from '../../core/boxes';
+import { TAG_IDS, setTag, tagName, toggleFavorite, type TagId } from '../../core/boxes';
 import { addPassive, canTransfer, removePassive, transferPokemon, transferValue } from '../../core/meta';
-import { learnableMoves, setMoveset } from '../../core/moveset';
+import { learnableMoves, relearnMove, relearnableMoves, setMoveset } from '../../core/moveset';
+import { genderOf } from '../../core/gender';
 import {
   NICKNAME_MAX,
   evsOf,
@@ -64,11 +53,12 @@ import {
 } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
 import { addReserve, removeReserve, reservePokemon, reserveSlotsUnlocked } from '../../core/team';
-import { evolutionHint } from '../components/ActiveCard';
+import { evolutionHint } from '../evolutionHint';
 import { Depth } from './party/Depth';
 import {
   Bar,
   ExpBar,
+  GenderMark,
   HpBar,
   ItemIcon,
   PixelIcon,
@@ -89,11 +79,10 @@ import {
   speciesName,
 } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
-
-type Sort = 'level' | 'dex' | 'recent' | 'potential';
+import { useShownPokemon } from '../evolutionView';
 
 function PartySlot({
-  p,
+  p: real,
   active,
   selected,
   bonus,
@@ -107,6 +96,7 @@ function PartySlot({
   role?: string;
   onClick: () => void;
 }) {
+  const p = useShownPokemon(real);
   const stats = statsOf(p);
   return (
     <button
@@ -116,6 +106,7 @@ function PartySlot({
       <PokemonSprite speciesId={p.speciesId} kind="icon" className="party-icon" />
       <span className="party-name">
         {pokemonName(p).toUpperCase()}
+        <GenderMark gender={genderOf(p)} />
         {p.shiny && <Shiny />}
       </span>
       <span className="party-lv">Nv{p.level}</span>
@@ -136,7 +127,17 @@ function PartySlot({
   );
 }
 
-export function PartyScreen({ state }: { state: GameState }) {
+/** Espaço vazio ou trancado: pequeno, com a explicação na dica. */
+function EmptySlot({ label, hint, locked }: { label: string; hint: string; locked?: boolean }) {
+  return (
+    <div className={`party-empty ${locked ? 'locked' : ''}`} title={hint} aria-label={hint}>
+      {locked ? <PixelIcon name="lock" scale={2} /> : <span className="party-empty-plus">+</span>}
+      <span>{label}</span>
+    </div>
+  );
+}
+
+export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: () => void }) {
   const [selected, setSelected] = useState(state.activeUid);
   const unlocked = passiveSlotsUnlocked(state);
   const contributions = passiveContributions(state);
@@ -154,29 +155,35 @@ export function PartyScreen({ state }: { state: GameState }) {
           selected={selected === active.uid}
           onClick={() => setSelected(active.uid)}
         />
+        <h3 className="party-group">
+          RESERVAS <small>entram quando o ativo desmaia</small>
+        </h3>
         <div className="party-support party-reserves">
           {RESERVE_SLOTS.map((slot, i) => {
             // Só o próximo espaço trancado aparece: os outros surgem quando liberarem.
             if (i > reserveSlots) return null;
             if (i === reserveSlots) {
               return (
-                <div key={i} className="party-slot frame frame-slotEmpty locked">
-                  <PixelIcon name="lock" scale={2} />
-                  <span>
-                    {state.challenge === 'solo'
+                <EmptySlot
+                  key={i}
+                  locked
+                  label={state.challenge === 'solo' ? 'Bloqueada' : getRoute(slot.requiresRoute).name}
+                  hint={
+                    state.challenge === 'solo'
                       ? 'Reserva bloqueada pelo desafio'
-                      : `Reserva libera ao concluir ${getRoute(slot.requiresRoute).name}`}
-                  </span>
-                </div>
+                      : `Reserva libera ao concluir ${getRoute(slot.requiresRoute).name}`
+                  }
+                />
               );
             }
             const p = reserves[i];
             if (!p) {
               return (
-                <div key={i} className="party-slot frame frame-slotEmpty">
-                  <span>RESERVA {i + 1} — vazia</span>
-                  <small>Entra quando o ativo desmaia. Escolha na Caixa e use “Reserva”.</small>
-                </div>
+                <EmptySlot
+                  key={i}
+                  label="Vazia"
+                  hint={`Reserva ${i + 1}: entra quando o ativo desmaia. Escolha na Caixa e use “Reserva”.`}
+                />
               );
             }
             return (
@@ -190,25 +197,31 @@ export function PartyScreen({ state }: { state: GameState }) {
             );
           })}
         </div>
+        <h3 className="party-group">
+          APOIO <small>bônus passivos para a equipe</small>
+        </h3>
         <div className="party-support">
           {PASSIVE_SLOTS.map((slot, i) => {
             if (i > unlocked) return null;
             if (i === unlocked) {
               return (
-                <div key={i} className="party-slot frame frame-slotEmpty locked">
-                  <PixelIcon name="lock" scale={2} />
-                  <span>Libera ao concluir {getRoute(slot.requiresRoute).name}</span>
-                </div>
+                <EmptySlot
+                  key={i}
+                  locked
+                  label={getRoute(slot.requiresRoute).name}
+                  hint={`Apoio libera ao concluir ${getRoute(slot.requiresRoute).name}`}
+                />
               );
             }
             const c = contributions[i];
             const p = c && state.collection.find((x) => x.uid === c.uid);
             if (!p) {
               return (
-                <div key={i} className="party-slot frame frame-slotEmpty">
-                  <span>APOIO {i + 1} — vazio</span>
-                  <small>Escolha um Pokémon na Caixa e use “Apoio”.</small>
-                </div>
+                <EmptySlot
+                  key={i}
+                  label="Vazio"
+                  hint={`Apoio ${i + 1}: dá um bônus passivo. Escolha um Pokémon na Caixa e use “Apoio”.`}
+                />
               );
             }
             return (
@@ -227,247 +240,20 @@ export function PartyScreen({ state }: { state: GameState }) {
       <TeamBonuses state={state} />
       <Summary state={state} p={current} />
 
-      <BoxWindow state={state} selected={selected} onSelect={setSelected} />
+      {/* A coleção mora no PC (PcScreen); daqui só se abre o PC. */}
+      <button className="pc-open frame frame-menu" onClick={onOpenPc}>
+        <ItemIcon id="pokemon-box" size={32} />
+        <span>
+          <strong>ABRIR O PC</strong>
+          <small>{state.collection.length} Pokémon guardados · mover, organizar e transferir</small>
+        </span>
+      </button>
     </div>
   );
 }
 
-/** Caixa: filtros, ordenação, etiquetas e seleção múltipla para ações em lote. */
-function BoxWindow({
-  state,
-  selected,
-  onSelect,
-}: {
-  state: GameState;
-  selected: number;
-  onSelect: (uid: number) => void;
-}) {
-  const engine = useEngine();
-  const [sort, setSort] = useState<Sort>('level');
-  const [filter, setFilter] = useState<BoxFilter>(EMPTY_FILTER);
-  const [showFilters, setShowFilters] = useState(false);
-  const [multi, setMulti] = useState(false);
-  const [picked, setPicked] = useState<number[]>([]);
-  const [editTags, setEditTags] = useState(false);
-  const patch = (p: Partial<BoxFilter>) => setFilter((f) => ({ ...f, ...p }));
-  const box = filterBox(state, filter, speciesName).sort((a, b) =>
-    sort === 'level'
-      ? b.level - a.level || a.uid - b.uid
-      : sort === 'dex'
-        ? a.speciesId - b.speciesId || b.level - a.level
-        : sort === 'potential'
-          ? potential(b.ivs) - potential(a.ivs) || b.level - a.level
-          : b.uid - a.uid,
-  );
-  const pickedSet = new Set(picked);
-  const plan = transferPlan(state, picked);
-  const planPoints = plan.reduce((sum, p) => sum + transferValue(p), 0);
-  const allFavorite =
-    picked.length > 0 && picked.every((uid) => state.collection.find((p) => p.uid === uid)?.favorite);
-  const togglePick = (uid: number) =>
-    setPicked((list) => (list.includes(uid) ? list.filter((x) => x !== uid) : [...list, uid]));
-  const exitMulti = () => {
-    setMulti(false);
-    setPicked([]);
-  };
-  const checks = [
-    ['favorites', 'Favoritos'],
-    ['shiny', 'Shiny'],
-    ['perfect', 'Perfeitos'],
-    ['duplicates', 'Repetidos'],
-  ] as const;
-
-  return (
-    <Window
-      title={`CAIXA · ${filterActive(filter) ? `${box.length} DE ` : ''}${state.collection.length} POKéMON`}
-      icon={<ItemIcon id="pokemon-box" size={24} />}
-      actions={
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Ordenar">
-          <option value="level">Nível</option>
-          <option value="dex">Nº Pokédex</option>
-          <option value="potential">Potencial</option>
-          <option value="recent">Recentes</option>
-        </select>
-      }
-    >
-      <div className="box-toolbar">
-        <input
-          type="search"
-          value={filter.text}
-          onChange={(e) => patch({ text: e.target.value })}
-          placeholder="Buscar nome ou nº…"
-          aria-label="Buscar na Caixa"
-        />
-        <button
-          className={`pbtn small ${showFilters || filterActive(filter) ? 'on' : ''}`}
-          aria-expanded={showFilters}
-          onClick={() => setShowFilters((v) => !v)}
-        >
-          Filtros{filterActive(filter) ? ' •' : ''}
-        </button>
-        <button
-          className={`pbtn small ${multi ? 'on' : ''}`}
-          aria-pressed={multi}
-          onClick={() => (multi ? exitMulti() : setMulti(true))}
-        >
-          {multi ? 'Concluir seleção' : 'Selecionar vários'}
-        </button>
-      </div>
-
-      {showFilters && (
-        <div className="box-filters frame frame-dialog">
-          <label>
-            Tipo
-            <select
-              value={filter.type}
-              onChange={(e) => patch({ type: e.target.value as BoxFilter['type'] })}
-            >
-              <option value="">Todos</option>
-              {Object.entries(TYPE_NAMES).map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Etiqueta
-            <select value={filter.tag} onChange={(e) => patch({ tag: e.target.value as BoxFilter['tag'] })}>
-              <option value="">Todas</option>
-              <option value="none">Sem etiqueta</option>
-              {TAG_IDS.map((t) => (
-                <option key={t} value={t}>
-                  {tagName(state, t)}
-                </option>
-              ))}
-            </select>
-          </label>
-          {checks.map(([key, label]) => (
-            <label key={key} className="box-check">
-              <input
-                type="checkbox"
-                checked={filter[key]}
-                onChange={(e) => patch({ [key]: e.target.checked })}
-              />
-              {label}
-            </label>
-          ))}
-          <button
-            className="pbtn small"
-            onClick={() => setFilter(EMPTY_FILTER)}
-            disabled={!filterActive(filter)}
-          >
-            Limpar filtros
-          </button>
-          <button className="pbtn small" onClick={() => setEditTags((v) => !v)} aria-expanded={editTags}>
-            Renomear etiquetas
-          </button>
-          {editTags && (
-            <ul className="tag-names">
-              {TAG_IDS.map((t) => (
-                <li key={t}>
-                  <span className={`tag-dot tag-${t}`} aria-hidden />
-                  <input
-                    defaultValue={tagName(state, t)}
-                    maxLength={16}
-                    aria-label={`Nome da etiqueta ${tagName(state, t)}`}
-                    onBlur={(e) => engine.dispatch((s) => renameTag(s, t, e.target.value))}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {multi && (
-        <div className="box-bulk frame frame-dialog" role="toolbar" aria-label="Ações para os selecionados">
-          <span>
-            <strong>{picked.length}</strong> selecionado(s)
-          </span>
-          <button className="pbtn small" onClick={() => setPicked(box.map((p) => p.uid))}>
-            Todos os {box.length} filtrados
-          </button>
-          <button className="pbtn small" disabled={!picked.length} onClick={() => setPicked([])}>
-            Limpar
-          </button>
-          <button
-            className="pbtn small"
-            disabled={!picked.length}
-            onClick={() => engine.dispatch((s) => setFavorite(s, picked, !allFavorite))}
-          >
-            {allFavorite ? 'Tirar dos favoritos' : 'Favoritar'}
-          </button>
-          <span className="tag-picker" role="group" aria-label="Etiquetar">
-            {TAG_IDS.map((t) => (
-              <button
-                key={t}
-                className={`tag-dot tag-${t}`}
-                title={`Etiquetar: ${tagName(state, t)}`}
-                aria-label={`Etiquetar: ${tagName(state, t)}`}
-                disabled={!picked.length}
-                onClick={() => engine.dispatch((s) => setTag(s, picked, t))}
-              />
-            ))}
-            <button
-              className="tag-dot tag-none"
-              title="Tirar etiqueta"
-              aria-label="Tirar etiqueta"
-              disabled={!picked.length}
-              onClick={() => engine.dispatch((s) => setTag(s, picked, null))}
-            />
-          </span>
-          <button
-            className="pbtn small danger"
-            disabled={!plan.length}
-            title="Só duplicatas livres e que não são favoritas; sempre fica ao menos um de cada espécie."
-            onClick={() => {
-              const ask = `Transferir ${plan.length} Pokémon para o Laboratório por ${planPoints} pontos de pesquisa?`;
-              if (!window.confirm(ask)) return;
-              engine.dispatch((s) => void transferMany(s, picked));
-              setPicked([]);
-            }}
-          >
-            Transferir {plan.length} (+{planPoints} pesquisa)
-          </button>
-        </div>
-      )}
-
-      {!box.length && <p className="hint">Nenhum Pokémon com esses filtros.</p>}
-      <ul className="pc-box">
-        {box.map((p) => {
-          const on = multi ? pickedSet.has(p.uid) : p.uid === selected;
-          return (
-            <li key={p.uid}>
-              <button
-                className={`pc-cell ${on ? 'selected' : ''} ${p.uid === state.activeUid ? 'is-active' : ''} ${state.passives.includes(p.uid) ? 'is-support' : ''} ${state.battleTeam.includes(p.uid) ? 'is-reserve' : ''} ${busyLabel(state, p.uid) ? 'is-away' : ''}`}
-                onClick={() => (multi ? togglePick(p.uid) : onSelect(p.uid))}
-                aria-pressed={multi ? on : undefined}
-                aria-label={`${speciesName(p.speciesId)} nível ${p.level}${p.shiny ? ', shiny' : ''}${p.favorite ? ', favorito' : ''}${p.tag ? `, ${tagName(state, p.tag)}` : ''}`}
-                title={`${speciesName(p.speciesId)} Nv. ${p.level}${p.favorite ? ' · favorito' : ''}${p.tag ? ` · ${tagName(state, p.tag)}` : ''}`}
-              >
-                <PokemonSprite speciesId={p.speciesId} kind="icon" />
-                <span>Nv{p.level}</span>
-                {p.shiny && <Shiny />}
-                {p.pendingEvolution && <span className="pc-evo" />}
-                {isPerfect(p.ivs) && (
-                  <span className="pc-perfect" title="Perfeito">
-                    31
-                  </span>
-                )}
-                {p.favorite && <PixelIcon name="star" scale={1} className="pc-fav" />}
-                {p.tag && <span className={`pc-tag tag-dot tag-${p.tag}`} aria-hidden />}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </Window>
-  );
-}
-
 /** Onde o Pokémon está, quando não está disponível para a batalha. */
-function busyLabel(state: GameState, uid: number): string | null {
+export function busyLabel(state: GameState, uid: number): string | null {
   if (isFallen(state, uid)) return 'FORA DA JORNADA';
   if (state.daycare.uids.includes(uid)) return 'NA CRECHE';
   if (state.training.slots.some((s) => s.uid === uid)) return 'NO TREINO';
@@ -574,7 +360,8 @@ function NicknameField({ p }: { p: PokemonInstance }) {
   );
 }
 
-function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
+export function Summary({ state, p: real }: { state: GameState; p: PokemonInstance }) {
+  const p = useShownPokemon(real);
   const mvp = weeklyMvp(state, state.lastTimerAt);
   const engine = useEngine();
   const species = getSpecies(p.speciesId);
@@ -597,8 +384,8 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
     <Window
       title={
         <>
-          Nº{String(species.id).padStart(3, '0')} {pokemonName(p).toUpperCase()}{' '}
-          <span className="lv">Nv{p.level}</span>
+          Nº{String(species.id).padStart(3, '0')} {pokemonName(p).toUpperCase()}
+          <GenderMark gender={genderOf(p)} /> <span className="lv">Nv{p.level}</span>
         </>
       }
       icon={<ItemIcon id="poke-ball" size={24} />}
@@ -647,6 +434,14 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
           )}
           <dt>ORIGEM</dt>
           <dd>{p.caughtOn}</dd>
+          {p.ball && (
+            <>
+              <dt>BOLA</dt>
+              <dd className="summary-ball">
+                <ItemIcon id={p.ball} size={20} /> {itemName(p.ball)}
+              </dd>
+            </>
+          )}
           <dt>MAESTRIA</dt>
           <dd>
             {mastery.level}
@@ -847,7 +642,9 @@ function Summary({ state, p }: { state: GameState; p: PokemonInstance }) {
   );
 }
 
-/** Escolha dos 4 golpes: aprendidos por nível + TMs liberados que a espécie aceita. */
+const SOURCE_TAG = { egg: 'OVO', relearn: 'LEMBRADO' } as const;
+
+/** Escolha dos 4 golpes: por nível, TMs, golpes de ovo e os lembrados no Relembrador. */
 function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
   const engine = useEngine();
   const options = learnableMoves(state, p);
@@ -878,6 +675,9 @@ function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
                 <span className="move-meta">
                   <TypeBadge type={mv.type} /> POD {mv.power}{' '}
                   {source === 'tm' && <ItemIcon id="tm" size={18} />}
+                  {(source === 'egg' || source === 'relearn') && (
+                    <span className={`move-source src-${source}`}>{SOURCE_TAG[source]}</span>
+                  )}
                 </span>
               </button>
             </li>
@@ -887,6 +687,42 @@ function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
       <button className="pbtn small" onClick={() => engine.dispatch((s) => setMoveset(s, p.uid, []))}>
         Voltar ao automático
       </button>
+      <Relearner state={state} p={p} />
+    </div>
+  );
+}
+
+/** Relembrador: golpes da pré-evolução que este Pokémon pode voltar a usar, pagando. */
+function Relearner({ state, p }: { state: GameState; p: PokemonInstance }) {
+  const engine = useEngine();
+  const options = relearnableMoves(p);
+  if (!options.length) return null;
+  const cost = BALANCE.relearnCost;
+  return (
+    <div className="relearner">
+      <h4>
+        RELEMBRADOR <small>golpes da pré-evolução · {formatNumber(cost)} cada</small>
+      </h4>
+      <ul className="move-options">
+        {options.map((move) => {
+          const mv = getMove(move);
+          return (
+            <li key={move}>
+              <button
+                className={`move-option type-bg-${mv.type}`}
+                disabled={state.coins < cost}
+                title={state.coins < cost ? 'Dinheiro insuficiente' : `Lembrar por ${formatNumber(cost)}`}
+                onClick={() => engine.dispatch((s) => relearnMove(s, p.uid, move))}
+              >
+                <span className="move-name">{moveName(move).toUpperCase()}</span>
+                <span className="move-meta">
+                  <TypeBadge type={mv.type} /> POD {mv.power} · Lembrar
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
