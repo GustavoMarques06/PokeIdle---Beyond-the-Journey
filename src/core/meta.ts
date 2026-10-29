@@ -1,4 +1,4 @@
-// Sistemas de longo prazo: equipe passiva, laboratório, prestígio, conquistas
+// Sistemas de longo prazo: laboratório, prestígio, conquistas
 // e nível de treinador. Como em game.ts, as funções mutam o estado recebido.
 
 import {
@@ -17,28 +17,11 @@ import {
   type AchievementDef,
   type ChallengeId,
 } from '../game-data';
-import { masteryLevel, passivePokemon, passiveSlotsUnlocked, prestigeLevel, researchLevel } from './bonuses';
-import { busyUids } from './collection';
+import { masteryLevel, passivePokemon, prestigeLevel, researchLevel } from './bonuses';
 import { emptyNuzlocke } from './nuzlocke';
 import { freshBattle, type GameEvent, type GameState } from './game';
 import { potential, statsOf, type PokemonInstance } from './pokemon';
 import { expForLevel } from './stats';
-
-// --- Equipe passiva ------------------------------------------------------------
-
-/** Coloca na primeira vaga livre. */
-export function addPassive(state: GameState, uid: number): boolean {
-  const slots = passiveSlotsUnlocked(state);
-  if (state.passives.includes(uid) || passivePokemon(state).length >= slots) return false;
-  if (busyUids(state).has(uid) || !state.collection.some((p) => p.uid === uid)) return false;
-  state.passives = passivePokemon(state).map((p) => p.uid);
-  state.passives.push(uid);
-  return true;
-}
-
-export function removePassive(state: GameState, uid: number): void {
-  state.passives = state.passives.filter((x) => x !== uid);
-}
 
 // --- Laboratório -----------------------------------------------------------------
 
@@ -52,10 +35,10 @@ export function transferValue(p: PokemonInstance): number {
   );
 }
 
-/** Só duplicatas podem ser transferidas, e nunca o ativo ou um passivo. */
+/** Só duplicatas podem ser transferidas, e nunca quem está na equipe. */
 export function canTransfer(state: GameState, uid: number): boolean {
   const p = state.collection.find((x) => x.uid === uid);
-  if (!p || p.favorite || uid === state.activeUid || state.passives.includes(uid)) return false;
+  if (!p || p.favorite || uid === state.activeUid) return false;
   if (state.battleTeam.includes(uid)) return false;
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return false;
   if (state.training.slots.some((s) => s.uid === uid)) return false;
@@ -73,8 +56,8 @@ export function transferPokemon(state: GameState, uid: number): number {
 }
 
 /**
- * Duplicatas "sobrando": de cada espécie mantém o melhor exemplar (ativo/passivos
- * contam como mantidos; depois maior nível, depois shiny, depois potencial).
+ * Duplicatas "sobrando": de cada espécie mantém o melhor exemplar (a equipe
+ * conta como mantida; depois maior nível, depois shiny, depois potencial).
  */
 export function surplusDuplicates(state: GameState): PokemonInstance[] {
   const bySpecies = new Map<number, PokemonInstance[]>();
@@ -82,7 +65,6 @@ export function surplusDuplicates(state: GameState): PokemonInstance[] {
   const protectedUids = new Set([
     state.activeUid,
     ...state.battleTeam,
-    ...state.passives,
     ...state.daycare.uids,
     ...state.expeditions.flatMap((e) => e.uids),
   ]);
@@ -175,7 +157,6 @@ export function prestigeReset(state: GameState, challenge: ChallengeId | null = 
   state.raid = null;
   state.rematchAt = {};
   applyJourneyStart(state);
-  state.passives = [];
   state.battleTeam = [];
   const level = resetLevel(state);
   for (const p of state.collection) {

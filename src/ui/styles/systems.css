@@ -142,7 +142,7 @@ html.reduced-motion .hud-events {
   padding: 3px 8px;
   background: #f0e0b8;
   border: 2px solid #a07840;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   cursor: pointer;
 }
 
@@ -318,7 +318,7 @@ html.reduced-motion .hud-events {
   padding: 2px 8px;
   background: #fff8d8;
   border: 2px solid #a07840;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .route-details {
@@ -371,7 +371,7 @@ html.reduced-motion .hud-events {
   text-align: center;
   border: 0;
   background: none;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   cursor: pointer;
 }
 
@@ -413,7 +413,7 @@ html.reduced-motion .hud-events {
 }
 
 .countdown {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-soft);
 }
 
@@ -440,7 +440,7 @@ html.reduced-motion .hud-events {
   align-items: center;
   justify-content: center;
   min-height: 110px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   cursor: pointer;
 }
 
@@ -514,7 +514,7 @@ html.reduced-motion .hud-events {
 .fossil-list strong,
 .berry-row strong,
 .mission strong {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .egg-row small,
@@ -574,7 +574,7 @@ html.reduced-motion .hud-events {
 }
 
 .expedition-card strong {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .expedition-card small {
@@ -659,7 +659,7 @@ html.reduced-motion .hud-events {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   text-align: center;
 }
 
@@ -678,7 +678,7 @@ html.reduced-motion .hud-events {
   background: repeating-linear-gradient(0deg, #8a6838 0 4px, #a07848 4px 8px);
   border: 3px solid #604020;
   color: #f8e8c8;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   cursor: pointer;
 }
 
@@ -736,7 +736,7 @@ html.reduced-motion .hud-events {
 
 .tower-head strong {
   display: block;
-  font: 700 13px var(--font-label);
+  font: 700 15px var(--font-label);
 }
 
 .ranking li {
@@ -745,7 +745,7 @@ html.reduced-motion .hud-events {
 }
 
 .ranking .rank {
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
   color: var(--gold-dark);
 }
 
@@ -758,11 +758,11 @@ html.reduced-motion .hud-events {
 }
 
 .shop-row .item-name {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .tokens {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--gold-dark);
 }
 
@@ -809,7 +809,7 @@ html.reduced-motion .hud-events {
 .slot-result {
   margin: 0;
   color: #fff;
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
   text-shadow: 1px 1px 0 #601018;
 }
 
@@ -831,7 +831,7 @@ html.reduced-motion .hud-events {
   display: flex;
   align-items: center;
   gap: 2px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .slot-table .sprite,
@@ -860,7 +860,7 @@ html.reduced-motion .hud-events {
 }
 
 .hunt-target strong {
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
 }
 
 .hunt-target small {
@@ -883,7 +883,7 @@ html.reduced-motion .hud-events {
   justify-content: space-between;
   gap: 6px;
   margin-top: 4px;
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
 }
 
 /* Missões e recompensas da Pokédex */
@@ -898,7 +898,7 @@ html.reduced-motion .hud-events {
 
 .milestone > strong {
   min-width: 36px;
-  font: 700 16px var(--font-label);
+  font: 700 18px var(--font-label);
   color: var(--red-dark);
   text-align: center;
 }
@@ -930,7 +930,7 @@ html.reduced-motion .hud-events {
   grid-template-columns: 76px minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .type-medals li.done {
@@ -940,13 +940,19 @@ html.reduced-motion .hud-events {
 /* Treinador: insígnias por região e Hall da Fama */
 .badge-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.badge-row .badges {
+  flex-wrap: wrap;
 }
 
 .badge-row small {
   min-width: 56px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
 }
 
 .hof-entry {
@@ -957,7 +963,7 @@ html.reduced-motion .hud-events {
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .hof-head small {
@@ -975,7 +981,7 @@ html.reduced-motion .hud-events {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
 }
 
 .hof-mon .sprite {
@@ -988,7 +994,7 @@ html.reduced-motion .hud-events {
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   list-style: none;
 }
 
@@ -1070,7 +1076,7 @@ html.reduced-motion .hud-events {
   border: 0;
   background: var(--menu-blue-light);
   color: var(--ink);
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .depth-tabs button.active {
@@ -1095,11 +1101,11 @@ html.reduced-motion .hud-events {
 .depth-row h4 {
   margin: 0;
   color: var(--ink-soft);
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .depth-row h4 small {
-  font: 400 11px var(--font-label);
+  font: 400 13px var(--font-label);
   color: var(--ink-muted);
 }
 
@@ -1160,7 +1166,7 @@ html.reduced-motion .hud-events {
   width: 78px;
   padding: 1px 4px 1px 0;
   text-align: left;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -1187,7 +1193,7 @@ html.reduced-motion .hud-events {
 
 .panel-sub {
   margin: 8px 0 2px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-soft);
 }
 
@@ -1306,7 +1312,7 @@ html.large-text .pbtn {
 
 /* --- MERCADO: venda, tempo de farm e mercador viajante ------------------------------- */
 .farm-time {
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -1323,7 +1329,7 @@ html.large-text .pbtn {
   padding: 0 4px;
   background: var(--red);
   color: #fff;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
 }
 
 .mart-row.sold-out {
@@ -1549,7 +1555,7 @@ html.reduced-motion .pocket-alert {
 .tier-tag {
   margin-left: 4px;
   padding: 0 4px;
-  font: 700 10px var(--font-label) !important;
+  font: 700 12px var(--font-label) !important;
   color: var(--ink) !important;
 }
 
@@ -1582,7 +1588,7 @@ html.reduced-motion .pocket-alert {
 
 .medal-count {
   padding: 2px 6px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .medal-count small {
@@ -1594,14 +1600,14 @@ html.reduced-motion .pocket-alert {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .card-showcase {
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -1624,7 +1630,7 @@ html.reduced-motion .pocket-alert {
 
 .showcase-slot small {
   max-width: 96px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   color: var(--ink-muted);
 }
 
@@ -1758,7 +1764,7 @@ html.reduced-motion .scene-toast {
 }
 
 .safari-mon strong {
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
 }
 
 .safari-mon small {
@@ -1808,7 +1814,7 @@ html.reduced-motion .scene-toast {
   align-items: center;
   gap: 4px;
   padding: 2px 4px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .bracket-slot + .bracket-slot {
@@ -1831,7 +1837,7 @@ html.reduced-motion .scene-toast {
 }
 
 .tournament-result {
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
 }
 
 .place-champion strong,
@@ -1858,7 +1864,7 @@ html.reduced-motion .scene-toast {
   padding: 0 4px;
   border: 2px solid var(--gold-dark);
   background: var(--gold);
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   text-align: center;
 }
 
@@ -1875,7 +1881,7 @@ html.reduced-motion .scene-toast {
 
 .battle-record h4 {
   margin: 0 0 4px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -1953,7 +1959,7 @@ html.reduced-motion .scene-toast {
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .node-water small {
@@ -1981,7 +1987,7 @@ html.reduced-motion .scene-toast {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .dex-research ul {
@@ -2041,7 +2047,7 @@ html.reduced-motion .scene-toast {
   display: flex;
   align-items: center;
   gap: 6px;
-  font: 700 13px var(--font-label);
+  font: 700 15px var(--font-label);
 }
 
 .weekly-rule small {
@@ -2062,7 +2068,7 @@ html.reduced-motion .scene-toast {
   padding: 2px 6px;
   border: 2px solid var(--ink-soft);
   background: var(--paper);
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .weekly-milestones li.done {
@@ -2079,7 +2085,7 @@ html.reduced-motion .scene-toast {
   border: 1px solid var(--ink);
   background: var(--red);
   color: #fff;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   animation: blink-soft 1s steps(2, end) infinite;
 }
 
@@ -2094,4 +2100,11 @@ html.reduced-motion .scene-toast {
 .activity-tip p {
   flex: 1 1 260px;
   margin: 0;
+}
+
+/* Celular: o mapa ampliado fica maior que a tela e rola para os lados, para dar para ver as áreas. */
+@media (max-width: 700px) {
+  .map-modal .region-map {
+    min-width: 760px;
+  }
 }

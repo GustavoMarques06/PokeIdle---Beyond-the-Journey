@@ -1,16 +1,20 @@
 // Componentes visuais reutilizáveis: sprites, ícones, molduras, barras e rótulos de tipo.
 
-import type { ReactNode } from 'react';
+import type { ImgHTMLAttributes, ReactNode } from 'react';
 import {
+  PLAYER_AVATARS,
   assetUrl,
   badgeSprite,
   formSprite,
   getItem,
   getSpecies,
   spriteFeet,
-  trainerSprite,
+  type PlayerAvatar,
+  type TrainerOutfit,
 } from '../../game-data';
 import { TYPE_NAMES } from '../i18n/pt-BR';
+import { useTrainerSprite } from '../outfit';
+import { spindaPattern, useSpindaSprite } from '../spinda';
 import { ICONS, iconSvg, type IconName } from '../theme/icons';
 
 type SpriteKind = 'front' | 'back' | 'icon';
@@ -43,6 +47,8 @@ export function PokemonSprite({
       : kind === 'front'
         ? (shiny && s.frontShiny) || s.front
         : (shiny && s.backShiny) || s.back);
+  const spots = kind === 'icon' ? null : spindaPattern(speciesId, form);
+  const src = useSpindaSprite(assetUrl(path), spots, shiny);
   const feet = formPath && kind !== 'icon' ? spriteFeet(speciesId, kind, form) : undefined;
   const size =
     kind !== 'icon' && pixelScale
@@ -54,7 +60,7 @@ export function PokemonSprite({
     <img
       style={size ? { width: size[0] * pixelScale!, height: size[1] * pixelScale! } : undefined}
       className={`sprite sprite-${kind} ${size ? 'pixel-scaled' : ''} ${silhouette ? 'silhouette' : ''} ${className}`}
-      src={assetUrl(path)}
+      src={src}
       alt={silhouette ? '???' : getSpecies(speciesId).name}
       draggable={false}
     />
@@ -246,21 +252,45 @@ export function Money({ value }: { value: number }) {
   );
 }
 
+/** Centro da cabeça dos avatares de jogador no quadro de 80×80 (todos alinhados ao Red). */
+const AVATAR_HEAD = { x: 39, y: 21 };
+
 /**
  * Sprite de treinador (Showdown, estilo FRLG, quadro de 80×80). `head` mostra só
- * busto/rosto ampliado 2×, para caber em placas pequenas como o HUD.
+ * busto/rosto ampliado 2×, para caber em placas pequenas como o HUD; nos avatares de jogador,
+ * um busto quadrado que preenche a placa. `outfit` repinta a roupa dos avatares de jogador.
  */
 export function TrainerSprite({
   id,
   size = 80,
   head = false,
   className = '',
+  outfit,
 }: {
   id: string;
   size?: number;
   head?: boolean;
   className?: string;
+  outfit?: TrainerOutfit;
 }) {
+  const src = useTrainerSprite(id, outfit);
+  if (head && PLAYER_AVATARS.includes(id as PlayerAvatar)) {
+    // Ampliação inteira (pixels iguais); o recorte quadrado fica centrado na cabeça.
+    const k = Math.max(1, Math.round(size / 24));
+    const half = size / k / 2;
+    return (
+      <span className={`trainer-sprite head bust ${className}`} style={{ width: size, height: size }}>
+        <img
+          src={src}
+          alt=""
+          width={80 * k}
+          height={80 * k}
+          style={{ marginLeft: -(AVATAR_HEAD.x - half) * k, marginTop: -(AVATAR_HEAD.y - half) * k }}
+          draggable={false}
+        />
+      </span>
+    );
+  }
   const img = head ? size * 2 : size;
   return (
     <span
@@ -268,7 +298,7 @@ export function TrainerSprite({
       style={{ width: size, height: head ? size * 0.6 : size }}
     >
       <img
-        src={assetUrl(trainerSprite(id))}
+        src={src}
         alt=""
         width={img}
         height={img}
@@ -277,6 +307,15 @@ export function TrainerSprite({
       />
     </span>
   );
+}
+
+/** O sprite inteiro do treinador numa <img> (chefe na cena de batalha), com a roupa. */
+export function TrainerImage({
+  id,
+  outfit,
+  ...rest
+}: { id: string; outfit?: TrainerOutfit } & Omit<ImgHTMLAttributes<HTMLImageElement>, 'id' | 'src'>) {
+  return <img src={useTrainerSprite(id, outfit)} draggable={false} {...rest} />;
 }
 
 export function BadgeIcon({

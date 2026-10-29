@@ -64,7 +64,7 @@ export const boxWallpaper = (box: PcBox, i: number): Wallpaper =>
 
 /** Quem está na equipe (fica fora das caixas). */
 export function teamUids(state: GameState): Set<number> {
-  return new Set([state.activeUid, ...state.battleTeam, ...state.passives]);
+  return new Set([state.activeUid, ...state.battleTeam]);
 }
 
 /**

@@ -31,7 +31,7 @@ export function TowerPanel({ state }: { state: GameState }) {
 
   return (
     <>
-      <Window title="TORRE DE BATALHA" icon={<PixelIcon name="trophy" scale={2} />} frame="dialog">
+      <Window title="TORRE DE BATALHA" icon={<ItemIcon id="rainbow-pass" size={24} />} frame="dialog">
         <div className="tower-head">
           <div>
             <strong>RECORDE: ANDAR {t.best}</strong>
@@ -61,7 +61,7 @@ export function TowerPanel({ state }: { state: GameState }) {
 
       <WeeklyTower state={state} />
 
-      <Window title="RANKING" icon={<PixelIcon name="trophy" scale={2} />}>
+      <Window title="RANKING" icon={<ItemIcon id="rainbow-pass" size={24} />}>
         {t.runs.length === 0 && <p className="hint">Nenhuma subida registrada.</p>}
         <ol className="ranking">
           {t.runs.map((r, i) => (
@@ -138,8 +138,8 @@ function WeeklyTower({ state }: { state: GameState }) {
       </div>
       {blocker === 'type' && (
         <p className="hint">
-          O ativo e as reservas precisam ser do tipo {TYPE_NAMES[rule.type] ?? rule.type}. Troque a equipe na
-          tela POKéMON.
+          Toda a equipe precisa ser do tipo {TYPE_NAMES[rule.type] ?? rule.type}. Troque a equipe na tela
+          POKéMON.
         </p>
       )}
       <p className="hint">

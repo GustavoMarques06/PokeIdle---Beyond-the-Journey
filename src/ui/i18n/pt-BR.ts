@@ -154,22 +154,6 @@ export const T = {
   trainer: 'Treinador',
   researchPoints: 'Pontos de pesquisa',
   prestigePoints: 'Pontos de prestígio',
-  team: {
-    formation: 'Formação',
-    activeSlot: 'Ativo',
-    passiveSlot: (n: number) => `Vaga passiva ${n}`,
-    empty: 'Vazia — selecione um Pokémon abaixo e use “Passivo”.',
-    lockedSlot: (route: string) => `Libera ao concluir ${route}`,
-    addPassive: 'Passivo',
-    removePassive: 'Tirar da equipe',
-    transfer: (pts: number) => `Transferir (+${pts} pesquisa)`,
-    totals: 'Bônus totais da equipe',
-    vsTypes: 'contra',
-    duplicateIgnored: 'Espécie repetida — não conta',
-    stacking: 'Bônus iguais acumulam com 50% do valor anterior e têm teto.',
-    mastery: 'Maestria',
-    masteryBonus: (pct: string) => `+${pct} dano e −${pct} dano recebido quando ativo`,
-  },
   lab: {
     title: 'Laboratório',
     hint: 'Transfira duplicatas e registre espécies novas para ganhar pontos de pesquisa.',
@@ -415,7 +399,9 @@ export function describeEvent(e: GameEvent): string | null {
     case 'statusDamage':
       return `${speciesName(e.speciesId)} ${STATUS_TEXT[e.status].damage} (−${e.damage}).`;
     case 'enemyFainted':
-      return `${speciesName(e.speciesId)} desmaiou. +${e.exp} EXP, +${e.coins} moedas.`;
+      return e.exp || e.coins
+        ? `${speciesName(e.speciesId)} desmaiou. +${e.exp} EXP, +${e.coins} moedas.`
+        : `${speciesName(e.speciesId)} desmaiou.`;
     case 'playerFainted':
       return `${speciesName(e.speciesId)} desmaiou!`;
     case 'levelUp':
@@ -534,6 +520,20 @@ export function describeEvent(e: GameEvent): string | null {
         : `Torneio: perdeu para ${e.opponent} por ${e.score[0]}–${e.score[1]}.`;
     case 'tournamentEnded':
       return `Torneio da semana encerrado: ${TOURNAMENT_PLACES[e.place]}.`;
+    case 'autoTransferred':
+      return `Automação: ${e.count} repetido${e.count > 1 ? 's' : ''} transferido${e.count > 1 ? 's' : ''} (+${e.points} pesquisa).`;
+    case 'autoHarvested':
+      return `Automação: colheu ${e.qty} ${itemName(e.berry)}${e.replanted ? ' e replantou' : ''}.`;
+    case 'autoClaimed':
+      return 'Automação: missão resgatada.';
+    case 'tradeReceived':
+      return e.evolvedTo
+        ? `Troca: ${speciesName(e.speciesId)} chegou de ${e.from} e evoluiu!`
+        : `Troca: ${speciesName(e.speciesId)} chegou de ${e.from}!`;
+    case 'ghostDuelEnded':
+      return e.won
+        ? `Duelo fantasma: venceu a equipe de ${e.name}!${e.coins ? ` +${formatNumber(e.coins)} moedas.` : ''}`
+        : `Duelo fantasma: a equipe de ${e.name} venceu.`;
   }
 }
 

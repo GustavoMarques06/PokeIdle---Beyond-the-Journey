@@ -8,13 +8,13 @@ import type { PokemonInstance } from '../../../core/pokemon';
 import { PixelIcon, PokemonSprite, Shiny } from '../../components/common';
 import { formatDuration, speciesName } from '../../i18n/pt-BR';
 
-/** Grade de Pokémon livres (fora da batalha, do apoio, da creche e das expedições). */
+/** Grade de Pokémon livres (fora da equipe, da creche e das expedições). */
 export function PokemonPicker({
   state,
   selected = [],
   onPick,
   filter,
-  empty = 'Nenhum Pokémon livre. Capture mais ou tire alguém do apoio.',
+  empty = 'Nenhum Pokémon livre. Capture mais ou tire alguém da equipe.',
 }: {
   state: GameState;
   selected?: number[];

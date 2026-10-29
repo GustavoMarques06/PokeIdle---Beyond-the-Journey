@@ -21,6 +21,7 @@ import {
   type TypeName,
 } from '../game-data';
 import { combatScales, computeModifiers, masteryLevel, type Modifiers } from './bonuses';
+import { captureReason } from './automation';
 import { ballMultiplier, captureChance, rollCapture, type BallContext } from './capture';
 import { rollGender } from './gender';
 import { incenseType, repelActive, tickLures } from './lures';
@@ -31,7 +32,7 @@ import { routeWeather } from './env';
 import { relocateRoamer, roamerCaught } from './events';
 import { addFriendship, friendshipSteps } from './friendship';
 import { breakChain, huntShinyMultiplier, huntWeight, recordEncounter } from './hunt';
-import { endLegendary, legendaryDef, legendaryRules } from './legendary';
+import { endLegendary, legendaryCaught, legendaryDef, legendaryRules } from './legendary';
 import { progressMission } from './missions';
 import { beforeAction, canInflict, rollAilment, statusDamage, statusInterval } from './status';
 import { bestMatchup, healTeam, nextHealthyReserve, reservePokemon, switchIn } from './team';
@@ -63,12 +64,14 @@ import { addResearch, researchBonus } from './dexresearch';
 import { battleForm, recordForm, rollForm } from './forms';
 import { addMvpWin, addRecord } from './records';
 import { tournamentLost, tournamentWon } from './tournament';
+import { ghostLost, ghostWon } from './link';
 import {
   type EnemyState,
   type StatusState,
   type BattleState,
   type GameState,
   type GameEvent,
+  type TeamMember,
   freshBattle,
   activePokemon,
   encounterRoute,
@@ -119,6 +122,7 @@ export function step(
       if (b.kind === 'tower') {
         events.push({ type: 'towerEnded', floor: endTowerRun(state, now, p.speciesId) });
       }
+      if (b.kind === 'ghost') ghostLost(state, events);
       if (b.kind === 'tournament') tournamentLost(state, events);
       else if (b.kind !== 'wild') state.battle = freshBattle(b.routeId);
     }
@@ -226,7 +230,9 @@ function takeTurn(
   const enemy = b.enemy!;
   const player = activePokemon(state);
   const playerMax = statsOf(player).hp;
-  const pc = combatantOf(player, mods.playerMoveBoost);
+  // Duelo fantasma: os dois lados com o mesmo clima e a mesma força, sem bônus do jogador.
+  const duel = b.kind === 'ghost';
+  const pc = combatantOf(player, duel ? mods.enemyMoveBoost : mods.playerMoveBoost);
   const ec = combatantOf(enemy, mods.enemyMoveBoost);
   pc.burned = b.playerStatus?.kind === 'burn';
   ec.burned = enemy.status?.kind === 'burn';
@@ -234,7 +240,7 @@ function takeTurn(
   ec.statused = !!enemy.status;
   pc.hpRatio = player.currentHp / playerMax;
   ec.hpRatio = enemy.hp / enemy.maxHp;
-  const scales = combatScales(mods, ec.types);
+  const scales = duel ? DUEL_SCALES : combatScales(mods, ec.types);
   const isPlayer = side === 'player';
   const [self, foe] = isPlayer ? [pc, ec] : [ec, pc];
   const other: Side = isPlayer ? 'enemy' : 'player';
@@ -367,7 +373,16 @@ function takeTurn(
       ? picked
       : isPlayer
         ? chooseMove(pc, ec)
-        : chooseMove(ec, pc, rng, 0.3);
+        : chooseMove(
+            ec,
+            pc,
+            rng,
+            duel
+              ? 0
+              : b.kind === 'wild'
+                ? BALANCE.combat.wildMoveRandomness
+                : BALANCE.combat.trainerMoveRandomness,
+          );
   const move = getMove(moveId);
   const damageScale = isPlayer ? scales.playerDamage : scales.enemyDamage * BALANCE.raid.rageDamage ** rage;
   const result = calcDamage(self, foe, moveId, rng, damageScale);
@@ -471,8 +486,16 @@ function resetPlayerTimer(state: GameState, mods: Modifiers, fraction: number): 
   if (!b.enemy) return;
   const pc = combatantOf(activePokemon(state));
   const ec = combatantOf(b.enemy);
-  b.playerTimerMs = attackInterval(pc.stats.spe, ec.stats.spe) * mods.attackInterval * fraction;
+  const speed = b.kind === 'ghost' ? 1 : mods.attackInterval;
+  b.playerTimerMs = attackInterval(pc.stats.spe, ec.stats.spe) * speed * fraction;
 }
+
+/** Escalas do duelo fantasma: as mesmas para os dois lados. */
+const DUEL_SCALES = {
+  playerDamage: BALANCE.link.duelDamageScale,
+  enemyDamage: BALANCE.link.duelDamageScale,
+  playerInterval: 1,
+};
 
 /** Tipos favorecidos pelo clima e pelo período nos encontros selvagens. */
 function encounterTypes(state: GameState, route: Route): TypeName[] {
@@ -510,13 +533,15 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
   let speciesId: number;
   let level: number;
   let ivs: Ivs;
-  let shiny = false;
+  let shiny: boolean;
   let boost: number | undefined;
   let roamer = false;
   let held: string | undefined;
   let abilitySlot: 0 | 1 | 2 = 0;
   let water: EnemyState['water'];
   let form: string | undefined;
+  /** Pokémon do treinador em campo (o do duelo fantasma traz natureza, EVs e golpes). */
+  let foe: TeamMember | undefined;
   if (b.kind === 'legendary') {
     const member = b.team[0];
     speciesId = member.speciesId;
@@ -536,13 +561,15 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     ivs = legendaryIvs(rng, BALANCE.raid.perfectIvs);
     shiny = rollShiny(rng, mods.shiny);
   } else if (b.kind !== 'wild') {
-    const member = b.team[b.bossIndex];
-    speciesId = member.speciesId;
-    level = member.level;
-    boost = member.boost;
-    held = member.held;
-    abilitySlot = member.abilitySlot ?? 0;
-    ivs = { hp: 20, atk: 20, def: 20, spAtk: 20, spDef: 20, spe: 20 };
+    foe = b.team[b.bossIndex];
+    speciesId = foe.speciesId;
+    level = foe.level;
+    boost = foe.boost;
+    held = foe.held;
+    abilitySlot = foe.abilitySlot ?? 0;
+    ivs = foe.ivs ? { ...foe.ivs } : { hp: 20, atk: 20, def: 20, spAtk: 20, spDef: 20, spe: 20 };
+    shiny = !!foe.shiny;
+    form = foe.form;
   } else if (
     state.roamer &&
     state.roamer.routeId === encounterRoute(route).id &&
@@ -567,7 +594,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     if (abilitiesOf(speciesId)[1] && rng.next() < 0.25) abilitySlot = 1;
     if (rng.next() < BALANCE.heldDropChance) held = pickWeighted(rng, FOUND_ITEMS).id;
   }
-  const base = statsOf({ speciesId, level, ivs }).hp;
+  const base = statsOf({ speciesId, level, ivs, nature: foe?.nature, evs: foe?.evs }).hp;
   const hpScale = roamer
     ? BALANCE.roamers.hpMultiplier
     : b.kind === 'legendary'
@@ -589,8 +616,16 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     abilitySlot,
     water,
     form,
-    gender: rollGender(speciesId, rng),
+    gender: foe?.gender ?? rollGender(speciesId, rng),
   };
+  if (foe?.moveset) {
+    Object.assign(b.enemy, {
+      moveset: foe.moveset,
+      nature: foe.nature,
+      evs: foe.evs,
+      nickname: foe.nickname,
+    });
+  }
   b.playerUsed = [];
   if (roamer) Object.assign(b.enemy, { roamer: true, fleeMs: BALANCE.roamers.fleeMs });
   b.phase = 'fighting';
@@ -653,6 +688,16 @@ export function pushExpEvents(
 function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, now: number): void {
   const b = state.battle;
   const enemy = b.enemy!;
+  // Duelo fantasma: é uma exibição, sem EXP nem moedas por Pokémon (só a vitória conta).
+  if (b.kind === 'ghost') {
+    events.push({ type: 'enemyFainted', speciesId: enemy.speciesId, exp: 0, coins: 0 });
+    b.phase = 'victory';
+    b.phaseMs = BALANCE.combat.victoryDelayMs;
+    b.enemy = null;
+    if (b.bossIndex + 1 < b.team.length) b.bossIndex++;
+    else ghostWon(state, events);
+    return;
+  }
   const isTrainer = b.kind !== 'wild';
   const route = getRoute(b.routeId);
   const player = activePokemon(state);
@@ -735,7 +780,7 @@ export function shareExp(state: GameState, exp: number, events: GameEvent[]): vo
 }
 
 /**
- * Amizade por vitórias: o ativo ganha mais, as reservas e o apoio menos. Chamado a cada
+ * Amizade por vitórias: quem luta ganha mais, o resto da equipe menos. Chamado a cada
  * vitória e, em bloco, no progresso offline (`totalKills` já deve incluir as `kills`).
  */
 export function friendshipTick(state: GameState, kills: number, events: GameEvent[]): void {
@@ -744,12 +789,6 @@ export function friendshipTick(state: GameState, kills: number, events: GameEven
   const group: [PokemonInstance[], number][] = [
     [[activePokemon(state)], friendshipSteps(total, kills, f.killsPerPoint)],
     [reservePokemon(state), friendshipSteps(total, kills, f.reserveKillsPerPoint)],
-    [
-      state.passives
-        .map((uid) => state.collection.find((p) => p.uid === uid))
-        .filter((p): p is PokemonInstance => !!p && p.uid !== state.activeUid),
-      friendshipSteps(total, kills, f.passiveKillsPerPoint),
-    ],
   ];
   for (const [list, steps] of group) {
     if (steps <= 0) continue;
@@ -845,13 +884,11 @@ function onBossDefeated(state: GameState, route: Route, events: GameEvent[], now
     champion: boss.champion,
   });
   if (boss.champion) {
-    const team = [
-      player,
-      ...reservePokemon(state),
-      ...state.passives.map((uid) => state.collection.find((p) => p.uid === uid)),
-    ]
-      .filter((p): p is PokemonInstance => !!p)
-      .map((p) => ({ speciesId: p.speciesId, level: p.level, shiny: p.shiny }));
+    const team = [player, ...reservePokemon(state)].map((p) => ({
+      speciesId: p.speciesId,
+      level: p.level,
+      shiny: p.shiny,
+    }));
     state.hallOfFame.push({ regionId: route.regionId, at: now, prestige: state.prestige.count, team });
     events.push({ type: 'hallOfFame', regionId: route.regionId });
   }
@@ -1071,7 +1108,7 @@ function attemptCapture(
     perfect: isPerfect(p.ivs),
   });
   if (state.battle.kind === 'legendary') {
-    state.legends.caught.push(p.speciesId);
+    legendaryCaught(state, p.speciesId, now);
     events.push({ type: 'legendaryEnded', speciesId: p.speciesId, reason: 'caught' });
     const player = activePokemon(state);
     player.currentHp = statsOf(player).hp;
@@ -1092,10 +1129,17 @@ function maybeAutoCapture(
   if (!enemy || !state.upgrades.includes('auto-capture') || !state.settings.autoCapture) return;
   if (!canCaptureHere(state)) return;
   if (!canThrowBall(state) || enemy.captureAttempted || state.battle.kind === 'legendary') return;
-  const dex = dexEntry(state, enemy.speciesId);
-  if (dex.caught && !enemy.shiny && !enemy.roamer) return;
+  // Espécies novas, shinies e errantes sempre; o resto conforme as regras de automação.
+  const reason = captureReason(state, enemy);
+  if (!reason) return;
   if (enemy.hp / enemy.maxHp > BALANCE.capture.autoCaptureHpThreshold) return;
-  const ball = bestBall(state, enemy);
+  // "Capturar tudo" só gasta Poké Balls comuns.
+  const ball =
+    reason === 'all'
+      ? (state.items['poke-ball'] ?? 0) > 0
+        ? 'poke-ball'
+        : undefined
+      : bestBall(state, enemy);
   if (ball) attemptCapture(state, ball, rng, now, events, mods);
 }
 

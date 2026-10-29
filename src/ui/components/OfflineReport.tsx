@@ -38,7 +38,7 @@ export function OfflineReport({ report, onClose }: { report: Report; onClose: ()
               <dd>{formatNumber(report.exp)}</dd>
               {report.reserveExp > 0 && (
                 <>
-                  <dt>EXP RESERVAS</dt>
+                  <dt>EXP DA EQUIPE</dt>
                   <dd>{formatNumber(report.reserveExp)} cada</dd>
                 </>
               )}

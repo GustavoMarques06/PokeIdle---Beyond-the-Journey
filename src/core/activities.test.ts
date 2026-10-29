@@ -375,7 +375,7 @@ describe('lendários', () => {
     ).toBeTruthy();
   });
 
-  it('a Master Ball captura e o lendário não volta', async () => {
+  it('a Master Ball captura e o lendário volta depois da espera para outra captura', async () => {
     const { challengeLegendary, throwBall } = await import('./game');
     const s = unlocked();
     s.items['master-ball'] = 1;
@@ -388,6 +388,15 @@ describe('lendários', () => {
     expect(challengeLegendary(s, ARTICUNO, 0)).toBe(false);
     const p = s.collection.at(-1)!;
     expect(Object.values(p.ivs).filter((v) => v === 31).length).toBeGreaterThanOrEqual(3);
+
+    const back = BALANCE.legendary.recaptureMinutes * 60_000;
+    expect(challengeLegendary(s, ARTICUNO, back - 1000)).toBe(false);
+    s.items['master-ball'] = 1;
+    expect(challengeLegendary(s, ARTICUNO, back)).toBe(true);
+    advance(s, BALANCE.combat.spawnDelayMs + 100, back);
+    throwBall(s, 'master-ball', back);
+    expect(s.collection.filter((x) => x.speciesId === ARTICUNO)).toHaveLength(2);
+    expect(s.legends.caught.filter((id) => id === ARTICUNO)).toHaveLength(1);
   });
 
   it('foge depois de muitas bolas falhas e entra em espera', async () => {

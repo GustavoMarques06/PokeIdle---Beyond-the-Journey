@@ -8,6 +8,31 @@ export const BALANCE = {
   /** Relembrador: preço para lembrar um golpe da pré-evolução. */
   relearnCost: 2500,
 
+  /** Equipes salvas (ver core/presets.ts). */
+  presets: { max: 6 },
+
+  /** Cabo Link: troca de Pokémon e duelo fantasma por código (ver core/link.ts). */
+  link: {
+    /** Chefe que libera o Cabo Link (o primeiro ginásio). */
+    unlock: 'floresta-viridian',
+    /** Equipes fantasma guardadas ao mesmo tempo. */
+    maxGhosts: 8,
+    /** Códigos recebidos lembrados (o mesmo código não entra duas vezes). */
+    rememberCodes: 200,
+    /** Duelo: os dois lados batem com a mesma força, sem bônus da equipe, medalhas ou desafios. */
+    duelDamageScale: 0.38,
+    /** Moedas da primeira vitória contra cada equipe: por nível médio do adversário. */
+    firstWinCoinsPerLevel: 60,
+  },
+
+  /** Regras de automação (ver core/automation.ts). */
+  automation: {
+    /** Naturezas que dá para marcar como procuradas. */
+    maxNatures: 6,
+    /** Opções de potencial mínimo (soma dos IVs em %; 0 = não olha os IVs). */
+    potentialSteps: [0, 60, 70, 80, 90, 100],
+  },
+
   combat: {
     /**
      * Intervalo entre ataques quando as velocidades dos dois lados são iguais. Lento o
@@ -20,11 +45,28 @@ export const BALANCE = {
     critMultiplier: 1.5,
     stab: 1.5,
     /**
-     * Escalas de dano: alongam as lutas sem mexer nas fórmulas clássicas. O lado do
-     * jogador bate mais forte para o idle não depender de sorte contra inimigos do mesmo nível.
+     * Escalas de dano: alongam as lutas sem mexer nas fórmulas clássicas. Quase iguais dos
+     * dois lados: num espelho de mesmo nível a luta é parelha, e a vantagem do jogador vem da
+     * equipe, dos tipos, dos itens e da cura depois de cada vitória.
      */
-    playerDamageScale: 0.45,
-    enemyDamageScale: 0.3,
+    playerDamageScale: 0.42,
+    enemyDamageScale: 0.36,
+    /**
+     * Retorno decrescente dos bônus somados (equipe, maestria, prestígio, berries): o bônus
+     * de dano nunca passa de +`damageBonusCap` e a redução de dano recebido de −`defenseCap`.
+     * Cada bônus novo ainda ajuda, só que cada vez menos.
+     */
+    damageBonusCap: 2,
+    defenseCap: 0.6,
+    /** Chance de o inimigo usar um golpe qualquer em vez do melhor: selvagens e treinadores. */
+    wildMoveRandomness: 0.1,
+    trainerMoveRandomness: 0,
+    /**
+     * Quanto do reforço de atributos dos chefes de nível 100 (Unova e Kalos, até ×1,55) vale na
+     * luta: 1 = todo, 0 = nenhum. Com o dano dos dois lados quase igual, o reforço inteiro
+     * deixaria os últimos chefes impossíveis.
+     */
+    bossBoostScale: 0.6,
     randomMin: 0.85,
     spawnDelayMs: 1600,
     victoryDelayMs: 1500,
@@ -122,11 +164,11 @@ export const BALANCE = {
     thawChance: 0.25,
   },
 
-  /** Equipe de batalha: reservas que entram quando o ativo desmaia ou têm vantagem. */
+  /** Equipe: os que esperam a vez entram quando o 1º desmaia ou têm vantagem. */
   team: {
-    /** Fração da EXP de cada vitória que as reservas recebem. */
+    /** Fração da EXP de cada vitória que o resto da equipe recebe. */
     reserveExpShare: 0.5,
-    /** A troca por vantagem só acontece se a reserva for bem melhor (duelo estimado este tanto mais curto). */
+    /** A troca por vantagem só acontece se o outro for bem melhor (duelo estimado este tanto mais curto). */
     switchMargin: 0.75,
   },
 
@@ -155,6 +197,8 @@ export const BALANCE = {
     throwLimit: 10,
     /** Espera (em minutos reais) depois de ele fugir ou de você desmaiar/desistir. */
     cooldownMinutes: 60,
+    /** Espera (em minutos reais) para enfrentar de novo um lendário já capturado (para ter outro). */
+    recaptureMinutes: 24 * 60,
     /** IVs sorteados que já saem em 31 (os demais são sorteados de 0 a 31). */
     guaranteedPerfectIvs: 3,
   },
@@ -164,6 +208,7 @@ export const BALANCE = {
     hpMultiplier: 1.5,
     throwLimit: 15,
     cooldownMinutes: 30,
+    recaptureMinutes: 6 * 60,
     guaranteedPerfectIvs: 2,
     /** Taxa de captura usada (a da espécie, como a do Metagross, seria injusta). */
     captureRate: 45,
@@ -261,10 +306,9 @@ export const BALANCE = {
     hatch: 120,
     evolve: 220,
     max: 255,
-    /** Vitórias para cada ponto: ativo, reservas e apoio. */
+    /** Vitórias para cada ponto: quem luta e o resto da equipe. */
     killsPerPoint: 4,
     reserveKillsPerPoint: 12,
-    passiveKillsPerPoint: 20,
     levelUp: 2,
     faint: 1,
     berry: 8,
@@ -469,6 +513,11 @@ export const DEPT_STORE = {
   /** Berries que não estão à venda no Poké Mart. */
   rareBerry: 1500,
   fossil: 10_000,
+  /** Prateleira de TMs, pelo poder do golpe (ver core/tms.ts). */
+  tmPrices: { basic: 3000, medium: 8000, strong: 15_000, strongest: 25_000 },
+  /** Golpes de poder 65+ entram depois do ginásio de Celadon; os de 85+, depois do de Viridian. */
+  tmMediumUnlock: 'rota-7-8-celadon',
+  tmStrongUnlock: 'rota-22-23',
 };
 
 /** Pedras e itens de evolução que não estão no SHOP fixo: preço e chefe que os libera. */

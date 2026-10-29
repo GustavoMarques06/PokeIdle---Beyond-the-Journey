@@ -44,6 +44,34 @@ const LEAD = [
 const BASS = [48, 55, 53, 55, 45, 52, 50, 52, 48, 55, 53, 55, 43, 50, 47, 50];
 const STEP_MS = 125;
 
+/**
+ * Parte B do tema das rotas (Am–F–C–G), para o loop não cansar: o tema toca A A B A.
+ * Baixo em semínimas: fundamental, quinta, oitava, quinta de cada compasso.
+ */
+const LEAD_B = [
+  76, 0, 0, 74, 72, 0, 69, 0, 72, 0, 76, 0, 74, 0, 0, 0, 77, 0, 0, 76, 74, 0, 72, 0, 69, 0, 72, 0, 74, 0, 0,
+  0, 76, 0, 79, 0, 84, 0, 83, 81, 79, 0, 76, 0, 72, 0, 74, 0, 76, 0, 74, 0, 71, 0, 74, 0, 79, 0, 0, 0, 0, 0,
+  0, 0,
+];
+const BASS_B = [45, 41, 48, 43].flatMap((r) => [r, r + 7, r + 12, r + 7]);
+/** Ordem das partes do tema das rotas. */
+const DAY_FORM: ('A' | 'B')[] = ['A', 'A', 'B', 'A'];
+
+// Tema original da noite: Lá menor (Am–F–Dm–E), mais lento, melodia em onda triangular e
+// acompanhamento em arpejo baixinho, sem caixa.
+const NIGHT_LEAD = [
+  69, 0, 0, 0, 72, 0, 76, 0, 74, 0, 72, 0, 71, 0, 0, 0, 69, 0, 0, 0, 65, 0, 69, 0, 72, 0, 0, 0, 0, 0, 0, 0,
+  74, 0, 0, 0, 77, 0, 76, 0, 74, 0, 72, 0, 69, 0, 0, 0, 71, 0, 0, 0, 68, 0, 71, 0, 76, 0, 0, 0, 0, 0, 0, 0,
+];
+/** Acordes da noite: fundamental e terça (3 = menor, 4 = maior). */
+const NIGHT_CHORDS: [number, 3 | 4][] = [
+  [57, 3],
+  [53, 4],
+  [50, 3],
+  [52, 4],
+];
+const NIGHT_STEP_MS = 170;
+
 // Tema original da abertura: mais lento e esperançoso (I–vi–IV–V), com baixo em arpejo.
 const INTRO_LEAD = [
   67, 0, 72, 0, 76, 0, 74, 72, 74, 0, 76, 0, 79, 0, 0, 0, 76, 0, 74, 0, 72, 0, 69, 0, 71, 0, 72, 0, 74, 0, 0,
@@ -76,8 +104,11 @@ const FANFARE: [number, number][] = [
   [84, 4],
 ];
 
-/** Qual música toca: a do jogo (segue as Opções) ou o tema da abertura (botão próprio). */
-export type MusicTrack = 'game' | 'intro' | 'boss';
+/**
+ * Qual música toca: a das rotas de dia ou de noite e a de chefe (seguem as Opções), ou o tema
+ * da abertura (botão próprio).
+ */
+export type MusicTrack = 'game' | 'night' | 'intro' | 'boss';
 
 function readIntroMusic(): boolean {
   try {
@@ -454,11 +485,14 @@ class AudioManager {
   private scheduleMusic(): void {
     if (!this.ctx || this.ctx.state !== 'running') return;
     if (this.track === 'boss') return this.scheduleBoss();
+    if (this.track === 'night') return this.scheduleNight();
     const intro = this.track === 'intro';
-    const leadNotes = intro ? INTRO_LEAD : LEAD;
-    const bassNotes = intro ? INTRO_BASS : BASS;
     const step = (intro ? INTRO_STEP_MS : STEP_MS) / 1000;
     while (this.nextNoteAt < this.ctx.currentTime + 0.2) {
+      // O tema das rotas alterna as partes (A A B A); a abertura repete a mesma.
+      const part = intro ? 'A' : DAY_FORM[Math.floor(this.musicStep / LEAD.length) % DAY_FORM.length];
+      const leadNotes = intro ? INTRO_LEAD : part === 'B' ? LEAD_B : LEAD;
+      const bassNotes = intro ? INTRO_BASS : part === 'B' ? BASS_B : BASS;
       const i = this.musicStep % leadNotes.length;
       const lead = leadNotes[i];
       if (lead) this.tone(hz(lead), this.nextNoteAt, step * 1.8, intro ? 'triangle' : 'square', 0.035);
@@ -481,6 +515,25 @@ class AudioManager {
           this.tone(hz(bassNotes[(i / 4) % bassNotes.length]), this.nextNoteAt, step * 3.5, 'triangle', 0.09);
         if (i % 8 === 4) this.noise(this.nextNoteAt, 0.04, 0.03);
       }
+      this.musicStep++;
+      this.nextNoteAt += step;
+    }
+  }
+
+  private scheduleNight(): void {
+    const step = NIGHT_STEP_MS / 1000;
+    while (this.nextNoteAt < this.ctx!.currentTime + 0.2) {
+      const i = this.musicStep % NIGHT_LEAD.length;
+      const lead = NIGHT_LEAD[i];
+      if (lead) this.tone(hz(lead), this.nextNoteAt, step * 3, 'triangle', 0.06);
+      const [root, third] = NIGHT_CHORDS[Math.floor(i / 16) % NIGHT_CHORDS.length];
+      // Arpejo fundamental–terça–quinta–terça em colcheias, bem baixo, e baixo longo por compasso.
+      if (i % 2 === 0) {
+        const tones = [0, third, 7, third];
+        this.tone(hz(root + 12 + tones[(i / 2) % 4]), this.nextNoteAt, step * 1.5, 'square', 0.012);
+      }
+      if (i % 16 === 0) this.tone(hz(root - 12), this.nextNoteAt, step * 15, 'triangle', 0.08);
+      if (i % 8 === 6) this.noise(this.nextNoteAt, 0.02, 0.012);
       this.musicStep++;
       this.nextNoteAt += step;
     }

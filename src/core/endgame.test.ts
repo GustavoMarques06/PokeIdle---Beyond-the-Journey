@@ -22,7 +22,7 @@ import {
   replaceFallenActive,
 } from './nuzlocke';
 import { statsOf } from './pokemon';
-import { addReserve } from './team';
+import { addToTeam } from './team';
 import { memoryStorage, loadGame, saveGame } from './save';
 import { endTowerRun, floorTeam, weeklyBlocker, weeklyRng, weeklyRule } from './tower';
 
@@ -84,6 +84,8 @@ describe('Torre semanal', () => {
       : 129;
     const p = addToCollection(s, species, 100, { ...IVS }, false, 0, 'teste');
     setActive(s, p.uid);
+    // O inicial (de outro tipo) fica na equipe ao lado: tira para testar só o tipo do ativo.
+    s.battleTeam = [];
     return s;
   }
 
@@ -102,7 +104,7 @@ describe('Torre semanal', () => {
     const s = towerReady(true);
     expect(weeklyBlocker(s, MONDAY)).toBeNull();
     const other = addToCollection(s, 129, 50, { ...IVS }, false, 0, 'teste');
-    if (addReserve(s, other.uid) && getSpecies(129).types[0] !== weeklyRule(MONDAY).type) {
+    if (addToTeam(s, other.uid) && getSpecies(129).types[0] !== weeklyRule(MONDAY).type) {
       expect(weeklyBlocker(s, MONDAY)).toBe('type');
     }
   });

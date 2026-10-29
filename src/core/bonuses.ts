@@ -6,7 +6,6 @@ import {
   MASTERY_BONUS_PER_LEVEL,
   MASTERY_THRESHOLDS,
   PASSIVE,
-  PASSIVE_SLOTS,
   RESEARCH,
   getRoute,
   getSpecies,
@@ -23,25 +22,16 @@ import { dexBonuses, typeMedalBoost } from './dex';
 import { environmentMoveBoost, mergeBoosts, routeWeather, type Weather } from './env';
 import type { GameState } from './game';
 import { abilityOf, heldOf, type PokemonInstance } from './pokemon';
+import { teamPokemon } from './team';
 
 export const BONUS_KINDS: BonusKind[] = ['damage', 'defense', 'speed', 'exp', 'coins', 'capture', 'heal'];
 
-// --- Equipe passiva --------------------------------------------------------
+// --- Bônus da equipe -------------------------------------------------------
 
-export function passiveSlotsUnlocked(state: GameState): number {
-  return PASSIVE_SLOTS.filter((slot) => {
-    const route = getRoute(slot.requiresRoute);
-    const prog = state.routes[slot.requiresRoute];
-    return route.boss ? prog?.bossDefeated : (prog?.kills ?? 0) >= route.killsRequired;
-  }).length;
-}
-
+/** Quem dá bônus: a equipe toda, inclusive quem luta (ninguém no desafio Lobo solitário). */
 export function passivePokemon(state: GameState): PokemonInstance[] {
   if (state.challenge === 'solo') return [];
-  return state.passives
-    .map((uid) => state.collection.find((p) => p.uid === uid))
-    .filter((p): p is PokemonInstance => !!p && p.uid !== state.activeUid)
-    .slice(0, passiveSlotsUnlocked(state));
+  return teamPokemon(state);
 }
 
 export function passiveKind(p: { speciesId: number }): BonusKind {
@@ -244,12 +234,18 @@ export function computeModifiers(state: GameState): Modifiers {
   };
 }
 
+/** Bônus `x` (≥ 0) com retorno decrescente: cresce quase igual no começo e tende a `cap`. */
+export const softCap = (x: number, cap: number) => (x > 0 ? cap * (1 - Math.exp(-x / cap)) : x);
+
 /** Escalas aplicadas ao combate contra um inimigo específico. */
 export function combatScales(mods: Modifiers, enemyTypes: TypeName[]): DuelScales {
+  const c = BALANCE.combat;
   const typeBonus = Math.max(0, ...enemyTypes.map((t) => mods.typeDamage[t] ?? 0));
+  const damage = 1 + softCap(mods.damage * (1 + typeBonus) - 1, c.damageBonusCap);
+  const taken = 1 - softCap(1 - mods.damageTaken, c.defenseCap);
   return {
-    playerDamage: BALANCE.combat.playerDamageScale * mods.damage * (1 + typeBonus),
-    enemyDamage: BALANCE.combat.enemyDamageScale * mods.damageTaken * mods.enemyDamage,
+    playerDamage: c.playerDamageScale * damage,
+    enemyDamage: c.enemyDamageScale * taken * mods.enemyDamage,
     playerInterval: mods.attackInterval,
   };
 }

@@ -1,5 +1,5 @@
 // ATIVIDADES: tudo que roda em paralelo às batalhas — creche, expedições, jardim,
-// fósseis, Torre de Batalha, torneio, Safari, Game Corner e caça ao shiny.
+// fósseis, Torre de Batalha, torneio, Safari, Game Corner, caça ao shiny e o Cabo Link.
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { expeditionDone } from '../../core/expeditions';
@@ -13,6 +13,7 @@ import { GameCornerPanel } from './activities/GameCornerPanel';
 import { GardenPanel } from './activities/GardenPanel';
 import { HuntPanel } from './activities/HuntPanel';
 import { LegendaryPanel } from './activities/LegendaryPanel';
+import { DuelPanel, TradePanel } from './activities/LinkPanel';
 import { RaidsPanel } from './activities/RaidsPanel';
 import { SafariPanel } from './activities/SafariPanel';
 import { TournamentPanel } from './activities/TournamentPanel';
@@ -22,31 +23,34 @@ import { TAB_TIPS, seenFlag, tabOpen, tipFlag, unseenTabs, type Tab } from './ac
 import { useEngine } from '../useGame';
 
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-  { id: 'daycare', label: 'CRECHE', icon: <PixelIcon name="egg" scale={2} /> },
+  { id: 'daycare', label: 'CRECHE', icon: <ItemIcon id="mystery-egg" size={22} /> },
   { id: 'expeditions', label: 'EXPEDIÇÕES', icon: <ItemIcon id="explorer-kit" size={22} /> },
   { id: 'garden', label: 'JARDIM', icon: <ItemIcon id="oran-berry" size={22} /> },
   { id: 'fossils', label: 'FÓSSEIS', icon: <ItemIcon id="helix-fossil" size={22} /> },
   { id: 'training', label: 'TREINO', icon: <ItemIcon id="macho-brace" size={22} /> },
-  { id: 'raids', label: 'RAIDES', icon: <PixelIcon name="boss" scale={2} /> },
-  { id: 'hunt', label: 'CAÇA SHINY', icon: <PixelIcon name="target" scale={2} /> },
-  { id: 'legendary', label: 'LENDÁRIOS', icon: <PixelIcon name="star" scale={2} /> },
-  { id: 'tower', label: 'TORRE', icon: <PixelIcon name="trophy" scale={2} /> },
-  { id: 'tournament', label: 'TORNEIO', icon: <PixelIcon name="star" scale={2} /> },
+  { id: 'raids', label: 'RAIDES', icon: <ItemIcon id="dynamax-band" size={22} /> },
+  { id: 'hunt', label: 'CAÇA SHINY', icon: <ItemIcon id="poke-radar" size={22} /> },
+  { id: 'legendary', label: 'LENDÁRIOS', icon: <ItemIcon id="master-ball" size={22} /> },
+  { id: 'tower', label: 'TORRE', icon: <ItemIcon id="rainbow-pass" size={22} /> },
+  { id: 'tournament', label: 'TORNEIO', icon: <ItemIcon id="relic-crown" size={22} /> },
   { id: 'safari', label: 'SAFARI', icon: <ItemIcon id="safari-ball" size={22} /> },
   { id: 'gamecorner', label: 'GAME CORNER', icon: <ItemIcon id="coin-case" size={22} /> },
+  { id: 'trade', label: 'TROCA', icon: <ItemIcon id="linking-cord" size={22} /> },
+  { id: 'duel', label: 'DUELO', icon: <ItemIcon id="vs-recorder" size={22} /> },
 ];
 
-/** As 12 abas em três grupos de quatro. */
+/** As abas em grupos: três de quatro e o Cabo Link (troca e duelo com amigos). */
 const GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: 'CRIAÇÃO', tabs: ['daycare', 'garden', 'fossils', 'training'] },
   { label: 'DESAFIOS', tabs: ['raids', 'legendary', 'tower', 'tournament'] },
   { label: 'EXPLORAR', tabs: ['expeditions', 'safari', 'hunt', 'gamecorner'] },
+  { label: 'CABO LINK', tabs: ['trade', 'duel'] },
 ];
 
-export function ActivitiesScreen({ state }: { state: GameState }) {
+export function ActivitiesScreen({ state, initialTab }: { state: GameState; initialTab?: Tab }) {
   const engine = useEngine();
-  // Abre na primeira atividade nova, se houver; senão, na creche.
-  const [tab, setTab] = useState<Tab>(() => unseenTabs(state)[0] ?? 'daycare');
+  // Abre na aba pedida (painel de próximos passos), na primeira atividade nova ou na creche.
+  const [tab, setTab] = useState<Tab>(() => initialTab ?? unseenTabs(state)[0] ?? 'daycare');
   const now = state.lastTimerAt;
   const unseen = new Set(unseenTabs(state));
   const open = tabOpen(state, tab);
@@ -118,6 +122,8 @@ export function ActivitiesScreen({ state }: { state: GameState }) {
       {tab === 'tournament' && <TournamentPanel state={state} />}
       {tab === 'safari' && <SafariPanel state={state} />}
       {tab === 'gamecorner' && <GameCornerPanel state={state} />}
+      {tab === 'trade' && <TradePanel state={state} />}
+      {tab === 'duel' && <DuelPanel state={state} />}
     </div>
   );
 }

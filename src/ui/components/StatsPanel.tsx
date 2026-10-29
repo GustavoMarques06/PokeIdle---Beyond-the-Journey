@@ -7,7 +7,7 @@ import { BALANCE } from '../../game-data';
 import type { GameState } from '../../core/game';
 import { currentSample, historyIntervals, ratePerHour, type HistoryMetric } from '../../core/history';
 import { formatNumber } from '../i18n/pt-BR';
-import { PixelIcon, Window } from './common';
+import { ItemIcon, Window } from './common';
 
 const METRICS: { id: HistoryMetric; label: string; unit: string; color: string }[] = [
   { id: 'exp', label: 'EXP', unit: 'EXP/h', color: 'var(--exp-dark)' },
@@ -40,7 +40,7 @@ export function StatsPanel({ state }: { state: GameState }) {
   const enough = covered >= BALANCE.history.sampleMinutes * 60_000;
 
   return (
-    <Window title="ESTATÍSTICAS" icon={<PixelIcon name="trophy" scale={2} />} className="stats-panel">
+    <Window title="ESTATÍSTICAS" icon={<ItemIcon id="relic-crown" size={24} />} className="stats-panel">
       <div className="stat-tiles">
         {METRICS.map((x) => {
           const hour = ratePerHour(intervals, x.id, now, 1);

@@ -60,6 +60,8 @@ export interface PokemonInstance {
   eggMoves?: string[];
   /** Golpes da pré-evolução lembrados no Relembrador. */
   relearned?: string[];
+  /** Treinador original, quando veio de uma troca pelo Cabo Link. */
+  ot?: string;
 }
 
 /** Feitos de um Pokémon como ativo. */

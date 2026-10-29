@@ -6,6 +6,7 @@
 @import './prologue.css'; /* tela de título e prólogo com o Professor */
 @import './overlays.css'; /* janelas flutuantes */
 @import './systems.css'; /* ambiente, mapa da região, atividades, missões, golpes, TMs */
+@import './tools.css'; /* ensino de TMs, equipes salvas, automação, Cabo Link e próximos passos */
 @import './effects.css'; /* efeitos de golpe, shiny, Poké Ball, status, barras, transições */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */

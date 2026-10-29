@@ -89,9 +89,8 @@ export function PcScreen({ state }: { state: GameState }) {
   const allFavorite = picked.length > 0 && picked.every((uid) => byUid.get(uid)?.favorite);
   const heldMon = holding ? byUid.get(boxes[holding.box]?.slots[holding.slot] ?? 0) : undefined;
   const team = [
-    { uid: state.activeUid, role: 'ATIVO' },
-    ...reservePokemon(state).map((p, i) => ({ uid: p.uid, role: `RESERVA ${i + 1}` })),
-    ...state.passives.map((uid, i) => ({ uid, role: `APOIO ${i + 1}` })),
+    { uid: state.activeUid, role: 'LUTANDO' },
+    ...reservePokemon(state).map((p, i) => ({ uid: p.uid, role: `${i + 2}º DA EQUIPE` })),
   ];
   const shown = byUid.get(selected) ?? byUid.get(state.activeUid)!;
   const patch = (p: Partial<BoxFilter>) => setFilter((f) => ({ ...f, ...p }));

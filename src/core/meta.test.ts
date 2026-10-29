@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS, BALANCE, PASSIVE, ROUTES } from '../game-data';
-import { computeModifiers, masteryOf, passiveContributions, passiveSlotsUnlocked } from './bonuses';
+import { computeModifiers, masteryOf, passiveContributions } from './bonuses';
 import { activePokemon, advance, newGame, registerKills, setActive, type GameState } from './game';
 import {
-  addPassive,
   buyPrestige,
   buyResearch,
   canPrestige,
@@ -11,7 +10,6 @@ import {
   checkAchievements,
   prestigePreview,
   prestigeReset,
-  removePassive,
   surplusDuplicates,
   transferDuplicates,
   transferPokemon,
@@ -19,6 +17,7 @@ import {
 } from './meta';
 import { createPokemon } from './pokemon';
 import { parseSave, serialize } from './save';
+import { addToTeam, removeFromTeam, teamSlotsUnlocked } from './team';
 
 const IVS = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
 
@@ -36,14 +35,14 @@ function clearAll(state: GameState) {
   }
 }
 
-describe('equipe passiva', () => {
-  it('vagas são liberadas pela progressão', () => {
+describe('bônus da equipe', () => {
+  it('vagas da equipe são liberadas pela progressão, até 6', () => {
     const s = newGame(4, 0, 1);
-    expect(passiveSlotsUnlocked(s)).toBe(0);
+    expect(teamSlotsUnlocked(s)).toBe(1);
     registerKills(s, 'rota-1', 1000, []);
-    expect(passiveSlotsUnlocked(s)).toBe(1);
+    expect(teamSlotsUnlocked(s)).toBe(2);
     clearAll(s);
-    expect(passiveSlotsUnlocked(s)).toBe(4);
+    expect(teamSlotsUnlocked(s)).toBe(6);
   });
 
   it('passivo de fogo aumenta o dano; água aumenta a cura', () => {
@@ -52,8 +51,8 @@ describe('equipe passiva', () => {
     const base = computeModifiers(s);
     const fire = give(s, 4, 20);
     const water = give(s, 120, 20);
-    expect(addPassive(s, fire.uid)).toBe(true);
-    expect(addPassive(s, water.uid)).toBe(true);
+    expect(addToTeam(s, fire.uid)).toBe(true);
+    expect(addToTeam(s, water.uid)).toBe(true);
     const mods = computeModifiers(s);
     expect(mods.damage).toBeGreaterThan(base.damage);
     expect(mods.heal).toBeGreaterThan(base.heal);
@@ -67,7 +66,7 @@ describe('equipe passiva', () => {
     const a = give(s, 4, 20);
     const b = give(s, 4, 20);
     const c = give(s, 5, 20);
-    for (const p of [a, b, c]) addPassive(s, p.uid);
+    for (const p of [a, b, c]) addToTeam(s, p.uid);
     const list = passiveContributions(s);
     expect(list.filter((x) => x.duplicate)).toHaveLength(1);
     const [first, second] = list.filter((x) => !x.duplicate).sort((x, y) => y.effective - x.effective);
@@ -78,21 +77,23 @@ describe('equipe passiva', () => {
   it('respeita o teto por tipo de bônus', () => {
     const s = newGame(7, 0, 1);
     clearAll(s);
-    for (const id of [4, 5, 6, 56]) addPassive(s, give(s, id, 100).uid);
+    for (const id of [4, 5, 6, 56]) addToTeam(s, give(s, id, 100).uid);
     expect(computeModifiers(s).passive.damage).toBeLessThanOrEqual(PASSIVE.caps.damage);
   });
 
-  it('não aceita o ativo como passivo, e promover um passivo troca de lugar', () => {
+  it('quem luta também dá bônus; pôr outro para lutar troca de lugar', () => {
     const s = newGame(7, 0, 1);
     clearAll(s);
-    expect(addPassive(s, s.activeUid)).toBe(false);
+    expect(addToTeam(s, s.activeUid)).toBe(false);
+    expect(passiveContributions(s).map((c) => c.uid)).toEqual([s.activeUid]);
     const p = give(s, 4, 10);
-    addPassive(s, p.uid);
+    addToTeam(s, p.uid);
     const oldActive = s.activeUid;
     setActive(s, p.uid);
-    expect(s.passives).toEqual([oldActive]);
-    removePassive(s, oldActive);
-    expect(s.passives).toEqual([]);
+    expect(s.battleTeam).toEqual([oldActive]);
+    removeFromTeam(s, oldActive);
+    expect(s.battleTeam).toEqual([]);
+    expect(s.activeUid).toBe(p.uid);
   });
 
   it('passivos tornam o combate mensuravelmente melhor', () => {
@@ -102,7 +103,7 @@ describe('equipe passiva', () => {
       s.currentRouteId = 'rota-3';
       s.battle.routeId = 'rota-3';
       activePokemon(s).level = 15;
-      if (withPassives) for (const id of [4, 25, 74, 16]) addPassive(s, give(s, id, 30).uid);
+      if (withPassives) for (const id of [4, 25, 74, 16]) addToTeam(s, give(s, id, 30).uid);
       advance(s, 10 * 60_000, 0);
       return s.stats.totalKills;
     };
@@ -260,7 +261,8 @@ describe('migração de save', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const st = result.file.state;
-    expect(st.passives).toEqual([]);
+    expect('passives' in st).toBe(false);
+    expect(st.battleTeam).toEqual([]);
     expect(st.prestige.count).toBe(0);
     expect(st.stats.bossWins).toBe(1);
     expect(st.stats.totalKills).toBe(10);

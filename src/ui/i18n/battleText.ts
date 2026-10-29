@@ -90,7 +90,10 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
     }
     case 'enemyFainted':
       return {
-        text: `${foeLabel(e.speciesId, ctx)} desmaiou! ${ctx.playerName} ganhou ${plural(e.exp, 'ponto', 'pontos')} de EXP e ${plural(e.coins, 'moeda', 'moedas')}.`,
+        text:
+          e.exp || e.coins
+            ? `${foeLabel(e.speciesId, ctx)} desmaiou! ${ctx.playerName} ganhou ${plural(e.exp, 'ponto', 'pontos')} de EXP e ${plural(e.coins, 'moeda', 'moedas')}.`
+            : `${foeLabel(e.speciesId, ctx)} desmaiou!`,
         important: false,
       };
     case 'playerFainted':
@@ -215,6 +218,20 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
           e.place === 'champion'
             ? 'Você é o CAMPEÃO do torneio da semana!'
             : 'Fim do torneio para você nesta semana. Volte na próxima!',
+        important: true,
+      };
+    case 'ghostDuelEnded':
+      return {
+        text: e.won
+          ? `Você venceu a equipe de ${e.name}!${e.coins ? ` Prêmio da primeira vitória: ${plural(e.coins, 'moeda', 'moedas')}.` : ''}`
+          : `A equipe de ${e.name} venceu o duelo…`,
+        important: true,
+      };
+    case 'tradeReceived':
+      return {
+        text: e.evolvedTo
+          ? `${speciesName(e.speciesId)} chegou de ${e.from}… e evoluiu para ${speciesName(e.evolvedTo)}!`
+          : `${speciesName(e.speciesId)} chegou de ${e.from}! Cuide bem dele.`,
         important: true,
       };
     case 'merchantAppeared':

@@ -28,7 +28,7 @@ transferência leva o jogo de um aparelho para outro.
 |                                               |                                             |
 | --------------------------------------------- | ------------------------------------------- |
 | ![Pesca e Surf](screenshots/pesca-e-surf.png) | ![Ficha do Pokémon](screenshots/equipe.png) |
-| Surf: encontros de água com espécies próprias | Equipe, reservas e a ficha de cada Pokémon  |
+| Surf: encontros de água com espécies próprias | A equipe de 6 e a ficha de cada Pokémon     |
 | ![Mapa](screenshots/mapa.png)                 | ![Torneio](screenshots/torneio.png)         |
 | Mapa oficial de cada região com marcadores    | Torneio semanal em chave de 8               |
 | ![Safari](screenshots/safari.png)             | ![Loja](screenshots/loja.png)               |
@@ -60,7 +60,8 @@ transferência leva o jogo de um aparelho para outro.
 - 69 habilidades (Intimidação, Robustez, Levitação...) e 42 itens seguráveis (Sobras, Faixa Escolha, Orbe da
   Vida, berries...).
 - Status (queimadura, veneno, paralisia, sono, congelamento) com as imunidades de tipo dos jogos.
-- Equipe de batalha com até duas reservas, que entram quando o ativo desmaia ou têm vantagem de tipo.
+- Equipe de até 6 Pokémon, em ordem: o 1º luta, os outros entram quando ele desmaia (ou quando têm vantagem de
+  tipo) e todos dão um bônus pelo tipo. Monta e reordena direto na tela POKéMON.
 - Clima pelo relógio real (sol, chuva, tempestade de areia, neblina, granizo) e dia/noite; algumas espécies
   só aparecem em certos horários e climas.
 - Líderes de ginásio dão insígnia e TM; o rival fica mais forte a cada nova jornada; o Campeão registra a
@@ -73,7 +74,8 @@ transferência leva o jogo de um aparelho para outro.
 - Evolução por nível, pedras e outros itens, amizade e condição (Tyrogue, Wurmple).
 - Formas colecionáveis: as 28 letras do Unown, Deerling/Sawsbuck nas quatro estações, Castform pelo clima e
   os padrões de manchas do Spinda.
-- 60 lendários e quase lendários, enfrentados numa batalha manual depois de vencer o Campeão da região.
+- 60 lendários e quase lendários, enfrentados numa batalha manual depois de vencer o Campeão da região. Depois de
+  capturado, cada um volta (um dia depois; os quase lendários, em 6 horas) para quem quiser outro exemplar.
 - Pesca (Old, Good e Super Rod) e Surf em 21 áreas com água, com espécies que não aparecem na grama.
 - Jogo do Safari com espécies exclusivas: Chansey, Scyther, Pinsir, Tauros, Heracross, Dratini...
 
@@ -88,23 +90,51 @@ transferência leva o jogo de um aparelho para outro.
 Também há errantes, a Equipe Rocket, revanches contra líderes, árvores de berry nas rotas, missões diárias e
 semanais, e um Pokémon acompanhante que ganha amizade com o tempo e às vezes acha itens.
 
+### Cabo Link
+
+Troca e duelo entre amigos por código de texto, sem servidor (o mesmo formato do código de transferência).
+
+- **Troca**: o Pokémon escolhido sai do jogo de quem envia e entra no de quem cola o código, com IVs, natureza,
+  golpes, item e apelido. O mesmo código não entra duas vezes, e um envio pode ser cancelado. Kadabra, Machoke,
+  Graveler, Haunter e as outras evoluções por troca acontecem na chegada.
+- **Duelo fantasma**: o código leva a equipe; quem o cola enfrenta essa equipe numa batalha com os dois
+  lados na mesma força (sem bônus da equipe, medalhas ou desafios). A primeira vitória contra cada equipe paga um
+  prêmio, e o placar fica guardado.
+
+### TMs
+
+- Estojo com os 87 TMs numerados (TM01 é o Rock Tomb do Brock), mostrando onde conseguir os que faltam.
+- Ensino direto pela Mochila: escolha quem aprende e qual golpe sai.
+- Prateleira de TMs na Loja de Departamentos de Celadon; os golpes mais fortes chegam depois de certos ginásios, e
+  os TMs dos líderes de uma região entram depois do Campeão dela.
+
 ### Progressão de longo prazo
 
-- Equipe de apoio: Pokémon que não lutam, mas dão bônus pelo tipo (dano, EXP, moedas, captura...).
+- Bônus da equipe: cada Pokémon dá um bônus pelo tipo (dano, EXP, moedas, captura...), com retorno decrescente.
 - Laboratório: duplicatas e espécies novas viram pontos de pesquisa para bônus permanentes.
 - Maestria por linha evolutiva, prestígio (nova jornada com pontos para melhorias) e desafios opcionais:
   Lobo solitário, Mochila vazia, Natureza feroz e Nuzlocke (só a primeira captura de cada área vale, e quem
   desmaia contra treinadores fica fora da jornada).
 - Torre semanal: toda segunda-feira, um tipo obrigatório para a equipe e um modificador (Feroz, Sem descanso,
   Direto ao topo…). Os andares saem de uma semente da semana, então são iguais para todos e dá para comparar.
+- Equipes salvas: até seis equipes com os itens, trocadas com um clique. Ligada a um desafio
+  (ginásios, raides, Torre, torneio, lendários, duelo), a equipe entra sozinha e a de antes volta no fim.
+- Regras de automação (tela Treinador): capturar bons exemplares (potencial mínimo, habilidade oculta,
+  naturezas), formas que faltam ou tudo com Poké Ball comum; transferir os repetidos que sobram; colher e
+  replantar o jardim; resgatar missões.
 - Caixa com busca, filtros (tipo, etiqueta, shiny, perfeitos, repetidos), favoritos protegidos de
   transferência, seis etiquetas com nome editável e seleção múltipla para etiquetar ou transferir em lote.
 - 47 medalhas em bronze, prata, ouro e platina, com vitrine e molduras para o cartão de treinador.
+- Visual do treinador: Red, Leaf, Brendan ou May (os dois de Hoenn também com a roupa de Ruby/Sapphire) e
+  13 cores para cada peça de roupa (boné, jaqueta, camisa, calça ou saia). A roupa aparece no HUD, no cartão
+  e, pelo Cabo Link, nos duelos fantasma dos amigos.
 - Economia com Poké Mart, Loja de Departamentos de Celadon, venda de itens e mercador viajante. A loja mostra
   quanto tempo de jogo cada preço representa no seu ritmo atual.
 
 ### Qualidade de vida
 
+- Painel de próximos passos na coluna do menu: o que está pronto, o que acaba logo e o que está parado, com a
+  chance estimada contra o próximo chefe e a ação a um clique.
 - Relatório offline e atalhos de teclado.
 - Notificações do sistema com o jogo em segundo plano, por categoria (creche, expedições, visitantes,
   progresso, shiny), agrupando avisos repetidos.
@@ -173,9 +203,13 @@ npm run data:fetch -- --fresh # baixa tudo de novo
 | Origem            | O quê                                                                                              |
 | ----------------- | -------------------------------------------------------------------------------------------------- |
 | PokéAPI           | Dados das espécies e golpes, sprites animados de Black/White, ícones, itens, insígnias e gritos    |
+| pret/pokeemerald  | Arte de Brendan e May (roupas de Emerald e de Ruby/Sapphire), em 80×80 com fundo transparente      |
 | Pokémon Showdown  | Sprites de treinadores (estilo FireRed/LeafGreen) e fundos de batalha ilustrados                   |
 | Bulbapedia        | Arte oficial dos mapas de cada região                                                              |
 | Feito para o jogo | Cenários alternativos, molduras, ícones de interface, efeitos de batalha, música e efeitos sonoros |
+
+Os padrões de manchas do Spinda não têm sprite pronto: o jogo recolore o sprite base num canvas
+(`src/ui/spinda.ts`), como os jogos fazem.
 
 As artes geradas para o jogo ficam em `art/` e passam por scripts antes de entrar em `public/`:
 

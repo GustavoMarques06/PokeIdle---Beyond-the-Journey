@@ -1,0 +1,423 @@
+/* Ferramentas do treinador: ensino de TMs, equipes salvas, regras de automação, Cabo Link
+   (troca e duelo fantasma) e o painel de próximos passos. */
+
+/* --- MOCHILA: estojo de TMs ------------------------------------------------------------ */
+.tm-entry {
+  border-bottom: 1px dashed var(--menu-blue-light);
+}
+
+.tm-entry .tm-row {
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tm-entry .tm-row:hover,
+.tm-entry .tm-row.selected {
+  background: var(--menu-select);
+}
+
+.tm-entry.missing .tm-row {
+  opacity: 0.6;
+}
+
+.tm-entry.missing .tm-disc {
+  filter: grayscale(1);
+}
+
+/* O disco ganha a cor do tipo do golpe, como nos jogos. */
+.tm-disc {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid color-mix(in srgb, var(--t) 55%, #000);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 22%, var(--t) 24%);
+}
+
+.tm-where {
+  margin: 0 6px 6px 46px;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.tm-teach {
+  padding: 4px 6px 8px 46px;
+}
+
+.tm-replace {
+  margin-top: 6px;
+}
+
+.tm-replace p {
+  margin: 0 0 4px;
+}
+
+.tm-replace-moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tm-replace-moves .pbtn[class*='type-bg-'] {
+  border-color: color-mix(in srgb, var(--t) 55%, #000);
+}
+
+.tm-shelf .tm-disc {
+  width: 30px;
+  height: 30px;
+}
+
+.pbtn.tiny {
+  min-height: 24px;
+  padding: 0 5px;
+  font-size: 10px;
+}
+
+/* --- PRÓXIMOS PASSOS (coluna do menu) --------------------------------------------------- */
+.next-steps {
+  flex-shrink: 0;
+  max-height: 34vh;
+  overflow: hidden auto;
+  padding: 4px 8px 6px;
+}
+
+.next-steps header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.next-steps h3 {
+  flex: 1;
+  margin: 0;
+  font: 700 13px var(--font-label);
+  color: var(--menu-blue-dark);
+  letter-spacing: 0.05em;
+}
+
+.next-steps ol {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.next-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  border-top: 1px dashed var(--menu-blue-light);
+}
+
+.next-steps li:first-child {
+  border-top: 0;
+}
+
+.next-steps li > img {
+  justify-self: center;
+}
+
+.step-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.step-text:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.step-text:not(:disabled):hover {
+  background: var(--menu-select);
+}
+
+.step-text small {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.next-steps .hint {
+  margin: 2px 0 0;
+}
+
+/* --- TREINADOR: automação -------------------------------------------------------------- */
+.auto-section + .auto-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 2px dashed var(--menu-blue-light);
+}
+
+.auto-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  font: 700 14px var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.auto-section .option-row {
+  padding: 3px 0;
+}
+
+.option-row.disabled {
+  opacity: 0.55;
+}
+
+.option-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.nature-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 2px 8px;
+  margin: 6px 0 0;
+  padding: 4px 8px 6px;
+  border: 2px solid var(--menu-blue-light);
+}
+
+.nature-picker legend {
+  padding: 0 4px;
+  font: 700 13px var(--font-label);
+}
+
+/* --- POKéMON: equipes salvas ---------------------------------------------------------- */
+.preset-list {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preset-row {
+  padding: 6px 8px;
+}
+
+.preset-row.in-use {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
+.preset-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preset-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 700 15px var(--font-label);
+  color: var(--ink);
+  cursor: text;
+}
+
+.preset-tag {
+  padding: 0 4px;
+  background: var(--gold);
+  font: 700 11px var(--font-label);
+}
+
+.preset-rename,
+.preset-new {
+  display: flex;
+  gap: 4px;
+}
+
+.preset-rename input,
+.preset-new input {
+  flex: 1;
+  min-width: 0;
+}
+
+.preset-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preset-members li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 40px;
+}
+
+.preset-members small {
+  font: 700 10px var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.preset-gone {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ink-muted);
+}
+
+.preset-held {
+  position: absolute;
+  right: 2px;
+  top: 18px;
+}
+
+.preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.preset-use {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+/* --- ATIVIDADES: Cabo Link -------------------------------------------------------------- */
+.link-panel {
+  display: grid;
+  gap: var(--gap, 8px);
+}
+
+.link-code,
+.link-receive {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.link-code textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.link-code .pbtn,
+.link-receive > .pbtn {
+  justify-self: start;
+}
+
+.link-preview,
+.link-send {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.link-preview p {
+  margin: 0;
+}
+
+.link-send span {
+  flex: 1;
+  min-width: 0;
+}
+
+.link-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link-team li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.link-team small {
+  color: var(--ink-soft);
+}
+
+.link-sent,
+.ghost-list {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link-sent li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-sent li span {
+  flex: 1;
+  min-width: 120px;
+}
+
+.ghost-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.ghost-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ghost-info small {
+  color: var(--ink-soft);
+}
+
+.ghost-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (max-width: 600px) {
+  .ghost-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ghost-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+
+  .tm-where,
+  .tm-teach {
+    margin-left: 0;
+    padding-left: 6px;
+  }
+}

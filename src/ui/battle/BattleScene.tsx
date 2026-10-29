@@ -13,7 +13,6 @@ import {
   getRoute,
   getSpecies,
   spriteFeet,
-  trainerSprite,
 } from '../../game-data';
 import { routeWeather } from '../../core/env';
 import { legendaryDef, legendaryRules } from '../../core/legendary';
@@ -27,13 +26,14 @@ import {
   type GameEvent,
   type GameState,
   type StatusState,
+  type TrainerInfo,
 } from '../../core/game';
 import { rngFrom } from '../../core/rng';
 import { reservePokemon } from '../../core/team';
 import { isPerfect, pokemonName, statsOf } from '../../core/pokemon';
 import type { Stats } from '../../core/stats';
 import { levelProgress } from '../../core/progression';
-import { ExpBar, GenderMark, HpBar, ItemIcon, PixelIcon, Shiny } from '../components/common';
+import { ExpBar, GenderMark, HpBar, ItemIcon, PixelIcon, Shiny, TrainerImage } from '../components/common';
 import { genderOf } from '../../core/gender';
 import { activeLure } from '../../core/lures';
 import { STATUS_TEXT, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
@@ -242,7 +242,7 @@ export function BattleScene({ state }: { state: GameState }) {
   // Encontro: piscada (selvagem) ou entrada do treinador ("X quer batalhar!").
   const [encounter, setEncounter] = useState<{
     id: number;
-    trainer?: { name: string; sprite: string };
+    trainer?: TrainerInfo;
   } | null>(null);
   const [evolutions, setEvolutions] = useState<
     { id: number; uid: number; from: number; to: number; shiny: boolean }[]
@@ -368,7 +368,7 @@ export function BattleScene({ state }: { state: GameState }) {
           const id = nextId.current++;
           const trainer = st.battle.trainer;
           if (e.boss && trainer && st.battle.bossIndex === 0) {
-            setEncounter({ id, trainer: { name: trainer.name, sprite: trainer.sprite } });
+            setEncounter({ id, trainer });
             setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 1700 / speed);
           } else if (st.battle.kind === 'wild') {
             setEncounter({ id });
@@ -466,7 +466,11 @@ export function BattleScene({ state }: { state: GameState }) {
   // Entrada com Poké Ball: o sprite é recriado a cada Pokémon novo (key), e a animação de CSS
   // roda sozinha na montagem — para o jogador sempre, para o inimigo nas lutas de treinador.
   const trainerFoe =
-    b.kind === 'boss' || b.kind === 'rocket' || b.kind === 'tower' || b.kind === 'tournament';
+    b.kind === 'boss' ||
+    b.kind === 'rocket' ||
+    b.kind === 'tower' ||
+    b.kind === 'tournament' ||
+    b.kind === 'ghost';
   const shownHp = useCountTo(player.currentHp);
   // Entardecer e amanhecer (só visual; o jogo conta dia e noite).
   const hour = new Date(state.lastTimerAt).getHours();
@@ -647,7 +651,7 @@ export function BattleScene({ state }: { state: GameState }) {
         <div className="status-box status-enemy frame frame-status">
           <div className="status-name">
             <span>
-              {getSpecies(enemy.speciesId).name.toUpperCase()}
+              {(enemy.nickname ?? getSpecies(enemy.speciesId).name).toUpperCase()}
               <GenderMark gender={genderOf(enemy)} />
               {enemy.shiny && <Shiny />}
               <StatusTag status={enemy.status} />
@@ -681,7 +685,7 @@ export function BattleScene({ state }: { state: GameState }) {
           <span className="status-level">Nv{player.level}</span>
         </div>
         {reserves.length > 0 && (
-          <div className="party-balls" title="Equipe de batalha: ativo + reservas">
+          <div className="party-balls" title="Equipe (o 1º luta)">
             {[player, ...reserves].map((p) => (
               <span key={p.uid} className={p.currentHp > 0 ? '' : 'fainted'}>
                 <PixelIcon name="miniBall" scale={2} />
@@ -749,6 +753,7 @@ export function BattleScene({ state }: { state: GameState }) {
             key={`enc-${encounter.id}`}
             name={encounter.trainer.name}
             sprite={encounter.trainer.sprite}
+            outfit={encounter.trainer.outfit}
           />
         ) : (
           <EncounterFlash key={`enc-${encounter.id}`} />
@@ -762,9 +767,10 @@ export function BattleScene({ state }: { state: GameState }) {
 
       {b.kind !== 'wild' && b.trainer && (
         <>
-          <img
+          <TrainerImage
             className="boss-trainer"
-            src={assetUrl(trainerSprite(b.trainer.sprite))}
+            id={b.trainer.sprite}
+            outfit={b.trainer.outfit}
             alt={b.trainer.name}
             style={{
               left: `calc(var(--u) * ${ENEMY_BASE.x + 26})`,

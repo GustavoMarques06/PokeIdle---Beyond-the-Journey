@@ -41,7 +41,7 @@ const STEPS: Step[] = [
     id: 'box',
     when: (s) => s.stats.totalCaptures >= 1,
     text: () =>
-      'Capturou! Os Pokémon novos vão para a Caixa. Em POKéMON você escolhe quem luta, quem fica de reserva e quem dá apoio.',
+      'Capturou! Os Pokémon novos vão para a Caixa. Em POKéMON você monta a equipe de até 6: o 1º luta e todos dão bônus.',
   },
   {
     id: 'route',

@@ -4,8 +4,10 @@ import {
   BALANCE,
   DEPT_STORE,
   DEPT_STORE_CATALOG,
+  cleanOutfit,
   getRoute,
   type DeptEntry,
+  type OutfitPart,
   type PlayerAvatar,
 } from '../game-data';
 import { computeModifiers } from './bonuses';
@@ -19,9 +21,11 @@ import { raidTeam } from './raids';
 import { canRematch } from './rematch';
 import { rngFrom } from './rng';
 import { isFallen } from './nuzlocke';
-import { healTeam } from './team';
+import { healTeam, reservePokemon, reserveSlotsUnlocked } from './team';
 import { endTowerRun, syncWeekly, towerUnlocked, weeklyBlocker, weeklyRule } from './tower';
 import { tournamentLost } from './tournament';
+import { ghostLost } from './link';
+import { applyChallengePreset, undoChallengePreset } from './presets';
 import {
   type BattleKind,
   type TeamMember,
@@ -59,6 +63,7 @@ function startTrainerBattle(
   trainer: TrainerInfo,
 ): void {
   state.currentRouteId = routeId;
+  applyChallengePreset(state, 'boss');
   healTeam(state);
   state.battle = { ...freshBattle(routeId), kind, team, trainer };
 }
@@ -94,6 +99,7 @@ export function canChallengeRaid(state: GameState): boolean {
 export function challengeRaid(state: GameState): boolean {
   if (!canChallengeRaid(state)) return false;
   const raid = state.raid!;
+  applyChallengePreset(state, 'raid');
   healTeam(state);
   state.currentRouteId = raid.routeId;
   state.battle = {
@@ -124,6 +130,7 @@ export function challengeRocket(state: GameState): boolean {
 
 export function challengeTower(state: GameState): boolean {
   if (!towerUnlocked(state) || state.battle.kind !== 'wild') return false;
+  applyChallengePreset(state, 'tower');
   healTeam(state);
   state.tower.floor = 1;
   state.battle = towerBattle(state, state.currentRouteId, 1);
@@ -132,7 +139,13 @@ export function challengeTower(state: GameState): boolean {
 
 /** Sobe a Torre semanal: equipe do tipo da semana, andares iguais para todos. */
 export function challengeWeeklyTower(state: GameState, now: number): boolean {
-  if (weeklyBlocker(state, now)) return false;
+  if (state.battle.kind !== 'wild') return false;
+  // A equipe ligada à Torre entra antes da checagem do tipo da semana; se não servir, sai de novo.
+  applyChallengePreset(state, 'tower');
+  if (weeklyBlocker(state, now)) {
+    undoChallengePreset(state);
+    return false;
+  }
   syncWeekly(state, now);
   healTeam(state);
   const start = weeklyRule(now).mod.startFloor ?? 1;
@@ -148,6 +161,16 @@ export function setTrainerName(state: GameState, name: string): void {
 
 export function setTrainerAvatar(state: GameState, avatar: PlayerAvatar): void {
   state.trainerAvatar = avatar;
+  // As cores das peças que o novo avatar também tem continuam.
+  state.trainerOutfit = cleanOutfit(avatar, state.trainerOutfit);
+}
+
+/** Pinta uma peça de roupa (null = cor original). */
+export function setOutfitColor(state: GameState, part: OutfitPart, color: number | null): void {
+  const next = { ...state.trainerOutfit };
+  if (color === null) delete next[part];
+  else next[part] = color;
+  state.trainerOutfit = cleanOutfit(state.trainerAvatar, next);
 }
 
 /** Desiste do desafio atual (chefe, Rocket ou Torre) e volta para a rota. */
@@ -159,6 +182,7 @@ export function retreatFromBoss(state: GameState, now = Date.now()): GameEvent[]
     tournamentLost(state, events, true);
     return events;
   }
+  if (b.kind === 'ghost') ghostLost(state, events);
   if (b.kind === 'tower') {
     events.push({ type: 'towerEnded', floor: endTowerRun(state, now, activePokemon(state).speciesId) });
   }
@@ -182,6 +206,7 @@ export function runAway(state: GameState, now = Date.now()): GameEvent[] {
 export function challengeLegendary(state: GameState, speciesId: number, now: number): boolean {
   const def = legendaryDef(speciesId);
   if (!def || legendaryStatus(state, def, now) !== 'ready' || state.battle.kind !== 'wild') return false;
+  applyChallengePreset(state, 'legendary');
   healTeam(state);
   state.battle = {
     ...freshBattle(state.currentRouteId),
@@ -196,11 +221,13 @@ export function setActive(state: GameState, uid: number): void {
   if (isFallen(state, uid)) return;
   if (state.daycare.uids.includes(uid) || state.expeditions.some((e) => e.uids.includes(uid))) return;
   if (state.training.slots.some((s) => s.uid === uid)) return;
-  // Se o novo ativo estava numa vaga passiva ou de reserva, o antigo ativo assume a vaga.
-  const slot = state.passives.indexOf(uid);
-  if (slot >= 0) state.passives[slot] = state.activeUid;
+  // Se o novo ativo já estava na equipe, o antigo assume a vaga dele; se veio do PC e há vaga,
+  // o antigo vira o 2º da equipe (sem vaga, volta para o PC).
   const reserve = state.battleTeam.indexOf(uid);
   if (reserve >= 0) state.battleTeam[reserve] = state.activeUid;
+  else if (reservePokemon(state).length < reserveSlotsUnlocked(state)) {
+    state.battleTeam = [state.activeUid, ...reservePokemon(state).map((p) => p.uid)];
+  }
   state.activeUid = uid;
   const b = state.battle;
   b.playerStatus = null;

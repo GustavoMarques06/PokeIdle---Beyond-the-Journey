@@ -1,11 +1,17 @@
-// TREINADOR: cartão de treinador (com moldura e vitrine de medalhas), medalhas, opções e salvamento.
+// TREINADOR: cartão de treinador (com moldura e vitrine de medalhas), medalhas, automação,
+// opções e salvamento.
 
 import { useRef, useState } from 'react';
 import {
   ACHIEVEMENTS,
   CARD_FRAMES,
   MEDAL_TIERS,
+  AVATAR_NAMES,
+  AVATAR_OUTFITS,
+  OUTFIT_COLORS,
+  OUTFIT_PART_ORDER,
   PLAYER_AVATARS,
+  cleanOutfit,
   REGIONS,
   SHOWCASE_SLOTS,
   SPECIES,
@@ -13,7 +19,14 @@ import {
   type AchievementDef,
   type MedalTier,
 } from '../../game-data';
-import { setTrainerAvatar, setTrainerName, weeklyMvp, type GameState, type Settings } from '../../core/game';
+import {
+  setOutfitColor,
+  setTrainerAvatar,
+  setTrainerName,
+  weeklyMvp,
+  type GameState,
+  type Settings,
+} from '../../core/game';
 import {
   achievementProgress,
   frameUnlocked,
@@ -31,6 +44,7 @@ import {
 import { Bar, ItemIcon, Money, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { Badges } from '../components/Hud';
 import { StatsPanel } from '../components/StatsPanel';
+import { Automation } from './trainer/Automation';
 import { HOTKEY_HELP } from '../hotkeys';
 import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
@@ -49,7 +63,8 @@ const TOGGLES: { key: Toggle; label: string; requires?: string }[] = [
   { key: 'sfx', label: T.settings.sfx },
   { key: 'cries', label: T.settings.cries },
   { key: 'music', label: T.settings.music },
-  { key: 'autoSwitch', label: 'Trocar para a reserva com vantagem de tipo' },
+  { key: 'autoSwitch', label: 'Trocar para quem tem vantagem de tipo' },
+  { key: 'nextSteps', label: 'Mostrar o painel de próximos passos' },
   { key: 'notifications', label: 'Avisos do sistema com o jogo em segundo plano' },
 ];
 
@@ -160,7 +175,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
           </dl>
           <div className="card-portrait">
             <div className="card-trainer">
-              <TrainerSprite id={state.trainerAvatar} size={128} />
+              <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={128} />
               {companion && (
                 <span className="card-companion" title={`${speciesName(companion.speciesId)} acompanha você`}>
                   <PokemonSprite
@@ -171,18 +186,6 @@ export function TrainerScreen({ state }: { state: GameState }) {
                   />
                 </span>
               )}
-            </div>
-            <div className="avatar-pick">
-              {PLAYER_AVATARS.map((a) => (
-                <button
-                  key={a}
-                  className={`avatar-btn ${state.trainerAvatar === a ? 'active' : ''}`}
-                  onClick={() => engine.dispatch((s) => setTrainerAvatar(s, a))}
-                  title={a === 'red' ? 'Red' : 'Leaf'}
-                >
-                  <TrainerSprite id={a} size={48} head />
-                </button>
-              ))}
             </div>
           </div>
         </div>
@@ -216,11 +219,13 @@ export function TrainerScreen({ state }: { state: GameState }) {
         </div>
       </div>
 
+      <LookEditor state={state} />
+
       <StatsPanel state={state} />
 
       <Window
         title={`HALL DA FAMA · ${state.hallOfFame.length}`}
-        icon={<PixelIcon name="trophy" scale={2} />}
+        icon={<ItemIcon id="relic-crown" size={24} />}
       >
         {state.hallOfFame.length === 0 && (
           <p className="hint">Vença o Campeão de uma região para registrar sua equipe aqui.</p>
@@ -337,6 +342,8 @@ export function TrainerScreen({ state }: { state: GameState }) {
         </ul>
       </Window>
 
+      <Automation state={state} />
+
       <Window title="OPÇÕES" icon={<ItemIcon id="teachy-tv" size={24} />}>
         <div className="options">
           {TOGGLES.filter((t) => !t.requires || state.upgrades.includes(t.requires)).map((t) => (
@@ -423,7 +430,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
       <Window title="ATALHOS DE TECLADO" icon={<ItemIcon id="teachy-tv" size={24} />}>
         <dl className="hotkey-list">
           {HOTKEY_HELP.map(([key, what]) => (
-            <div key={key}>
+            <div key={`${key}:${what}`}>
               <dt>
                 <kbd>{key}</kbd>
               </dt>
@@ -549,6 +556,86 @@ O jogo atual neste aparelho será substituído.`)
         >
           {T.settings.reset}
         </button>
+      </div>
+    </Window>
+  );
+}
+
+/** VISUAL: o personagem (6 roupas base) e a cor de cada peça de roupa. */
+function LookEditor({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const pieces = [...AVATAR_OUTFITS[state.trainerAvatar]].sort(
+    (a, b) => OUTFIT_PART_ORDER.indexOf(a.part) - OUTFIT_PART_ORDER.indexOf(b.part),
+  );
+  const custom = Object.keys(state.trainerOutfit).length > 0;
+  return (
+    <Window
+      title="VISUAL"
+      icon={<ItemIcon id="silk-scarf" size={24} />}
+      actions={
+        custom && (
+          <button
+            className="pbtn small"
+            onClick={() => engine.dispatch((s) => pieces.forEach((p) => setOutfitColor(s, p.part, null)))}
+          >
+            Cores originais
+          </button>
+        )
+      }
+    >
+      <div className="look-editor">
+        <div className="look-top">
+          <TrainerSprite
+            id={state.trainerAvatar}
+            outfit={state.trainerOutfit}
+            size={96}
+            className="look-preview"
+          />
+          <div className="look-avatars" role="radiogroup" aria-label="Personagem">
+            {PLAYER_AVATARS.map((a) => (
+              <button
+                key={a}
+                role="radio"
+                aria-checked={state.trainerAvatar === a}
+                className={`avatar-btn ${state.trainerAvatar === a ? 'active' : ''}`}
+                onClick={() => engine.dispatch((s) => setTrainerAvatar(s, a))}
+                title={`${AVATAR_NAMES[a]} · roupa de ${a.endsWith('_rs') ? 'Ruby/Sapphire' : a === 'red' || a === 'leaf' ? 'FireRed/LeafGreen' : 'Emerald'}`}
+              >
+                <TrainerSprite id={a} outfit={cleanOutfit(a, state.trainerOutfit)} size={52} head />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="look-pieces">
+          {pieces.map((piece) => {
+            const current = state.trainerOutfit[piece.part];
+            return (
+              <div key={piece.part} className="look-row">
+                <span className="look-label">{piece.label.toUpperCase()}</span>
+                <div className="look-swatches" role="radiogroup" aria-label={piece.label}>
+                  <button
+                    role="radio"
+                    aria-checked={current === undefined}
+                    className={`swatch swatch-original ${current === undefined ? 'active' : ''}`}
+                    title="Cor original"
+                    onClick={() => engine.dispatch((s) => setOutfitColor(s, piece.part, null))}
+                  />
+                  {OUTFIT_COLORS.map((c, i) => (
+                    <button
+                      key={c.name}
+                      role="radio"
+                      aria-checked={current === i}
+                      className={`swatch ${current === i ? 'active' : ''}`}
+                      style={{ background: `#${c.hex}` }}
+                      title={c.name}
+                      onClick={() => engine.dispatch((s) => setOutfitColor(s, piece.part, i))}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </Window>
   );

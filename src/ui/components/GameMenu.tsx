@@ -18,7 +18,7 @@ export const MENU_ITEMS: { id: ScreenId; label: string; icon: ReactNode }[] = [
   { id: 'bag', label: 'MOCHILA', icon: <ItemIcon id="explorer-kit" size={28} /> },
   { id: 'shop', label: 'LOJA', icon: <ItemIcon id="coin-case" size={28} /> },
   { id: 'map', label: 'MAPA', icon: <ItemIcon id="town-map" size={28} /> },
-  { id: 'activities', label: 'ATIVIDADES', icon: <PixelIcon name="egg" scale={3} /> },
+  { id: 'activities', label: 'ATIVIDADES', icon: <ItemIcon id="mystery-egg" size={27} /> },
   { id: 'missions', label: 'MISSÕES', icon: <ItemIcon id="fame-checker" size={28} /> },
   { id: 'trainer', label: 'TREINADOR', icon: <ItemIcon id="vs-seeker" size={28} /> },
   { id: 'upgrades', label: 'MELHORIAS', icon: <ItemIcon id="up-grade" size={28} /> },

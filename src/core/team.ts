@@ -1,7 +1,8 @@
-// Equipe de batalha: até duas reservas além do ativo. A reserva entra quando o ativo
-// desmaia ou, com a troca automática ligada, quando tem vantagem clara contra o inimigo.
+// Equipe: até 6 Pokémon. O primeiro (`activeUid`) luta; os outros (`battleTeam`, na ordem)
+// entram quando ele desmaia ou, com a troca automática ligada, quando têm vantagem clara
+// contra o inimigo. Todos dão o bônus do seu tipo (ver bonuses.ts).
 
-import { BALANCE, RESERVE_SLOTS } from '../game-data';
+import { BALANCE, TEAM_SLOTS } from '../game-data';
 import { combatScales, type Modifiers } from './bonuses';
 import { busyUids, findPokemon, routeDone } from './collection';
 import { isFallen } from './nuzlocke';
@@ -9,12 +10,18 @@ import { combatantOf, estimateDuel } from './combat';
 import { statsOf, type PokemonInstance } from './pokemon';
 import type { EnemyState, GameEvent, GameState } from './state';
 
-export function reserveSlotsUnlocked(state: GameState): number {
-  if (state.challenge === 'solo') return 0;
-  return RESERVE_SLOTS.filter((slot) => routeDone(state, slot.requiresRoute)).length;
+/** Vagas liberadas na equipe, contando a do Pokémon que luta (1 no desafio Lobo solitário). */
+export function teamSlotsUnlocked(state: GameState): number {
+  if (state.challenge === 'solo') return 1;
+  return 1 + TEAM_SLOTS.filter((slot) => routeDone(state, slot.requiresRoute)).length;
 }
 
-/** Reservas válidas, na ordem de entrada (sem o ativo e dentro das vagas liberadas). */
+/** Vagas além da do Pokémon que luta. */
+export function reserveSlotsUnlocked(state: GameState): number {
+  return teamSlotsUnlocked(state) - 1;
+}
+
+/** Os que esperam a vez, na ordem de entrada (sem o ativo e dentro das vagas liberadas). */
 export function reservePokemon(state: GameState): PokemonInstance[] {
   return (state.battleTeam ?? [])
     .map((uid) => findPokemon(state, uid))
@@ -22,15 +29,49 @@ export function reservePokemon(state: GameState): PokemonInstance[] {
     .slice(0, reserveSlotsUnlocked(state));
 }
 
-export function addReserve(state: GameState, uid: number): boolean {
+/** A equipe inteira, na ordem: quem luta e depois os outros. */
+export function teamPokemon(state: GameState): PokemonInstance[] {
+  const active = findPokemon(state, state.activeUid);
+  return [...(active ? [active] : []), ...reservePokemon(state)];
+}
+
+/** Põe o Pokémon no fim da equipe, se houver vaga. */
+export function addToTeam(state: GameState, uid: number): boolean {
   if (!findPokemon(state, uid) || busyUids(state).has(uid) || isFallen(state, uid)) return false;
   if (reservePokemon(state).length >= reserveSlotsUnlocked(state)) return false;
   state.battleTeam = [...reservePokemon(state).map((p) => p.uid), uid];
   return true;
 }
 
-export function removeReserve(state: GameState, uid: number): void {
+/** Tira da equipe. Quem luta só sai se houver outro para assumir (o próximo da fila). */
+export function removeFromTeam(state: GameState, uid: number): boolean {
+  if (uid === state.activeUid) {
+    const next = reservePokemon(state)[0];
+    if (!next) return false;
+    state.battleTeam = state.battleTeam.filter((x) => x !== next.uid);
+    state.activeUid = next.uid;
+    state.battle.playerStatus = null;
+    return true;
+  }
+  if (!state.battleTeam.includes(uid)) return false;
   state.battleTeam = state.battleTeam.filter((x) => x !== uid);
+  return true;
+}
+
+/**
+ * Sobe (`-1`) ou desce (`+1`) uma posição na equipe. A posição 0 é a de quem luta: subir para
+ * ela põe o Pokémon em campo, e o que lutava passa a ser o 2º.
+ */
+export function moveInTeam(state: GameState, uid: number, dir: -1 | 1): boolean {
+  const order = teamPokemon(state).map((p) => p.uid);
+  const i = order.indexOf(uid);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= order.length) return false;
+  [order[i], order[j]] = [order[j], order[i]];
+  if (order[0] !== state.activeUid) state.battle.playerStatus = null;
+  state.activeUid = order[0];
+  state.battleTeam = order.slice(1);
+  return true;
 }
 
 /** Cura o ativo e as reservas (`fraction` do HP máximo; 1 = cura total). */

@@ -43,12 +43,12 @@
 }
 
 .hud-seg strong {
-  font: 700 13px var(--font-label);
+  font: 700 15px var(--font-label);
   white-space: nowrap;
 }
 
 .hud-seg small {
-  font: 400 11px var(--font-label);
+  font: 400 13px var(--font-label);
   color: var(--ink-muted);
   white-space: nowrap;
 }
@@ -60,24 +60,31 @@
   min-width: 0;
 }
 
-/* Treinador: anel de EXP em volta do rosto. */
+/* Treinador: retrato numa moldura quadrada, como no cartão de treinador. */
 .hud-trainer {
-  padding-left: 2px;
+  padding-left: 4px;
 }
 
-.hud-ring {
+.hud-portrait {
   display: grid;
   flex: none;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: conic-gradient(var(--exp) var(--ring), var(--menu-blue-light) 0);
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--cream);
 }
 
-.hud-ring .trainer-sprite {
-  border-radius: 50%;
-  background: var(--paper);
+.hud-trainer-exp {
+  display: block;
+  width: 100%;
+  min-width: 90px;
+}
+
+.hud-trainer-exp .pbar {
+  height: 4px;
 }
 
 /* Rota: ocupa todo o espaço que sobra; a barra de vitórias vai de ponta a ponta. */
@@ -108,7 +115,7 @@
   padding: 0 5px;
   background: var(--menu-blue-dark);
   color: #fff;
-  font: 700 10px/14px var(--font-label);
+  font: 700 12px/14px var(--font-label);
   letter-spacing: 0.08em;
 }
 
@@ -163,7 +170,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font: 700 13px var(--font-label);
+  font: 700 15px var(--font-label);
 }
 
 .hud-panel {
@@ -204,7 +211,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font: 700 13px var(--font-label);
+  font: 700 15px var(--font-label);
   white-space: nowrap;
 }
 
@@ -213,7 +220,7 @@
   position: absolute;
   right: 16px;
   top: -2px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--grass-dark);
   pointer-events: none;
   animation: hud-gain 0.9s ease-out forwards;
@@ -283,9 +290,70 @@ html.reduced-motion .hud-route.done .pbar {
   animation: enter 0.5s steps(5, end);
 }
 
-.avatar-pick {
+/* VISUAL: prévia grande ao lado dos personagens (3×2) e uma fileira de cores por peça. */
+.look-editor {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.look-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.look-preview {
+  flex: none;
+}
+
+.look-avatars {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
   gap: 6px;
+}
+
+.look-pieces {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.look-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.look-label {
+  font-family: var(--font-label);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.look-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.swatch.active {
+  outline: 3px solid var(--red);
+  outline-offset: 1px;
+}
+
+/* Cor original: um risco na diagonal. */
+.swatch-original {
+  background: linear-gradient(135deg, var(--paper) 45%, var(--red) 45% 55%, var(--paper) 55%);
 }
 
 .avatar-btn {
@@ -1291,7 +1359,7 @@ html.reduced-motion .status-box .expbar-fill::after {
   border: 0;
   background: none;
   color: var(--ink-muted);
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .battle-log {
@@ -1368,7 +1436,7 @@ html.reduced-motion .status-box .expbar-fill::after {
 }
 
 .bc-big strong {
-  font: 700 15px var(--font-label);
+  font: 700 17px var(--font-label);
   letter-spacing: 0.04em;
 }
 
@@ -1482,7 +1550,7 @@ html.reduced-motion .status-box .expbar-fill::after {
 .bc-move strong {
   max-width: 100%;
   overflow: hidden;
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1492,7 +1560,7 @@ html.reduced-motion .status-box .expbar-fill::after {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
 }
 
 .bc-move:hover,
@@ -1554,7 +1622,7 @@ html.reduced-motion .status-box .expbar-fill::after {
 .bc-ball strong,
 .bc-mon strong {
   overflow: hidden;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1609,7 +1677,7 @@ html.reduced-motion .status-box .expbar-fill::after {
 .bc-note {
   grid-column: 1 / -1;
   margin: 0;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--red);
 }
 
@@ -1635,7 +1703,7 @@ html.reduced-motion .status-box .expbar-fill::after {
   border: 0;
   background: #e8eef8;
   color: var(--ink-muted);
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .battle-mode button + button {
@@ -1657,7 +1725,7 @@ html.reduced-motion .status-box .expbar-fill::after {
   border-radius: 6px;
   background: var(--red);
   color: #fff;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1666,7 +1734,7 @@ html.reduced-motion .status-box .expbar-fill::after {
 
 .dialog-goal {
   overflow: hidden;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-muted);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1705,7 +1773,7 @@ html.reduced-motion .dialog-challenge {
   padding: 2px;
   border: 0;
   background: none;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   transition: background-color 0.15s;
 }
 
@@ -1864,7 +1932,7 @@ html.reduced-motion .menu-label {
   margin-left: 4px;
   padding: 0 4px;
   border: 1px solid var(--ink);
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   color: var(--ink);
 }
 
@@ -1884,7 +1952,7 @@ html.reduced-motion .menu-label {
 
 .relearner h4 {
   margin: 0 0 6px;
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
 }
 
 .relearner h4 small {

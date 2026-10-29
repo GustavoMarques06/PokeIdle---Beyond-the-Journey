@@ -6,7 +6,7 @@
 // Nome e avatar já vêm do prólogo. Teclado como nos portáteis: setas, Enter/Z e Esc/X.
 
 import { useEffect, useState } from 'react';
-import { STARTER_GENERATIONS, getSpecies } from '../../game-data';
+import { AVATAR_NAMES, STARTER_GENERATIONS, getSpecies } from '../../game-data';
 import type { PlayerAvatar } from '../../game-data';
 import { NICKNAME_MAX, setNickname } from '../../core/pokemon';
 import { audio } from '../audio';
@@ -51,7 +51,7 @@ export function StarterSelect({
   const chosen = group.ids[focus];
   const species = getSpecies(chosen);
   const rival = getSpecies(group.ids[(focus + 1) % group.ids.length]);
-  const trainerName = (name.trim() || (avatar === 'red' ? 'Red' : 'Leaf')).toUpperCase();
+  const trainerName = (name.trim() || AVATAR_NAMES[avatar]).toUpperCase();
   const partner = (nickname.trim() || species.name).toUpperCase();
   const type = (TYPE_NAMES[species.types[0]] ?? species.types[0]).toLowerCase();
 
@@ -97,7 +97,7 @@ export function StarterSelect({
   };
 
   const begin = () => {
-    engine.newGame(chosen, name.trim() || (avatar === 'red' ? 'Red' : 'Leaf'), avatar);
+    engine.newGame(chosen, name.trim() || AVATAR_NAMES[avatar], avatar);
     if (nickname.trim()) {
       engine.dispatch((s) => {
         const starter = s.collection.find((p) => p.uid === s.activeUid);

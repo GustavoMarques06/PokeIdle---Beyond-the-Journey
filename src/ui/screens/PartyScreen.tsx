@@ -1,12 +1,12 @@
-// Tela POKéMON: equipe (ativo + reservas + apoio) no estilo FRLG e ficha de resumo. A coleção
-// fica no PC (PcScreen), que reaproveita a ficha daqui.
+// Tela POKéMON: a equipe (até 6, em ordem: o 1º luta) no estilo FRLG e a ficha de resumo. A
+// coleção fica no PC (PcScreen), que reaproveita a ficha daqui.
 
 import { useState } from 'react';
 import {
   BALANCE,
   MASTERY_BONUS_PER_LEVEL,
-  PASSIVE_SLOTS,
-  RESERVE_SLOTS,
+  TEAM_SIZE,
+  TEAM_SLOTS,
   getItem,
   getNature,
   getMove,
@@ -19,7 +19,6 @@ import {
   computeModifiers,
   masteryOf,
   passiveContributions,
-  passiveSlotsUnlocked,
   type PassiveContribution,
 } from '../../core/bonuses';
 import {
@@ -37,7 +36,8 @@ import {
 import { isFallen } from '../../core/nuzlocke';
 import { rngFrom } from '../../core/rng';
 import { TAG_IDS, setTag, tagName, toggleFavorite, type TagId } from '../../core/boxes';
-import { addPassive, canTransfer, removePassive, transferPokemon, transferValue } from '../../core/meta';
+import { busyUids } from '../../core/collection';
+import { canTransfer, transferPokemon, transferValue } from '../../core/meta';
 import { learnableMoves, relearnMove, relearnableMoves, setMoveset } from '../../core/moveset';
 import { genderOf } from '../../core/gender';
 import {
@@ -52,9 +52,18 @@ import {
   type PokemonInstance,
 } from '../../core/pokemon';
 import { levelProgress } from '../../core/progression';
-import { addReserve, removeReserve, reservePokemon, reserveSlotsUnlocked } from '../../core/team';
+import {
+  addToTeam,
+  moveInTeam,
+  removeFromTeam,
+  reservePokemon,
+  reserveSlotsUnlocked,
+  teamPokemon,
+  teamSlotsUnlocked,
+} from '../../core/team';
 import { evolutionHint } from '../evolutionHint';
 import { Depth } from './party/Depth';
+import { Presets } from './party/Presets';
 import {
   Bar,
   ExpBar,
@@ -83,24 +92,23 @@ import { useShownPokemon } from '../evolutionView';
 
 function PartySlot({
   p: real,
-  active,
+  lead,
   selected,
   bonus,
-  role,
   onClick,
 }: {
   p: PokemonInstance;
-  active?: boolean;
+  lead?: boolean;
   selected: boolean;
   bonus?: PassiveContribution;
-  role?: string;
   onClick: () => void;
 }) {
   const p = useShownPokemon(real);
   const stats = statsOf(p);
+  const fainted = p.currentHp <= 0;
   return (
     <button
-      className={`party-slot frame ${active ? 'frame-slotActive party-slot-active' : 'frame-slot'} ${selected ? 'selected' : ''}`}
+      className={`party-slot frame ${lead ? 'frame-slotActive party-slot-active' : 'frame-slot'} ${selected ? 'selected' : ''}`}
       onClick={onClick}
     >
       <PokemonSprite speciesId={p.speciesId} kind="icon" className="party-icon" />
@@ -114,131 +122,189 @@ function PartySlot({
       <span className="party-hp">
         {p.currentHp}/{stats.hp}
       </span>
-      {active && <span className="party-role">ATIVO · LUTANDO</span>}
-      {role && <span className="party-role">{role}</span>}
-      {bonus && (
-        <span className="party-bonus">
-          {bonus.duplicate
-            ? 'Espécie repetida: sem bônus'
-            : `+${formatPercent(bonus.effective)} ${BONUS_NAMES[bonus.kind]}`}
-        </span>
-      )}
+      <span className="party-role">
+        {lead ? 'LUTANDO' : fainted ? 'DESMAIADO' : 'ESPERANDO A VEZ'}
+        {bonus &&
+          (bonus.duplicate
+            ? ' · espécie repetida: sem bônus'
+            : ` · +${formatPercent(bonus.effective)} ${BONUS_NAMES[bonus.kind]}`)}
+      </span>
     </button>
   );
 }
 
-/** Espaço vazio ou trancado: pequeno, com a explicação na dica. */
-function EmptySlot({ label, hint, locked }: { label: string; hint: string; locked?: boolean }) {
+/** Pokémon que podem entrar na equipe: fora dela, livres e (no Nuzlocke) ainda na jornada. */
+function teamCandidates(state: GameState): PokemonInstance[] {
+  const busy = busyUids(state);
+  return state.collection
+    .filter((p) => !busy.has(p.uid) && !isFallen(state, p.uid))
+    .sort((a, b) => b.level - a.level || a.speciesId - b.speciesId);
+}
+
+const PICKER_PAGE = 40;
+
+/** Lista para escolher quem entra na vaga livre, sem sair da tela. */
+function TeamPicker({
+  state,
+  onPick,
+  onClose,
+}: {
+  state: GameState;
+  onPick: (uid: number) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [limit, setLimit] = useState(PICKER_PAGE);
+  const q = query.trim().toLowerCase();
+  const all = teamCandidates(state).filter(
+    (p) =>
+      !q || pokemonName(p).toLowerCase().includes(q) || speciesName(p.speciesId).toLowerCase().includes(q),
+  );
   return (
-    <div className={`party-empty ${locked ? 'locked' : ''}`} title={hint} aria-label={hint}>
-      {locked ? <PixelIcon name="lock" scale={2} /> : <span className="party-empty-plus">+</span>}
-      <span>{label}</span>
+    <div className="team-picker frame frame-menu">
+      <div className="team-picker-head">
+        <strong>QUEM ENTRA NA EQUIPE?</strong>
+        <button className="pbtn small" onClick={onClose}>
+          Fechar
+        </button>
+      </div>
+      <input
+        className="team-picker-search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Buscar pelo nome…"
+        aria-label="Buscar Pokémon"
+        autoFocus
+      />
+      {all.length === 0 ? (
+        <p className="hint">Nenhum Pokémon livre{q ? ' com esse nome' : ''}.</p>
+      ) : (
+        <ul className="team-picker-list">
+          {all.slice(0, limit).map((p) => (
+            <li key={p.uid}>
+              <button onClick={() => onPick(p.uid)}>
+                <PokemonSprite speciesId={p.speciesId} kind="icon" />
+                <span className="team-picker-name">
+                  {pokemonName(p)}
+                  {p.shiny && <Shiny />}
+                </span>
+                <span className="team-picker-types">
+                  {getSpecies(p.speciesId).types.map((t) => (
+                    <TypeBadge key={t} type={t} />
+                  ))}
+                </span>
+                <span className="team-picker-lv">Nv{p.level}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {all.length > limit && (
+        <button className="pbtn small" onClick={() => setLimit((n) => n + PICKER_PAGE)}>
+          Mostrar mais ({all.length - limit})
+        </button>
+      )}
     </div>
   );
 }
 
 export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: () => void }) {
+  const engine = useEngine();
   const [selected, setSelected] = useState(state.activeUid);
-  const unlocked = passiveSlotsUnlocked(state);
-  const contributions = passiveContributions(state);
-  const reserves = reservePokemon(state);
-  const reserveSlots = reserveSlotsUnlocked(state);
+  const [picking, setPicking] = useState(false);
+  const team = teamPokemon(state);
+  const slots = teamSlotsUnlocked(state);
+  const free = slots - team.length;
+  const bonusOf = new Map(passiveContributions(state).map((c) => [c.uid, c]));
   const active = state.collection.find((p) => p.uid === state.activeUid)!;
   const current = state.collection.find((p) => p.uid === selected) ?? active;
+  const nextLock = state.challenge === 'solo' ? undefined : TEAM_SLOTS[slots - 1];
 
   return (
     <div className="party-screen">
       <div className="party-board">
-        <PartySlot
-          p={active}
-          active
-          selected={selected === active.uid}
-          onClick={() => setSelected(active.uid)}
-        />
         <h3 className="party-group">
-          RESERVAS <small>entram quando o ativo desmaia</small>
+          EQUIPE {team.length}/{TEAM_SIZE}
+          <small>o 1º luta; se desmaiar, entra o próximo</small>
         </h3>
-        <div className="party-support party-reserves">
-          {RESERVE_SLOTS.map((slot, i) => {
-            // Só o próximo espaço trancado aparece: os outros surgem quando liberarem.
-            if (i > reserveSlots) return null;
-            if (i === reserveSlots) {
-              return (
-                <EmptySlot
-                  key={i}
-                  locked
-                  label={state.challenge === 'solo' ? 'Bloqueada' : getRoute(slot.requiresRoute).name}
-                  hint={
-                    state.challenge === 'solo'
-                      ? 'Reserva bloqueada pelo desafio'
-                      : `Reserva libera ao concluir ${getRoute(slot.requiresRoute).name}`
-                  }
-                />
-              );
-            }
-            const p = reserves[i];
-            if (!p) {
-              return (
-                <EmptySlot
-                  key={i}
-                  label="Vazia"
-                  hint={`Reserva ${i + 1}: entra quando o ativo desmaia. Escolha na Caixa e use “Reserva”.`}
-                />
-              );
-            }
-            return (
-              <PartySlot
-                key={i}
-                p={p}
-                role={`RESERVA ${i + 1} · ${p.currentHp > 0 ? 'PRONTA' : 'DESMAIADA'}`}
-                selected={selected === p.uid}
-                onClick={() => setSelected(p.uid)}
-              />
-            );
-          })}
-        </div>
-        <h3 className="party-group">
-          APOIO <small>bônus passivos para a equipe</small>
-        </h3>
-        <div className="party-support">
-          {PASSIVE_SLOTS.map((slot, i) => {
-            if (i > unlocked) return null;
-            if (i === unlocked) {
-              return (
-                <EmptySlot
-                  key={i}
-                  locked
-                  label={getRoute(slot.requiresRoute).name}
-                  hint={`Apoio libera ao concluir ${getRoute(slot.requiresRoute).name}`}
-                />
-              );
-            }
-            const c = contributions[i];
-            const p = c && state.collection.find((x) => x.uid === c.uid);
-            if (!p) {
-              return (
-                <EmptySlot
-                  key={i}
-                  label="Vazio"
-                  hint={`Apoio ${i + 1}: dá um bônus passivo. Escolha um Pokémon na Caixa e use “Apoio”.`}
-                />
-              );
-            }
-            return (
-              <PartySlot
-                key={i}
-                p={p}
-                bonus={c}
-                selected={selected === p.uid}
-                onClick={() => setSelected(p.uid)}
-              />
-            );
-          })}
-        </div>
+        {team.map((p, i) => (
+          <div key={p.uid} className={`team-row ${i === 0 ? 'lead' : ''}`}>
+            <PartySlot
+              p={p}
+              lead={i === 0}
+              selected={selected === p.uid}
+              bonus={bonusOf.get(p.uid)}
+              onClick={() => setSelected(p.uid)}
+            />
+            <div className="team-row-tools">
+              <button
+                className="pbtn tiny"
+                disabled={i === 0}
+                title={i === 1 ? 'Pôr para lutar' : 'Subir na ordem'}
+                aria-label={`Subir ${pokemonName(p)}`}
+                onClick={() => engine.dispatch((s) => void moveInTeam(s, p.uid, -1))}
+              >
+                ▲
+              </button>
+              <button
+                className="pbtn tiny"
+                disabled={i === team.length - 1}
+                title="Descer na ordem"
+                aria-label={`Descer ${pokemonName(p)}`}
+                onClick={() => engine.dispatch((s) => void moveInTeam(s, p.uid, 1))}
+              >
+                ▼
+              </button>
+              <button
+                className="pbtn tiny"
+                disabled={team.length < 2}
+                title={
+                  team.length < 2
+                    ? 'A equipe precisa de pelo menos um Pokémon'
+                    : 'Tirar da equipe (volta para o PC)'
+                }
+                aria-label={`Tirar ${pokemonName(p)} da equipe`}
+                onClick={() => engine.dispatch((s) => void removeFromTeam(s, p.uid))}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
+        {free > 0 &&
+          (picking ? (
+            <TeamPicker
+              state={state}
+              onClose={() => setPicking(false)}
+              onPick={(uid) => {
+                engine.dispatch((s) => void addToTeam(s, uid));
+                setSelected(uid);
+                if (free <= 1) setPicking(false);
+              }}
+            />
+          ) : (
+            <button className="party-empty party-add" onClick={() => setPicking(true)}>
+              <span className="party-empty-plus">+</span>
+              <span>
+                Adicionar Pokémon ({free} {free > 1 ? 'vagas livres' : 'vaga livre'})
+              </span>
+            </button>
+          ))}
+        {slots < TEAM_SIZE && (
+          <div className="party-empty locked">
+            <PixelIcon name="lock" scale={2} />
+            <span>
+              {nextLock
+                ? `Mais uma vaga ao concluir ${getRoute(nextLock.requiresRoute).name}`
+                : 'Lobo solitário: só um Pokémon'}
+            </span>
+          </div>
+        )}
       </div>
 
       <TeamBonuses state={state} />
       <Summary state={state} p={current} />
+      <Presets state={state} />
 
       {/* A coleção mora no PC (PcScreen); daqui só se abre o PC. */}
       <button className="pc-open frame frame-menu" onClick={onOpenPc}>
@@ -267,7 +333,7 @@ function TeamBonuses({ state }: { state: GameState }) {
   const types = Object.entries(mods.typeDamage).sort((a, b) => b[1] - a[1]);
   if (!kinds.length && !types.length) return null;
   return (
-    <Window title="BÔNUS DA EQUIPE DE APOIO" frame="dialog" className="team-bonuses">
+    <Window title="BÔNUS DA EQUIPE" frame="dialog" className="team-bonuses">
       <ul className="bonus-list">
         {kinds.map((k) => (
           <li key={k}>
@@ -285,7 +351,7 @@ function TeamBonuses({ state }: { state: GameState }) {
         ))}
       </ul>
       <p className="hint">
-        Cada Pokémon de apoio dá um bônus pelo seu tipo principal e dano extra contra os tipos que ele vence.
+        Cada Pokémon da equipe dá um bônus pelo seu tipo principal e dano extra contra os tipos que ele vence.
         Bônus iguais valem 50% do anterior e têm teto; espécies repetidas não contam. {TYPE_NAMES.fire} →
         dano, {TYPE_NAMES.rock} → defesa, {TYPE_NAMES.electric} → velocidade, {TYPE_NAMES.psychic} → EXP,{' '}
         {TYPE_NAMES.normal} → moedas, {TYPE_NAMES.bug} → captura, {TYPE_NAMES.water} → cura.
@@ -370,10 +436,8 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
   const [editing, setEditing] = useState(false);
   const away = busyLabel(state, p.uid);
   const isActive = p.uid === state.activeUid;
-  const isSupport = state.passives.includes(p.uid);
-  const freeSlot = state.passives.length < passiveSlotsUnlocked(state);
-  const isReserve = reservePokemon(state).some((r) => r.uid === p.uid);
-  const freeReserve = reservePokemon(state).length < reserveSlotsUnlocked(state);
+  const inTeam = reservePokemon(state).some((r) => r.uid === p.uid);
+  const freeSlot = reservePokemon(state).length < reserveSlotsUnlocked(state);
   const nature = getNature(p.nature);
   const mastery = masteryOf(state, p.speciesId);
   const itemEvos = species.evolutions.filter((e) => e.trigger === 'item');
@@ -524,32 +588,35 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
 
       <div className="summary-actions">
         {isActive ? (
-          <span className="tag tag-active">EM BATALHA</span>
+          <span className="tag tag-active">LUTANDO</span>
         ) : away ? (
           <span className="tag">{away}</span>
         ) : (
-          <button className="pbtn primary" onClick={() => engine.dispatch((s) => setActive(s, p.uid))}>
-            Enviar à batalha
+          <button
+            className="pbtn primary"
+            title={
+              inTeam || freeSlot
+                ? 'Vira o 1º da equipe'
+                : 'A equipe está cheia: este entra no lugar de quem está lutando'
+            }
+            onClick={() => engine.dispatch((s) => setActive(s, p.uid))}
+          >
+            Pôr para lutar
           </button>
         )}
-        {!isActive && !isSupport && !isReserve && !away && freeSlot && (
-          <button className="pbtn" onClick={() => engine.dispatch((s) => addPassive(s, p.uid))}>
-            Apoio
+        {!isActive && !inTeam && !away && (
+          <button
+            className="pbtn"
+            disabled={!freeSlot}
+            title={freeSlot ? 'Entra no fim da equipe' : 'A equipe está cheia'}
+            onClick={() => engine.dispatch((s) => void addToTeam(s, p.uid))}
+          >
+            Pôr na equipe
           </button>
         )}
-        {isSupport && (
-          <button className="pbtn" onClick={() => engine.dispatch((s) => removePassive(s, p.uid))}>
-            Tirar do apoio
-          </button>
-        )}
-        {!isActive && !isSupport && !isReserve && !away && freeReserve && (
-          <button className="pbtn" onClick={() => engine.dispatch((s) => addReserve(s, p.uid))}>
-            Reserva
-          </button>
-        )}
-        {isReserve && (
-          <button className="pbtn" onClick={() => engine.dispatch((s) => removeReserve(s, p.uid))}>
-            Tirar da reserva
+        {(inTeam || (isActive && reservePokemon(state).length > 0)) && (
+          <button className="pbtn" onClick={() => engine.dispatch((s) => void removeFromTeam(s, p.uid))}>
+            Tirar da equipe
           </button>
         )}
         <button
@@ -656,8 +723,8 @@ function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
   return (
     <div className="move-editor frame frame-dialog">
       <p className="hint">
-        Escolha até 4 golpes. Golpes de TM vêm dos líderes de ginásio, da Torre, do Game Corner e das
-        expedições ({state.tms.length} TMs).
+        Escolha até 4 golpes. Golpes de TM vêm dos líderes de ginásio, da Torre, do Game Corner, das
+        expedições e da Loja de Departamentos ({state.tms.length} TMs; veja o estojo na MOCHILA).
       </p>
       <ul className="move-options">
         {options.map(({ move, source }) => {

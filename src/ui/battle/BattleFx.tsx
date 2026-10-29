@@ -7,20 +7,30 @@
 //    bola com o jingle, e todos saem recuperados.
 
 import { useEffect, useState } from 'react';
-import { assetUrl, getItem, trainerSprite } from '../../game-data';
+import { assetUrl, getItem, type TrainerOutfit } from '../../game-data';
 import type { Stats } from '../../core/stats';
 import { audio } from '../audio';
+import { useTrainerSprite } from '../outfit';
 
 export function EncounterFlash() {
   return <div className="enc-flash" aria-hidden />;
 }
 
-export function TrainerIntro({ name, sprite }: { name: string; sprite: string }) {
+export function TrainerIntro({
+  name,
+  sprite,
+  outfit,
+}: {
+  name: string;
+  sprite: string;
+  outfit?: TrainerOutfit;
+}) {
+  const src = useTrainerSprite(sprite, outfit);
   return (
     <div className="enc-trainer" aria-live="polite">
       <span className="enc-bar top" aria-hidden />
       <span className="enc-bar bottom" aria-hidden />
-      <img className="enc-trainer-sprite" src={assetUrl(trainerSprite(sprite))} alt="" draggable={false} />
+      <img className="enc-trainer-sprite" src={src} alt="" draggable={false} />
       <div className="enc-trainer-text frame frame-dialog">{name.toUpperCase()} quer batalhar!</div>
     </div>
   );

@@ -12,16 +12,17 @@ import { Intro } from './intro/Intro';
 import { Toasts } from './components/Toasts';
 import { useHotkeys } from './hotkeys';
 import { PartyScreen } from './screens/PartyScreen';
-import { seenFlag, tipFlag, unseenTabs } from './screens/activities/tabs';
+import { seenFlag, tipFlag, unseenTabs, type Tab } from './screens/activities/tabs';
+import { NextSteps } from './components/NextSteps';
 import { useEngine, useGameEvents, useGameState } from './useGame';
 
 // A tela de equipe abre primeiro; as demais vêm em pedaços separados, baixados em segundo
 // plano logo depois que o jogo abre (preloadScreens). Sem isso, a primeira abertura de cada
 // aba mostrava "Carregando…" por no mínimo ~300 ms (o React segura o aviso para não piscar).
 const screenLoaders: (() => Promise<unknown>)[] = [];
-type ScreenModule = { default: ComponentType<{ state: GameState }> };
+type ScreenModule<P = { state: GameState }> = { default: ComponentType<P> };
 
-function lazyScreen(load: () => Promise<ScreenModule>) {
+function lazyScreen<P = { state: GameState }>(load: () => Promise<ScreenModule<P>>) {
   screenLoaders.push(load);
   return lazy(load);
 }
@@ -113,7 +114,7 @@ export function App() {
   );
 }
 
-const BOSS_MUSIC = new Set<GameState['battle']['kind']>(['boss', 'legendary', 'raid']);
+const BOSS_MUSIC = new Set<GameState['battle']['kind']>(['boss', 'legendary', 'raid', 'ghost']);
 
 const IDLE_MS = 12_000;
 
@@ -140,6 +141,8 @@ function useIdle(): boolean {
 
 function GameScreen({ state }: { state: GameState }) {
   const [screen, setScreen] = useState<ScreenId>('party');
+  // Aba de ATIVIDADES pedida pelo painel de próximos passos (abre direto nela).
+  const [activityTab, setActivityTab] = useState<Tab | undefined>(undefined);
   const area = useRef<HTMLDivElement>(null);
   const idle = useIdle();
   // Baixa as outras telas quando o navegador estiver ocioso (ou logo depois, sem essa API).
@@ -151,8 +154,9 @@ function GameScreen({ state }: { state: GameState }) {
     const id = window.setTimeout(() => void preloadScreens(), 200);
     return () => window.clearTimeout(id);
   }, []);
-  const open = useCallback((id: ScreenId, viaKeyboard = false) => {
+  const open = useCallback((id: ScreenId, viaKeyboard = false, tab?: Tab) => {
     setScreen(id);
+    setActivityTab(tab);
     // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.
     if (window.matchMedia?.('(max-width: 900px)').matches) {
       requestAnimationFrame(() => area.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -161,9 +165,11 @@ function GameScreen({ state }: { state: GameState }) {
     if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
   }, []);
   useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [menuKey(i), () => open(item.id, true)])));
-  // Música: tema de chefe nas lutas que valem algo (líder, rival, Elite, lendário, raide).
+  // Música: tema de chefe nas lutas que valem algo (líder, rival, Elite, lendário, raide); fora
+  // delas, o tema das rotas de dia ou o da noite, pelo relógio do jogo.
   const bossFight = BOSS_MUSIC.has(state.battle.kind);
-  useEffect(() => audio.setTrack(bossFight ? 'boss' : 'game'), [bossFight]);
+  const night = state.env.period === 'night';
+  useEffect(() => audio.setTrack(bossFight ? 'boss' : night ? 'night' : 'game'), [bossFight, night]);
   // Onboarding: quem já jogava antes desta versão não vê como NOVAS as atividades que já conhece.
   const engine = useEngine();
   const onboarded = state.flags.includes('onboarding');
@@ -190,10 +196,16 @@ function GameScreen({ state }: { state: GameState }) {
       </main>
       <aside className="side-column">
         <GameMenu state={state} current={screen} onSelect={open} />
+        {state.settings.nextSteps && (
+          <NextSteps
+            state={state}
+            onOpen={(t) => open(t.screen, false, t.screen === 'activities' ? (t.tab as Tab) : undefined)}
+          />
+        )}
         {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
         <div
           className="screen-area screen-enter"
-          key={screen}
+          key={`${screen}:${activityTab ?? ''}`}
           ref={area}
           id="screen-area"
           tabIndex={-1}
@@ -206,7 +218,7 @@ function GameScreen({ state }: { state: GameState }) {
             {screen === 'bag' && <BagScreen state={state} />}
             {screen === 'shop' && <ShopScreen state={state} />}
             {screen === 'map' && <MapScreen state={state} />}
-            {screen === 'activities' && <ActivitiesScreen state={state} />}
+            {screen === 'activities' && <ActivitiesScreen state={state} initialTab={activityTab} />}
             {screen === 'missions' && <MissionsScreen state={state} />}
             {screen === 'trainer' && <TrainerScreen state={state} />}
             {screen === 'upgrades' && <UpgradesScreen state={state} />}

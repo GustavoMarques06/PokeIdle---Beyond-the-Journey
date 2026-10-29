@@ -37,9 +37,9 @@ describe('PC', () => {
   it('quem entra na equipe sai da caixa e quem sai volta para um espaço livre', () => {
     const { s, mons } = setup();
     syncPc(s);
-    s.passives.push(mons[0].uid);
+    s.battleTeam.push(mons[0].uid);
     expect(findInPc(pcLayout(s), mons[0].uid)).toBeNull();
-    s.passives = [];
+    s.battleTeam = [];
     expect(findInPc(pcLayout(s), mons[0].uid)).not.toBeNull();
   });
 

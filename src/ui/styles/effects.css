@@ -475,7 +475,7 @@
 .activity-group > h4 {
   grid-column: 1 / -1;
   margin: 2px 0 0 4px;
-  font: 700 10px var(--font-label);
+  font: 700 12px var(--font-label);
   color: var(--menu-blue-dark);
   letter-spacing: 0.05em;
 }

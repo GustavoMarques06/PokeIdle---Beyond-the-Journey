@@ -255,11 +255,13 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
       ? `parar no andar ${b.floor}`
       : b.kind === 'tournament'
         ? `perde a vaga (${state.tournament.score[0]}–${state.tournament.score[1]})`
-        : b.kind === 'legendary'
-          ? `${legendaryRules(b.enemy?.speciesId ?? 0).throwLimit - (b.enemy?.throws ?? 0)} bolas até fugir`
-          : b.kind === 'raid'
-            ? `${Math.ceil((b.raidMs ?? 0) / 1000)} s restantes`
-            : 'sair da batalha'
+        : b.kind === 'ghost'
+          ? 'conta como derrota'
+          : b.kind === 'legendary'
+            ? `${legendaryRules(b.enemy?.speciesId ?? 0).throwLimit - (b.enemy?.throws ?? 0)} bolas até fugir`
+            : b.kind === 'raid'
+              ? `${Math.ceil((b.raidMs ?? 0) / 1000)} s restantes`
+              : 'sair da batalha'
     : 'sem recompensa';
 
   const run = () => {
@@ -372,7 +374,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             </button>
             <button className="bc-big bc-party" onClick={() => setView('party')}>
               <strong>POKéMON</strong>
-              <small>{reserves.length ? `${reserves.length} na reserva` : 'ver equipe'}</small>
+              <small>{reserves.length ? `equipe de ${reserves.length + 1}` : 'ver equipe'}</small>
             </button>
             <button className="bc-big bc-run" disabled={!fighting} onClick={run} title="Tecla F">
               <strong>{runLabel}</strong>
@@ -510,7 +512,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                 <ItemIcon id="poke-ball" size={28} />
                 <span>
                   <strong>EQUIPE</strong>
-                  <small>{reserves.length ? 'montar reservas' : 'escolher reservas'}</small>
+                  <small>{reserves.length ? 'ver equipe' : 'montar equipe'}</small>
                 </span>
               </button>
             </div>

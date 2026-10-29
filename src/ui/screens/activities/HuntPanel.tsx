@@ -4,7 +4,7 @@ import { BALANCE, getRoute } from '../../../game-data';
 import { computeModifiers } from '../../../core/bonuses';
 import { currentEncounters, type GameState } from '../../../core/game';
 import { huntShinyMultiplier, setHuntTarget } from '../../../core/hunt';
-import { Bar, PixelIcon, PokemonSprite, Shiny, Window } from '../../components/common';
+import { Bar, ItemIcon, PokemonSprite, Shiny, Window } from '../../components/common';
 import { formatNumber, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 
@@ -22,7 +22,7 @@ export function HuntPanel({ state }: { state: GameState }) {
 
   return (
     <>
-      <Window title="CAÇA AO SHINY" icon={<PixelIcon name="target" scale={2} />} frame="dialog">
+      <Window title="CAÇA AO SHINY" icon={<ItemIcon id="poke-radar" size={24} />} frame="dialog">
         {target ? (
           <div className="hunt-target">
             <PokemonSprite speciesId={target} kind="front" shiny pixelScale={1} />

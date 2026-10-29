@@ -15,6 +15,7 @@ import {
   type BuffKind,
   type ChallengeId,
   type PlayerAvatar,
+  type TrainerOutfit,
   type Route,
   type ShopEntry,
   type WaterMode,
@@ -44,7 +45,10 @@ import { emptyMissions, type MissionsState } from './missions';
 import { randomIvs, rollShiny, type PokemonInstance } from './pokemon';
 import type { RaidState } from './raids';
 import { rngFrom } from './rng';
-import type { Ivs } from './stats';
+import type { Evs, Ivs } from './stats';
+import type { AutomationRules } from './automation';
+import type { LinkState } from './link';
+import type { TeamPreset, TeamSnapshot } from './presets';
 import { emptyTower, type TowerState } from './tower';
 import { emptyTournament } from './tournament';
 import { emptyTraining, type TrainingState } from './training';
@@ -86,6 +90,8 @@ export interface Settings {
   largeText: boolean;
   /** Automático: o ativo escolhe os golpes sozinho. Manual: a batalha espera o comando a cada vez. */
   battleMode: 'auto' | 'manual';
+  /** Painel de próximos passos na coluna do menu. */
+  nextSteps: boolean;
 }
 
 /** Efeito de status em andamento. `turns` conta as ações restantes de sono. */
@@ -134,10 +140,15 @@ export interface EnemyState {
   gender?: Gender;
   /** Tempo de luta contra este Pokémon (Quick Ball e Timer Ball). */
   elapsedMs?: number;
+  /** Treinadores com Pokémon de verdade (duelo fantasma): natureza, EVs, golpes e apelido. */
+  nature?: string;
+  evs?: Evs;
+  moveset?: string[];
+  nickname?: string;
 }
 
 export type BattlePhase = 'spawning' | 'fighting' | 'victory' | 'defeat';
-export type BattleKind = 'wild' | 'boss' | 'rocket' | 'tower' | 'legendary' | 'raid' | 'tournament';
+export type BattleKind = 'wild' | 'boss' | 'rocket' | 'tower' | 'legendary' | 'raid' | 'tournament' | 'ghost';
 
 export interface TeamMember {
   speciesId: number;
@@ -145,10 +156,21 @@ export interface TeamMember {
   boost?: number;
   held?: string;
   abilitySlot?: 0 | 1 | 2;
+  /** Pokémon de outro jogador (duelo fantasma): os dados dele em vez dos genéricos de treinador. */
+  ivs?: Ivs;
+  evs?: Evs;
+  nature?: string;
+  moveset?: string[];
+  shiny?: boolean;
+  form?: string;
+  gender?: Gender;
+  nickname?: string;
 }
 
 export interface TrainerInfo {
   sprite: string;
+  /** Roupa (só nos avatares de jogador: o próprio, fantasmas e torneio). */
+  outfit?: TrainerOutfit;
   name: string;
   title: string;
 }
@@ -179,6 +201,8 @@ export interface BattleState {
   weekly?: boolean;
   /** Golpe escolhido pelo jogador para a próxima vez do ativo (LUTAR). */
   pendingMove?: string;
+  /** Duelo fantasma: a equipe enfrentada (id em `link.ghosts`). */
+  ghostId?: string;
 }
 
 export interface HallOfFameEntry {
@@ -196,6 +220,8 @@ export interface Buff {
 export interface GameState {
   trainerName: string;
   trainerAvatar: PlayerAvatar;
+  /** Cores escolhidas para as peças de roupa do avatar. */
+  trainerOutfit: TrainerOutfit;
   /** Inicial escolhido (define o inicial do rival). */
   starterId: number;
   rngSeed: number;
@@ -215,9 +241,7 @@ export interface GameState {
   upgrades: string[];
   settings: Settings;
   battle: BattleState;
-  /** Pokémon nas vagas passivas (uids), na ordem das vagas. */
-  passives: number[];
-  /** Reservas da equipe de batalha (uids), na ordem de entrada. */
+  /** O resto da equipe (uids), na ordem de entrada; quem luta é `activeUid`. */
   battleTeam: number[];
   research: { points: number; levels: Record<string, number> };
   /** Vitórias por linha evolutiva (chave: primeira espécie da linha). */
@@ -287,6 +311,14 @@ export interface GameState {
   pc?: PcState;
   /** Repelente e incenso ativos (ver lures.ts). */
   lures?: LuresState;
+  /** Regras de automação (ver automation.ts). */
+  automation?: Partial<AutomationRules>;
+  /** Equipes salvas (ver presets.ts). */
+  presets?: TeamPreset[];
+  /** Equipe que volta a campo quando o desafio atual acabar (null = nenhuma). */
+  presetReturn?: TeamSnapshot | null;
+  /** Cabo Link: trocas enviadas, códigos recebidos e equipes fantasma (ver link.ts). */
+  link?: LinkState;
 }
 
 export type EncounterMode = 'land' | WaterMode;
@@ -315,6 +347,10 @@ export interface GameStats {
   safariCaptures: number;
   wildHarvests: number;
   tournamentTitles: number;
+  autoTransferred: number;
+  tradesSent: number;
+  tradesReceived: number;
+  ghostWins: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -334,6 +370,7 @@ export const DEFAULT_SETTINGS: Settings = {
   highContrast: false,
   largeText: false,
   battleMode: 'auto',
+  nextSteps: true,
 };
 
 export const EMPTY_STATS: GameStats = {
@@ -357,6 +394,10 @@ export const EMPTY_STATS: GameStats = {
   safariCaptures: 0,
   wildHarvests: 0,
   tournamentTitles: 0,
+  autoTransferred: 0,
+  tradesSent: 0,
+  tradesReceived: 0,
+  ghostWins: 0,
 };
 
 export type EffectKind = 'sturdy' | 'sash' | 'berry' | 'cure' | 'absorb' | 'synchronize';
@@ -464,7 +505,14 @@ export type GameEvent =
   | { type: 'missionsRefreshed'; scope: 'daily' | 'weekly' }
   | { type: 'weatherChanged'; weather: string }
   /** O desafio da jornada falhou (Nuzlocke sem ninguém para lutar). */
-  | { type: 'challengeFailed'; challenge: ChallengeId };
+  | { type: 'challengeFailed'; challenge: ChallengeId }
+  /** Regras de automação em ação. */
+  | { type: 'autoTransferred'; count: number; points: number }
+  | { type: 'autoHarvested'; berry: string; qty: number; replanted: boolean }
+  | { type: 'autoClaimed'; id: string }
+  /** Cabo Link. */
+  | { type: 'tradeReceived'; uid: number; speciesId: number; from: string; evolvedTo?: number }
+  | { type: 'ghostDuelEnded'; name: string; won: boolean; coins: number };
 
 // ---------------------------------------------------------------------------
 // Criação e consultas
@@ -475,10 +523,12 @@ export function newGame(
   seed: number,
   trainerName = 'Treinador',
   trainerAvatar: PlayerAvatar = 'red',
+  trainerOutfit: TrainerOutfit = {},
 ): GameState {
   const state: GameState = {
     trainerName: trainerName.trim().slice(0, 12) || 'Treinador',
     trainerAvatar,
+    trainerOutfit,
     starterId,
     rngSeed: seed | 0,
     nextUid: 1,
@@ -497,7 +547,6 @@ export function newGame(
     upgrades: [],
     settings: { ...DEFAULT_SETTINGS },
     battle: freshBattle(ROUTES[0].id),
-    passives: [],
     battleTeam: [],
     research: { points: 0, levels: {} },
     mastery: {},
@@ -629,7 +678,8 @@ export function resolveBossTeam(state: GameState, boss: BossData, rematch = fals
     return {
       speciesId,
       level: Math.min(BALANCE.maxLevel, m.level + extra + re),
-      boost: rematch ? (boss.boost ?? 1) * BALANCE.rematch.boost : boss.boost,
+      boost:
+        (1 + ((boss.boost ?? 1) - 1) * BALANCE.combat.bossBoostScale) * (rematch ? BALANCE.rematch.boost : 1),
       ...bossLoadout(boss, speciesId, i === lastIndex, rematch),
     };
   });

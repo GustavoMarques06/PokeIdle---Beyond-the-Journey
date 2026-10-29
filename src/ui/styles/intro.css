@@ -206,12 +206,12 @@
 
 .status-stat dt,
 .status-matchups dt {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
 .status-stat dd {
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
   text-align: right;
 }
 
@@ -244,7 +244,7 @@
 }
 
 .status-evo-arrow small {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
 }
 
 .status-matchups {
@@ -270,7 +270,7 @@
 
 .more-types {
   align-self: center;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-muted);
 }
 
@@ -436,7 +436,7 @@
 }
 
 .speaker {
-  font: 700 12px var(--font-label);
+  font: 700 14px var(--font-label);
   color: var(--menu-blue-dark);
 }
 
@@ -446,7 +446,7 @@
 }
 
 .lab-hint {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-muted);
   letter-spacing: 0.5px;
 }
@@ -479,7 +479,7 @@
   border: 0;
   background: none;
   text-align: left;
-  font: 700 18px var(--font-label);
+  font: 700 20px var(--font-label);
   color: var(--ink);
 }
 
@@ -506,13 +506,13 @@
   padding: 0;
   border: 0;
   background: none;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--menu-blue);
   text-decoration: underline;
 }
 
 .field-label {
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--menu-blue-dark);
 }
 

@@ -4,6 +4,7 @@
 import { activityUnlocked, type Activity } from '../../../core/collection';
 import type { GameState } from '../../../core/game';
 import { legendaryRegionOpen } from '../../../core/legendary';
+import { linkUnlocked } from '../../../core/link';
 
 export type Tab =
   | 'daycare'
@@ -17,7 +18,9 @@ export type Tab =
   | 'tower'
   | 'tournament'
   | 'safari'
-  | 'gamecorner';
+  | 'gamecorner'
+  | 'trade'
+  | 'duel';
 
 export const TAB_UNLOCK: Record<Tab, Activity | null> = {
   daycare: 'daycare',
@@ -32,10 +35,13 @@ export const TAB_UNLOCK: Record<Tab, Activity | null> = {
   tournament: 'tournament',
   safari: 'safari',
   gamecorner: 'gamecorner',
+  trade: null,
+  duel: null,
 };
 
 export function tabOpen(state: GameState, tab: Tab): boolean {
   if (tab === 'legendary') return legendaryRegionOpen(state, 'kanto');
+  if (tab === 'trade' || tab === 'duel') return linkUnlocked(state);
   const unlock = TAB_UNLOCK[tab];
   return !unlock || activityUnlocked(state, unlock);
 }
@@ -65,7 +71,7 @@ export const TAB_TIPS: Record<Tab, string> = {
   training:
     'Deixe um Pokémon treinando um atributo para ganhar EVs aos poucos, mesmo offline. EVs deixam o atributo mais alto no nível 100.',
   raids:
-    'De tempos em tempos um chefe gigante aparece. Vença-o dentro do tempo com o ativo e as reservas para ganhar itens raros e uma chance de capturá-lo.',
+    'De tempos em tempos um chefe gigante aparece. Vença-o dentro do tempo com a sua equipe para ganhar itens raros e uma chance de capturá-lo.',
   hunt: 'Escolha uma espécie para caçar: quanto mais vezes você a derrotar em sequência, maior a chance de aparecer shiny. Trocar de rota quebra a sequência.',
   legendary:
     'Depois de vencer o Campeão de uma região, os lendários dela podem ser enfrentados aqui numa batalha manual. Leve bolas boas: o número de tentativas é limitado.',
@@ -76,4 +82,7 @@ export const TAB_TIPS: Record<Tab, string> = {
   safari:
     'No Safari você não luta: escolha entre jogar bola, isca ou pedra. Algumas espécies só aparecem aqui.',
   gamecorner: 'Gire o caça-níquel com fichas e troque-as por Pokémon, TMs e itens raros.',
+  trade:
+    'Troque Pokémon com amigos por código, sem internet nem conta. Quem envia gera um código e o Pokémon sai do jogo dele; quem cola o código recebe. Alguns Pokémon evoluem ao chegar por troca.',
+  duel: 'Gere o código da sua equipe e mande para um amigo; cole o código da equipe dele para enfrentá-la. No duelo os dois lados lutam com a mesma força, sem bônus da equipe.',
 };

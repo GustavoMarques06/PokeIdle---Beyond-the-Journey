@@ -81,6 +81,15 @@ const UI_ITEMS = [
   'explorer-kit', 'rare-candy', 'up-grade', 'vs-seeker', 'coin-case', 'nugget', 'star-piece', 'fame-checker',
   'teachy-tv', 'pokemon-box', 'escape-rope', 'dowsing-machine', 'berry-pouch', 'oval-charm', 'tm-case', 'pokeblock-case',
 ];
+/** Sprites oficiais dos itens seguráveis, das vitaminas e dos ícones da interface (ver helditems.ts). */
+const SPRITE_ONLY_ITEMS = [
+  'charcoal', 'mystic-water', 'miracle-seed', 'magnet', 'never-melt-ice', 'black-belt', 'poison-barb', 'soft-sand',
+  'sharp-beak', 'twisted-spoon', 'silver-powder', 'hard-stone', 'spell-tag', 'dragon-fang', 'black-glasses', 'silk-scarf',
+  'leftovers', 'choice-band', 'choice-specs', 'choice-scarf', 'assault-vest', 'life-orb', 'focus-sash', 'expert-belt',
+  'shell-bell', 'rocky-helmet', 'scope-lens', 'wide-lens', 'quick-claw', 'wise-glasses', 'hp-up', 'protein', 'iron',
+  'calcium', 'zinc', 'carbos', 'bottle-cap', 'ability-capsule', 'ability-patch', 'linking-cord', 'vs-recorder',
+  'machine-part', 'mystery-egg', 'poke-radar', 'dynamax-band', 'relic-crown', 'rainbow-pass', 'catching-charm',
+];
 const SHOP_ITEMS = ['poke-ball', 'great-ball', 'ultra-ball', 'moon-stone', 'thunder-stone', 'water-stone', 'leaf-stone', 'fire-stone'];
 /** Bolas especiais, repelentes e incensos (ver capture.ts e lures.ts). */
 const CAPTURE_ITEMS = [
@@ -485,7 +494,14 @@ async function main() {
   });
 
   // 5. Itens: básicos, interface, evoluções, recompensas, fósseis e berries.
-  const itemNames = new Set([...WORLD.EXTRA_ITEMS, ...UI_ITEMS, ...SHOP_ITEMS, ...CAPTURE_ITEMS, ...evolutionItems]);
+  const itemNames = new Set([
+    ...WORLD.EXTRA_ITEMS,
+    ...UI_ITEMS,
+    ...SPRITE_ONLY_ITEMS,
+    ...SHOP_ITEMS,
+    ...CAPTURE_ITEMS,
+    ...evolutionItems,
+  ]);
   for (const f of WORLD.FOSSILS) itemNames.add(f.item);
   for (const rt of routes) for (const it of Object.keys(rt.boss?.reward?.items ?? {})) itemNames.add(it);
   for (const e of WORLD.EXPEDITIONS) for (const rw of e.rewards) if (rw.item) itemNames.add(rw.item);

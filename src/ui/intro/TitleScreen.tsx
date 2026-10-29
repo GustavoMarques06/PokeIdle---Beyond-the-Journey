@@ -162,11 +162,10 @@ function SaveSummary({ state }: { state: GameState }) {
   const route = getRoute(state.currentRouteId);
   const badges = BADGES.filter((b) => state.routes[b.routeId]?.bossDefeated).length;
   const caught = caughtCount(state);
-  // Equipe: ativo, reservas e apoio, cada um com o seu papel.
+  // Equipe, na ordem: o 1º é quem luta.
   const team = [
-    { uid: state.activeUid, role: 'ATIVO' },
-    ...reservePokemon(state).map((p) => ({ uid: p.uid, role: 'RESERVA' })),
-    ...state.passives.map((uid) => ({ uid, role: 'APOIO' })),
+    { uid: state.activeUid, role: 'LUTANDO' },
+    ...reservePokemon(state).map((p, i) => ({ uid: p.uid, role: `${i + 2}º` })),
   ].flatMap(({ uid, role }) => {
     const p = state.collection.find((x) => x.uid === uid);
     return p ? [{ p, role }] : [];
@@ -180,7 +179,7 @@ function SaveSummary({ state }: { state: GameState }) {
       </span>
       <span className="save-body">
         <span className="save-stage">
-          <TrainerSprite id={state.trainerAvatar} size={88} />
+          <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={88} />
         </span>
         <span className="save-stats">
           <span className="save-stat wide">

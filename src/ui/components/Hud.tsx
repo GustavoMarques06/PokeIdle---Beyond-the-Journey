@@ -100,18 +100,20 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
 
   return (
     <header className="hud frame frame-menu">
-      {/* Treinador: o anel em volta do rosto é a EXP do nível de treinador. */}
+      {/* Treinador: retrato, nome e a barra de EXP do nível de treinador. */}
       <div className="hud-seg hud-trainer">
-        <span
-          className="hud-ring"
-          style={{ ['--ring' as string]: `${trainer.progress * 360}deg` }}
-          title={`EXP de treinador: ${Math.round(trainer.progress * 100)}%`}
-        >
-          <TrainerSprite id={state.trainerAvatar} size={34} head />
+        <span className="hud-portrait">
+          <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={36} head />
         </span>
         <div className="hud-stack">
           <strong>{state.trainerName.toUpperCase()}</strong>
           <small>TREINADOR NV {trainer.level}</small>
+          <span
+            className="hud-trainer-exp"
+            title={`EXP de treinador: ${Math.round(trainer.progress * 100)}%`}
+          >
+            <Bar value={trainer.progress} max={1} tone="exp" />
+          </span>
         </div>
       </div>
 

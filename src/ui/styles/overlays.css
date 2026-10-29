@@ -33,13 +33,13 @@
 }
 
 .report-grid dt {
-  font: 700 12px/2 var(--font-label);
+  font: 700 14px/2 var(--font-label);
   color: var(--menu-blue-dark);
 }
 
 .report-grid dd {
   justify-self: end;
-  font: 700 16px var(--font-label);
+  font: 700 18px var(--font-label);
 }
 
 .report-line {
@@ -279,7 +279,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 6px;
-  font: 700 11px var(--font-label);
+  font: 700 13px var(--font-label);
   color: var(--ink-soft);
   pointer-events: none;
   animation: save-in 0.2s steps(2, end);

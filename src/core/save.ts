@@ -1,6 +1,16 @@
 // Salvamento local versionado, com backup e migrações explícitas.
 
-import { ROUTES, getLure, hasMove, hasSpecies, isHeldItem, lineRoot } from '../game-data';
+import {
+  PLAYER_AVATARS,
+  ROUTES,
+  TEAM_SIZE,
+  cleanOutfit,
+  getLure,
+  hasMove,
+  hasSpecies,
+  isHeldItem,
+  lineRoot,
+} from '../game-data';
 import { isTagId } from './boxes';
 import { emptyDaycare } from './daycare';
 import { emptyNuzlocke } from './nuzlocke';
@@ -16,10 +26,12 @@ import { emptyTower } from './tower';
 import { addResearch } from './dexresearch';
 import { recordForm } from './forms';
 import { emptyTournament } from './tournament';
+import { setAutomation } from './automation';
+import { PRESET_USES, type TeamSnapshot } from './presets';
 import { emptyTraining } from './training';
 
 export const SAVE_FORMAT_VERSION = 6;
-export const GAME_VERSION = '0.8.0';
+export const GAME_VERSION = '0.9.0';
 export const SAVE_KEY = 'pokeidle.save';
 export const BACKUP_KEY = 'pokeidle.save.backup';
 
@@ -227,7 +239,8 @@ function normalize(state: GameState): void {
   if (!state.routes[state.currentRouteId]?.unlocked) state.currentRouteId = ROUTES[0].id;
   if (!state.collection.some((p) => p.uid === state.activeUid)) state.activeUid = state.collection[0].uid;
   state.trainerName ??= 'Treinador';
-  state.trainerAvatar ??= 'red';
+  if (!PLAYER_AVATARS.includes(state.trainerAvatar)) state.trainerAvatar = 'red';
+  state.trainerOutfit = cleanOutfit(state.trainerAvatar, state.trainerOutfit);
   state.pokedex ??= {};
   state.upgrades ??= [];
   state.settings = { ...DEFAULT_SETTINGS, ...state.settings };
@@ -328,21 +341,71 @@ function normalize(state: GameState): void {
   if (state.roamer && !state.routes[state.roamer.routeId]) state.roamer = null;
   if (state.rocket && !state.routes[state.rocket.routeId]) state.rocket = null;
   const uids = new Set(state.collection.map((p) => p.uid));
-  state.passives = (state.passives ?? []).filter((uid) => uids.has(uid) && uid !== state.activeUid);
-  state.battleTeam = (state.battleTeam ?? []).filter(
-    (uid) => uids.has(uid) && uid !== state.activeUid && !state.passives.includes(uid),
+  // Antes da equipe de 6 havia reservas e apoio separados: o apoio entra na equipe depois delas.
+  const legacy = state as GameState & { passives?: number[] };
+  const team = [...(state.battleTeam ?? []), ...(legacy.passives ?? [])];
+  delete legacy.passives;
+  state.battleTeam = [...new Set(team)]
+    .filter((uid) => uids.has(uid) && uid !== state.activeUid)
+    .slice(0, TEAM_SIZE - 1);
+  state.daycare.uids = state.daycare.uids.filter(
+    (uid) => uids.has(uid) && uid !== state.activeUid && !state.battleTeam.includes(uid),
   );
-  state.daycare.uids = state.daycare.uids.filter((uid) => uids.has(uid) && uid !== state.activeUid);
   state.training.slots = state.training.slots.filter(
-    (slot) => uids.has(slot.uid) && slot.uid !== state.activeUid && !state.passives.includes(slot.uid),
+    (slot) => uids.has(slot.uid) && slot.uid !== state.activeUid && !state.battleTeam.includes(slot.uid),
   );
   for (const run of state.expeditions) run.uids = run.uids.filter((uid) => uids.has(uid));
+  normalizeTools(state, uids);
   // Batalhas contra treinadores não são retomadas ao carregar: volta para a rota.
   if (!state.battle || state.battle.routeId !== state.currentRouteId || state.battle.kind !== 'wild') {
     if (state.battle?.kind === 'tower') state.tower.floor = 0;
     state.battle = freshBattle(state.currentRouteId);
   }
   state.battle.team ??= [];
+}
+
+/** Equipes salvas, regras de automação e Cabo Link: só o que é bem formado e ainda existe. */
+function normalizeTools(state: GameState, uids: Set<number>): void {
+  const cleanSnap = (snap: TeamSnapshot | null | undefined): TeamSnapshot | null => {
+    if (!snap || !Number.isInteger(snap.active)) return null;
+    const reserves = Array.isArray(snap.reserves) ? snap.reserves.filter((u) => uids.has(u)) : [];
+    const held: Record<number, string> = {};
+    for (const [uid, item] of Object.entries(isObject(snap.held) ? snap.held : {})) {
+      if (uids.has(Number(uid)) && typeof item === 'string' && isHeldItem(item)) held[Number(uid)] = item;
+    }
+    return { active: snap.active, reserves, held };
+  };
+  if (state.presets !== undefined) {
+    const list = Array.isArray(state.presets) ? state.presets : [];
+    state.presets = list.flatMap((p) => {
+      const snap = isObject(p) && isNum(p.id) && typeof p.name === 'string' ? cleanSnap(p) : null;
+      if (!snap) return [];
+      return [{ id: p.id, name: p.name, ...snap, ...(PRESET_USES.includes(p.use!) ? { use: p.use } : {}) }];
+    });
+  }
+  if (state.presetReturn !== undefined) state.presetReturn = cleanSnap(state.presetReturn);
+  if (state.automation !== undefined) {
+    const auto = isObject(state.automation) ? state.automation : {};
+    state.automation = {};
+    setAutomation(state, auto);
+  }
+  if (state.link !== undefined) {
+    const link = state.link;
+    if (!isObject(link) || typeof link.trainerId !== 'string') delete state.link;
+    else {
+      link.received = Array.isArray(link.received)
+        ? link.received.filter((id) => typeof id === 'string')
+        : [];
+      link.sent = Array.isArray(link.sent)
+        ? link.sent.filter((t) => isObject(t) && typeof t.code === 'string')
+        : [];
+      link.ghosts = Array.isArray(link.ghosts)
+        ? link.ghosts.filter(
+            (g) => isObject(g) && Array.isArray(g.team) && g.team.every((m) => hasSpecies(m.speciesId)),
+          )
+        : [];
+    }
+  }
 }
 
 /** Grava o save; o save anterior válido vira backup. Devolve o tamanho gravado (bytes). */

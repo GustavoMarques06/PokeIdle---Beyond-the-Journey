@@ -3,7 +3,14 @@
 // avançam (o primeiro toque completa a fala, o segundo passa para a próxima).
 
 import { useEffect, useRef, useState } from 'react';
-import { PLAYER_AVATARS, STARTER_GENERATIONS, assetUrl, getSpecies, trainerSprite } from '../../game-data';
+import {
+  AVATAR_NAMES,
+  PLAYER_CHARACTERS,
+  STARTER_GENERATIONS,
+  assetUrl,
+  getSpecies,
+  trainerSprite,
+} from '../../game-data';
 import type { PlayerAvatar } from '../../game-data';
 import { audio } from '../audio';
 import { PixelIcon, PokemonSprite } from '../components/common';
@@ -76,7 +83,7 @@ const LINES: Line[] = [
 /** Índice da primeira pergunta sobre o jogador (onde "Pular" e "Trocar" levam). */
 export const PROLOGUE_IDENTITY = LINES.findIndex((l) => l.input === 'avatar');
 
-const defaultName = (avatar: PlayerAvatar) => (avatar === 'red' ? 'Red' : 'Leaf');
+const defaultName = (avatar: PlayerAvatar) => AVATAR_NAMES[avatar];
 
 export function Prologue({
   start = 0,
@@ -140,7 +147,8 @@ export function Prologue({
         next();
       } else if (line.input === 'avatar' && done && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault();
-        onAvatar(avatar === 'red' ? 'leaf' : 'red');
+        const i = PLAYER_CHARACTERS.indexOf(avatar) + (e.key === 'ArrowLeft' ? -1 : 1);
+        onAvatar(PLAYER_CHARACTERS[(i + PLAYER_CHARACTERS.length) % PLAYER_CHARACTERS.length]);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -284,7 +292,7 @@ function Stage({
         aria-label="Avatar"
         onClick={(e) => e.stopPropagation()}
       >
-        {PLAYER_AVATARS.map((a) => (
+        {PLAYER_CHARACTERS.map((a) => (
           <button
             key={a}
             role="radio"
@@ -293,7 +301,7 @@ function Stage({
             onClick={() => onAvatar(a)}
           >
             <img src={assetUrl(trainerSprite(a))} alt="" draggable={false} />
-            <span>{a === 'red' ? 'Menino' : 'Menina'}</span>
+            <span>{AVATAR_NAMES[a]}</span>
           </button>
         ))}
       </div>

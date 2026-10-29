@@ -1,4 +1,4 @@
-// Lendários: um desafio manual por espécie, liberado ao vencer o Campeão da região.
+// Lendários: desafios manuais, liberados ao vencer o Campeão da região; capturados, voltam depois de um tempo.
 
 import { BALANCE, LEGENDARIES, REGIONS, type LegendaryDef } from '../../../game-data';
 import { challengeLegendary, type GameState } from '../../../core/game';
@@ -15,6 +15,8 @@ function LegendaryCard({ state, def, now }: { state: GameState; def: LegendaryDe
   const locked = status === 'locked';
   const wait = (state.legends.cooldowns[def.speciesId] ?? 0) - now;
   const busy = state.battle.kind !== 'wild';
+  const owned = state.collection.filter((p) => p.speciesId === def.speciesId).length;
+  const caught = state.legends.caught.includes(def.speciesId);
   return (
     <li className={`legend-card frame frame-slot ${status}`}>
       <PokemonSprite speciesId={def.speciesId} kind="front" silhouette={locked} pixelScale={1} />
@@ -23,17 +25,27 @@ function LegendaryCard({ state, def, now }: { state: GameState; def: LegendaryDe
         Nv{def.level} · +{Math.round((def.boost - 1) * 100)}% atributos
       </small>
       {state.pokedex[def.speciesId]?.shinyCaught && <Shiny />}
-      {status === 'caught' && <span className="tag tag-active">CAPTURADO</span>}
+      {caught && (
+        <span className="tag tag-active" title="Exemplares na sua coleção">
+          CAPTURADO{owned > 1 ? ` ×${owned}` : ''}
+        </span>
+      )}
       {status === 'cooldown' && <span className="tag">VOLTA EM {formatDuration(wait)}</span>}
       {status === 'locked' && <PixelIcon name="lock" scale={2} />}
       {status === 'ready' && (
         <button
           className="pbtn small primary"
           disabled={busy}
-          title={busy ? 'Termine a batalha atual primeiro' : 'Iniciar a batalha'}
+          title={
+            busy
+              ? 'Termine a batalha atual primeiro'
+              : caught
+                ? 'Enfrentar de novo para capturar outro'
+                : 'Iniciar a batalha'
+          }
           onClick={() => engine.dispatch((s, t) => challengeLegendary(s, def.speciesId, t))}
         >
-          Enfrentar
+          {caught ? 'Enfrentar de novo' : 'Enfrentar'}
         </button>
       )}
     </li>
@@ -43,10 +55,14 @@ function LegendaryCard({ state, def, now }: { state: GameState; def: LegendaryDe
 export function LegendaryPanel({ state }: { state: GameState }) {
   const now = state.lastTimerAt;
   const rule = (r: typeof BALANCE.legendary) =>
-    `${r.throwLimit} bolas falhas e ele foge; se você desmaiar, desistir ou ele fugir, volta em ${r.cooldownMinutes} min; ${r.guaranteedPerfectIvs} IVs em 31`;
+    `${r.throwLimit} bolas falhas e ele foge; se você desmaiar, desistir ou ele fugir, volta em ${r.cooldownMinutes} min; depois de capturado, volta em ${formatDuration(r.recaptureMinutes * 60_000)} para você pegar outro; ${r.guaranteedPerfectIvs} IVs em 31`;
   return (
     <>
-      <Window title="LENDÁRIOS E QUASE LENDÁRIOS" icon={<PixelIcon name="star" scale={2} />} frame="dialog">
+      <Window
+        title="LENDÁRIOS E QUASE LENDÁRIOS"
+        icon={<ItemIcon id="master-ball" size={24} />}
+        frame="dialog"
+      >
         <p className="hint">
           Vença o Campeão de uma região para liberar os desafios dela. A batalha é de verdade: o Pokémon luta
           de volta e não pode ser derrotado (fica com 1 de HP). Capture-o{' '}

@@ -7,13 +7,13 @@ import { addToCollection } from './collection';
 import { calcDamage, combatantOf } from './combat';
 import { activePokemon, advance, newGame, shopEntries, type GameEvent, type GameState } from './game';
 import { currentSample, historyIntervals, ratePerHour, sampleHistory } from './history';
-import { addPassive, canPrestige, prestigePreview, prestigeReset } from './meta';
+import { canPrestige, prestigePreview, prestigeReset } from './meta';
 import { natureFor, randomIvs, statsOf } from './pokemon';
 import type { Rng } from './rng';
 import { SAVE_KEY, memoryStorage, parseSave, saveGame } from './save';
 import { calcStats } from './stats';
 import { beforeAction, canInflict, rollAilment, statusDamage } from './status';
-import { addReserve, bestMatchup, removeReserve, reservePokemon, reserveSlotsUnlocked } from './team';
+import { addToTeam, bestMatchup, removeFromTeam, reservePokemon, reserveSlotsUnlocked } from './team';
 
 const IVS = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
 const always = (v: number): Rng => ({ next: () => v });
@@ -96,13 +96,12 @@ describe('equipe de batalha', () => {
     const s = newGame(4, 0, 1);
     const sq = addMon(s, 7, 10);
     expect(reserveSlotsUnlocked(s)).toBe(0);
-    expect(addReserve(s, sq.uid)).toBe(false);
+    expect(addToTeam(s, sq.uid)).toBe(false);
     withReserveSlots(s);
-    expect(addReserve(s, s.activeUid)).toBe(false);
-    expect(addReserve(s, sq.uid)).toBe(true);
-    expect(addReserve(s, sq.uid)).toBe(false);
-    expect(addPassive(s, sq.uid)).toBe(false);
-    removeReserve(s, sq.uid);
+    expect(addToTeam(s, s.activeUid)).toBe(false);
+    expect(addToTeam(s, sq.uid)).toBe(true);
+    expect(addToTeam(s, sq.uid)).toBe(false);
+    removeFromTeam(s, sq.uid);
     expect(reservePokemon(s)).toHaveLength(0);
   });
 
@@ -111,7 +110,7 @@ describe('equipe de batalha', () => {
     withReserveSlots(s);
     s.settings.autoSwitch = false;
     const sq = addMon(s, 7, 5);
-    addReserve(s, sq.uid);
+    addToTeam(s, sq.uid);
     const first = s.activeUid;
     const events: GameEvent[] = [];
     // Espera o primeiro inimigo e o deixa fortíssimo.
@@ -133,7 +132,7 @@ describe('equipe de batalha', () => {
     withReserveSlots(s);
     s.settings.autoSwitch = false;
     const reserve = addMon(s, 1, 5);
-    addReserve(s, reserve.uid);
+    addToTeam(s, reserve.uid);
     const before = reserve.exp;
     advance(s, 2 * 60_000, 0);
     expect(reserve.exp).toBeGreaterThan(before);
@@ -145,7 +144,7 @@ describe('equipe de batalha', () => {
     withReserveSlots(s);
     activePokemon(s).level = 20;
     const sq = addMon(s, 7, 20);
-    addReserve(s, sq.uid);
+    addToTeam(s, sq.uid);
     const geodude = {
       speciesId: 74,
       level: 20,
@@ -170,12 +169,12 @@ describe('desafios', () => {
     return s;
   }
 
-  it('Lobo solitário tira apoio e reservas', () => {
+  it('Lobo solitário deixa só um Pokémon e tira os bônus da equipe', () => {
     const s = readyToPrestige();
     withReserveSlots(s);
     const sq = addMon(s, 7, 10);
-    addPassive(s, sq.uid);
-    expect(passivePokemon(s)).toHaveLength(1);
+    addToTeam(s, sq.uid);
+    expect(passivePokemon(s)).toHaveLength(2);
     s.challenge = 'solo';
     expect(passivePokemon(s)).toHaveLength(0);
     expect(reserveSlotsUnlocked(s)).toBe(0);

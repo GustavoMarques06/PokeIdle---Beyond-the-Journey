@@ -91,7 +91,7 @@ describe('interface', () => {
     fireEvent.click(screen.getByText('Pular história'));
     const dialog = () => document.querySelector('.prologue-dialog')!;
     fireEvent.click(dialog()); // completa a fala
-    fireEvent.click(screen.getByRole('radio', { name: /Menina/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Leaf/ }));
     fireEvent.click(screen.getByText('Sou assim!'));
     fireEvent.click(dialog());
     fireEvent.change(screen.getByLabelText('Nome do treinador'), { target: { value: 'Ana' } });

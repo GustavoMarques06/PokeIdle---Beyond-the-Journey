@@ -1,5 +1,6 @@
-// Lendários: batalhas manuais, uma por espécie. Liberadas quando o Campeão da região
-// é vencido. O lendário não pode ser derrotado (fica com 1 de HP) e só é capturado
+// Lendários: batalhas manuais, liberadas quando o Campeão da região é vencido. Depois da
+// captura o lendário volta (um dia depois; quase lendários, em algumas horas) para quem quiser
+// outro exemplar. O lendário não pode ser derrotado (fica com 1 de HP) e só é capturado
 // com bolas lançadas à mão; falhar demais o faz fugir.
 
 import { BALANCE, LEGENDARIES, LEGENDARY_REGION_UNLOCK, type LegendaryDef } from '../game-data';
@@ -7,7 +8,7 @@ import { routeDone } from './collection';
 import type { GameEvent, GameState } from './game';
 
 export interface LegendState {
-  /** Lendários já capturados (ids de espécie). */
+  /** Lendários já capturados ao menos uma vez (ids de espécie, sem repetir). */
   caught: number[];
   /** Quando cada lendário volta a aceitar um desafio (tempo real). */
   cooldowns: Record<number, number>;
@@ -20,10 +21,9 @@ export function legendaryRegionOpen(state: GameState, regionId: string): boolean
   return !!unlock && routeDone(state, unlock);
 }
 
-export type LegendaryStatus = 'locked' | 'caught' | 'cooldown' | 'ready';
+export type LegendaryStatus = 'locked' | 'cooldown' | 'ready';
 
 export function legendaryStatus(state: GameState, def: LegendaryDef, now: number): LegendaryStatus {
-  if (state.legends.caught.includes(def.speciesId)) return 'caught';
   if (!legendaryRegionOpen(state, def.regionId)) return 'locked';
   return (state.legends.cooldowns[def.speciesId] ?? 0) > now ? 'cooldown' : 'ready';
 }
@@ -35,6 +35,12 @@ export function legendaryDef(speciesId: number): LegendaryDef | undefined {
 /** Regras da batalha: lendários e quase lendários usam números diferentes. */
 export function legendaryRules(speciesId: number) {
   return legendaryDef(speciesId)?.tier === 'pseudo' ? BALANCE.pseudo : BALANCE.legendary;
+}
+
+/** Capturado: entra na lista (uma vez) e volta a aparecer depois da espera de recaptura. */
+export function legendaryCaught(state: GameState, speciesId: number, now: number): void {
+  if (!state.legends.caught.includes(speciesId)) state.legends.caught.push(speciesId);
+  state.legends.cooldowns[speciesId] = now + legendaryRules(speciesId).recaptureMinutes * 60_000;
 }
 
 /** Fim da batalha sem captura: o lendário some por um tempo. */

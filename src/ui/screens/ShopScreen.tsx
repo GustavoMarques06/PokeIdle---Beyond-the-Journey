@@ -10,9 +10,11 @@ import {
   SHOP_CATALOG,
   SPECIES,
   getItem,
+  getMove,
   getRoute,
   type DeptSection,
 } from '../../game-data';
+import { TM_SHELF, buyTm, tmLabel, tmShelf } from '../../core/tms';
 import {
   atDeptStore,
   buy,
@@ -26,8 +28,15 @@ import {
   shopEntries,
   type GameState,
 } from '../../core/game';
-import { ItemIcon, Money, Window } from '../components/common';
-import { UPGRADE_TEXT, formatDuration, itemDescription, itemName, speciesName } from '../i18n/pt-BR';
+import { ItemIcon, Money, TypeBadge, Window } from '../components/common';
+import {
+  UPGRADE_TEXT,
+  formatDuration,
+  itemDescription,
+  itemName,
+  moveName,
+  speciesName,
+} from '../i18n/pt-BR';
 import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { Countdown, Locked } from './activities/shared';
@@ -285,7 +294,61 @@ function DeptStore({ state, income }: { state: GameState; income: number }) {
           </section>
         );
       })}
+      <TmShelf state={state} here={here} income={income} />
     </Window>
+  );
+}
+
+/** 4º andar: TMs. Os de prêmio desde o início; os dos líderes, depois do Campeão da região. */
+function TmShelf({ state, here, income }: { state: GameState; here: boolean; income: number }) {
+  const engine = useEngine();
+  const shelf = tmShelf(state);
+  const locked = TM_SHELF.length - shelf.length;
+  return (
+    <section className="dept-section tm-shelf">
+      <h4>
+        TMs · {state.tms.length}/{TM_SHELF.length}
+      </h4>
+      <ul className="item-list mart">
+        {shelf.map((entry) => {
+          const mv = getMove(entry.move);
+          const have = state.tms.includes(entry.move);
+          return (
+            <li key={entry.move} className="mart-row">
+              <span className={`tm-disc type-bg-${mv.type}`}>
+                <ItemIcon id="tm" size={24} />
+              </span>
+              <div className="mart-info">
+                <span className="item-name">
+                  {tmLabel(entry.move)} {moveName(entry.move).toUpperCase()}
+                  {have && <small> · já tem</small>}
+                </span>
+                <small>
+                  <TypeBadge type={mv.type} /> POD {mv.power} · PRE {mv.accuracy} ·{' '}
+                  {mv.category === 'physical' ? 'físico' : 'especial'}
+                </small>
+                {!have && <FarmTime price={entry.price} coins={state.coins} income={income} />}
+              </div>
+              <div className="mart-buy">
+                <button
+                  className="pbtn small"
+                  disabled={!here || have || state.coins < entry.price}
+                  onClick={() => engine.dispatch((s) => gotItem(buyTm(s, entry.move)))}
+                >
+                  {have ? 'TEM' : <Money value={entry.price} />}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {locked > 0 && (
+        <p className="hint">
+          Mais {locked} TMs chegam à prateleira conforme você vence ginásios; os TMs dos líderes de uma região
+          entram depois do Campeão dela.
+        </p>
+      )}
+    </section>
   );
 }
 

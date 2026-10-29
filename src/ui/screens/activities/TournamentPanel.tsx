@@ -10,7 +10,7 @@ import {
   weekOf,
   type GameState,
 } from '../../../core/game';
-import { Money, PixelIcon, TrainerSprite, Window } from '../../components/common';
+import { ItemIcon, Money, PixelIcon, TrainerSprite, Window } from '../../components/common';
 import { TOURNAMENT_PLACES } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked } from './shared';
@@ -37,7 +37,7 @@ export function TournamentPanel({ state }: { state: GameState }) {
 
   return (
     <>
-      <Window title="TORNEIO DA SEMANA" icon={<PixelIcon name="trophy" scale={2} />} frame="dialog">
+      <Window title="TORNEIO DA SEMANA" icon={<ItemIcon id="relic-crown" size={24} />} frame="dialog">
         <p className="hint">
           Oito treinadores (líderes e rivais que você já venceu, mais fortes que nas revanches) em chave:
           quartas, semifinal e final. Cada partida é melhor de três. Um torneio por semana; o próximo começa
@@ -84,7 +84,7 @@ export function TournamentPanel({ state }: { state: GameState }) {
                       key={idx}
                       className={`bracket-slot ${isPlayer ? 'you' : ''} ${opponentNow ? 'next' : ''} ${beaten ? 'beaten' : ''}`}
                     >
-                      <TrainerSprite id={e.sprite} size={28} head />
+                      <TrainerSprite id={e.sprite} outfit={e.outfit} size={28} head />
                       {isPlayer ? 'VOCÊ' : e.name}
                     </span>
                   );

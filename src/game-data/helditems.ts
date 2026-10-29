@@ -1,5 +1,5 @@
-// Itens seguráveis (um por Pokémon) e itens de treino. Os que não têm sprite da PokéAPI
-// ganham um ícone em pixel art gerado pelo jogo (`icon`: forma + cor).
+// Itens seguráveis (um por Pokémon) e itens de treino, com o sprite oficial da PokéAPI. O `icon`
+// (forma + cor em pixel art) só aparece se o sprite faltar.
 
 import type { Ailment, ItemData, StatKey, TypeName } from './types';
 
@@ -418,11 +418,60 @@ export function vitaminStat(id: string): StatKey | undefined {
   return VITAMINS.find((v) => v.id === id)?.stat;
 }
 
+/** Itens com o sprite oficial baixado da PokéAPI (public/sprites/items/<id>.png). */
+const OFFICIAL_SPRITES = new Set([
+  ...TYPE_BOOSTERS.map((t) => t.id),
+  'leftovers',
+  'choice-band',
+  'choice-specs',
+  'choice-scarf',
+  'assault-vest',
+  'life-orb',
+  'focus-sash',
+  'expert-belt',
+  'shell-bell',
+  'rocky-helmet',
+  'scope-lens',
+  'wide-lens',
+  'quick-claw',
+  'wise-glasses',
+  ...VITAMINS.map((v) => v.id),
+  'bottle-cap',
+  'ability-capsule',
+  'ability-patch',
+]);
+
+const spriteOf = (id: string, own?: string) =>
+  own ?? (OFFICIAL_SPRITES.has(id) ? `sprites/items/${id}.png` : undefined);
+
+/** Itens oficiais usados só como ícone da interface (Cabo Link, Automação, atividades…). */
+const UI_ITEMS: Record<string, string> = {
+  'linking-cord': 'Linking Cord',
+  'vs-recorder': 'Vs. Recorder',
+  'machine-part': 'Machine Part',
+  'mystery-egg': 'Mystery Egg',
+  'poke-radar': 'Poké Radar',
+  'dynamax-band': 'Dynamax Band',
+  'relic-crown': 'Relic Crown',
+  'rainbow-pass': 'Rainbow Pass',
+  'catching-charm': 'Catching Charm',
+};
+
 /** Entradas extras do catálogo de itens (nome e imagem), mescladas em index.ts. */
 export function extraItemData(): Record<string, ItemData> {
   const out: Record<string, ItemData> = {};
-  for (const h of HELD_ITEMS) out[h.id] = { id: h.id, name: h.name, sprite: h.sprite, icon: h.icon };
-  for (const t of TRAINING_ITEMS) out[t.id] = { id: t.id, name: t.name, icon: t.icon };
+  for (const [id, name] of Object.entries(UI_ITEMS))
+    out[id] = { id, name, sprite: `sprites/items/${id}.png` };
+  // Melhoria da loja sem item próprio: usa o Catching Charm (o amuleto de captura dos jogos).
+  out['auto-capture'] = {
+    id: 'auto-capture',
+    name: 'Captura automática',
+    sprite: 'sprites/items/catching-charm.png',
+  };
+  for (const h of HELD_ITEMS)
+    out[h.id] = { id: h.id, name: h.name, sprite: spriteOf(h.id, h.sprite), icon: h.icon };
+  for (const t of TRAINING_ITEMS)
+    out[t.id] = { id: t.id, name: t.name, sprite: spriteOf(t.id), icon: t.icon };
   return out;
 }
 

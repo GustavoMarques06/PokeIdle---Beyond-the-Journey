@@ -1,11 +1,12 @@
 // Torneio semanal: chave de 8 treinadores (os chefes já vencidos) em quartas, semi e final,
 // cada partida em melhor de três. Um torneio por semana; o resultado entra no ranking.
 
-import { BALANCE, RAID_LOOT, ROUTES, getRoute } from '../game-data';
+import { BALANCE, RAID_LOOT, ROUTES, getRoute, type TrainerOutfit } from '../game-data';
 import { giveItems, routeDone } from './collection';
 import { progressMission } from './missions';
 import { weekOf } from './records';
 import { pickWeighted, rngFrom } from './rng';
+import { applyChallengePreset } from './presets';
 import { healTeam } from './team';
 import {
   freshBattle,
@@ -19,6 +20,8 @@ import {
 export interface TournamentEntrant {
   name: string;
   sprite: string;
+  /** Roupa do jogador (os chefes usam o sprite original). */
+  outfit?: TrainerOutfit;
   /** Rota do chefe (de onde vem o time). Vazio = o jogador. */
   routeId: string;
 }
@@ -77,7 +80,7 @@ function buildBracket(state: GameState): void {
   const picked: string[] = [];
   while (picked.length < 7) picked.push(pool.splice(Math.floor(rng.next() * pool.length), 1)[0]);
   const entrants: TournamentEntrant[] = [
-    { name: state.trainerName, sprite: state.trainerAvatar, routeId: '' },
+    { name: state.trainerName, sprite: state.trainerAvatar, outfit: state.trainerOutfit, routeId: '' },
     ...picked.map((id) => {
       const b = getRoute(id).boss!;
       return { name: b.name, sprite: b.trainer, routeId: id };
@@ -107,6 +110,7 @@ export function tournamentBattle(state: GameState): BattleState {
     team,
     trainer: {
       sprite: foe.sprite,
+      outfit: foe.outfit,
       name: foe.name,
       title: `Torneio · ${ROUND_NAMES[t.round]} (${t.score[0]}–${t.score[1]})`,
     },
@@ -118,6 +122,7 @@ export function playTournament(state: GameState, now: number): boolean {
   refreshSeason(state, now);
   if (!canPlayTournament(state, now)) return false;
   if (!state.tournament.bracket) buildBracket(state);
+  applyChallengePreset(state, 'tournament');
   healTeam(state);
   state.battle = tournamentBattle(state);
   return true;

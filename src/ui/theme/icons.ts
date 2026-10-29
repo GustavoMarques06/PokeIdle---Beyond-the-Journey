@@ -36,21 +36,6 @@ export const ICONS = {
     rows: ['.......kk', '......kgk', 'kk...kgk.', 'kgk.kgk..', '.kgkgk...', '..kgk....', '...k.....'],
     palette: { k: '#205020', g: '#58c858' },
   },
-  trophy: {
-    rows: [
-      'kkkkkkkkk',
-      'kyyyyyyyk',
-      'kyywyyyyk',
-      '.kyyyyyk.',
-      '..kyyyk..',
-      '...kyk...',
-      '...kyk...',
-      '..kkkkk..',
-      '.kyyyyyk.',
-      '.kkkkkkk.',
-    ],
-    palette: { k: '#805000', y: '#f8c830', w: '#fff8d0' },
-  },
   trophyEmpty: {
     rows: [
       'kkkkkkkkk',
@@ -181,17 +166,9 @@ export const ICONS = {
     rows: ['...kkk...', '..kwwwk..', '.kwwwwwkk', 'kwwwwwwwk', '.kkkkkkk.', '.i..i..i.', 'i..i..i..'],
     palette: { k: '#586880', w: '#d8e0f0', i: '#a8e8ff' },
   },
-  egg: {
-    rows: ['..kkk..', '.kwwwk.', 'kwwgwwk', 'kwgggwk', 'kwwwwwk', 'kgwwwgk', '.kwwwk.', '..kkk..'],
-    palette: { k: '#506048', w: '#f8f8e8', g: '#78c058' },
-  },
   rocket: {
     rows: ['kkkkkk.', 'krrrrrk', 'krk..rk', 'krrrrk.', 'krk.rk.', 'krk..rk', 'kkk..kk'],
     palette: { k: '#281818', r: '#e03030' },
-  },
-  target: {
-    rows: ['..kkk..', '.krrrk.', 'krwwwrk', 'krwrwrk', 'krwwwrk', '.krrrk.', '..kkk..'],
-    palette: { k: K, r: '#e04848', w: '#f8f8f8' },
   },
   // Medalha de conquista: a chave 'c' recebe a cor do metal (bronze, prata, ouro, platina).
   medal: {

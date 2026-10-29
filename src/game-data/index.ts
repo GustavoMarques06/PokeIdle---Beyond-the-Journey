@@ -15,10 +15,12 @@ import { LURES, THROWABLE_BALLS } from './captureitems';
 
 export * from './types';
 export {
+  AVATAR_NAMES,
   BADGES,
   EXPEDITIONS,
   FOSSILS,
   PLAYER_AVATARS,
+  PLAYER_CHARACTERS,
   PRIZES,
   REGIONS,
   ROAMERS,
@@ -37,6 +39,7 @@ export * from './helditems';
 export * from './water';
 export * from './forms';
 export * from './safari';
+export * from './outfits';
 export * from './captureitems';
 
 /**

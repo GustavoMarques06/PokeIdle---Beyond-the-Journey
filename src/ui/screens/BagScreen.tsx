@@ -2,7 +2,17 @@
 // tela LOJA (ShopScreen).
 
 import { useState } from 'react';
-import { BERRIES, FOSSILS, getLure, getMove, getSpecies, isHeldItem, vitaminStat } from '../../game-data';
+import {
+  BALANCE,
+  BERRIES,
+  FOSSILS,
+  getLure,
+  getMove,
+  getRoute,
+  getSpecies,
+  isHeldItem,
+  vitaminStat,
+} from '../../game-data';
 import {
   applyEvolutionItem,
   equipItem,
@@ -10,15 +20,22 @@ import {
   sellItem,
   sellPrice,
   type GameState,
-  activePokemon,
 } from '../../core/game';
-import { passivePokemon } from '../../core/bonuses';
-import { reservePokemon } from '../../core/team';
+import { teamPokemon } from '../../core/team';
 import { eatBerry } from '../../core/garden';
 import { activeLure, applyLure } from '../../core/lures';
 import { itemEvolution } from '../../core/progression';
+import { movesOf, pokemonName } from '../../core/pokemon';
+import { TM_CATALOG, canLearnTm, teachTm, tmLabel, tmSources } from '../../core/tms';
 import { ItemIcon, Money, PokemonSprite, TypeBadge, Window } from '../components/common';
-import { formatDuration, itemDescription, itemName, moveName, speciesName } from '../i18n/pt-BR';
+import {
+  formatDuration,
+  formatNumber,
+  itemDescription,
+  itemName,
+  moveName,
+  speciesName,
+} from '../i18n/pt-BR';
 import { audio } from '../audio';
 import { useEngine } from '../useGame';
 
@@ -34,8 +51,8 @@ export function BagScreen({ state }: { state: GameState }) {
     : [];
   const berry = selected ? BERRIES.find((b) => b.id === selected) : undefined;
   const fossil = selected ? FOSSILS.find((f) => f.item === selected) : undefined;
-  // Itens seguráveis e vitaminas podem ser usados direto na equipe (ativo, reservas e apoio).
-  const team = [activePokemon(state), ...reservePokemon(state), ...passivePokemon(state)];
+  // Itens seguráveis e vitaminas podem ser usados direto na equipe.
+  const team = teamPokemon(state);
   const holdable = !!selected && isHeldItem(selected);
   const vitamin = !!selected && !!vitaminStat(selected);
   const lure = selected ? getLure(selected) : undefined;
@@ -194,44 +211,157 @@ function SellBox({ state, id }: { state: GameState; id: string }) {
   );
 }
 
-/** TMs liberados: o golpe e quem da coleção pode aprendê-lo. */
+/** Estojo de TMs: o catálogo inteiro (os que faltam mostram onde conseguir) e o ensino direto. */
 function TmPocket({ state }: { state: GameState }) {
-  if (!state.tms.length) {
-    return (
-      <Window frame="menu">
-        <p className="hint">
-          Nenhum TM ainda. Líderes de ginásio entregam TMs, e há outros na Torre de Batalha, no Game Corner e
-          nas expedições. Ensine na tela POKéMON → Editar golpes.
-        </p>
-      </Window>
-    );
-  }
+  const [onlyOwned, setOnlyOwned] = useState(state.tms.length > 0);
+  const [open, setOpen] = useState<string | null>(null);
+  const owned = new Set(state.tms);
+  const list = TM_CATALOG.filter((t) => !onlyOwned || owned.has(t.move));
   return (
-    <Window frame="menu" title="ESTOJO DE TMs" icon={<ItemIcon id="tm-case" size={24} />}>
+    <Window
+      frame="menu"
+      title={`ESTOJO DE TMs · ${state.tms.length}/${TM_CATALOG.length}`}
+      icon={<ItemIcon id="tm-case" size={24} />}
+    >
+      <p className="hint">
+        Um TM liberado ensina quantas vezes você quiser. Líderes de ginásio entregam TMs; outros vêm da Torre,
+        do Game Corner, das expedições e da prateleira de TMs da Loja de Departamentos.
+      </p>
+      <label className="check">
+        <input type="checkbox" checked={onlyOwned} onChange={(e) => setOnlyOwned(e.target.checked)} /> Só os
+        que eu tenho
+      </label>
+      {!list.length && <p className="hint">Nenhum TM ainda.</p>}
       <ul className="item-list tm-list">
-        {[...state.tms].sort().map((id) => {
-          const mv = getMove(id);
-          const learners = state.collection.filter((p) => getSpecies(p.speciesId).tmMoves.includes(id));
+        {list.map(({ move }) => {
+          const mv = getMove(move);
+          const have = owned.has(move);
+          const learners = state.collection.filter((p) => getSpecies(p.speciesId).tmMoves.includes(move));
           return (
-            <li key={id} className="tm-row">
-              <ItemIcon id="tm" size={28} />
-              <div className="mart-info">
-                <span className="item-name">{moveName(id).toUpperCase()}</span>
-                <small>
-                  <TypeBadge type={mv.type} /> POD {mv.power} ·{' '}
-                  {mv.category === 'physical' ? 'físico' : 'especial'}
-                </small>
-              </div>
-              <span className="tm-learners">
-                {learners.slice(0, 6).map((p) => (
-                  <PokemonSprite key={p.uid} speciesId={p.speciesId} kind="icon" />
+            <li key={move} className={`tm-entry ${have ? '' : 'missing'}`}>
+              <button
+                className={`tm-row ${open === move ? 'selected' : ''}`}
+                aria-expanded={open === move}
+                onClick={() => setOpen(open === move ? null : move)}
+              >
+                <span className={`tm-disc type-bg-${mv.type}`}>
+                  <ItemIcon id="tm" size={28} />
+                </span>
+                <div className="mart-info">
+                  <span className="item-name">
+                    {tmLabel(move)} · {have ? moveName(move).toUpperCase() : moveName(move)}
+                  </span>
+                  <small>
+                    <TypeBadge type={mv.type} /> POD {mv.power} · PRE {mv.accuracy} ·{' '}
+                    {mv.category === 'physical' ? 'físico' : 'especial'}
+                  </small>
+                </div>
+                <span className="tm-learners">
+                  {learners.slice(0, 5).map((p) => (
+                    <PokemonSprite key={p.uid} speciesId={p.speciesId} kind="icon" />
+                  ))}
+                  {learners.length > 5 && <small>+{learners.length - 5}</small>}
+                </span>
+              </button>
+              {open === move &&
+                (have ? (
+                  <TmTeach state={state} move={move} />
+                ) : (
+                  <p className="tm-where">{tmSourceText(state, move)}</p>
                 ))}
-                {learners.length > 6 && <small>+{learners.length - 6}</small>}
-              </span>
             </li>
           );
         })}
       </ul>
     </Window>
+  );
+}
+
+/** Onde conseguir um TM que o jogador ainda não tem. */
+function tmSourceText(state: GameState, move: string): string {
+  const parts = tmSources(move).map((src) => {
+    switch (src.kind) {
+      case 'boss': {
+        const boss = getRoute(src.routeId).boss!;
+        return `${boss.name} (${boss.title})`;
+      }
+      case 'shop':
+        return `Loja de Departamentos por ${formatNumber(src.price)}${
+          src.requiresBoss && !state.routes[src.requiresBoss]?.bossDefeated
+            ? ` depois de vencer ${getRoute(src.requiresBoss).boss!.name} (${getRoute(src.requiresBoss).name})`
+            : ''
+        }`;
+      case 'tower':
+        return 'prêmio da Torre de Batalha';
+      case 'gamecorner':
+        return 'prêmio do Game Corner';
+      case 'expedition':
+        return 'expedições';
+    }
+  });
+  return `Onde conseguir: ${parts.join(' · ')}.`;
+}
+
+/** Ensinar o TM: quem da coleção aprende e qual golpe sai. */
+function TmTeach({ state, move }: { state: GameState; move: string }) {
+  const engine = useEngine();
+  const [uid, setUid] = useState<number | null>(null);
+  const learners = state.collection
+    .filter((p) => canLearnTm(state, p.speciesId, move))
+    .sort(
+      (a, b) => Number(b.uid === state.activeUid) - Number(a.uid === state.activeUid) || b.level - a.level,
+    );
+  if (!learners.length) return <p className="tm-where">Ninguém da sua coleção aprende este golpe.</p>;
+  const p = learners.find((x) => x.uid === uid);
+  const teach = (replace?: string) => {
+    engine.dispatch((s) => {
+      const ok = teachTm(s, p!.uid, move, replace);
+      if (ok) audio.sfx('itemGet');
+      return ok;
+    });
+    setUid(null);
+  };
+  return (
+    <div className="tm-teach">
+      <ul className="pc-box picker">
+        {learners.map((x) => {
+          const knows = movesOf(x).includes(move);
+          return (
+            <li key={x.uid}>
+              <button
+                className={`pc-cell ${uid === x.uid ? 'selected' : ''}`}
+                disabled={knows}
+                onClick={() => setUid(x.uid)}
+                title={`${pokemonName(x)} Nv. ${x.level}${knows ? ' (já usa este golpe)' : ''}`}
+              >
+                <PokemonSprite speciesId={x.speciesId} kind="icon" />
+                <span>{knows ? 'JÁ USA' : `Nv${x.level}`}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {p && (
+        <div className="tm-replace">
+          <p>
+            Ensinar {moveName(move).toUpperCase()} a {pokemonName(p).toUpperCase()}
+            {movesOf(p).length >= BALANCE.maxMoves ? '. Qual golpe sai?' : '?'}
+          </p>
+          <div className="tm-replace-moves">
+            {movesOf(p).length < BALANCE.maxMoves && (
+              <button className="pbtn small primary" onClick={() => teach()}>
+                Ensinar
+              </button>
+            )}
+            {movesOf(p).length >= BALANCE.maxMoves &&
+              movesOf(p).map((m) => (
+                <button key={m} className={`pbtn small type-bg-${getMove(m).type}`} onClick={() => teach(m)}>
+                  Esquecer {moveName(m)}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

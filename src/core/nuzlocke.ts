@@ -59,15 +59,10 @@ export function replaceFallenActive(state: GameState, events: GameEvent[]): void
   state.battleTeam = state.battleTeam.filter((uid) => !isFallen(state, uid));
   const busy = busyUids(state);
   const next = [...state.collection]
-    .filter(
-      (p) =>
-        !isFallen(state, p.uid) &&
-        (!busy.has(p.uid) || state.battleTeam.includes(p.uid) || state.passives.includes(p.uid)),
-    )
+    .filter((p) => !isFallen(state, p.uid) && (!busy.has(p.uid) || state.battleTeam.includes(p.uid)))
     .sort((a, b) => b.level - a.level)[0];
   if (next) {
     state.battleTeam = state.battleTeam.filter((uid) => uid !== next.uid);
-    state.passives = state.passives.filter((uid) => uid !== next.uid);
     state.activeUid = next.uid;
     return;
   }

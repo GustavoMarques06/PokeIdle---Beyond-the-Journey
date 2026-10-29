@@ -4,6 +4,7 @@
 // mapa grande numa janela.
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DEPT_STORE, REGIONS, WATER_SPOTS, assetUrl, getRoute, type Route } from '../../game-data';
 import {
   canChallengeBoss,
@@ -110,35 +111,38 @@ export function MapScreen({ state }: { state: GameState }) {
 
       {details}
 
-      {enlarged && (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Mapa de ${region.name}`}
-          onClick={(e) => e.target === e.currentTarget && setEnlarged(false)}
-        >
-          <div className="modal map-modal frame frame-paper">
-            <header className="window-title">
-              <ItemIcon id="town-map" size={24} />
-              <h3>MAPA DE {region.name.toUpperCase()}</h3>
-              <span className="window-actions">
-                <button className="pbtn small" onClick={() => setEnlarged(false)}>
-                  Fechar
-                </button>
-              </span>
-            </header>
-            <RegionMap
-              state={state}
-              regionId={region.id}
-              routes={routes}
-              selectedId={selected.id}
-              onSelect={setSelectedId}
-            />
-            {details}
-          </div>
-        </div>
-      )}
+      {/* No body: dentro da coluna lateral o `position: fixed` ficaria preso à coluna. */}
+      {enlarged &&
+        createPortal(
+          <div
+            className="modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Mapa de ${region.name}`}
+            onClick={(e) => e.target === e.currentTarget && setEnlarged(false)}
+          >
+            <div className="modal map-modal frame frame-paper">
+              <header className="window-title">
+                <ItemIcon id="town-map" size={24} />
+                <h3>MAPA DE {region.name.toUpperCase()}</h3>
+                <span className="window-actions">
+                  <button className="pbtn small" onClick={() => setEnlarged(false)}>
+                    Fechar
+                  </button>
+                </span>
+              </header>
+              <RegionMap
+                state={state}
+                regionId={region.id}
+                routes={routes}
+                selectedId={selected.id}
+                onSelect={setSelectedId}
+              />
+              {details}
+            </div>
+          </div>,
+          document.body,
+        )}
     </Window>
   );
 }
@@ -228,7 +232,7 @@ function RegionMap({
               <span className="node-marks">
                 {raid && (
                   <span className="mark-raid" title={`Raide: ${speciesName(state.raid!.speciesId)}`}>
-                    <PixelIcon name="boss" scale={2} />
+                    <ItemIcon id="dynamax-band" size={18} />
                   </span>
                 )}
                 {tree && (

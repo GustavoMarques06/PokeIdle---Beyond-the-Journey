@@ -55,19 +55,20 @@ export const PASSIVE = {
   typeAdvantage: { base: number; perLevel: number; cap: number };
 };
 
-/** Vagas passivas e o que libera cada uma (rota concluída). */
-export const PASSIVE_SLOTS: { requiresRoute: string }[] = [
+/**
+ * Equipe: até 6 Pokémon. A 1ª vaga existe desde o início; cada uma destas libera mais uma ao
+ * concluir a rota. O 1º da equipe luta, os outros entram em ordem quando ele desmaia, e todos
+ * dão o bônus do seu tipo.
+ */
+export const TEAM_SLOTS: { requiresRoute: string }[] = [
   { requiresRoute: 'rota-1' },
   { requiresRoute: 'floresta-viridian' },
   { requiresRoute: 'mt-moon' },
   { requiresRoute: 'rota-4' },
+  { requiresRoute: 'rota-24-25' },
 ];
 
-/** Vagas de reserva na equipe de batalha (entram quando o ativo desmaia ou têm vantagem de tipo). */
-export const RESERVE_SLOTS: { requiresRoute: string }[] = [
-  { requiresRoute: 'mt-moon' },
-  { requiresRoute: 'rota-4' },
-];
+export const TEAM_SIZE = TEAM_SLOTS.length + 1;
 
 // --- Laboratório / pesquisa ------------------------------------------------
 
@@ -467,8 +468,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'passives-4',
     tier: 'silver',
     name: 'Time completo',
-    description: 'Preencha 4 vagas passivas.',
-    goal: { kind: 'passives', n: 4 },
+    description: 'Monte uma equipe com 6 Pokémon.',
+    goal: { kind: 'passives', n: 6 },
     reward: { research: 6 },
   },
   {

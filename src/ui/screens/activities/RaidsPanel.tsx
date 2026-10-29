@@ -9,7 +9,7 @@ import {
   challengeRematch,
   type GameState,
 } from '../../../core/game';
-import { PixelIcon, PokemonSprite, TrainerSprite, Window } from '../../components/common';
+import { ItemIcon, PokemonSprite, TrainerSprite, Window } from '../../components/common';
 import { formatDuration, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Countdown, Locked } from './shared';
@@ -24,7 +24,7 @@ export function RaidsPanel({ state }: { state: GameState }) {
 
   return (
     <>
-      <Window title="RAIDES" icon={<PixelIcon name="boss" scale={2} />} frame="dialog">
+      <Window title="RAIDES" icon={<ItemIcon id="dynamax-band" size={24} />} frame="dialog">
         {raid ? (
           <div className="raid-card">
             <PokemonSprite speciesId={raid.speciesId} kind="front" pixelScale={1} />
@@ -64,7 +64,7 @@ export function RaidsPanel({ state }: { state: GameState }) {
         </ul>
       </Window>
 
-      <Window title="REVANCHES" icon={<PixelIcon name="trophy" scale={2} />}>
+      <Window title="REVANCHES" icon={<ItemIcon id="vs-seeker" size={24} />}>
         <p className="hint">
           Chefes já vencidos aceitam uma revanche a cada {BALANCE.rematch.cooldownHours} h, com{' '}
           {BALANCE.rematch.levelBonus} níveis a mais e itens nos Pokémon. Sem insígnia, mas com moedas e itens

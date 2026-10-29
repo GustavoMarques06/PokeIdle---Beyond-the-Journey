@@ -318,7 +318,7 @@ export function DexScreen({ state }: { state: GameState }) {
                       className="pbtn small"
                       onClick={() => engine.dispatch((s) => setHuntTarget(s, selected))}
                     >
-                      <PixelIcon name="target" scale={1} /> Caçar shiny
+                      <ItemIcon id="poke-radar" size={16} /> Caçar shiny
                     </button>
                   )}
                 </div>

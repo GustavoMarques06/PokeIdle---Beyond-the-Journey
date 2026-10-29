@@ -13,7 +13,7 @@ import {
   takeFromDaycare,
 } from '../../../core/daycare';
 import type { GameState } from '../../../core/game';
-import { Bar, PixelIcon, PokemonSprite, Shiny, Window } from '../../components/common';
+import { Bar, ItemIcon, PokemonSprite, Shiny, Window } from '../../components/common';
 import { formatDuration, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
@@ -29,7 +29,7 @@ export function DaycarePanel({ state }: { state: GameState }) {
 
   return (
     <>
-      <Window title="CRECHE POKéMON" icon={<PixelIcon name="egg" scale={2} />} frame="dialog">
+      <Window title="CRECHE POKéMON" icon={<ItemIcon id="mystery-egg" size={24} />} frame="dialog">
         <div className="daycare-yard">
           {[0, 1].map((i) => {
             const p = guests[i];
@@ -76,7 +76,10 @@ export function DaycarePanel({ state }: { state: GameState }) {
         )}
       </Window>
 
-      <Window title={`OVOS · ${state.eggs.length}/${d.maxEggs}`} icon={<PixelIcon name="egg" scale={2} />}>
+      <Window
+        title={`OVOS · ${state.eggs.length}/${d.maxEggs}`}
+        icon={<ItemIcon id="mystery-egg" size={24} />}
+      >
         {state.eggs.length === 0 && <p className="hint">Nenhum ovo ainda.</p>}
         <ul className="egg-list">
           {state.eggs.map((egg) => {
@@ -85,9 +88,9 @@ export function DaycarePanel({ state }: { state: GameState }) {
             const minutes = left * d.minutesPerCycle * 60_000;
             return (
               <li key={egg.id} className="egg-row">
-                <PixelIcon
-                  name="egg"
-                  scale={3}
+                <ItemIcon
+                  id="mystery-egg"
+                  size={32}
                   className={egg.progress / egg.cycles > 0.8 ? 'egg-wobble' : ''}
                 />
                 <div>
