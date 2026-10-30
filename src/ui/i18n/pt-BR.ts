@@ -359,8 +359,11 @@ export function formatDuration(ms: number): string {
   return `${s} s`;
 }
 
+// Um formatador só: toLocaleString cria um novo a cada chamada, e o HUD formata várias vezes por segundo.
+const INTEGER = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+
 export function formatNumber(n: number): string {
-  return Math.floor(n).toLocaleString('pt-BR');
+  return INTEGER.format(Math.floor(n));
 }
 
 /** Mensagem do registro de batalha para um evento (ou null se não deve aparecer). */

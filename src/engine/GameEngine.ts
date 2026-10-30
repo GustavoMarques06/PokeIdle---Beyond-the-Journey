@@ -26,6 +26,8 @@ const SAVE_TRIGGERS = new Set<GameEvent['type']>([
   'hallOfFame',
 ]);
 
+const pageHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+
 /** Intervalo dos cronômetros de tempo real (ovos, berries, eventos). */
 const TIMERS_MS = 1000;
 /** Ações do jogador em sequência (vários cliques) viram uma única gravação. */
@@ -38,6 +40,11 @@ export class GameEngine {
   notice: string | null = null;
   /** Tamanho do último save gravado (bytes), exibido nas Opções. */
   saveBytes = 0;
+  /**
+   * O aviso atual veio de uma ação do jogador ou de uma troca de save (mostrar na hora), e não
+   * de um passo comum do motor (as assinaturas com limite de frequência podem esperar).
+   */
+  urgent = true;
 
   private listeners = new Set<Listener>();
   private eventListeners = new Set<EventListener>();
@@ -74,11 +81,18 @@ export class GameEngine {
     return () => this.saveListeners.delete(fn);
   }
 
-  private emit(events: GameEvent[] = []): void {
+  private emit(events: GameEvent[] = [], urgent = true): void {
     this.version++;
+    this.urgent = urgent;
     if (events.length) for (const fn of this.eventListeners) fn(events);
+    // Aba escondida: o jogo segue andando, mas ninguém vê a tela; ela é redesenhada ao voltar.
+    if (!urgent && pageHidden()) return;
     for (const fn of this.listeners) fn();
   }
+
+  private onVisibility = (): void => {
+    if (!pageHidden()) this.emit();
+  };
 
   // --- ciclo de vida -------------------------------------------------------
 
@@ -106,11 +120,13 @@ export class GameEngine {
     if (this.timer) return;
     this.lastTick = this.clock();
     this.timer = setInterval(() => this.tick(), BALANCE.tickMs);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility);
   }
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibility);
     this.save();
   }
 
@@ -225,6 +241,6 @@ export class GameEngine {
     if (events.some((e) => SAVE_TRIGGERS.has(e.type)) || now - this.lastSave >= BALANCE.save.autosaveMs) {
       this.save();
     }
-    this.emit(events);
+    this.emit(events, false);
   }
 }

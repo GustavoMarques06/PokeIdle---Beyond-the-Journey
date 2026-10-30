@@ -96,6 +96,9 @@
   .screen-area {
     flex: none;
     overflow: visible;
+    /* Camada de pintura própria: sem isto, cada quadro da batalha fazia o navegador repintar a
+       tela aberta inteira (no celular, ~70% do tempo de desenho). No PC a rolagem já isola. */
+    contain: paint;
   }
 
   .game-menu {

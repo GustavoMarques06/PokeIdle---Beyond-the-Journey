@@ -19,6 +19,7 @@ import { endLegendary, legendaryDef, legendaryStatus } from './legendary';
 import { evolve, itemEvolution, setLevel } from './progression';
 import { raidTeam } from './raids';
 import { canRematch } from './rematch';
+import { bossLook } from './rival';
 import { rngFrom } from './rng';
 import { isFallen } from './nuzlocke';
 import { healTeam, reservePokemon, reserveSlotsUnlocked } from './team';
@@ -71,10 +72,11 @@ function startTrainerBattle(
 export function challengeBoss(state: GameState, routeId: string): boolean {
   if (!canChallengeBoss(state, routeId)) return false;
   const boss = getRoute(routeId).boss!;
+  const look = bossLook(state, boss);
   startTrainerBattle(state, routeId, 'boss', resolveBossTeam(state, boss), {
-    sprite: boss.trainer,
-    name: boss.name,
-    title: boss.title,
+    sprite: look.trainer,
+    name: look.name,
+    title: look.title,
   });
   return true;
 }
@@ -83,10 +85,11 @@ export function challengeBoss(state: GameState, routeId: string): boolean {
 export function challengeRematch(state: GameState, routeId: string, now = Date.now()): boolean {
   if (state.battle.kind !== 'wild' || !canRematch(state, routeId, now)) return false;
   const boss = getRoute(routeId).boss!;
+  const look = bossLook(state, boss);
   startTrainerBattle(state, routeId, 'boss', resolveBossTeam(state, boss, true), {
-    sprite: boss.trainer,
-    name: boss.name,
-    title: `Revanche · ${boss.title}`,
+    sprite: look.trainer,
+    name: look.name,
+    title: `Revanche · ${look.title}`,
   });
   state.battle.rematch = true;
   return true;

@@ -23,6 +23,7 @@ import {
 } from '../../core/game';
 import { teamPokemon } from '../../core/team';
 import { eatBerry } from '../../core/garden';
+import { bossLook } from '../../core/rival';
 import { activeLure, applyLure } from '../../core/lures';
 import { itemEvolution } from '../../core/progression';
 import { movesOf, pokemonName } from '../../core/pokemon';
@@ -282,13 +283,13 @@ function tmSourceText(state: GameState, move: string): string {
   const parts = tmSources(move).map((src) => {
     switch (src.kind) {
       case 'boss': {
-        const boss = getRoute(src.routeId).boss!;
+        const boss = bossLook(state, getRoute(src.routeId).boss!);
         return `${boss.name} (${boss.title})`;
       }
       case 'shop':
         return `Loja de Departamentos por ${formatNumber(src.price)}${
           src.requiresBoss && !state.routes[src.requiresBoss]?.bossDefeated
-            ? ` depois de vencer ${getRoute(src.requiresBoss).boss!.name} (${getRoute(src.requiresBoss).name})`
+            ? ` depois de vencer ${bossLook(state, getRoute(src.requiresBoss).boss!).name} (${getRoute(src.requiresBoss).name})`
             : ''
         }`;
       case 'tower':

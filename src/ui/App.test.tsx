@@ -56,11 +56,20 @@ describe('interface', () => {
     expect(document.querySelector('.game')).not.toBeNull();
     expect(screen.getByText('POKéDEX')).toBeTruthy();
 
+    // Quem começa vê só as abas do início; as outras aparecem com o progresso.
+    const shown = () => [...document.querySelectorAll('.menu-item .menu-label')].map((el) => el.textContent);
+    expect(shown()).toEqual(['POKéMON', 'POKéDEX', 'MOCHILA', 'TREINADOR']);
+    await act(async () => engine.dispatch((s) => void (s.stats.totalKills = 12)));
+    expect(shown()).toContain('LOJA');
+    expect(screen.getByTitle(/^LOJA .*novo!/)).toBeTruthy();
+
+    // Com todas liberadas (uma nova jornada libera tudo), cada uma abre pela sua tecla.
+    await act(async () => engine.dispatch((s) => void (s.prestige.count = 1)));
     for (const [i, item] of MENU_ITEMS.entries()) {
       await act(async () => {
         fireEvent.keyDown(window, { key: menuKey(i) });
       });
-      const button = screen.getByTitle(`${item.label} (tecla ${menuKey(i)})`);
+      const button = screen.getByTitle(new RegExp(`^${item.label} \\(tecla ${menuKey(i)}\\)`));
       expect(button.getAttribute('aria-current')).toBe('true');
       // Telas carregadas sob demanda aparecem depois do Suspense.
       await waitFor(() => {

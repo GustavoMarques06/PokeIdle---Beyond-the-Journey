@@ -1,9 +1,19 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type RefObject,
+} from 'react';
 import type { GameEvent, GameState } from '../core/game';
 import { audio } from './audio';
 import { BattleDialog, type ScreenId } from './battle/BattleDialog';
 import { BattleScene } from './battle/BattleScene';
-import { GameMenu, MENU_ITEMS, menuKey } from './components/GameMenu';
+import { GameMenu, MENU_ITEMS, menuFlag, menuKey, menuUnlocked } from './components/GameMenu';
 import { Hud } from './components/Hud';
 import { OfflineReport } from './components/OfflineReport';
 import { ProfessorCall } from './components/ProfessorCall';
@@ -52,7 +62,9 @@ const UpgradesScreen = lazyScreen(() =>
 
 export function App() {
   const engine = useEngine();
-  const state = useGameState();
+  // O App só decide abertura × jogo, opções e música: uma vez por segundo basta (as regiões do
+  // jogo assinam por conta própria; ações do jogador chegam na hora).
+  const state = useGameState(1000);
   // Quem abre o jogo com save começa na tela de título (CONTINUAR); quem acabou de criar ou
   // carregar uma jornada entra direto.
   const [atTitle, setAtTitle] = useState(() => engine.state !== null);
@@ -154,24 +166,36 @@ function GameScreen({ state }: { state: GameState }) {
     const id = window.setTimeout(() => void preloadScreens(), 200);
     return () => window.clearTimeout(id);
   }, []);
-  const open = useCallback((id: ScreenId, viaKeyboard = false, tab?: Tab) => {
-    setScreen(id);
-    setActivityTab(tab);
-    // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.
-    if (window.matchMedia?.('(max-width: 900px)').matches) {
-      requestAnimationFrame(() => area.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-    // Pelo teclado, o foco vai para a tela aberta (leitores de tela anunciam o conteúdo novo).
-    if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
-  }, []);
-  useHotkeys(Object.fromEntries(MENU_ITEMS.map((item, i) => [menuKey(i), () => open(item.id, true)])));
+  const engine = useEngine();
+  const open = useCallback(
+    (id: ScreenId, viaKeyboard = false, tab?: Tab) => {
+      // Abrir uma aba (pelo menu, por atalho ou por outra tela) a deixa de vez no menu, sem o NOVO.
+      if (!engine.state?.flags.includes(menuFlag(id)))
+        engine.dispatch((s) => void s.flags.push(menuFlag(id)));
+      setScreen(id);
+      setActivityTab(tab);
+      // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.
+      if (window.matchMedia?.('(max-width: 900px)').matches) {
+        requestAnimationFrame(() => area.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      }
+      // Pelo teclado, o foco vai para a tela aberta (leitores de tela anunciam o conteúdo novo).
+      if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
+    },
+    [engine],
+  );
+  useHotkeys(
+    Object.fromEntries(
+      MENU_ITEMS.flatMap((item, i) =>
+        menuUnlocked(state, item.id) ? [[menuKey(i), () => open(item.id, true)]] : [],
+      ),
+    ),
+  );
   // Música: tema de chefe nas lutas que valem algo (líder, rival, Elite, lendário, raide); fora
   // delas, o tema das rotas de dia ou o da noite, pelo relógio do jogo.
   const bossFight = BOSS_MUSIC.has(state.battle.kind);
   const night = state.env.period === 'night';
   useEffect(() => audio.setTrack(bossFight ? 'boss' : night ? 'night' : 'game'), [bossFight, night]);
   // Onboarding: quem já jogava antes desta versão não vê como NOVAS as atividades que já conhece.
-  const engine = useEngine();
   const onboarded = state.flags.includes('onboarding');
   useEffect(() => {
     if (onboarded) return;
@@ -189,43 +213,79 @@ function GameScreen({ state }: { state: GameState }) {
         <a href="#game-menu">Pular para o menu</a>
         <a href="#screen-area">Pular para a tela aberta</a>
       </nav>
-      <Hud state={state} onOpenMap={() => open('map')} />
-      <main className="battle-column">
-        <BattleScene state={state} />
-        <BattleDialog state={state} onOpen={open} />
-      </main>
-      <aside className="side-column">
-        <GameMenu state={state} current={screen} onSelect={open} />
-        {state.settings.nextSteps && (
-          <NextSteps
-            state={state}
-            onOpen={(t) => open(t.screen, false, t.screen === 'activities' ? (t.tab as Tab) : undefined)}
-          />
-        )}
-        {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
-        <div
-          className="screen-area screen-enter"
-          key={`${screen}:${activityTab ?? ''}`}
-          ref={area}
-          id="screen-area"
-          tabIndex={-1}
-          role="region"
-          aria-label={MENU_ITEMS.find((m) => m.id === screen)?.label}
-        >
-          <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
-            {screen === 'party' && <PartyScreen state={state} onOpenPc={() => open('pc')} />}
-            {screen === 'dex' && <DexScreen state={state} />}
-            {screen === 'bag' && <BagScreen state={state} />}
-            {screen === 'shop' && <ShopScreen state={state} />}
-            {screen === 'map' && <MapScreen state={state} />}
-            {screen === 'activities' && <ActivitiesScreen state={state} initialTab={activityTab} />}
-            {screen === 'missions' && <MissionsScreen state={state} />}
-            {screen === 'trainer' && <TrainerScreen state={state} />}
-            {screen === 'upgrades' && <UpgradesScreen state={state} />}
-            {screen === 'pc' && <PcScreen state={state} />}
-          </Suspense>
-        </div>
-      </aside>
+      <LiveHud open={open} />
+      <LiveBattle open={open} />
+      <LiveSide screen={screen} activityTab={activityTab} open={open} area={area} />
     </div>
   );
 }
+
+// Cada região assina o motor no seu ritmo (ver useGameState): a batalha a cada passo, o resto
+// algumas vezes por segundo. Com `memo`, o GameScreen (que muda pouco) não as arrasta junto.
+const HUD_MS = 250;
+const SIDE_MS = 400;
+
+type Open = (id: ScreenId, viaKeyboard?: boolean, tab?: Tab) => void;
+
+const LiveHud = memo(function LiveHud({ open }: { open: Open }) {
+  const state = useGameState(HUD_MS)!;
+  return <Hud state={state} onOpenMap={() => open('map')} />;
+});
+
+const LiveBattle = memo(function LiveBattle({ open }: { open: Open }) {
+  const state = useGameState()!;
+  return (
+    <main className="battle-column">
+      <BattleScene state={state} />
+      <BattleDialog state={state} onOpen={open} />
+    </main>
+  );
+});
+
+const LiveSide = memo(function LiveSide({
+  screen,
+  activityTab,
+  open,
+  area,
+}: {
+  screen: ScreenId;
+  activityTab: Tab | undefined;
+  open: Open;
+  area: RefObject<HTMLDivElement | null>;
+}) {
+  const state = useGameState(SIDE_MS)!;
+  return (
+    <aside className="side-column">
+      <GameMenu state={state} current={screen} onSelect={open} />
+      {state.settings.nextSteps && (
+        <NextSteps
+          state={state}
+          onOpen={(t) => open(t.screen, false, t.screen === 'activities' ? (t.tab as Tab) : undefined)}
+        />
+      )}
+      {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
+      <div
+        className="screen-area screen-enter"
+        key={`${screen}:${activityTab ?? ''}`}
+        ref={area}
+        id="screen-area"
+        tabIndex={-1}
+        role="region"
+        aria-label={MENU_ITEMS.find((m) => m.id === screen)?.label}
+      >
+        <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
+          {screen === 'party' && <PartyScreen state={state} onOpenPc={() => open('pc')} />}
+          {screen === 'dex' && <DexScreen state={state} />}
+          {screen === 'bag' && <BagScreen state={state} />}
+          {screen === 'shop' && <ShopScreen state={state} />}
+          {screen === 'map' && <MapScreen state={state} />}
+          {screen === 'activities' && <ActivitiesScreen state={state} initialTab={activityTab} />}
+          {screen === 'missions' && <MissionsScreen state={state} />}
+          {screen === 'trainer' && <TrainerScreen state={state} />}
+          {screen === 'upgrades' && <UpgradesScreen state={state} />}
+          {screen === 'pc' && <PcScreen state={state} />}
+        </Suspense>
+      </div>
+    </aside>
+  );
+});

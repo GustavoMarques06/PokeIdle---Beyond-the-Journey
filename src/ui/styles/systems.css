@@ -27,9 +27,10 @@ html.reduced-motion .hud-events {
   margin: -6px -6px -8px;
 }
 
+/* Opacidade (e não filter): a placa de vídeo anima sozinha, sem repintar a página a cada quadro. */
 @keyframes blink-soft {
   50% {
-    filter: brightness(1.15);
+    opacity: 0.82;
   }
 }
 

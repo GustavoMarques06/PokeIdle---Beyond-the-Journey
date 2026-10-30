@@ -13,7 +13,8 @@ import { reservePokemon } from '../../core/team';
 import { decodeTransferCode, TRANSFER_EXTENSION } from '../../core/transfer';
 import { Bar, GenderMark, PokemonSprite, TrainerSprite } from '../components/common';
 import { Badges } from '../components/Hud';
-import { REGION_NAMES, T, formatDuration } from '../i18n/pt-BR';
+import { REGION_NAMES, T, formatDuration, formatNumber } from '../i18n/pt-BR';
+import { usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
 import { MusicToggle } from './MusicToggle';
 
@@ -90,6 +91,7 @@ export function TitleScreen({
             </button>
           </div>
           <p className="title-hint">ENTER: CONFIRMAR · ESC: VOLTAR</p>
+          <FilesHint />
         </nav>
       ) : (
         <div className="title-load frame frame-menu">
@@ -196,7 +198,7 @@ function SaveSummary({ state }: { state: GameState }) {
           </span>
           <span className="save-stat">
             <small>DINHEIRO</small>
-            <b>₽{Math.floor(state.coins).toLocaleString('pt-BR')}</b>
+            <b>₽{formatNumber(state.coins)}</b>
           </span>
           <span className="save-stat wide">
             <small>PAROU EM</small>
@@ -230,5 +232,16 @@ function SaveSummary({ state }: { state: GameState }) {
         </span>
       </span>
     </span>
+  );
+}
+
+/** Enquanto os arquivos do jogo vão para o cache (preload.ts), uma linha discreta com o progresso. */
+function FilesHint() {
+  const s = usePreloadStatus();
+  if (!s.supported || !s.running || s.bytes === 0) return null;
+  return (
+    <p className="title-files" role="status">
+      Preparando arquivos do jogo… {Math.floor((s.bytesDone / s.bytes) * 100)}%
+    </p>
   );
 }

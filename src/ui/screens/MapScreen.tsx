@@ -19,6 +19,7 @@ import {
   treeReady,
   type GameState,
 } from '../../core/game';
+import { bossLook } from '../../core/rival';
 import { Badges } from '../components/Hud';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { useHotkeys } from '../hotkeys';
@@ -377,8 +378,8 @@ function RouteDetails({
             )}
             {route.boss && (
               <span className={`node-boss ${prog.bossDefeated ? 'beaten' : ''}`}>
-                <TrainerSprite id={route.boss.trainer} size={40} head />
-                {route.boss.name} — {route.boss.title}
+                <TrainerSprite id={bossLook(state, route.boss).trainer} size={40} head />
+                {bossLook(state, route.boss).name} — {bossLook(state, route.boss).title}
                 {prog.bossDefeated && <PixelIcon name="check" scale={2} />}
               </span>
             )}

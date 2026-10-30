@@ -7,6 +7,7 @@ import { progressMission } from './missions';
 import { weekOf } from './records';
 import { pickWeighted, rngFrom } from './rng';
 import { applyChallengePreset } from './presets';
+import { bossLook } from './rival';
 import { healTeam } from './team';
 import {
   freshBattle,
@@ -82,7 +83,7 @@ function buildBracket(state: GameState): void {
   const entrants: TournamentEntrant[] = [
     { name: state.trainerName, sprite: state.trainerAvatar, outfit: state.trainerOutfit, routeId: '' },
     ...picked.map((id) => {
-      const b = getRoute(id).boss!;
+      const b = bossLook(state, getRoute(id).boss!);
       return { name: b.name, sprite: b.trainer, routeId: id };
     }),
   ];

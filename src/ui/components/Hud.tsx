@@ -6,7 +6,7 @@ import { BADGES, ROUTES, getRoute } from '../../game-data';
 import { routeWeather } from '../../core/env';
 import { routeCleared, type GameState } from '../../core/game';
 import { trainerLevel } from '../../core/meta';
-import { REGION_NAMES, WEATHER_EFFECTS, WEATHER_NAMES, speciesName } from '../i18n/pt-BR';
+import { REGION_NAMES, WEATHER_EFFECTS, WEATHER_NAMES, formatNumber, speciesName } from '../i18n/pt-BR';
 import { BadgeIcon, Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite } from './common';
 
 /** Estojo de insígnias de uma região: obtidas em cor, as demais em silhueta. */
@@ -81,7 +81,7 @@ function useCountUp(value: number) {
   return { shown, gain };
 }
 
-const fmt = (n: number) => Math.floor(n).toLocaleString('pt-BR');
+const fmt = formatNumber;
 
 export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => void }) {
   const route = getRoute(state.currentRouteId);

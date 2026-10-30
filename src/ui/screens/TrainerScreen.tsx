@@ -48,6 +48,7 @@ import { Automation } from './trainer/Automation';
 import { HOTKEY_HELP } from '../hotkeys';
 import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
+import { preloadEverything, usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
 
 type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode'>;
@@ -441,6 +442,8 @@ export function TrainerScreen({ state }: { state: GameState }) {
       </Window>
 
       <SaveTools state={state} />
+
+      <GameFiles />
     </div>
   );
 }
@@ -636,6 +639,35 @@ function LookEditor({ state }: { state: GameState }) {
             );
           })}
         </div>
+      </div>
+    </Window>
+  );
+}
+
+/** ARQUIVOS DO JOGO: quanto já está no aparelho (ver preload.ts); só no navegador. */
+function GameFiles() {
+  const s = usePreloadStatus();
+  if (!s.supported) return null;
+  const done = s.filesDone >= s.files;
+  return (
+    <Window title="ARQUIVOS DO JOGO" icon={<ItemIcon id="up-grade" size={24} />}>
+      <div className="game-files">
+        <Bar value={s.bytesDone} max={s.bytes} tone={done ? 'grass' : 'exp'} />
+        <p className="hint">
+          {done
+            ? `Tudo pronto: ${formatNumber(s.files)} arquivos (${formatBytes(s.bytes)}) guardados neste aparelho. O jogo abre na hora, também sem internet.`
+            : `${formatNumber(s.filesDone)} de ${formatNumber(s.files)} arquivos (${formatBytes(s.bytesDone)} de ${formatBytes(s.bytes)}).`}
+          {!done && s.running && ' Baixando em segundo plano: pode jogar normalmente.'}
+          {!done && s.offline && ' Sem internet: continua quando a conexão voltar.'}
+          {!done &&
+            s.waitingForData &&
+            ' O essencial já está pronto; o resto (sprites de batalha e shiny) espera para poupar seus dados.'}
+        </p>
+        {!done && !s.running && (
+          <button className="pbtn small" onClick={preloadEverything}>
+            Baixar tudo agora
+          </button>
+        )}
       </div>
     </Window>
   );

@@ -188,6 +188,9 @@ const preEvolution = new Map<number, number>();
 for (const s of SPECIES)
   for (const e of s.evolutions) if (!preEvolution.has(e.to)) preEvolution.set(e.to, s.id);
 
+/** Espécie de que esta evolui (undefined na primeira da linha). */
+export const preEvolutionOf = (speciesId: number): number | undefined => preEvolution.get(speciesId);
+
 /** Primeira espécie da linha evolutiva (usada para maestria e ovos). */
 export function lineRoot(speciesId: number): number {
   let id = speciesId;

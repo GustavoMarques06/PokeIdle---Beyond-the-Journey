@@ -90,7 +90,11 @@ describe('TMs', () => {
   it('ensina o TM na vaga livre ou no lugar de um golpe', () => {
     const s = newGame(1, 0, 1);
     const p = s.collection[0];
-    const tm = TM_CATALOG.find((t) => getSpecies(p.speciesId).tmMoves.includes(t.move))!.move;
+    // O inicial já nasce com 4 golpes: deixa só 2 (escolhidos à mão) para haver vaga livre.
+    p.moveset = movesOf(p).slice(0, 2);
+    const tm = TM_CATALOG.find(
+      (t) => getSpecies(p.speciesId).tmMoves.includes(t.move) && !movesOf(p).includes(t.move),
+    )!.move;
     expect(teachTm(s, p.uid, tm)).toBe(false); // TM não liberado
     s.tms.push(tm);
     const before = movesOf(p);
@@ -100,7 +104,7 @@ describe('TMs', () => {
     expect(teachTm(s, p.uid, tm)).toBe(false); // já usa
     // Com 4 golpes, só entra no lugar de um deles.
     const others = TM_CATALOG.map((t) => t.move).filter(
-      (m) => m !== tm && getSpecies(p.speciesId).tmMoves.includes(m),
+      (m) => m !== tm && getSpecies(p.speciesId).tmMoves.includes(m) && !movesOf(p).includes(m),
     );
     s.tms.push(...others);
     while (movesOf(p).length < BALANCE.maxMoves) teachTm(s, p.uid, others.shift()!);

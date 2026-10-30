@@ -331,7 +331,8 @@ function TeamBonuses({ state }: { state: GameState }) {
   const mods = computeModifiers(state);
   const kinds = BONUS_KINDS.filter((k) => mods.passive[k] > 0);
   const types = Object.entries(mods.typeDamage).sort((a, b) => b[1] - a[1]);
-  if (!kinds.length && !types.length) return null;
+  // Com um Pokémon só, ainda não há equipe para somar bônus: o painel espera o segundo chegar.
+  if (state.battleTeam.length === 0 || (!kinds.length && !types.length)) return null;
   return (
     <Window title="BÔNUS DA EQUIPE" frame="dialog" className="team-bonuses">
       <ul className="bonus-list">
@@ -350,12 +351,16 @@ function TeamBonuses({ state }: { state: GameState }) {
           </li>
         ))}
       </ul>
-      <p className="hint">
-        Cada Pokémon da equipe dá um bônus pelo seu tipo principal e dano extra contra os tipos que ele vence.
-        Bônus iguais valem 50% do anterior e têm teto; espécies repetidas não contam. {TYPE_NAMES.fire} →
-        dano, {TYPE_NAMES.rock} → defesa, {TYPE_NAMES.electric} → velocidade, {TYPE_NAMES.psychic} → EXP,{' '}
-        {TYPE_NAMES.normal} → moedas, {TYPE_NAMES.bug} → captura, {TYPE_NAMES.water} → cura.
-      </p>
+      <p className="hint">Cada Pokémon da equipe soma um bônus pelo tipo dele.</p>
+      <details className="bonus-help">
+        <summary>Como funciona</summary>
+        <p className="hint">
+          O bônus vem do tipo principal, e cada um também dá dano extra contra os tipos que vence. Bônus
+          iguais valem 50% do anterior e têm teto; espécies repetidas não contam. {TYPE_NAMES.fire} → dano,{' '}
+          {TYPE_NAMES.rock} → defesa, {TYPE_NAMES.electric} → velocidade, {TYPE_NAMES.psychic} → EXP,{' '}
+          {TYPE_NAMES.normal} → moedas, {TYPE_NAMES.bug} → captura, {TYPE_NAMES.water} → cura.
+        </p>
+      </details>
     </Window>
   );
 }

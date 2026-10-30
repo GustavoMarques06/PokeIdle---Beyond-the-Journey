@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { assetManifest } from './scripts/asset-manifest.mjs';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), assetManifest()],
   // Caminhos relativos para funcionar empacotado (ex.: Tauri) sem servidor.
   base: './',
   build: {

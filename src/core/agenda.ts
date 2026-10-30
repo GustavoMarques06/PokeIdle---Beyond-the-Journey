@@ -15,6 +15,7 @@ import { claimableMissions } from './missions';
 import { statsOf } from './pokemon';
 import { canRematch } from './rematch';
 import { activePokemon, canChallengeBoss, resolveBossTeam, type GameState, type TeamMember } from './state';
+import { bossLook } from './rival';
 import { reservePokemon, reserveSlotsUnlocked } from './team';
 import { canPlayTournament } from './tournament';
 import { towerUnlocked, weeklyRule } from './tower';
@@ -218,7 +219,7 @@ export function nextSteps(state: GameState, now: number): NextStep[] {
     add({
       id: 'boss',
       priority: odds === 'alta' || odds === 'média' ? 80 : 45,
-      text: `Desafiar ${boss.name}`,
+      text: `Desafiar ${bossLook(state, boss).name}`,
       detail: `${away ? `em ${bossRoute.name} · ` : ''}${ODDS_TEXT[odds]}`,
       action: away ? { kind: 'route', routeId: bossRoute.id } : { kind: 'boss', routeId: bossRoute.id },
       icon: { item: 'relic-crown' },
@@ -229,7 +230,7 @@ export function nextSteps(state: GameState, now: number): NextStep[] {
       add({
         id: 'boss-progress',
         priority: 20,
-        text: `Faltam ${left} vitórias para desafiar ${here.boss.name}`,
+        text: `Faltam ${left} vitórias para desafiar ${bossLook(state, here.boss).name}`,
         icon: { item: 'relic-crown' },
       });
     }
@@ -238,7 +239,7 @@ export function nextSteps(state: GameState, now: number): NextStep[] {
     add({
       id: 'rematch',
       priority: 55,
-      text: `Revanche contra ${here.boss.name} disponível`,
+      text: `Revanche contra ${bossLook(state, here.boss).name} disponível`,
       detail: 'moedas e itens raros',
       action: { kind: 'rematch', routeId: here.id },
       icon: { item: 'vs-seeker' },
@@ -365,6 +366,7 @@ export function nextSteps(state: GameState, now: number): NextStep[] {
       id: 'dex-route',
       priority: 15,
       text: `${missing} espécie${missing > 1 ? 's' : ''} desta área ainda não capturada${missing > 1 ? 's' : ''}`,
+      detail: 'na batalha, MOCHILA → Poké Ball (ou tecla Q)',
       target: { screen: 'dex' },
       icon: { pixel: 'pokedex' },
     });

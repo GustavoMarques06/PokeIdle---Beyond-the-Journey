@@ -252,6 +252,32 @@ html.reduced-motion .hud-route.done .pbar {
   opacity: 0.55;
 }
 
+/* Parado, as animações decorativas que não param nunca (alertas piscando, cursor do diálogo,
+   brilho da EXP) congelam: sem elas o navegador só redesenha quando algo muda de verdade. A
+   batalha segue animada. */
+.game.idle
+  :is(
+    .dialog-caret,
+    .dialog-challenge,
+    .menu-alert,
+    .hpbar-fill,
+    .perfect-tag,
+    .new-badge,
+    .pocket-alert,
+    .node-flag,
+    .countdown.done,
+    .garden-plot.ready .plot-soil,
+    .scene-tool.ready,
+    .egg-wobble,
+    .pc-evo,
+    .pcs-evo,
+    .pcs-led,
+    .card-frame-platinum
+  ),
+.game.idle .expbar-fill::after {
+  animation-play-state: paused;
+}
+
 .badges {
   display: inline-flex;
   gap: 4px;
@@ -630,9 +656,10 @@ html.reduced-motion .status-player.leveling {
   animation: hp-danger 0.9s ease-in-out infinite;
 }
 
+/* Opacidade (e não filter): animada pela placa de vídeo, sem repintar a cada quadro. */
 @keyframes hp-danger {
   50% {
-    filter: brightness(1.35);
+    opacity: 0.7;
   }
 }
 
@@ -1969,4 +1996,14 @@ html.reduced-motion .menu-label {
   border: 2px solid var(--ink);
   background: #f8f8e8e0;
   font: 700 calc(var(--u) * 3) var(--font-label);
+}
+
+/* Aba recém-liberada no menu (GameMenu): selo NOVO menor, que cabe sobre o ícone. */
+.menu-new {
+  top: 0;
+  right: 0;
+  padding: 0 2px;
+  font-size: 10px;
+  line-height: 1.2;
+  pointer-events: none;
 }

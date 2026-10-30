@@ -2378,3 +2378,14 @@ button.tag-dot:disabled {
   width: 9em;
   min-width: 0;
 }
+
+/* BÔNUS DA EQUIPE: a explicação completa fica recolhida em "Como funciona". */
+.bonus-help summary {
+  cursor: pointer;
+  font: 700 13px var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.bonus-help[open] summary {
+  margin-bottom: 2px;
+}

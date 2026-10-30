@@ -4,7 +4,10 @@ import {
   abilitiesOf,
   getAbility,
   getHeldItem,
+  getMove,
   getSpecies,
+  hasMove,
+  preEvolutionOf,
   type AbilityDef,
   type HeldItemDef,
   type Species,
@@ -224,8 +227,8 @@ export function statsOf(p: {
   return calcStats(getSpecies(p.speciesId), p.level, p.ivs, p.nature, p.evs);
 }
 
-/** Até quatro golpes de dano mais recentes que a espécie aprende até `level`. */
-export function knownMoves(species: Species, level: number): string[] {
+/** Golpes de dano aprendidos por nível até `level`, do mais antigo ao mais recente. */
+function learnedByLevel(species: Species, level: number): string[] {
   const learned: string[] = [];
   for (const entry of species.learnset) {
     if (entry.level > level) break;
@@ -233,7 +236,58 @@ export function knownMoves(species: Species, level: number): string[] {
     if (i >= 0) learned.splice(i, 1);
     learned.push(entry.move);
   }
-  return learned.slice(-BALANCE.maxMoves);
+  return learned;
+}
+
+/**
+ * Golpe de máquina/tutor mais forte que um Pokémon deste nível já usa. Em faixas largas, para
+ * a escolha não mudar a cada nível (cada troca vira um aviso de golpe novo).
+ */
+const tmPowerCap = (level: number) => (level < 20 ? 60 : level < 40 ? 80 : level < 60 ? 100 : Infinity);
+
+const knownCache = new Map<string, string[]>();
+
+/**
+ * Até quatro golpes de dano: os mais recentes que a espécie aprende até `level`. Se não chega a
+ * quatro, completa com os que as formas anteriores aprendiam até esse nível (evoluir por pedra
+ * não apaga os golpes do Clefairy) e depois com golpes de máquina/tutor da espécie: primeiro os
+ * do próprio tipo, depois de tipos novos (cobertura), sempre os mais fortes que cabem no nível.
+ * Espécies que não têm quatro golpes de dano possíveis (Magikarp, Ditto…) ficam com os que há.
+ */
+export function knownMoves(species: Species, level: number): string[] {
+  const key = `${species.id}:${level}`;
+  const hit = knownCache.get(key);
+  if (hit) return [...hit];
+  const max = BALANCE.maxMoves;
+  const moves = learnedByLevel(species, level).slice(-max);
+  for (
+    let pre = preEvolutionOf(species.id);
+    pre !== undefined && moves.length < max;
+    pre = preEvolutionOf(pre)
+  ) {
+    const older = learnedByLevel(getSpecies(pre), level).filter((m) => !moves.includes(m));
+    moves.unshift(...older.slice(-(max - moves.length)));
+  }
+  if (moves.length < max) {
+    const options = species.tmMoves
+      .filter((m) => hasMove(m) && !moves.includes(m) && getMove(m).power <= tmPowerCap(level))
+      .map((m) => getMove(m))
+      .sort((a, b) => b.power - a.power || a.id.localeCompare(b.id));
+    const types = new Set(moves.map((m) => getMove(m).type));
+    const pick = (ok: (m: (typeof options)[number]) => boolean) => {
+      for (const m of options) {
+        if (moves.length >= max) return;
+        if (moves.includes(m.id) || !ok(m)) continue;
+        moves.push(m.id);
+        types.add(m.type);
+      }
+    };
+    pick((m) => species.types.includes(m.type) && !types.has(m.type));
+    pick((m) => !types.has(m.type));
+    pick(() => true);
+  }
+  knownCache.set(key, moves);
+  return [...moves];
 }
 
 /** Golpes usados em batalha: os escolhidos pelo jogador ou os aprendidos por nível. */

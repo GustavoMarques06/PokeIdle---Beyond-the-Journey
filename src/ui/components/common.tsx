@@ -12,7 +12,7 @@ import {
   type PlayerAvatar,
   type TrainerOutfit,
 } from '../../game-data';
-import { TYPE_NAMES } from '../i18n/pt-BR';
+import { TYPE_NAMES, formatNumber } from '../i18n/pt-BR';
 import { useTrainerSprite } from '../outfit';
 import { spindaPattern, useSpindaSprite } from '../spinda';
 import { ICONS, iconSvg, type IconName } from '../theme/icons';
@@ -247,7 +247,7 @@ export function Money({ value }: { value: number }) {
     <span className="money">
       <ItemIcon id="amulet-coin" size={24} />
       <PixelIcon name="pokedollar" scale={2} title="Pokédólares" />
-      {Math.floor(value).toLocaleString('pt-BR')}
+      {formatNumber(value)}
     </span>
   );
 }

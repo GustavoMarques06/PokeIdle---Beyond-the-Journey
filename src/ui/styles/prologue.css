@@ -322,6 +322,12 @@
   }
 }
 
+.title-files {
+  font: 700 12px var(--font-label);
+  color: rgb(255 255 255 / 0.7);
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
 .title-option:hover,
 .title-option:focus-visible {
   outline: 3px solid var(--red);

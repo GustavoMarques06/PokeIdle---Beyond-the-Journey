@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { THROWABLE_BALLS, getMove, getRoute, getSpecies, typeEffectiveness } from '../../game-data';
 import { legendaryRules } from '../../core/legendary';
+import { bossLook } from '../../core/rival';
 import { canCaptureHere } from '../../core/nuzlocke';
 import {
   activeMode,
@@ -42,7 +43,8 @@ import { battleText } from '../i18n/battleText';
 import { ENCOUNTER_MODE_NAMES, itemName, moveName } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
 
-const formatMultiplier = (x: number) => `${x.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}×`;
+const MULTIPLIER = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+const formatMultiplier = (x: number) => `${MULTIPLIER.format(x)}×`;
 
 const HOLD_MS = 2500;
 const TYPE_MS = 14;
@@ -216,16 +218,17 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const rocketHere = canChallengeRocket(state) && state.rocket?.routeId === b.routeId;
   const raidUp = canChallengeRaid(state);
   const rematchReady = canRematch(state, b.routeId) && wild;
+  const bossName = route.boss ? bossLook(state, route.boss).name : '';
   const challengeLabel = !wild
     ? null
     : bossReady
-      ? `DESAFIAR ${route.boss!.name.toUpperCase()}`
+      ? `DESAFIAR ${bossName.toUpperCase()}`
       : raidUp
         ? 'RAIDE'
         : rocketHere
           ? 'EQUIPE ROCKET'
           : rematchReady
-            ? `REVANCHE: ${route.boss!.name.toUpperCase()}`
+            ? `REVANCHE: ${bossName.toUpperCase()}`
             : null;
 
   const challenge = () => {
@@ -330,9 +333,9 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
           {wild && route.boss && !challengeLabel && !prog.bossDefeated && (
             <span
               className="dialog-goal"
-              title={`Vença ${route.killsRequired} Pokémon para desafiar ${route.boss.name}`}
+              title={`Vença ${route.killsRequired} Pokémon para desafiar ${bossName}`}
             >
-              {route.boss.name}: {Math.min(prog.kills, route.killsRequired)}/{route.killsRequired}
+              {bossName}: {Math.min(prog.kills, route.killsRequired)}/{route.killsRequired}
             </span>
           )}
           <button className="log-toggle" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog}>
@@ -370,7 +373,13 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             </button>
             <button className="bc-big bc-bag" onClick={() => setView('bag')}>
               <strong>MOCHILA</strong>
-              <small>{usable ? `${owned.length} tipos de bola` : 'sem captura aqui'}</small>
+              <small>
+                {!usable
+                  ? 'sem captura aqui'
+                  : owned.length === 1
+                    ? 'capturar com Poké Ball'
+                    : `capturar · ${owned.length} tipos de bola`}
+              </small>
             </button>
             <button className="bc-big bc-party" onClick={() => setView('party')}>
               <strong>POKéMON</strong>

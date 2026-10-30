@@ -2,7 +2,7 @@
 // de cada vez, só quando ela faz sentido (o primeiro selvagem, a primeira captura...). Cada
 // dica é vista uma vez (marcada em `state.flags`); quem já jogava não recebe nenhuma.
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { GameState } from '../../core/game';
 import { pokemonName } from '../../core/pokemon';
 import { getSpecies } from '../../game-data';
@@ -17,6 +17,8 @@ interface Step {
   id: string;
   when: (s: GameState) => boolean;
   text: (s: GameState) => string;
+  /** Dica só informativa: sai sozinha depois deste tempo, para não segurar as seguintes. */
+  autoCloseMs?: number;
 }
 
 const partner = (s: GameState) => {
@@ -30,12 +32,13 @@ const STEPS: Step[] = [
     when: () => true,
     text: (s) =>
       `Chegamos à primeira rota! ${partner(s)} luta sozinho: ataca, ganha EXP e sobe de nível sem você precisar fazer nada.`,
+    autoCloseMs: 12_000,
   },
   {
     id: 'ball',
     when: (s) => s.battle.kind === 'wild' && s.battle.phase === 'fighting' && !!s.battle.enemy,
     text: (s) =>
-      `Um ${getSpecies(s.battle.enemy!.speciesId).name.toUpperCase()} selvagem! Aperte Q ou toque em POKé BALL para tentar capturar. Com pouco HP, fica bem mais fácil.`,
+      `Um ${getSpecies(s.battle.enemy!.speciesId).name.toUpperCase()} selvagem! Para capturar, toque em MOCHILA e escolha a Poké Ball (ou aperte Q). Com pouco HP, fica bem mais fácil.`,
   },
   {
     id: 'box',
@@ -80,12 +83,30 @@ export function Coach({ state }: { state: GameState }) {
     <CoachBubble
       key={step.id}
       text={step.text(state)}
+      autoCloseMs={step.autoCloseMs}
       onClose={() => engine.dispatch((s) => void s.flags.push(stepFlag(step.id)))}
     />
   );
 }
 
-function CoachBubble({ text, onClose }: { text: string; onClose: () => void }) {
+function CoachBubble({
+  text,
+  onClose,
+  autoCloseMs,
+}: {
+  text: string;
+  onClose: () => void;
+  autoCloseMs?: number;
+}) {
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    if (!autoCloseMs) return;
+    const id = setTimeout(() => closeRef.current(), autoCloseMs);
+    return () => clearTimeout(id);
+  }, [autoCloseMs]);
   // Texto inteiro de uma vez: digitar letra a letra aqui redesenharia a tela o tempo todo
   // enquanto o jogo roda (e atrasaria o carregamento das outras telas).
   // Os avisos costumam ocupar o canto livre da caixa de mensagens; com a fala do professor
