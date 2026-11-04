@@ -160,6 +160,9 @@ html.reduced-motion .hud-events {
 
 .region-map {
   position: relative;
+  /* Nunca encolhe só na altura (dentro de colunas flex, como a janela do mapa ampliado): a arte é
+     desenhada esticada sobre a caixa, então a caixa precisa manter a proporção da imagem. */
+  flex: none;
   aspect-ratio: 4 / 3;
   margin-bottom: 8px;
   overflow: hidden;
@@ -191,6 +194,12 @@ html.reduced-motion .hud-events {
   max-height: 94vh;
   overflow: auto;
   padding: 10px;
+}
+
+/* Ampliado: o mapa inteiro cabe na altura da tela (a lista da área fica logo abaixo) e mantém a proporção. */
+.map-modal .region-map {
+  width: min(100%, calc((92vh - 90px) * var(--map-ratio, 1.333)));
+  margin-inline: auto;
 }
 
 .map-modal .map-node {
@@ -1861,12 +1870,28 @@ html.reduced-motion .scene-toast {
 .mvp-tag,
 .companion-tag {
   display: block;
-  margin-top: 2px;
   padding: 0 4px;
   border: 2px solid var(--gold-dark);
   background: var(--gold);
   font: 700 12px var(--font-label);
   text-align: center;
+}
+
+/* As etiquetas ficam coladas ao topo da moldura, fora do fluxo, para não empurrar o sprite. */
+.summary-portrait .mvp-tag,
+.summary-portrait .companion-tag {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.summary-portrait .companion-tag + .mvp-tag,
+.summary-portrait .mvp-tag + .companion-tag {
+  top: 16px;
 }
 
 .companion-tag {
@@ -1892,6 +1917,13 @@ html.reduced-motion .scene-toast {
   gap: 2px 8px;
   margin: 0;
   font-size: 13px;
+}
+
+/* Telas estreitas: dois pares por linha, para os textos não se sobreporem. */
+@media (max-width: 600px) {
+  .battle-record dl {
+    grid-template-columns: repeat(2, auto minmax(0, 1fr));
+  }
 }
 
 .battle-record dt {

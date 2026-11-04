@@ -234,6 +234,7 @@ export function setActive(state: GameState, uid: number): void {
   state.activeUid = uid;
   const b = state.battle;
   b.playerStatus = null;
+  b.megaUid = undefined;
   if (b.phase === 'fighting' && b.enemy) {
     const pc = combatantOf(activePokemon(state));
     b.playerTimerMs =

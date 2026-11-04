@@ -1,13 +1,14 @@
-// Primeiros passos: o Prof. Carvalho aparece num balão sobre a cena de batalha com uma dica
+// Primeiros passos: o Prof. Carvalho aparece de corpo inteiro no centro da tela com uma dica
 // de cada vez, só quando ela faz sentido (o primeiro selvagem, a primeira captura...). Cada
 // dica é vista uma vez (marcada em `state.flags`); quem já jogava não recebe nenhuma.
 
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameState } from '../../core/game';
 import { pokemonName } from '../../core/pokemon';
-import { getSpecies } from '../../game-data';
+import { assetUrl, getSpecies, trainerSprite } from '../../game-data';
+import { useTypewriter } from '../intro/useTypewriter';
 import { useEngine } from '../useGame';
-import { TrainerSprite } from './common';
 
 /** Marca de versão: jogos que já tinham batalhas antes desta versão pulam o tutorial. */
 const SEEN_FLAG = 'coach';
@@ -83,6 +84,7 @@ export function Coach({ state }: { state: GameState }) {
     <CoachBubble
       key={step.id}
       text={step.text(state)}
+      reduced={state.settings.reducedMotion}
       autoCloseMs={step.autoCloseMs}
       onClose={() => engine.dispatch((s) => void s.flags.push(stepFlag(step.id)))}
     />
@@ -91,10 +93,12 @@ export function Coach({ state }: { state: GameState }) {
 
 function CoachBubble({
   text,
+  reduced,
   onClose,
   autoCloseMs,
 }: {
   text: string;
+  reduced: boolean;
   onClose: () => void;
   autoCloseMs?: number;
 }) {
@@ -107,24 +111,41 @@ function CoachBubble({
     const id = setTimeout(() => closeRef.current(), autoCloseMs);
     return () => clearTimeout(id);
   }, [autoCloseMs]);
-  // Texto inteiro de uma vez: digitar letra a letra aqui redesenharia a tela o tempo todo
-  // enquanto o jogo roda (e atrasaria o carregamento das outras telas).
-  // Os avisos costumam ocupar o canto livre da caixa de mensagens; com a fala do professor
-  // nela, eles vão para o outro lado da tela (ver effects.css).
+  // Os avisos ficam no canto inferior esquerdo, onde o professor aparece: enquanto ele fala,
+  // vão para o outro lado (ver effects.css).
   useEffect(() => {
     document.documentElement.classList.add('coach-open');
     return () => document.documentElement.classList.remove('coach-open');
   }, []);
-  return (
-    <aside className="coach frame frame-dialog" aria-live="polite">
-      <TrainerSprite id="oak" size={56} head />
-      <div className="dialog-speech">
+  // O estado da máquina de escrever mora só neste componente: a batalha não é redesenhada
+  // a cada letra. Tocar na fala completa o texto de uma vez.
+  const { shown, finish } = useTypewriter(text, reduced);
+  // O professor fica em pé, grande, no canto esquerdo da tela, com um balão de fala ao lado.
+  // Sem fundo escurecido: a batalha continua à vista. Portal no <body>: não depende do layout.
+  return createPortal(
+    <aside className="coach" aria-live="polite" aria-label="Prof. Carvalho" onClick={finish}>
+      <img className="coach-sprite" src={assetUrl(trainerSprite('oak'))} alt="" draggable={false} />
+      <div className="coach-bubble">
         <span className="speaker">PROF. CARVALHO</span>
-        <p>{text}</p>
+        <p>
+          {shown}
+          {/* O resto da fala ocupa o lugar desde o início: o balão não cresce enquanto digita. */}
+          <span className="coach-rest" aria-hidden>
+            {text.slice(shown.length)}
+          </span>
+        </p>
+        <button
+          className="pbtn primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          autoFocus
+        >
+          OK
+        </button>
       </div>
-      <button className="pbtn small primary" onClick={onClose}>
-        OK
-      </button>
-    </aside>
+    </aside>,
+    document.body,
   );
 }

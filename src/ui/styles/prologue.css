@@ -72,41 +72,16 @@
   z-index: 2;
 }
 
-/* Logo: letras amarelas em três faixas, contorno grosso azul-marinho e sombra. */
+/* Logo ilustrado (public/brand/logo.png), caindo do alto como antes. */
 .gba-logo {
   position: absolute;
   z-index: 4;
-  left: calc(var(--u) * 6);
-  top: calc(var(--u) * 7);
-  font: 600 calc(var(--u) * 36) / 1 var(--font-text);
-  letter-spacing: calc(var(--u) * 1);
+  left: calc(var(--u) * 4);
+  top: calc(var(--u) * 5);
+  width: calc(var(--u) * 150);
+  height: auto;
+  filter: drop-shadow(0 calc(var(--u) * 2) 0 rgb(12 24 56 / 0.55));
   animation: gba-logo-drop 0.6s steps(6, end);
-}
-
-.gba-logo-outline {
-  color: #203878;
-  --o: calc(var(--u) * 3);
-  --n: calc(var(--u) * -3);
-  text-shadow:
-    var(--o) 0 0 #203878,
-    var(--n) 0 0 #203878,
-    0 var(--o) 0 #203878,
-    0 var(--n) 0 #203878,
-    var(--o) var(--o) 0 #203878,
-    var(--n) var(--n) 0 #203878,
-    var(--o) var(--n) 0 #203878,
-    var(--n) var(--o) 0 #203878,
-    0 calc(var(--u) * 4) 0 #0c1838,
-    calc(var(--u) * 2) calc(var(--u) * 4) 0 #0c1838;
-}
-
-.gba-logo-fill {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #fff8b8 0 30%, #ffd830 30% 64%, #f0a010 64%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 @keyframes gba-logo-drop {
@@ -116,34 +91,6 @@
   70% {
     translate: 0 calc(var(--u) * 3);
   }
-}
-
-/* Subtítulo em duas linhas, branco com contorno escuro, levemente inclinado. */
-.gba-subtitle {
-  position: absolute;
-  z-index: 4;
-  left: calc(var(--u) * 40);
-  top: calc(var(--u) * 50);
-  display: flex;
-  flex-direction: column;
-  font: 600 calc(var(--u) * 14) / 0.95 var(--font-text);
-  color: #fff;
-  rotate: -4deg;
-  --o: var(--u);
-  --n: calc(var(--u) * -1);
-  text-shadow:
-    var(--o) 0 0 #182040,
-    var(--n) 0 0 #182040,
-    0 var(--o) 0 #182040,
-    0 var(--n) 0 #182040,
-    var(--o) var(--o) 0 #182040,
-    var(--n) var(--n) 0 #182040,
-    calc(var(--u) * 2) calc(var(--u) * 2) 0 #182040;
-  animation: gba-fade 0.4s steps(4, end) 0.5s both;
-}
-
-.gba-subtitle span:last-child {
-  margin-left: calc(var(--u) * 22);
 }
 
 @keyframes gba-fade {

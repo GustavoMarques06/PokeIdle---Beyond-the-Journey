@@ -188,6 +188,8 @@ export interface BattleState {
   phase: BattlePhase;
   phaseMs: number;
   playerTimerMs: number;
+  /** Duração do último intervalo do ativo (a barra de espera do modo manual). */
+  playerIntervalMs?: number;
   enemyTimerMs: number;
   /** Status do Pokémon ativo; some ao fim de cada batalha ou na troca. */
   playerStatus?: StatusState | null;
@@ -201,6 +203,8 @@ export interface BattleState {
   weekly?: boolean;
   /** Golpe escolhido pelo jogador para a próxima vez do ativo (LUTAR). */
   pendingMove?: string;
+  /** Pokémon que Mega Evoluiu neste encontro (a forma some no próximo encontro ou na troca). */
+  megaUid?: number;
   /** Duelo fantasma: a equipe enfrentada (id em `link.ghosts`). */
   ghostId?: string;
 }
@@ -419,6 +423,7 @@ export type GameEvent =
   | { type: 'enemyFainted'; speciesId: number; exp: number; coins: number }
   | { type: 'playerFainted'; speciesId: number }
   /** A reserva entrou no lugar do ativo (desmaio ou vantagem de tipo). */
+  | { type: 'megaEvolved'; uid: number; speciesId: number; form: string }
   | { type: 'switched'; uid: number; from: number; to: number; reason: 'fainted' | 'matchup' | 'manual' }
   | { type: 'ranAway'; speciesId: number }
   | { type: 'statusDamage'; side: 'player' | 'enemy'; speciesId: number; status: Ailment; damage: number }
@@ -678,6 +683,7 @@ export function resolveBossTeam(state: GameState, boss: BossData, rematch = fals
     return {
       speciesId,
       level: Math.min(BALANCE.maxLevel, m.level + extra + re),
+      ...('form' in m && m.form ? { form: m.form } : {}),
       boost:
         (1 + ((boss.boost ?? 1) - 1) * BALANCE.combat.bossBoostScale) * (rematch ? BALANCE.rematch.boost : 1),
       ...bossLoadout(boss, speciesId, i === lastIndex, rematch),

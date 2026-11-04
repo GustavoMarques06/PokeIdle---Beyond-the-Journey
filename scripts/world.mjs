@@ -432,7 +432,7 @@ const johto = {
     trial('johto-liga-koga', 'Liga de Johto — Koga', 'johto-estrada-vitoria', [95.9, 45.9], boss('Koga', 'Elite dos Quatro', 'koga', [['ariados', 76], ['forretress', 77], ['muk', 78], ['venomoth', 77], ['crobat', 80]], 5400)),
     trial('johto-liga-bruno', 'Liga de Johto — Bruno', 'johto-estrada-vitoria', [97.7, 48.6], boss('Bruno', 'Elite dos Quatro', 'bruno', [['hitmontop', 77], ['hitmonlee', 77], ['hitmonchan', 77], ['onix', 78], ['machamp', 81]], 5600)),
     trial('johto-liga-karen', 'Liga de Johto — Karen', 'johto-estrada-vitoria', [98.9, 44.8], boss('Karen', 'Elite dos Quatro', 'karen', [['umbreon', 78], ['vileplume', 77], ['gengar', 78], ['murkrow', 78], ['houndoom', 82]], 5800)),
-    trial('johto-liga-campeao', 'Liga de Johto — Campeão', 'johto-estrada-vitoria', [97.1, 42.4], boss('Lance', 'Campeão da Liga de Johto', 'lance', [['gyarados', 80], ['dragonite', 80], ['dragonite', 80], ['aerodactyl', 80], ['charizard', 80], ['dragonite', 83]], 9000, { champion: true })),
+    trial('johto-liga-campeao', 'Liga de Johto — Campeão', 'johto-estrada-vitoria', [97.1, 42.4], boss('Lance', 'Campeão da Liga de Johto', 'lance', [['gyarados', 80], ['dragonite', 80], ['dragonite', 80], ['aerodactyl', 80], ['charizard', 80, 'megax'], ['dragonite', 83]], 9000, { champion: true })),
   ],
 };
 
@@ -580,7 +580,7 @@ const hoenn = {
     trial('hoenn-liga-phoebe', 'Liga de Hoenn — Phoebe', 'hoenn-estrada-vitoria', [95.2, 39.6], boss('Phoebe', 'Elite dos Quatro', 'phoebe', [['dusclops', 85], ['banette', 85], ['sableye', 85], ['banette', 85], ['dusclops', 87]], 6800)),
     trial('hoenn-liga-glacia', 'Liga de Hoenn — Glacia', 'hoenn-estrada-vitoria', [92.4, 42.4], boss('Glacia', 'Elite dos Quatro', 'glacia', [['sealeo', 86], ['glalie', 86], ['sealeo', 86], ['glalie', 86], ['walrein', 88]], 7000)),
     trial('hoenn-liga-drake', 'Liga de Hoenn — Drake', 'hoenn-estrada-vitoria', [95.6, 44.1], boss('Drake', 'Elite dos Quatro', 'drake', [['shelgon', 87], ['altaria', 87], ['flygon', 87], ['flygon', 87], ['salamence', 89]], 7200)),
-    trial('hoenn-liga-campeao', 'Liga de Hoenn — Campeão', 'hoenn-estrada-vitoria', [94, 34.5], boss('Steven', 'Campeão da Liga de Hoenn', 'steven', [['skarmory', 88], ['claydol', 88], ['aggron', 89], ['cradily', 89], ['armaldo', 89], ['metagross', 91]], 11000, { champion: true })),
+    trial('hoenn-liga-campeao', 'Liga de Hoenn — Campeão', 'hoenn-estrada-vitoria', [94, 34.5], boss('Steven', 'Campeão da Liga de Hoenn', 'steven', [['skarmory', 88], ['claydol', 88], ['aggron', 89], ['cradily', 89], ['armaldo', 89], ['metagross', 91, 'mega']], 11000, { champion: true })),
   ],
 };
 
@@ -730,7 +730,7 @@ const sinnoh = {
     trial('sinnoh-liga-bertha', 'Liga de Sinnoh — Bertha', 'sinnoh-estrada-vitoria', [87.4, 45.6], boss('Bertha', 'Elite dos Quatro', 'bertha', [['whiscash', 91], ['gliscor', 92], ['golem', 92], ['rhyperior', 92], ['hippowdon', 93]], 8400)),
     trial('sinnoh-liga-flint', 'Liga de Sinnoh — Flint', 'sinnoh-estrada-vitoria', [85, 42.1], boss('Flint', 'Elite dos Quatro', 'flint', [['houndoom', 92], ['flareon', 92], ['rapidash', 92], ['infernape', 93], ['magmortar', 94]], 8600)),
     trial('sinnoh-liga-lucian', 'Liga de Sinnoh — Lucian', 'sinnoh-estrada-vitoria', [88.4, 41.4], boss('Lucian', 'Elite dos Quatro', 'lucian', [['mr-mime', 93], ['girafarig', 93], ['medicham', 93], ['alakazam', 94], ['bronzong', 94]], 8800)),
-    trial('sinnoh-liga-campeao', 'Liga de Sinnoh — Campeã', 'sinnoh-estrada-vitoria', [86.4, 38], boss('Cynthia', 'Campeã da Liga de Sinnoh', 'cynthia', [['spiritomb', 94], ['roserade', 94], ['togekiss', 94], ['lucario', 94], ['milotic', 94], ['garchomp', 96]], 13000, { champion: true })),
+    trial('sinnoh-liga-campeao', 'Liga de Sinnoh — Campeã', 'sinnoh-estrada-vitoria', [86.4, 38], boss('Cynthia', 'Campeã da Liga de Sinnoh', 'cynthia', [['spiritomb', 94], ['roserade', 94], ['togekiss', 94], ['lucario', 94], ['milotic', 94], ['garchomp', 96, 'mega']], 13000, { champion: true })),
   ],
 };
 
@@ -785,7 +785,7 @@ const unova = {
       ['sawk', 5, 86, 89],
     ], {
       boss: boss('Burgh', 'Líder do Ginásio de Castelia', 'burgh', [['whirlipede', 90], ['crustle', 90], ['leavanny', 92]], 8000, {
-        badge: { id: 'insect', name: 'Insígnia do Inseto', sprite: 35 },
+        badge: { id: 'insect', name: 'Insígnia do Besouro', sprite: 35 },
         reward: { tm: 'struggle-bug' },
       }),
     }),
@@ -1009,7 +1009,7 @@ const kalos = {
       ['mightyena', 10, 100, 100],
     ], {
       boost: 1.18,
-      boss: boss('Lysandre', 'Chefe da Equipe Flare', 'lysandre', [['mienshao', 100], ['honchkrow', 100], ['pyroar', 100], ['gyarados', 100]], 23000, {
+      boss: boss('Lysandre', 'Chefe da Equipe Flare', 'lysandre', [['mienshao', 100], ['honchkrow', 100], ['pyroar', 100], ['gyarados', 100, 'mega']], 23000, {
         reward: { items: { 'ultra-ball': 10, 'master-ball': 1 } },
         boost: 1.33,
       }),
@@ -1088,11 +1088,63 @@ const kalos = {
     trial('kalos-liga-siebold', 'Liga de Kalos — Siebold', 'kalos-estrada-vitoria', [93, 9], boss('Siebold', 'Elite dos Quatro', 'siebold', [['clawitzer', 100], ['starmie', 100], ['gyarados', 100], ['barbaracle', 100]], 31000, { boost: 1.44 })),
     trial('kalos-liga-wikstrom', 'Liga de Kalos — Wikstrom', 'kalos-estrada-vitoria', [96.5, 9], boss('Wikstrom', 'Elite dos Quatro', 'wikstrom', [['klefki', 100], ['probopass', 100], ['scizor', 100], ['aegislash', 100]], 32000, { boost: 1.46 })),
     trial('kalos-liga-drasna', 'Liga de Kalos — Drasna', 'kalos-estrada-vitoria', [99, 12], boss('Drasna', 'Elite dos Quatro', 'drasna', [['dragalge', 100], ['druddigon', 100], ['altaria', 100], ['noivern', 100]], 33000, { boost: 1.48 })),
-    trial('kalos-liga-campeao', 'Liga de Kalos — Campeã', 'kalos-estrada-vitoria', [95, 4], boss('Diantha', 'Campeã da Liga de Kalos', 'diantha', [['hawlucha', 100], ['tyrantrum', 100], ['aurorus', 100], ['gourgeist', 100], ['goodra', 100], ['gardevoir', 100]], 40000, { champion: true, boost: 1.55 })),
+    trial('kalos-liga-campeao', 'Liga de Kalos — Campeã', 'kalos-estrada-vitoria', [95, 4], boss('Diantha', 'Campeã da Liga de Kalos', 'diantha', [['hawlucha', 100], ['tyrantrum', 100], ['aurorus', 100], ['gourgeist', 100], ['goodra', 100], ['gardevoir', 100, 'mega']], 40000, { champion: true, boost: 1.55 })),
   ],
 };
 
 export const REGIONS = [kanto, johto, hoenn, sinnoh, unova, kalos];
+
+// Cenário de cada rota que não usa o padrão do tipo (salas da Liga por tipo de líder, cidades, torres…).
+const SCENE_OVERRIDES = {
+  "liga-lorelei": "league-ice",
+  "liga-bruno": "league-fight",
+  "liga-agatha": "league-ghost",
+  "liga-lance": "league-dragon",
+  "liga-campeao": "league-hall",
+  "esconderijo-rocket": "rocket-base",
+  "rota-16-18": "street",
+  "johto-liga-will": "league-psychic",
+  "johto-liga-koga": "league-poison",
+  "johto-liga-bruno": "league-fight",
+  "johto-liga-karen": "league-dark",
+  "johto-liga-campeao": "league-hall",
+  "rotas-34-35-goldenrod": "street",
+  "hoenn-liga-sidney": "league-dark",
+  "hoenn-liga-phoebe": "league-ghost",
+  "hoenn-liga-glacia": "league-ice",
+  "hoenn-liga-drake": "league-dragon",
+  "hoenn-liga-campeao": "league-hall",
+  "sinnoh-liga-aaron": "league-poison",
+  "sinnoh-liga-bertha": "league-ground",
+  "sinnoh-liga-flint": "league-fire",
+  "sinnoh-liga-lucian": "league-psychic",
+  "sinnoh-liga-campeao": "league-hall",
+  "unova-liga-shauntal": "league-ghost",
+  "unova-liga-marshal": "league-fight",
+  "unova-liga-grimsley": "league-dark",
+  "unova-liga-caitlin": "league-psychic",
+  "unova-liga-campeao": "league-hall",
+  "laboratorio-lysandre": "lab",
+  "kalos-liga-malva": "league-fire",
+  "kalos-liga-siebold": "league-water",
+  "kalos-liga-wikstrom": "league-steel",
+  "kalos-liga-drasna": "league-dragon",
+  "kalos-liga-campeao": "league-hall",
+  "caverna-seafloor": "seafloor",
+  "torre-pokemon": "tower",
+  "torre-queimada": "tower",
+  "kalos-laverre": "swamp",
+  "grande-pantano": "swamp",
+  "rota-216-217": "snowfield",
+  "kalos-snowbelle": "snowfield",
+  "nacrene-resort": "ruins",
+  "kalos-rotas-10-11": "ruins",
+  "dragonspiral": "summit",
+  "rota-110-mauville": "powerplant",
+  "rota-119-fortree": "jungle",
+  "zona-safari": "jungle"
+};
+for (const reg of REGIONS) for (const rt of reg.routes) if (SCENE_OVERRIDES[rt.id]) rt.scene = SCENE_OVERRIDES[rt.id];
 
 // ---------------------------------------------------------------------------------
 // Pokémon errantes: aparecem por tempo limitado numa rota aleatória já liberada.

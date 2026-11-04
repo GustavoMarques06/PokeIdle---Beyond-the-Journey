@@ -97,6 +97,7 @@ export function switchIn(
   state.battleTeam[slot] = from.uid;
   state.activeUid = uid;
   state.battle.playerStatus = null;
+  state.battle.megaUid = undefined;
   events.push({ type: 'switched', uid, from: from.speciesId, to: to.speciesId, reason });
 }
 

@@ -555,7 +555,9 @@ async function main() {
 
   // 7. Mundo com ids numéricos.
   const team = (list) =>
-    list.map(([s, level]) => (s.startsWith('$rival:') ? { rivalStage: Number(s.slice(7)), level } : { speciesId: idOf(s), level }));
+    list.map(([s, level, form]) =>
+      s.startsWith('$rival:') ? { rivalStage: Number(s.slice(7)), level } : { speciesId: idOf(s), level, ...(form ? { form } : {}) },
+    );
   const withSpecies = (obj) => {
     if (!obj.species) return obj;
     const { species: slug, ...rest } = obj;

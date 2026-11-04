@@ -11,6 +11,8 @@ export default defineConfig({
     // que é só conteúdo e fica em cache; o código do jogo fica bem abaixo disso.
     chunkSizeWarningLimit: 950,
     rolldownOptions: {
+      // Duas páginas: o jogo (index.html) e o guia de ajuda (ajuda.html), que abre em outra aba.
+      input: { main: 'index.html', ajuda: 'ajuda.html' },
       output: {
         // React e os dados gerados mudam pouco: ficam em arquivos próprios, que o
         // navegador mantém em cache entre versões do jogo.

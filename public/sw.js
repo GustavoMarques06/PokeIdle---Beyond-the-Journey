@@ -3,7 +3,7 @@
 // com hash do build e os sprites, sons e mapas vêm do cache e são guardados na primeira vez.
 
 const CACHE = 'pokeidle-v1';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png'];
+const CORE = ['./', './index.html', './ajuda.html', './manifest.webmanifest', './icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -25,7 +25,7 @@ async function networkFirst(request) {
     if (response.ok) cache.put(request, response.clone());
     return response;
   } catch {
-    return (await cache.match(request)) ?? (await cache.match('./index.html')) ?? Response.error();
+    return (await cache.match(request)) ?? (await cache.match(request.url.includes('ajuda') ? './ajuda.html' : './index.html')) ?? Response.error();
   }
 }
 

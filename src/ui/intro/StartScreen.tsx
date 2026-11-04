@@ -175,16 +175,12 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           style={{ top: y(BANDS.grassTop + 1), height: v(8) }}
         />
 
-        <div className="gba-logo">
-          <span className="gba-logo-outline" aria-hidden>
-            PokéIdle
-          </span>
-          <span className="gba-logo-fill">PokéIdle</span>
-        </div>
-        <div className="gba-subtitle" aria-label="Beyond the Journey">
-          <span>BEYOND THE</span>
-          <span>JOURNEY</span>
-        </div>
+        <img
+          className="gba-logo"
+          src={assetUrl('brand/logo.png')}
+          alt="PokéIdle — Beyond the Journey"
+          draggable={false}
+        />
 
         <div
           className="gba-legendary"

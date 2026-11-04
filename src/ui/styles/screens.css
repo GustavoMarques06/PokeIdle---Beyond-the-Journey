@@ -147,6 +147,20 @@
   gap: 3px;
 }
 
+/* Com mouse, os botões de ordem ficam discretos até o cursor chegar na linha (ou o foco entrar
+   nela): são a parte mais repetida da coluna. No toque (sem hover) ficam sempre visíveis. */
+@media (hover: hover) and (pointer: fine) {
+  .team-row-tools {
+    opacity: 0.28;
+    transition: opacity 0.12s steps(2, end);
+  }
+
+  .team-row:hover .team-row-tools,
+  .team-row:focus-within .team-row-tools {
+    opacity: 1;
+  }
+}
+
 .team-row-tools .pbtn.tiny {
   min-width: 26px;
   min-height: 18px;
@@ -244,6 +258,24 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2px 12px;
+}
+
+.bonus-types,
+.bonus-help {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--ink-soft);
+}
+
+.bonus-types summary,
+.bonus-help summary {
+  cursor: pointer;
+  font: 700 12px var(--font-label);
+  color: var(--ink-soft);
+}
+
+.bonus-types .bonus-list {
+  margin-top: 6px;
 }
 
 .bonus-list li {
@@ -2388,4 +2420,35 @@ button.tag-dot:disabled {
 
 .bonus-help[open] summary {
   margin-bottom: 2px;
+}
+
+/* Ações menos usadas do Pokémon ficam recolhidas. */
+.more-actions {
+  margin-top: 6px;
+}
+
+.more-actions > summary {
+  cursor: pointer;
+  font: 700 12px var(--font-label);
+  color: var(--menu-blue-dark);
+  list-style: none;
+}
+
+.more-actions > summary::before {
+  content: '▸ ';
+}
+
+.more-actions[open] > summary::before {
+  content: '▾ ';
+}
+
+.more-actions .summary-actions {
+  margin-top: 6px;
+}
+
+.held-more > summary {
+  cursor: pointer;
+  margin: 4px 0;
+  font: 700 12px var(--font-label);
+  color: var(--menu-blue-dark);
 }

@@ -115,24 +115,29 @@ function Kit({ state, p }: { state: GameState; p: PokemonInstance }) {
         ) : (
           <small className="muted">Nenhum. Escolha um item da Mochila abaixo.</small>
         )}
-        <ul className="held-pick">
-          {inBag.map((h) => (
-            <li key={h.id}>
-              <button
-                className="pbtn small"
-                title={`${h.name}: ${h.description}`}
-                onClick={() => engine.dispatch((s) => equipItem(s, p.uid, h.id))}
-              >
-                <ItemIcon id={h.id} size={20} /> {h.name} ×{state.items[h.id]}
-              </button>
-            </li>
-          ))}
-          {!inBag.length && (
-            <li className="muted">
-              Nada na Mochila. Há itens na Loja de Depto., em raides e em Pokémon selvagens.
-            </li>
-          )}
-        </ul>
+        <details className="held-more" open={!held}>
+          <summary>
+            {held ? `Trocar item (${inBag.length} na Mochila)` : `Itens na Mochila (${inBag.length})`}
+          </summary>
+          <ul className="held-pick">
+            {inBag.map((h) => (
+              <li key={h.id}>
+                <button
+                  className="pbtn small"
+                  title={`${h.name}: ${h.description}`}
+                  onClick={() => engine.dispatch((s) => equipItem(s, p.uid, h.id))}
+                >
+                  <ItemIcon id={h.id} size={20} /> {h.name} ×{state.items[h.id]}
+                </button>
+              </li>
+            ))}
+            {!inBag.length && (
+              <li className="muted">
+                Nada na Mochila. Há itens na Loja de Depto., em raides e em Pokémon selvagens.
+              </li>
+            )}
+          </ul>
+        </details>
       </div>
     </div>
   );

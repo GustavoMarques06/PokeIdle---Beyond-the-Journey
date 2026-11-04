@@ -1,6 +1,7 @@
 // Itens seguráveis (um por Pokémon) e itens de treino, com o sprite oficial da PokéAPI. O `icon`
 // (forma + cor em pixel art) só aparece se o sprite faltar.
 
+import { MEGAS, MEGA_STONE_PRICE } from './megas';
 import type { Ailment, ItemData, StatKey, TypeName } from './types';
 
 export interface HeldItemDef {
@@ -44,6 +45,8 @@ export interface HeldItemDef {
   training?: number;
   /** Impede a evolução. */
   everstone?: boolean;
+  /** Mega Stone: libera a Mega Evolução da espécie em batalha (ver megas.ts). */
+  megaStone?: boolean;
 }
 
 const TYPE_BOOSTERS: { id: string; name: string; type: TypeName; color: string }[] = [
@@ -307,6 +310,20 @@ export const HELD_ITEMS: HeldItemDef[] = [
     }),
   ),
 ];
+
+// Mega Stones: sprite oficial e preço alto (a Mega vale por um encontro inteiro).
+HELD_ITEMS.push(
+  ...MEGAS.map((m) =>
+    H({
+      id: m.stone,
+      name: m.stoneName,
+      description: `${m.name}: em batalha, ${m.name.replace(/^Mega /, '').replace(/ [XY]$/, '')} muda de forma até o fim do encontro (tipos e atributos da Mega). No manual, aperte MEGA; no automático, ocorre sozinho.`,
+      sprite: `sprites/items/${m.stone}.png`,
+      price: MEGA_STONE_PRICE,
+      megaStone: true,
+    }),
+  ),
+);
 
 const heldById = new Map(HELD_ITEMS.map((h) => [h.id, h]));
 

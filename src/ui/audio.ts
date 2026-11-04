@@ -16,6 +16,7 @@ export type Sfx =
   | 'capture'
   | 'levelUp'
   | 'evolve'
+  | 'mega'
   | 'victory'
   | 'boss'
   | 'achievement'
@@ -296,6 +297,13 @@ class AudioManager {
       case 'evolve':
         this.arpeggio([60, 64, 67, 72, 76, 79, 84], t, 0.09, 'square', 0.07);
         return;
+      case 'mega':
+        // Energia subindo (grave a agudo), um estouro de ruído e um acorde brilhante.
+        this.tone(110, t, 0.5, 'sawtooth', 0.06, 880);
+        this.arpeggio([55, 59, 62, 67, 71, 74, 79, 83, 86], t + 0.05, 0.055, 'square', 0.06);
+        this.noise(t + 0.5, 0.2, 0.22);
+        this.arpeggio([79, 83, 86, 91], t + 0.52, 0.04, 'triangle', 0.09);
+        return;
       case 'victory':
         this.arpeggio([72, 79], t, 0.06, 'square', 0.05);
         return;
@@ -363,6 +371,10 @@ class AudioManager {
       switch (e.type) {
         case 'spawn':
           if (e.water) this.sfx('splash');
+          this.cry(e.speciesId);
+          break;
+        case 'megaEvolved':
+          this.sfx('mega');
           this.cry(e.speciesId);
           break;
         case 'switched':

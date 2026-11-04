@@ -116,7 +116,9 @@ export interface Encounter {
 }
 
 /** Membro do time de um chefe: espécie fixa ou o inicial do rival (estágio 1–3). */
-export type BossMember = { speciesId: number; level: number } | { rivalStage: number; level: number };
+/** `form`: forma do sprite (`mega`, `megax`, `megay` = Mega Evolução já ativa no chefe). */
+export type BossMember =
+  { speciesId: number; level: number; form?: string } | { rivalStage: number; level: number };
 
 export interface BossData {
   name: string;
@@ -149,7 +151,30 @@ export type SceneKey =
   | 'volcano'
   | 'plains'
   | 'dampcave'
-  | 'sea';
+  | 'sea'
+  | 'league-hall'
+  | 'league-ice'
+  | 'league-fight'
+  | 'league-ghost'
+  | 'league-dragon'
+  | 'league-psychic'
+  | 'league-dark'
+  | 'league-poison'
+  | 'league-fire'
+  | 'league-steel'
+  | 'league-water'
+  | 'league-ground'
+  | 'street'
+  | 'rocket-base'
+  | 'lab'
+  | 'seafloor'
+  | 'swamp'
+  | 'ruins'
+  | 'snowfield'
+  | 'tower'
+  | 'powerplant'
+  | 'summit'
+  | 'jungle';
 
 export interface Route {
   id: string;

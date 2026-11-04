@@ -89,14 +89,24 @@ describe('batalha manual', () => {
 });
 
 describe('batalha automática', () => {
-  it('não espera comando, mas aceita um golpe escolhido para a próxima vez', () => {
+  it('não espera comando e não aceita golpe escolhido (os golpes saem no tempo de cada um)', () => {
     const s = newGame(4, 0, 7);
     until(s, () => s.battle.phase === 'fighting');
     expect(awaitingCommand(s)).toBe(false);
     const move = movesOf(activePokemon(s)).at(-1)!;
-    selectMove(s, move);
-    const events = until(s, () => !s.battle.pendingMove);
-    const mine = events.find((e) => e.type === 'attack' && e.side === 'player');
-    if (mine && mine.type === 'attack') expect(mine.result.moveId).toBe(move);
+    expect(selectMove(s, move)).toBe(false);
+    expect(s.battle.pendingMove).toBeUndefined();
+  });
+
+  it('no manual, só dá para escolher o golpe quando o cronômetro chega', () => {
+    const s = newGame(4, 0, 7);
+    s.settings.battleMode = 'manual';
+    until(s, () => s.battle.phase === 'fighting' && s.battle.playerTimerMs > 200);
+    const move = movesOf(activePokemon(s)).at(-1)!;
+    expect(awaitingCommand(s)).toBe(false);
+    expect(selectMove(s, move)).toBe(false);
+    until(s, () => awaitingCommand(s));
+    expect(selectMove(s, move)).toBe(true);
+    expect(selectMove(s, move)).toBe(false);
   });
 });

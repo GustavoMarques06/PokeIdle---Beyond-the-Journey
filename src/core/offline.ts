@@ -1,6 +1,6 @@
 // Progresso offline: cálculo puro e determinístico, separado do loop visual.
 
-import { BALANCE } from '../game-data';
+import { BALANCE, megaFor } from '../game-data';
 import { combatScales, computeModifiers } from './bonuses';
 import { combatantOf, estimateDuel } from './combat';
 import { markCaught } from './collection';
@@ -76,7 +76,9 @@ export function estimateRoute(state: GameState, routeId: string): RouteEstimate 
   const c = BALANCE.combat;
   const player = activePokemon(state);
   const mods = computeModifiers(state);
-  const pc = combatantOf(player, mods.playerMoveBoost);
+  // Fora do jogo tudo é automático: quem segura a Mega Stone luta como Mega.
+  const mega = megaFor(player);
+  const pc = combatantOf(mega ? { ...player, megaForm: mega.form } : player, mods.playerMoveBoost);
   const avgIvs = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
   let totalW = 0;
   let cycle = 0;

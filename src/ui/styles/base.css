@@ -484,3 +484,18 @@ textarea {
 .screen-area:focus-visible {
   outline: 3px solid var(--gold);
 }
+
+/* Toque: sem atraso de duplo toque, sem o brilho cinza do navegador e sem "puxar para atualizar" no meio do jogo. */
+button,
+a,
+select,
+[role='tab'],
+[role='radio'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  overscroll-behavior-y: none;
+}

@@ -136,6 +136,9 @@ Troca e duelo entre amigos por código de texto, sem servidor (o mesmo formato d
 - Painel de próximos passos na coluna do menu: o que está pronto, o que acaba logo e o que está parado, com a
   chance estimada contra o próximo chefe e a ação a um clique.
 - Relatório offline e atalhos de teclado.
+- **AJUDA** (`ajuda.html`): uma página separada, aberta em outra aba do navegador (pelo menu AJUDA, pela tecla `H` ou
+  pelo COMO JOGAR da tela inicial), com um FAQ de mais de 60 perguntas explicadas do zero, com busca, assuntos e
+  imagens que ampliam, para quem nunca jogou. O conteúdo fica em `src/ui/help/content`.
 - Notificações do sistema com o jogo em segundo plano, por categoria (creche, expedições, visitantes,
   progresso, shiny), agrupando avisos repetidos.
 - Layout de uma coluna para celular, com o menu como barra de abas, e PWA instalável que abre sem internet.
@@ -161,6 +164,8 @@ Troca e duelo entre amigos por código de texto, sem servidor (o mesmo formato d
 | `D`       | Desafiar o chefe, a raide, a Equipe Rocket ou fazer a revanche |
 | `F`       | Fugir ou desistir do desafio                                   |
 | `E`       | Alternar entre grama, pesca e Surf (em áreas com água)         |
+| `M`       | Mega Evoluir (modo manual, com a Mega Stone)                   |
+| `H`       | Abrir a AJUDA                                                  |
 | `B`       | Colher a árvore de berry da área                               |
 | `P`       | Tirar uma foto da batalha                                      |
 | `Esc`     | Fechar avisos e relatórios                                     |

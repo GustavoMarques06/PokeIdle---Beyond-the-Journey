@@ -32,6 +32,7 @@ export {
 } from './routes';
 export { BALANCE, DEPT_STORE, SHOP, type ShopEntry } from './balance';
 export * from './meta';
+export * from './megas';
 export * from './activities';
 export * from './natures';
 export * from './abilities';
@@ -182,6 +183,23 @@ export function superEffectiveAgainst(attack: TypeName): TypeName[] {
   return Object.entries(typeChart[attack] ?? {})
     .filter(([, mult]) => mult > 1)
     .map(([t]) => t);
+}
+
+/** Tipos de golpe que causam mais dano (×2 ou ×4) e menos dano (÷2, ÷4 ou nenhum) nesses tipos defensores. */
+export function matchupOf(defender: TypeName[]): {
+  weak: [TypeName, number][];
+  resist: [TypeName, number][];
+} {
+  const weak: [TypeName, number][] = [];
+  const resist: [TypeName, number][] = [];
+  for (const attack of Object.keys(typeChart)) {
+    const m = typeEffectiveness(attack, defender);
+    if (m > 1) weak.push([attack, m]);
+    else if (m < 1) resist.push([attack, m]);
+  }
+  weak.sort((a, b) => b[1] - a[1]);
+  resist.sort((a, b) => a[1] - b[1]);
+  return { weak, resist };
 }
 
 const preEvolution = new Map<number, number>();

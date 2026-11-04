@@ -6,6 +6,7 @@ import {
   assetUrl,
   badgeSprite,
   formSprite,
+  isMegaForm,
   getItem,
   getSpecies,
   spriteFeet,
@@ -40,7 +41,13 @@ export function PokemonSprite({
 }) {
   const s = getSpecies(speciesId).sprites;
   const formPath = kind === 'icon' ? undefined : formSprite(speciesId, form, kind, shiny);
+  // Ícone da Mega (equipe): só existe para as formas Mega.
+  const megaIcon =
+    kind === 'icon' && isMegaForm(speciesId, form)
+      ? `sprites/pokemon/forms/icon/${speciesId}-${form}.png`
+      : undefined;
   const path =
+    megaIcon ??
     formPath ??
     (kind === 'icon'
       ? s.icon

@@ -12,6 +12,8 @@ import {
   activeMode,
   activePokemon,
   awaitingCommand,
+  megaAvailable,
+  megaEvolve,
   ballMultiplierNow,
   canChallengeBoss,
   canChallengeRaid,
@@ -50,7 +52,17 @@ const HOLD_MS = 2500;
 const TYPE_MS = 14;
 
 export type ScreenId =
-  'party' | 'dex' | 'bag' | 'shop' | 'map' | 'activities' | 'missions' | 'trainer' | 'upgrades' | 'pc';
+  | 'party'
+  | 'dex'
+  | 'bag'
+  | 'shop'
+  | 'map'
+  | 'activities'
+  | 'missions'
+  | 'trainer'
+  | 'upgrades'
+  | 'pc'
+  | 'help';
 
 /** Onde procurar Pokémon nesta rota: grama, pesca ou surf (tecla E alterna). */
 function ModeSwitch({
@@ -250,6 +262,9 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const fighting = b.phase === 'fighting' && !!b.enemy;
   const manual = state.settings.battleMode === 'manual';
   const waiting = awaitingCommand(state);
+  // MEGA: só no manual (no automático a Mega Evolução é sozinha) e só com a pedra certa.
+  const mega = state.settings.battleMode === 'manual' ? megaAvailable(state) : undefined;
+  const doMega = () => engine.dispatch((s) => megaEvolve(s));
   const player = activePokemon(state);
   const reserves = reservePokemon(state);
   const runLabel = wild ? 'FUGIR' : b.kind === 'boss' || b.kind === 'rocket' ? 'FUGIR' : 'DESISTIR';
@@ -271,10 +286,18 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
     engine.dispatch((s, now) => runAway(s, now));
     setView('main');
   };
-  const toggleMode = () =>
+  const toggleMode = () => {
     engine.dispatch((s) => {
       s.settings.battleMode = s.settings.battleMode === 'manual' ? 'auto' : 'manual';
+      s.battle.pendingMove = undefined;
     });
+    setView('main');
+  };
+  // Espera do golpe (manual): a barra enche até a vez do ativo; antes disso LUTAR fica travado.
+  const charge =
+    manual && fighting && !waiting && !b.pendingMove
+      ? Math.max(0, 1 - Math.max(0, b.playerTimerMs) / Math.max(1, b.playerIntervalMs ?? b.playerTimerMs))
+      : 1;
 
   // O submenu fica aberto entre um encontro e outro (no automático eles mudam rápido); fecha
   // depois de uma ação ou com Esc. No manual, LUTAR ganha o foco quando chega a vez.
@@ -286,6 +309,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   useHotkeys({
     a: toggleMode,
     e: cycleMode,
+    m: () => mega && doMega(),
     q: () => throwIf('poke-ball'),
     w: () => throwIf(bestBall),
     d: challenge,
@@ -324,6 +348,11 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
               </button>
             ))}
           </div>
+          {mega && (
+            <button className="dialog-mega" onClick={doMega} title="Mega Evoluir (tecla M)">
+              MEGA
+            </button>
+          )}
           {challengeLabel && (
             <button className="dialog-challenge" onClick={challenge} title="Tecla D">
               <PixelIcon name={rocketHere && !bossReady && !raidUp ? 'rocket' : 'boss'} scale={1} />
@@ -350,27 +379,36 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             {!log.length && <li>Nada por enquanto.</li>}
           </ol>
         )}
-        {/* Nos primeiros minutos, o professor fala nesta mesma caixa, como nos portáteis. */}
+        {/* Nos primeiros minutos, o professor aparece de corpo inteiro com uma dica por vez. */}
         <Coach state={state} />
       </div>
 
       {/* Menu de comandos dos portáteis: LUTAR / MOCHILA / POKéMON / FUGIR, com submenus. */}
       <section
-        className={`battle-cmds frame frame-menu ${waiting ? 'waiting' : ''} view-${view}`}
+        className={`battle-cmds frame frame-menu ${waiting ? 'waiting' : ''} ${manual ? '' : 'auto'} view-${view}`}
         aria-label="Comandos"
       >
         {view === 'main' && (
           <div className="bc-main">
-            <button ref={fightButton} className="bc-big bc-fight" onClick={() => setView('fight')}>
-              <strong>LUTAR</strong>
-              <small>
-                {b.pendingMove
-                  ? `próximo: ${moveName(b.pendingMove)}`
-                  : manual
-                    ? 'escolher golpe'
-                    : 'golpes automáticos'}
-              </small>
-            </button>
+            {manual && (
+              <button
+                ref={fightButton}
+                className="bc-big bc-fight"
+                disabled={!waiting}
+                onClick={() => setView('fight')}
+                style={{ ['--charge' as string]: `${Math.round(charge * 100)}%` }}
+              >
+                <strong>LUTAR</strong>
+                <small>
+                  {b.pendingMove
+                    ? `usando: ${moveName(b.pendingMove)}`
+                    : waiting
+                      ? 'escolher golpe'
+                      : 'aguardando a vez…'}
+                </small>
+                {!waiting && <span className="bc-charge" aria-hidden />}
+              </button>
+            )}
             <button className="bc-big bc-bag" onClick={() => setView('bag')}>
               <strong>MOCHILA</strong>
               <small>
@@ -392,7 +430,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
           </div>
         )}
 
-        {view === 'fight' && (
+        {view === 'fight' && manual && (
           <div className="bc-sub">
             <button
               className="bc-back"
@@ -408,7 +446,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                   <button
                     key={move}
                     className={`bc-move type-bg-${mv.type} ${b.pendingMove === move ? 'queued' : ''}`}
-                    disabled={!fighting}
+                    disabled={!waiting}
                     onClick={() => {
                       engine.dispatch((s) => void selectMove(s, move));
                       setView('main');

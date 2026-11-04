@@ -7,7 +7,9 @@
     min-width: 0;
     height: auto;
     min-height: 100vh;
-    padding: 6px 6px calc(76px + env(safe-area-inset-bottom));
+    min-height: 100dvh;
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right))
+      calc(68px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
     --gap: 6px;
     gap: 6px;
   }
@@ -18,8 +20,33 @@
   }
 
   .hud-seg {
-    min-height: 36px;
-    padding: 0 8px;
+    min-height: 32px;
+    padding: 0 6px;
+  }
+
+  /* Segunda linha: treinador (encolhe), insígnias e carteira, sempre numa linha só. */
+  .hud {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .hud > .hud-seg:not(.hud-route) {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .hud > .hud-trainer {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .hud-trainer-exp {
+    display: none;
+  }
+
+  .hud-portrait {
+    width: 28px;
+    height: 28px;
   }
 
   /* A rota ganha a linha de cima inteira; treinador, insígnias e carteira dividem a de baixo. */
@@ -68,7 +95,11 @@
   }
 
   .battle-cmds {
-    min-height: 120px;
+    min-height: 84px;
+  }
+
+  .bc-big {
+    min-height: 64px;
   }
 
   /* Lista de bolas e reservas: rola em vez de empurrar a tela. */
@@ -77,7 +108,61 @@
   }
 
   .dialog {
-    min-height: 88px;
+    min-height: 64px;
+  }
+
+  /* Toque: AUTO/MANUAL, desafio e registro com altura confortável. */
+  .dialog-foot {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .battle-mode button,
+  .log-toggle,
+  .dialog-mega,
+  .dialog-challenge {
+    min-height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 14px;
+  }
+
+  .battle-mode button {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .log-toggle {
+    margin-left: auto;
+    padding: 0 8px;
+  }
+
+  /* AUTO/MANUAL e REGISTRO dividem a primeira linha; o desafio da rota ocupa a de baixo. */
+  .dialog-challenge,
+  .dialog-goal {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  /* Botões sobre a cena (grama/pesca, foto): maiores, sem a dica de tecla. */
+  .scene-hud {
+    gap: 4px;
+  }
+
+  .scene-hud .scene-mode-tag,
+  .scene-hud .scene-tool {
+    min-height: 32px;
+    min-width: 36px;
+    padding: 0 8px;
+  }
+
+  .scene-hud .scene-tool .pixel-icon {
+    width: 18px;
+  }
+
+  .scene-tool kbd {
+    display: none;
   }
 
   /* No celular só a mensagem anterior aparece acima da atual. */
@@ -120,7 +205,7 @@
     flex-direction: column;
     justify-content: center;
     gap: 1px;
-    min-height: 60px;
+    min-height: 56px;
     padding: 3px 2px;
     font-size: 10px;
   }
@@ -133,7 +218,7 @@
   .toasts {
     left: 8px;
     right: 8px;
-    bottom: calc(80px + env(safe-area-inset-bottom));
+    bottom: calc(72px + env(safe-area-inset-bottom));
     max-width: none;
   }
 }
@@ -154,6 +239,41 @@
 }
 
 /* Toque: alvos de pelo menos ~40 px (a recomendação é 44 px; os botões pequenos ficam perto). */
+@media (pointer: coarse), (max-width: 900px) {
+  .pbtn.tiny {
+    min-height: 36px;
+    min-width: 40px;
+  }
+
+  /* Subir e descer lado a lado, remover embaixo: alvos grandes sem esticar a linha. */
+  .team-row-tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: center;
+  }
+
+  .team-row-tools .pbtn.tiny {
+    min-width: 36px;
+    min-height: 34px;
+  }
+
+  .team-row-tools .pbtn.tiny:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .next-steps li {
+    align-items: center;
+  }
+
+  .next-steps .step-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 40px;
+    text-align: left;
+  }
+}
+
 @media (pointer: coarse) {
   .pbtn.small {
     min-height: 40px;
@@ -226,5 +346,61 @@
 
   .name-field {
     width: 150px;
+  }
+}
+
+/* Celular deitado: a cena à esquerda e mensagens e comandos à direita, tudo numa tela só; o resto
+   (menu de abas, telas abertas) fica logo abaixo. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .game {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+
+  /* HUD numa linha só: rota, treinador, insígnias e carteira. */
+  .hud {
+    flex-wrap: nowrap;
+  }
+
+  .hud > .hud-route {
+    order: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .hud > .hud-trainer {
+    flex: 0 1 140px;
+  }
+
+  .battle-column {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: start;
+    justify-content: stretch;
+    gap: 8px;
+    container-type: normal;
+  }
+
+  .battle-ui {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .battle-cmds {
+    min-height: 0;
+  }
+
+  .game-menu .menu-item,
+  .game-menu .menu-item.active {
+    min-height: 48px;
+    flex-direction: row;
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .toasts {
+    bottom: calc(60px + env(safe-area-inset-bottom));
   }
 }

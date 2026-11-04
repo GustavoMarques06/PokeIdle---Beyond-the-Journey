@@ -58,14 +58,23 @@ describe('interface', () => {
 
     // Quem começa vê só as abas do início; as outras aparecem com o progresso.
     const shown = () => [...document.querySelectorAll('.menu-item .menu-label')].map((el) => el.textContent);
-    expect(shown()).toEqual(['POKéMON', 'POKéDEX', 'MOCHILA', 'TREINADOR']);
+    expect(shown()).toEqual(['POKéMON', 'POKéDEX', 'MOCHILA', 'TREINADOR', 'AJUDA']);
     await act(async () => engine.dispatch((s) => void (s.stats.totalKills = 12)));
     expect(shown()).toContain('LOJA');
     expect(screen.getByTitle(/^LOJA .*novo!/)).toBeTruthy();
 
     // Com todas liberadas (uma nova jornada libera tudo), cada uma abre pela sua tecla.
     await act(async () => engine.dispatch((s) => void (s.prestige.count = 1)));
+    // A AJUDA abre uma página à parte (outra aba) em vez de uma tela do jogo.
+    const opened = vi.spyOn(window, 'open').mockReturnValue(null);
     for (const [i, item] of MENU_ITEMS.entries()) {
+      if (item.id === 'help') {
+        await act(async () => {
+          fireEvent.keyDown(window, { key: menuKey(i) });
+        });
+        expect(opened).toHaveBeenCalledWith(expect.stringContaining('ajuda.html'), '_blank', 'noopener');
+        continue;
+      }
       await act(async () => {
         fireEvent.keyDown(window, { key: menuKey(i) });
       });
@@ -173,6 +182,8 @@ describe('interface', () => {
     mount(engine);
     pressStart();
     fireEvent.click(screen.getByText('CONTINUAR'));
+    // Um clique completa a fala (máquina de escrever).
+    fireEvent.click(document.querySelector('.coach')!);
     expect(document.querySelector('.coach')!.textContent).toContain('primeira rota');
     fireEvent.click(document.querySelector('.coach .pbtn')!);
     expect(engine.state!.flags).toContain('coach:battle');
@@ -184,6 +195,7 @@ describe('interface', () => {
         s.stats.totalKills = 6;
       }),
     );
+    fireEvent.click(document.querySelector('.coach')!);
     expect(document.querySelector('.coach')!.textContent).toContain('barra da rota');
     cleanup();
 

@@ -14,7 +14,13 @@ import type { ScreenId } from '../battle/BattleDialog';
 import { unseenTabs } from '../screens/activities/tabs';
 import { ItemIcon, PixelIcon } from './common';
 
-export const MENU_ITEMS: { id: ScreenId; label: string; icon: ReactNode }[] = [
+export const MENU_ITEMS: {
+  id: ScreenId;
+  label: string;
+  icon: ReactNode;
+  key?: string;
+  external?: boolean;
+}[] = [
   { id: 'party', label: 'POKéMON', icon: <ItemIcon id="poke-ball" size={28} /> },
   { id: 'dex', label: 'POKéDEX', icon: <PixelIcon name="pokedex" scale={2} /> },
   { id: 'bag', label: 'MOCHILA', icon: <ItemIcon id="explorer-kit" size={28} /> },
@@ -25,16 +31,17 @@ export const MENU_ITEMS: { id: ScreenId; label: string; icon: ReactNode }[] = [
   { id: 'trainer', label: 'TREINADOR', icon: <ItemIcon id="vs-seeker" size={28} /> },
   { id: 'upgrades', label: 'MELHORIAS', icon: <ItemIcon id="up-grade" size={28} /> },
   { id: 'pc', label: 'PC', icon: <ItemIcon id="pokemon-box" size={28} /> },
+  { id: 'help', label: 'AJUDA', icon: <PixelIcon name="help" scale={3} />, key: 'h', external: true },
 ];
 
-/** Tecla de atalho de cada item: 1–9 e, para o décimo, 0. */
-export const menuKey = (i: number) => String((i + 1) % 10);
+/** Tecla de atalho de cada item: 1–9 e, para o décimo, 0; a AJUDA usa o H. */
+export const menuKey = (i: number) => MENU_ITEMS[i]?.key ?? String((i + 1) % 10);
 
 /**
  * Abas presentes desde o primeiro minuto (TREINADOR tem as opções e o salvamento). As outras
  * aparecem conforme o jogo pede por elas, para quem começa não encarar dez ícones de uma vez.
  */
-const ALWAYS: ScreenId[] = ['party', 'dex', 'bag', 'trainer'];
+const ALWAYS: ScreenId[] = ['party', 'dex', 'bag', 'trainer', 'help'];
 const CHEAPEST_RESEARCH = Math.min(...RESEARCH.map((r) => r.baseCost));
 
 /** Gravada quando a aba é aberta pela primeira vez: some o selo NOVO e ela fica no menu. */
@@ -124,7 +131,7 @@ export function GameMenu({
               buttons.current[i] = el;
             }}
             onMouseEnter={() => audio.sfx('cursor')}
-            title={`${item.label} (tecla ${item.key})${fresh ? ' · novo!' : ''}`}
+            title={`${item.label} (tecla ${item.key})${item.external ? ' · abre em outra aba' : ''}${fresh ? ' · novo!' : ''}`}
             className={`menu-item ${current === item.id ? 'active' : ''} ${fresh ? 'fresh' : ''}`}
             aria-current={current === item.id}
             // detail 0 = ativado pelo teclado (Enter/Espaço), não pelo mouse ou toque.

@@ -527,6 +527,33 @@ html.reduced-motion .hud-route.done .pbar {
   color: var(--ink);
 }
 
+.matchup-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  margin-top: calc(var(--u) * 1.5);
+}
+
+.matchup-row .type-badge.mini {
+  min-width: 0;
+  padding: 0 calc(var(--u) * 1.4);
+  border-width: 1px;
+  font-size: calc(var(--u) * 4);
+  line-height: 1.25;
+}
+
+.matchup-row .type-badge.weak b {
+  margin-left: 2px;
+  color: #ffe070;
+}
+
+.matchup-label {
+  margin-left: calc(var(--u) * 1.5);
+  font: 700 calc(var(--u) * 3.6) var(--font-label);
+  color: var(--ink-muted);
+}
+
 .status-enemy {
   left: calc(var(--u) * 6);
   top: calc(var(--u) * 8);
@@ -1513,6 +1540,27 @@ html.reduced-motion .status-box .expbar-fill::after {
   opacity: 0.6;
 }
 
+/* Sem LUTAR (automático): três botões em linha. */
+.battle-cmds.auto .bc-main {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Espera do golpe: uma barra enche no pé do botão até a vez do ativo. */
+.bc-fight {
+  position: relative;
+}
+
+.bc-charge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 5px;
+  width: var(--charge, 0%);
+  background: var(--gold);
+  transition: width 0.15s linear;
+}
+
 .battle-cmds.waiting .bc-fight {
   outline: 3px solid var(--gold);
   outline-offset: -1px;
@@ -2006,4 +2054,24 @@ html.reduced-motion .menu-label {
   font-size: 10px;
   line-height: 1.2;
   pointer-events: none;
+}
+
+/* MEGA: botão dourado no pé da caixa de mensagens (modo manual, com a Mega Stone certa). */
+.dialog-mega {
+  padding: 1px 12px;
+  border: 2px solid var(--gold-dark);
+  border-radius: 6px;
+  background: linear-gradient(#ffe070, var(--gold));
+  color: var(--ink);
+  font: 700 13px var(--font-label);
+  animation: blink-soft 1.2s steps(2, end) infinite;
+}
+
+.mega-tag {
+  margin-right: 2px;
+  color: var(--gold-dark);
+}
+
+html.reduced-motion .dialog-mega {
+  animation: none;
 }

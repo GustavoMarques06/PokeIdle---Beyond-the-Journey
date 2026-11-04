@@ -256,6 +256,20 @@ export const ICONS = {
     rows: ['.kkkkkkk.', 'kwccchhhk', 'kcccchhgk', 'kcccdhggk', '.kkkkkkk.'],
     palette: { k: K, c: '#e85858', w: '#ffffffb0', d: '#00000040', h: '#f8f8f8', g: '#c8c8d0' },
   },
+  help: {
+    rows: [
+      '..kkkkk..',
+      '.kbbbbbk.',
+      'kbbwwwbbk',
+      'kbbbbbwbk',
+      'kbbbwwbbk',
+      'kbbbwbbbk',
+      'kbbbbbbbk',
+      'kbbbwbbbk',
+      '.kkkkkkk.',
+    ],
+    palette: { k: K, b: '#4888e0', w: '#ffffff' },
+  },
 } satisfies Record<string, PixelIconDef>;
 
 export type IconName = keyof typeof ICONS;

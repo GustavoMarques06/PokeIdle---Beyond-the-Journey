@@ -15,6 +15,7 @@ import { Bar, GenderMark, PokemonSprite, TrainerSprite } from '../components/com
 import { Badges } from '../components/Hud';
 import { REGION_NAMES, T, formatDuration, formatNumber } from '../i18n/pt-BR';
 import { usePreloadStatus } from '../preload';
+import { openHelp } from '../help/open';
 import { useEngine } from '../useGame';
 import { MusicToggle } from './MusicToggle';
 
@@ -90,6 +91,10 @@ export function TitleScreen({
               <small>Código de transferência ou arquivo {TRANSFER_EXTENSION}</small>
             </button>
           </div>
+          <button className="title-option frame frame-menu" onClick={openHelp}>
+            <span className="title-option-label">COMO JOGAR</span>
+            <small>Guia explicado do zero (abre em outra aba)</small>
+          </button>
           <p className="title-hint">ENTER: CONFIRMAR · ESC: VOLTAR</p>
           <FilesHint />
         </nav>

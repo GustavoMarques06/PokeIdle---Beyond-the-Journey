@@ -591,8 +591,8 @@
   max-width: min(440px, 32vw);
 }
 
-/* Com o professor falando na caixa de mensagens (primeiros minutos), os avisos vão para o
-   canto inferior direito, sobre a coluna lateral, para não cobrir a fala. */
+/* Com o professor falando no canto esquerdo (primeiros minutos), os avisos vão para o canto
+   inferior direito, sobre a coluna lateral. */
 @media (min-width: 901px) {
   html.coach-open .toasts {
     left: auto;
@@ -957,4 +957,51 @@ html.reduced-motion .enc-trainer {
 .evolution-text,
 .prologue-dialog p {
   text-shadow: 2px 2px 0 var(--text-shadow);
+}
+
+/* --- Mega Evolução ------------------------------------------------------------------------- */
+/* O Pokémon aparece num clarão branco que se dissolve, com um anel de energia que se expande. */
+.battle-mon.mega-flash {
+  animation: mega-flash 1.3s ease-out;
+}
+
+@keyframes mega-flash {
+  0% {
+    filter: brightness(6) saturate(0);
+  }
+  30% {
+    filter: brightness(2.4) saturate(0.4) drop-shadow(0 0 calc(var(--u) * 6) #fff);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+.mega-burst {
+  position: absolute;
+  z-index: 4;
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 20);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(255 255 255 / 0.95) 0 25%,
+    rgb(255 224 112 / 0.6) 40%,
+    rgb(168 96 255 / 0.35) 60%,
+    transparent 72%
+  );
+  pointer-events: none;
+  animation: mega-burst 1s ease-out forwards;
+}
+
+@keyframes mega-burst {
+  from {
+    scale: 0.2;
+    opacity: 1;
+  }
+  to {
+    scale: 4.5;
+    opacity: 0;
+  }
 }

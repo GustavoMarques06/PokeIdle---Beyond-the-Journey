@@ -12,15 +12,18 @@ import {
   getMove,
   getRoute,
   getSpecies,
+  isMegaForm,
+  matchupOf,
   spriteFeet,
 } from '../../game-data';
-import { routeWeather } from '../../core/env';
+import { INDOOR_NEW, routeWeather } from '../../core/env';
 import { legendaryDef, legendaryRules } from '../../core/legendary';
 import {
   activePokemon,
   battleForm,
   bestRod,
   harvestTree,
+  megaActive,
   treeBerry,
   treeReady,
   type GameEvent,
@@ -36,12 +39,12 @@ import { levelProgress } from '../../core/progression';
 import { ExpBar, GenderMark, HpBar, ItemIcon, PixelIcon, Shiny, TrainerImage } from '../components/common';
 import { genderOf } from '../../core/gender';
 import { activeLure } from '../../core/lures';
-import { STATUS_TEXT, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
+import { STATUS_TEXT, TYPE_NAMES, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
 import { audio } from '../audio';
 import { useHotkeys } from '../hotkeys';
 import { takePhoto } from '../photo';
-import { ENEMY_BASE, PLAYER_BASE, SCENE_H, SCENE_THEMES, SCENE_W, paintScene } from './scene';
+import { SCENE_H, SCENE_THEMES, SCENE_W, paintScene, sceneBases } from './scene';
 import { setEvolving, useShownPokemon } from '../evolutionView';
 import { EncounterModeSwitch } from './BattleDialog';
 import { EncounterFlash, LevelUpWindow, PokemonCenter, TrainerIntro } from './BattleFx';
@@ -56,6 +59,34 @@ interface Floater {
 }
 
 /** Sigla de status ao lado do nome (QMD, ENV, PAR, DRM, CGL), como nas caixas do GBA. */
+/** Tipos do inimigo e os golpes que o atingem forte: ajuda a escolher o golpe (e o Pokémon) certo. */
+function MatchupRow({ speciesId }: { speciesId: number }) {
+  const types = getSpecies(speciesId).types;
+  const { weak, resist } = matchupOf(types);
+  const name = (t: string) => TYPE_NAMES[t] ?? t;
+  const text = (list: [string, number][], sign: string) =>
+    list.map(([t, m]) => `${name(t)} ${sign}${m === 0 ? '0' : m > 1 ? m : `1/${1 / m}`}`).join(', ');
+  return (
+    <div
+      className="matchup-row"
+      title={`Fraco a: ${text(weak, '×') || '—'}. Resiste a: ${text(resist, '×') || '—'}.`}
+    >
+      {types.map((t) => (
+        <span key={t} className={`type-badge type-${t} mini`}>
+          {name(t).toUpperCase()}
+        </span>
+      ))}
+      {weak.length > 0 && <span className="matchup-label">FRACO</span>}
+      {weak.slice(0, 4).map(([t, m]) => (
+        <span key={t} className={`type-badge type-${t} mini weak`}>
+          {name(t).toUpperCase().slice(0, 3)}
+          {m > 2 && <b>×4</b>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function StatusTag({ status }: { status?: StatusState | null }) {
   if (!status) return null;
   const t = STATUS_TEXT[status.kind];
@@ -262,11 +293,12 @@ export function BattleScene({ state }: { state: GameState }) {
   // A Torre de Batalha é sempre num salão; o resto segue o cenário da rota.
   const sceneKey = b.kind === 'tower' ? 'city' : route.scene;
   const theme = SCENE_THEMES[sceneKey] ?? 'meadow';
+  const { enemy: ENEMY_BASE, player: PLAYER_BASE } = sceneBases(sceneKey);
   const weather = b.kind === 'tower' ? 'clear' : routeWeather(route, state.env);
   const night =
     state.env.period === 'night' &&
     b.kind !== 'tower' &&
-    !['cave', 'icecave', 'dampcave', 'volcano'].includes(sceneKey);
+    !['cave', 'icecave', 'dampcave', 'volcano', ...INDOOR_NEW].includes(sceneKey);
 
   // Escala: --u = pixels de tela por pixel virtual do cenário.
   useLayoutEffect(() => {
@@ -475,7 +507,7 @@ export function BattleScene({ state }: { state: GameState }) {
   // Entardecer e amanhecer (só visual; o jogo conta dia e noite).
   const hour = new Date(state.lastTimerAt).getHours();
   const skyTint =
-    b.kind === 'tower' || ['cave', 'icecave', 'dampcave', 'volcano', 'city'].includes(sceneKey)
+    b.kind === 'tower' || ['cave', 'icecave', 'dampcave', 'volcano', 'city', ...INDOOR_NEW].includes(sceneKey)
       ? null
       : hour >= 16 && hour < 18
         ? 'dusk'
@@ -488,7 +520,8 @@ export function BattleScene({ state }: { state: GameState }) {
   const staleEscape = capture !== null && !capture.success && keyOf(enemy) !== capture.enemyKey;
   const hideEnemy = capture !== null && !staleEscape;
   // Castform muda com o clima; Unown, Deerling e Spinda mostram a forma deles.
-  const playerForm = battleForm(player.speciesId, player.form, weather);
+  const mega = megaActive(state, player);
+  const playerForm = mega?.form ?? battleForm(player.speciesId, player.form, weather);
   const enemyForm = enemy ? battleForm(enemy.speciesId, enemy.form, weather) : undefined;
   const playerBox = spriteBox(player.speciesId, 'back', PLAYER_SCALE, PLAYER_MAX_H, playerForm);
   const enemyBox = enemy
@@ -632,10 +665,10 @@ export function BattleScene({ state }: { state: GameState }) {
           className={`idle-a ${enemy.rage ? `rage-${enemy.rage}` : ''} ${enemy.status ? `st-${enemy.status.kind}` : ''} ${trainerFoe ? 'sending-out' : ''}`}
         />
       )}
-      {capture && !staleEscape && <CaptureGhost anim={capture} />}
+      {capture && !staleEscape && <CaptureGhost anim={capture} base={ENEMY_BASE} />}
 
       <BattleSprite
-        key={`mon-${player.uid}`}
+        key={`mon-${player.uid}-${mega?.form ?? ''}`}
         speciesId={player.speciesId}
         form={playerForm}
         kind="back"
@@ -644,13 +677,14 @@ export function BattleScene({ state }: { state: GameState }) {
         scale={PLAYER_SCALE}
         maxH={PLAYER_MAX_H}
         innerRef={playerRef}
-        className={`idle-b ${b.phase === 'defeat' ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
+        className={`idle-b ${mega ? 'mega-flash' : ''} ${b.phase === 'defeat' ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
       />
 
       {enemy && (
         <div className="status-box status-enemy frame frame-status">
           <div className="status-name">
             <span>
+              {isMegaForm(enemy.speciesId, enemy.form) && <b className="mega-tag">MEGA </b>}
               {(enemy.nickname ?? getSpecies(enemy.speciesId).name).toUpperCase()}
               <GenderMark gender={genderOf(enemy)} />
               {enemy.shiny && <Shiny />}
@@ -670,12 +704,14 @@ export function BattleScene({ state }: { state: GameState }) {
             )}
             <HpBar value={enemy.hp} max={enemy.maxHp} />
           </div>
+          <MatchupRow speciesId={enemy.speciesId} />
         </div>
       )}
 
       <div className={`status-box status-player frame frame-status ${levelUp ? 'leveling' : ''}`}>
         <div className="status-name">
           <span>
+            {mega && <b className="mega-tag">MEGA </b>}
             {pokemonName(player).toUpperCase()}
             <GenderMark gender={genderOf(player)} />
             {player.shiny && <Shiny />}
@@ -733,6 +769,17 @@ export function BattleScene({ state }: { state: GameState }) {
       ))}
       {shinyFx !== null && enemy?.shiny && (
         <ShinySparkle key={`shiny-${shinyFx}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.h / 2} />
+      )}
+      {mega && (
+        <span
+          key={`mega-${player.uid}-${mega.form}`}
+          className="mega-burst"
+          style={{
+            left: `calc(var(--u) * ${PLAYER_BASE.x})`,
+            top: `calc(var(--u) * ${PLAYER_BASE.y - 34})`,
+          }}
+          aria-hidden
+        />
       )}
       <SendOutBall key={`p-${player.uid}`} x={PLAYER_BASE.x} y={PLAYER_BASE.y - 12} />
       {trainerFoe && enemy && <SendOutBall key={`e-${keyOf(enemy)}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - 8} />}
@@ -827,7 +874,7 @@ export function BattleScene({ state }: { state: GameState }) {
 }
 
 /** Bola arremessada + Pokémon sendo "sugado" para dentro, com balanço e resultado. */
-function CaptureGhost({ anim }: { anim: CaptureAnim }) {
+function CaptureGhost({ anim, base: ENEMY_BASE }: { anim: CaptureAnim; base: { x: number; y: number } }) {
   const box = spriteBox(anim.speciesId, 'front', ENEMY_SCALE, ENEMY_MAX_H);
   const s = getSpecies(anim.speciesId).sprites;
   const src = (anim.shiny && s.frontShiny) || s.front;

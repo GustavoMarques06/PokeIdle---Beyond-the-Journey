@@ -12,6 +12,7 @@ import {
 import type { GameEvent, GameState } from '../core/game';
 import { audio } from './audio';
 import { BattleDialog, type ScreenId } from './battle/BattleDialog';
+import { openHelp } from './help/open';
 import { BattleScene } from './battle/BattleScene';
 import { GameMenu, MENU_ITEMS, menuFlag, menuKey, menuUnlocked } from './components/GameMenu';
 import { Hud } from './components/Hud';
@@ -172,6 +173,8 @@ function GameScreen({ state }: { state: GameState }) {
       // Abrir uma aba (pelo menu, por atalho ou por outra tela) a deixa de vez no menu, sem o NOVO.
       if (!engine.state?.flags.includes(menuFlag(id)))
         engine.dispatch((s) => void s.flags.push(menuFlag(id)));
+      // A AJUDA é uma página à parte, em outra aba do navegador.
+      if (id === 'help') return openHelp();
       setScreen(id);
       setActivityTab(tab);
       // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.

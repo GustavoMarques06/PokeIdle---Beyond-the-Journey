@@ -341,4 +341,61 @@ export const SCENE_THEMES: Record<SceneKey, SceneTheme> = {
   plains: 'field',
   dampcave: 'cave',
   sea: 'river',
+  'league-hall': 'cave',
+  'league-ice': 'cave',
+  'league-fight': 'cave',
+  'league-ghost': 'cave',
+  'league-dragon': 'cave',
+  'league-psychic': 'cave',
+  'league-dark': 'cave',
+  'league-poison': 'cave',
+  'league-fire': 'cave',
+  'league-steel': 'cave',
+  'league-water': 'cave',
+  'league-ground': 'cave',
+  street: 'field',
+  'rocket-base': 'cave',
+  lab: 'cave',
+  seafloor: 'river',
+  swamp: 'river',
+  ruins: 'mountain',
+  snowfield: 'field',
+  tower: 'cave',
+  powerplant: 'cave',
+  summit: 'mountain',
+  jungle: 'forest',
 };
+
+type Spot = [enemyX: number, enemyY: number, playerX: number];
+const USE_OVAL_SPOTS = false;
+const OVAL_SPOTS: Partial<Record<SceneKey, Spot>> = {};
+const spots = (keys: SceneKey[], spot: Spot) => keys.forEach((k) => (OVAL_SPOTS[k] = spot));
+
+// Cenários ilustrados com plataformas ovais desenhadas: os Pokémon ficam em cima delas (inimigo no
+// oval pequeno, jogador no grande).
+spots(['league-dragon', 'league-fire', 'league-steel', 'league-water', 'league-ground'], [156, 74, 96]);
+spots(['street', 'rocket-base', 'lab', 'seafloor'], [156, 74, 96]);
+spots(['swamp', 'ruins', 'snowfield', 'tower', 'powerplant', 'summit', 'jungle'], [158, 68, 96]);
+// Salas com um oval só: o jogador fica nele e o inimigo no chão, ao lado e mais ao fundo.
+spots(
+  [
+    'league-hall',
+    'league-ice',
+    'league-fight',
+    'league-ghost',
+    'league-psychic',
+    'league-dark',
+    'league-poison',
+  ],
+  [176, 74, 96],
+);
+
+/** Onde ficam os Pokémon em cada cenário (os fundos originais usam as posições padrão). */
+export function sceneBases(scene: SceneKey) {
+  // PENDENTE (ver PENDENCIAS.md): enquanto as imagens novas tiverem os ovais desenhados, os Pokémon ficam
+  // nas posições padrão. Quando as imagens vierem sem ovais, nada muda aqui; para voltar a posicionar
+  // sobre os ovais, troque USE_OVAL_SPOTS para true.
+  const s = USE_OVAL_SPOTS ? OVAL_SPOTS[scene] : undefined;
+  if (!s) return { enemy: ENEMY_BASE, player: PLAYER_BASE };
+  return { enemy: { x: s[0], y: s[1] }, player: { x: s[2], y: 112 } };
+}

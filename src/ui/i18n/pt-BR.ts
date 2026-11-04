@@ -387,6 +387,8 @@ export function describeEvent(e: GameEvent): string | null {
       if (r.status) s += ` ${speciesName(e.target)} ${STATUS_TEXT[r.status].inflicted}.`;
       return s;
     }
+    case 'megaEvolved':
+      return `${speciesName(e.speciesId)} sofreu Mega Evolução!`;
     case 'switched':
       return e.reason === 'fainted'
         ? `${speciesName(e.from)} desmaiou! ${speciesName(e.to)} entrou na batalha.`

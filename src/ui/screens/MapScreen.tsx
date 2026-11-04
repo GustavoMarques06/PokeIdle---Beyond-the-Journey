@@ -169,7 +169,9 @@ function RegionMap({
       className="region-map"
       role="group"
       aria-label="Mapa da região"
-      style={art ? { aspectRatio: `${art.w} / ${art.h}` } : undefined}
+      style={
+        art ? { aspectRatio: `${art.w} / ${art.h}`, ['--map-ratio' as string]: art.w / art.h } : undefined
+      }
     >
       <img
         className="region-art"

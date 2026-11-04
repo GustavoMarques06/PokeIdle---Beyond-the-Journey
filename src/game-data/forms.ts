@@ -2,6 +2,8 @@
 // Castform (clima da batalha) e Spinda (padrão de manchas, desenhado pelo jogo).
 // Sprites em public/sprites/pokemon/forms/<pasta>/<id>-<forma>.gif (PokéAPI, Black/White).
 
+import { isMegaForm } from './megas';
+
 export type FormRule = 'random' | 'season' | 'weather' | 'pattern';
 
 export interface FormSet {
@@ -64,6 +66,7 @@ export function formSet(speciesId: number): FormSet | undefined {
 
 /** Forma que tem sprite próprio (a primeira de cada lista e os padrões de Spinda usam o normal). */
 export function hasFormSprite(speciesId: number, form: string | undefined): form is string {
+  if (isMegaForm(speciesId, form)) return true;
   const set = bySpecies.get(speciesId);
   return !!form && !!set && set.rule !== 'pattern' && set.forms.indexOf(form) > 0;
 }

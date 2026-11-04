@@ -19,7 +19,8 @@ import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { ItemIcon, PixelIcon } from './common';
 
-const SHOWN = 3;
+// No celular, duas sugestões bastam: o resto está em "Todos".
+const SHOWN = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 900px)').matches ? 2 : 3;
 
 const ACTION_LABEL: Record<StepAction['kind'], string> = {
   boss: 'Desafiar',

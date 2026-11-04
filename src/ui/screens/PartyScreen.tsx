@@ -24,6 +24,7 @@ import {
 import {
   applyEvolutionItem,
   confirmEvolution,
+  megaActive,
   recordOf,
   setActive,
   setCompanion,
@@ -95,9 +96,12 @@ function PartySlot({
   lead,
   selected,
   bonus,
+  mega,
   onClick,
 }: {
   p: PokemonInstance;
+  /** Forma Mega em campo (o ícone muda). */
+  mega?: string;
   lead?: boolean;
   selected: boolean;
   bonus?: PassiveContribution;
@@ -111,7 +115,7 @@ function PartySlot({
       className={`party-slot frame ${lead ? 'frame-slotActive party-slot-active' : 'frame-slot'} ${selected ? 'selected' : ''}`}
       onClick={onClick}
     >
-      <PokemonSprite speciesId={p.speciesId} kind="icon" className="party-icon" />
+      <PokemonSprite speciesId={p.speciesId} kind="icon" form={mega} className="party-icon" />
       <span className="party-name">
         {pokemonName(p).toUpperCase()}
         <GenderMark gender={genderOf(p)} />
@@ -234,6 +238,7 @@ export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: 
               lead={i === 0}
               selected={selected === p.uid}
               bonus={bonusOf.get(p.uid)}
+              mega={i === 0 ? megaActive(state, p)?.form : undefined}
               onClick={() => setSelected(p.uid)}
             />
             <div className="team-row-tools">
@@ -342,23 +347,29 @@ function TeamBonuses({ state }: { state: GameState }) {
             <strong>+{formatPercent(mods.passive[k])}</strong>
           </li>
         ))}
-        {types.map(([t, v]) => (
-          <li key={t}>
-            <span>
-              Dano contra <TypeBadge type={t} />
-            </span>
-            <strong>+{formatPercent(v)}</strong>
-          </li>
-        ))}
       </ul>
-      <p className="hint">Cada Pokémon da equipe soma um bônus pelo tipo dele.</p>
+      {/* O dano contra cada tipo é a parte longa do painel: fica recolhido até alguém querer ver. */}
+      {types.length > 0 && (
+        <details className="bonus-types">
+          <summary>Dano por tipo ({types.length})</summary>
+          <ul className="bonus-list">
+            {types.map(([t, v]) => (
+              <li key={t}>
+                <TypeBadge type={t} />
+                <strong>+{formatPercent(v)}</strong>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <details className="bonus-help">
         <summary>Como funciona</summary>
         <p className="hint">
-          O bônus vem do tipo principal, e cada um também dá dano extra contra os tipos que vence. Bônus
-          iguais valem 50% do anterior e têm teto; espécies repetidas não contam. {TYPE_NAMES.fire} → dano,{' '}
-          {TYPE_NAMES.rock} → defesa, {TYPE_NAMES.electric} → velocidade, {TYPE_NAMES.psychic} → EXP,{' '}
-          {TYPE_NAMES.normal} → moedas, {TYPE_NAMES.bug} → captura, {TYPE_NAMES.water} → cura.
+          Cada Pokémon da equipe soma um bônus pelo tipo dele. O bônus vem do tipo principal, e cada um também
+          dá dano extra contra os tipos que vence. Bônus iguais valem 50% do anterior e têm teto; espécies
+          repetidas não contam. {TYPE_NAMES.fire} → dano, {TYPE_NAMES.rock} → defesa, {TYPE_NAMES.electric} →
+          velocidade, {TYPE_NAMES.psychic} → EXP, {TYPE_NAMES.normal} → moedas, {TYPE_NAMES.bug} → captura,{' '}
+          {TYPE_NAMES.water} → cura.
         </p>
       </details>
     </Window>
@@ -512,18 +523,18 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
             </>
           )}
           <dt>MAESTRIA</dt>
-          <dd>
+          <dd
+            title={
+              mastery.level > 0
+                ? `Maestria ${mastery.level}: +${formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano e −${formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano recebido quando ativo.`
+                : undefined
+            }
+          >
             {mastery.level}
             {mastery.next ? <Bar value={mastery.points} max={mastery.next} tone="gold" /> : ' (máx.)'}
           </dd>
         </dl>
       </div>
-      {mastery.level > 0 && (
-        <p className="hint">
-          Maestria {mastery.level}: +{formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano e −
-          {formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano recebido quando ativo.
-        </p>
-      )}
       <HpBar value={p.currentHp} max={stats.hp} />
       <ExpBar progress={levelProgress(p)} />
       {hint && <p className={`evo-hint ${p.pendingEvolution ? 'ready' : ''}`}>{hint}</p>}
@@ -624,17 +635,6 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
             Tirar da equipe
           </button>
         )}
-        <button
-          className={`pbtn ${state.companion?.uid === p.uid ? '' : 'companion-btn'}`}
-          title="O acompanhante anda com você no cartão e no mapa, ganha amizade com o tempo e às vezes acha itens."
-          onClick={() =>
-            engine.dispatch((s, now) =>
-              setCompanion(s, s.companion?.uid === p.uid ? null : p.uid, now, rngFrom(s)),
-            )
-          }
-        >
-          {state.companion?.uid === p.uid ? 'Deixar de acompanhar' : 'Acompanhante'}
-        </button>
         {p.pendingEvolution && (
           <button className="pbtn evolve" onClick={() => engine.dispatch((s) => confirmEvolution(s, p.uid))}>
             Evoluir → {speciesName(p.pendingEvolution)}
@@ -658,11 +658,6 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
             <ItemIcon id="rare-candy" size={24} /> Rare Candy ×{state.items['rare-candy']}
           </button>
         )}
-        {(p.evolutionLocked || ((state.items.everstone ?? 0) > 0 && species.evolutions.length > 0)) && (
-          <button className="pbtn" onClick={() => engine.dispatch((s) => toggleEvolutionLock(s, p.uid))}>
-            <ItemIcon id="everstone" size={24} /> {p.evolutionLocked ? 'Liberar evolução' : 'Travar evolução'}
-          </button>
-        )}
         <button
           className={`pbtn ${p.favorite ? 'on' : ''}`}
           aria-pressed={!!p.favorite}
@@ -671,32 +666,54 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
         >
           <PixelIcon name="star" scale={1} /> {p.favorite ? 'Favorito' : 'Favoritar'}
         </button>
-        <label className="tag-select">
-          <span className={`tag-dot ${p.tag ? `tag-${p.tag}` : 'tag-none'}`} aria-hidden />
-          <select
-            value={p.tag ?? ''}
-            aria-label="Etiqueta"
-            onChange={(e) =>
-              engine.dispatch((s) => setTag(s, [p.uid], (e.target.value || null) as TagId | null))
+      </div>
+      <details className="more-actions">
+        <summary>Mais ações</summary>
+        <div className="summary-actions">
+          <button
+            className={`pbtn ${state.companion?.uid === p.uid ? '' : 'companion-btn'}`}
+            title="O acompanhante anda com você no cartão e no mapa, ganha amizade com o tempo e às vezes acha itens."
+            onClick={() =>
+              engine.dispatch((s, now) =>
+                setCompanion(s, s.companion?.uid === p.uid ? null : p.uid, now, rngFrom(s)),
+              )
             }
           >
-            <option value="">Sem etiqueta</option>
-            {TAG_IDS.map((t) => (
-              <option key={t} value={t}>
-                {tagName(state, t)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {canTransfer(state, p.uid) && (
-          <button
-            className="pbtn danger"
-            onClick={() => engine.dispatch((s) => void transferPokemon(s, p.uid))}
-          >
-            Transferir (+{transferValue(p)} pesquisa)
+            {state.companion?.uid === p.uid ? 'Deixar de acompanhar' : 'Acompanhante'}
           </button>
-        )}
-      </div>
+          {(p.evolutionLocked || ((state.items.everstone ?? 0) > 0 && species.evolutions.length > 0)) && (
+            <button className="pbtn" onClick={() => engine.dispatch((s) => toggleEvolutionLock(s, p.uid))}>
+              <ItemIcon id="everstone" size={24} />{' '}
+              {p.evolutionLocked ? 'Liberar evolução' : 'Travar evolução'}
+            </button>
+          )}
+          <label className="tag-select">
+            <span className={`tag-dot ${p.tag ? `tag-${p.tag}` : 'tag-none'}`} aria-hidden />
+            <select
+              value={p.tag ?? ''}
+              aria-label="Etiqueta"
+              onChange={(e) =>
+                engine.dispatch((s) => setTag(s, [p.uid], (e.target.value || null) as TagId | null))
+              }
+            >
+              <option value="">Sem etiqueta</option>
+              {TAG_IDS.map((t) => (
+                <option key={t} value={t}>
+                  {tagName(state, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {canTransfer(state, p.uid) && (
+            <button
+              className="pbtn danger"
+              onClick={() => engine.dispatch((s) => void transferPokemon(s, p.uid))}
+            >
+              Transferir (+{transferValue(p)} pesquisa)
+            </button>
+          )}
+        </div>
+      </details>
       {itemEvos.length > 0 && (
         <p className="hint">
           Evolui com{' '}

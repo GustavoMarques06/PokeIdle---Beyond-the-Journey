@@ -10,8 +10,29 @@ export interface Environment {
   weather: Weather;
 }
 
+/** Cenários novos que são fechados (salas da Liga, esconderijos, torres). */
+export const INDOOR_NEW = [
+  'league-hall',
+  'league-ice',
+  'league-fight',
+  'league-ghost',
+  'league-dragon',
+  'league-psychic',
+  'league-dark',
+  'league-poison',
+  'league-fire',
+  'league-steel',
+  'league-water',
+  'league-ground',
+  'rocket-base',
+  'lab',
+  'seafloor',
+  'tower',
+  'powerplant',
+];
+
 /** Cenas cobertas: sem clima. */
-const INDOOR = new Set(['cave', 'icecave', 'volcano', 'dampcave', 'city', 'sea']);
+const INDOOR = new Set(['cave', 'icecave', 'volcano', 'dampcave', 'city', 'sea', ...INDOOR_NEW]);
 
 /** Rota ao ar livre (tem clima e árvores de berry). */
 export function isOutdoor(route: Route): boolean {

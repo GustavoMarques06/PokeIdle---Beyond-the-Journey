@@ -14,6 +14,7 @@ import {
   getRoute,
   getSpecies,
   lineRoot,
+  megaFor,
   routeIndex,
   type Ailment,
   type BuffKind,
@@ -156,6 +157,9 @@ export function step(
     }
   }
 
+  // Automático: quem segura a Mega Stone Mega Evolui sozinho no começo do encontro.
+  if (!manualMode(state) && megaAvailable(state)) events.push(...megaEvolve(state));
+
   b.playerTimerMs -= dt;
   b.enemyTimerMs -= dt;
 
@@ -178,10 +182,36 @@ export function awaitingCommand(state: GameState): boolean {
   return manualMode(state) && b.phase === 'fighting' && !!b.enemy && b.playerTimerMs <= 0 && !b.pendingMove;
 }
 
-/** LUTAR: o golpe que o ativo usa na próxima vez (no automático, vale só para essa vez). */
+/** A Mega que o ativo pode assumir agora (segura a pedra certa, ainda não Mega Evoluiu neste encontro). */
+export function megaAvailable(state: GameState) {
+  const b = state.battle;
+  if (b.phase !== 'fighting' || !b.enemy || b.megaUid !== undefined) return undefined;
+  return megaFor(activePokemon(state));
+}
+
+/** MEGA: o ativo assume a forma Mega até o fim do encontro (não gasta a vez). */
+export function megaEvolve(state: GameState): GameEvent[] {
+  const mega = megaAvailable(state);
+  if (!mega) return [];
+  const p = activePokemon(state);
+  state.battle.megaUid = p.uid;
+  return [{ type: 'megaEvolved', uid: p.uid, speciesId: p.speciesId, form: mega.form }];
+}
+
+/** O Pokémon em campo está Mega Evoluído? Devolve os dados da Mega. */
+export const megaActive = (state: GameState, p: { uid: number; speciesId: number; held?: string }) =>
+  state.battle.megaUid === p.uid ? megaFor(p) : undefined;
+
+/** Dados de combate do jogador: com a forma Mega, se for o caso. */
+function playerSource(state: GameState, p: PokemonInstance) {
+  const mega = megaActive(state, p);
+  return mega ? { ...p, megaForm: mega.form } : p;
+}
+
+/** LUTAR: só no modo manual e só na vez do ativo (o cronômetro do golpe não se adianta clicando). */
 export function selectMove(state: GameState, move: string): boolean {
   const b = state.battle;
-  if (b.phase !== 'fighting' || !b.enemy || !movesOf(activePokemon(state)).includes(move)) return false;
+  if (!awaitingCommand(state) || !movesOf(activePokemon(state)).includes(move)) return false;
   b.pendingMove = move;
   return true;
 }
@@ -232,7 +262,7 @@ function takeTurn(
   const playerMax = statsOf(player).hp;
   // Duelo fantasma: os dois lados com o mesmo clima e a mesma força, sem bônus do jogador.
   const duel = b.kind === 'ghost';
-  const pc = combatantOf(player, duel ? mods.enemyMoveBoost : mods.playerMoveBoost);
+  const pc = combatantOf(playerSource(state, player), duel ? mods.enemyMoveBoost : mods.playerMoveBoost);
   const ec = combatantOf(enemy, mods.enemyMoveBoost);
   pc.burned = b.playerStatus?.kind === 'burn';
   ec.burned = enemy.status?.kind === 'burn';
@@ -352,8 +382,10 @@ function takeTurn(
     BALANCE.raid.rageSpeed ** rage;
   if (self.ability?.weatherSpeed && self.ability.weatherSpeed === mods.weather) interval *= 0.7;
   if (self.held?.quickClaw && rng.next() < self.held.quickClaw) interval *= 0.5;
-  if (isPlayer) b.playerTimerMs += interval;
-  else b.enemyTimerMs += interval;
+  if (isPlayer) {
+    b.playerTimerMs += interval;
+    b.playerIntervalMs = interval;
+  } else b.enemyTimerMs += interval;
 
   const ready = beforeAction(status, rng);
   if (ready === 'skip') {
@@ -484,10 +516,11 @@ function onFaint(state: GameState, side: Side, now: number, events: GameEvent[],
 function resetPlayerTimer(state: GameState, mods: Modifiers, fraction: number): void {
   const b = state.battle;
   if (!b.enemy) return;
-  const pc = combatantOf(activePokemon(state));
+  const pc = combatantOf(playerSource(state, activePokemon(state)));
   const ec = combatantOf(b.enemy);
   const speed = b.kind === 'ghost' ? 1 : mods.attackInterval;
   b.playerTimerMs = attackInterval(pc.stats.spe, ec.stats.spe) * speed * fraction;
+  b.playerIntervalMs = attackInterval(pc.stats.spe, ec.stats.spe) * speed;
 }
 
 /** Escalas do duelo fantasma: as mesmas para os dois lados. */
@@ -529,6 +562,7 @@ export function currentEncounters(state: GameState, routeId: string) {
 
 function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[], mods: Modifiers): void {
   const b = state.battle;
+  b.megaUid = undefined;
   const route = getRoute(b.routeId);
   let speciesId: number;
   let level: number;
@@ -636,7 +670,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     const uid = bestMatchup(state, b.enemy, mods);
     if (uid !== null) switchIn(state, uid, 'matchup', events);
   }
-  const pc = combatantOf(activePokemon(state));
+  const pc = combatantOf(playerSource(state, activePokemon(state)));
   const ec = combatantOf(b.enemy);
   resetPlayerTimer(state, mods, 0.5);
   b.enemyTimerMs = attackInterval(ec.stats.spe, pc.stats.spe) * 0.5;

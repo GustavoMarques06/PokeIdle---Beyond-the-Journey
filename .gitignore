@@ -6,3 +6,6 @@ scripts/.cache
 src-tauri/target
 src-tauri/gen
 __pycache__/
+tsconfig.tsbuildinfo
+prints/
+art/**/_backup*/

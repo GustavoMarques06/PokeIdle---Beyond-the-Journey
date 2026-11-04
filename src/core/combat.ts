@@ -1,8 +1,11 @@
 import {
   BALANCE,
+  getAbility,
   getHeldItem,
   getMove,
   getSpecies,
+  hasAbility,
+  megaOfForm,
   typeEffectiveness,
   type AbilityDef,
   type Ailment,
@@ -46,16 +49,31 @@ export interface CombatantSource {
   uid?: number;
   abilitySlot?: 0 | 1 | 2;
   held?: string;
+  /** Forma Mega assumida em batalha (megas.ts): troca tipos e atributos base. */
+  megaForm?: string;
+  /** Forma do Pokémon (chefes já entram Mega Evoluídos: `form: 'mega'`). */
+  form?: string;
 }
 
 export function combatantOf(p: CombatantSource, moveBoost?: Record<TypeName, number>): Combatant {
   const species = getSpecies(p.speciesId);
-  const ability = abilityInSlot(
-    p.speciesId,
-    p.uid !== undefined ? abilitySlotOf({ ...p, uid: p.uid }) : (p.abilitySlot ?? 0),
-  );
+  const mega = megaOfForm(p.speciesId, p.megaForm ?? p.form);
+  // A Mega traz a habilidade própria; fora dela vale a da espécie.
+  const ability =
+    mega && hasAbility(mega.ability)
+      ? getAbility(mega.ability)
+      : abilityInSlot(
+          p.speciesId,
+          p.uid !== undefined ? abilitySlotOf({ ...p, uid: p.uid }) : (p.abilitySlot ?? 0),
+        );
   const held = getHeldItem(p.held);
-  const base = calcStats(species, p.level, p.ivs, p.nature, p.evs);
+  const base = calcStats(
+    mega ? { ...species, baseStats: mega.baseStats } : species,
+    p.level,
+    p.ivs,
+    p.nature,
+    p.evs,
+  );
   const k = p.boost ?? 1;
   const stats = { ...base };
   for (const key of Object.keys(stats) as StatKey[]) {
@@ -69,7 +87,7 @@ export function combatantOf(p: CombatantSource, moveBoost?: Record<TypeName, num
     speciesId: p.speciesId,
     level: p.level,
     stats,
-    types: species.types,
+    types: mega?.types ?? species.types,
     moves: movesOf(p),
     moveBoost,
     ability,

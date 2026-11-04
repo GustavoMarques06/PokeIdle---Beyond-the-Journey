@@ -38,6 +38,8 @@ export function useHotkeys(map: HotkeyMap, enabled = true): void {
 /** Lista exibida nas Opções. */
 export const HOTKEY_HELP: [string, string][] = [
   ['1 – 9, 0', 'abrir as telas do menu (Pokémon, Pokédex, Mochila, Loja… e o PC no 0)'],
+  ['H', 'abrir a AJUDA (como o jogo funciona)'],
+  ['M', 'Mega Evoluir (modo manual, com a Mega Stone)'],
   ['Q', 'lançar Poké Ball'],
   ['W', 'lançar a melhor bola para a situação'],
   ['D', 'desafiar o chefe, a raide, a Equipe Rocket ou fazer a revanche'],
