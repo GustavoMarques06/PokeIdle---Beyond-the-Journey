@@ -30,6 +30,10 @@ export function TitleScreen({
   onNewGame: () => void;
   onBack: () => void;
 }) {
+  // O foco automático rola a página até o botão: a tela sempre começa do topo.
+  useEffect(() => {
+    window.scrollTo?.(0, 0);
+  }, []);
   const engine = useEngine();
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');

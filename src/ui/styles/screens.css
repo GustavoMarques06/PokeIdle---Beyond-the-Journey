@@ -1357,7 +1357,6 @@ html.reduced-motion .pcs-cell.held {
   background: repeating-linear-gradient(0deg, transparent 0 3px, rgb(0 0 0 / 0.06) 3px 4px), #58c878;
   color: #10301c;
   font: 700 13px var(--font-label);
-  white-space: nowrap;
   overflow: hidden;
 }
 
