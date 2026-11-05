@@ -23,11 +23,18 @@ import {
 } from '../game-data';
 import { combatScales, computeModifiers, masteryLevel, type Modifiers } from './bonuses';
 import { captureReason } from './automation';
-import { ballMultiplier, captureChance, rollCapture, type BallContext } from './capture';
+import {
+  ballMultiplier,
+  captureAnimMs,
+  captureChance,
+  captureShakes,
+  rollCapture,
+  type BallContext,
+} from './capture';
 import { rollGender } from './gender';
 import { incenseType, repelActive, tickLures } from './lures';
 import { addToCollection, dexEntry, giveItems, markCaught, unlockTm } from './collection';
-import { absorbedBy, attackInterval, calcDamage, chooseMove, combatantOf } from './combat';
+import { absorbedBy, attackInterval, calcDamage, chooseMove, combatantOf, moveMatchup } from './combat';
 import { daycareKills } from './daycare';
 import { routeWeather } from './env';
 import { relocateRoamer, roamerCaught } from './events';
@@ -130,6 +137,12 @@ export function step(
     spawnEnemy(state, rng, now, events, mods);
     return;
   }
+  // A bola ainda está balançando: a luta espera o resultado aparecer.
+  if (b.holdMs) {
+    b.holdMs -= dt;
+    if (b.holdMs > 0) return;
+    b.holdMs = undefined;
+  }
   // Modo manual: na vez do ativo, tudo para até o jogador escolher (como nos portáteis).
   if (awaitingCommand(state)) return;
   if (b.enemy) b.enemy.elapsedMs = (b.enemy.elapsedMs ?? 0) + dt;
@@ -179,7 +192,14 @@ const manualMode = (state: GameState) => state.settings.battleMode === 'manual';
 /** Modo manual: chegou a vez do ativo e a batalha espera um comando. */
 export function awaitingCommand(state: GameState): boolean {
   const b = state.battle;
-  return manualMode(state) && b.phase === 'fighting' && !!b.enemy && b.playerTimerMs <= 0 && !b.pendingMove;
+  return (
+    manualMode(state) &&
+    b.phase === 'fighting' &&
+    !!b.enemy &&
+    !b.holdMs &&
+    b.playerTimerMs <= 0 &&
+    !b.pendingMove
+  );
 }
 
 /** A Mega que o ativo pode assumir agora (segura a pedra certa, ainda não Mega Evoluiu neste encontro). */
@@ -206,6 +226,13 @@ export const megaActive = (state: GameState, p: { uid: number; speciesId: number
 function playerSource(state: GameState, p: PokemonInstance) {
   const mega = megaActive(state, p);
   return mega ? { ...p, megaForm: mega.form } : p;
+}
+
+/** Tipo real de um golpe do ativo contra o inimigo atual e a efetividade (com Pixilar e afins, e habilidades). */
+export function playerMoveMatchup(state: GameState, moveId: string) {
+  const enemy = state.battle.enemy;
+  if (!enemy) return { type: getMove(moveId).type, effectiveness: 1 };
+  return moveMatchup(combatantOf(playerSource(state, activePokemon(state))), combatantOf(enemy), moveId);
 }
 
 /** LUTAR: só no modo manual e só na vez do ativo (o cronômetro do golpe não se adianta clicando). */
@@ -1039,6 +1066,7 @@ export function canThrowBall(state: GameState): boolean {
     (b.kind === 'wild' || b.kind === 'legendary') &&
     b.phase === 'fighting' &&
     !!b.enemy &&
+    !b.holdMs &&
     canCaptureHere(state)
   );
 }
@@ -1084,6 +1112,9 @@ export function throwBall(state: GameState, ball: string, now: number): GameEven
   return events;
 }
 
+/** Folga para a bola sumir antes do próximo Pokémon entrar. */
+const CAPTURE_MARGIN_MS = 200;
+
 function attemptCapture(
   state: GameState,
   ball: string,
@@ -1098,14 +1129,23 @@ function attemptCapture(
   enemy.captureAttempted = true;
   const success = rollCapture(rng, chance);
   events.push({ type: 'captureAttempt', ball, success, speciesId: enemy.speciesId, chance });
+  const animMs = captureAnimMs(captureShakes(chance, success), success);
+  // Depois de capturar, o próximo Pokémon só entra quando a animação acabar.
+  const waitForAnim = () => {
+    const b = state.battle;
+    if (b.phase !== 'fighting') b.phaseMs = Math.max(b.phaseMs, animMs + CAPTURE_MARGIN_MS);
+  };
   if (!success) {
     if (state.battle.kind === 'legendary') {
       enemy.throws = (enemy.throws ?? 0) + 1;
       if (enemy.throws >= legendaryRules(enemy.speciesId).throwLimit) {
         endLegendary(state, enemy.speciesId, now, 'fled', events);
         state.battle = freshBattle(state.battle.routeId);
+        waitForAnim();
+        return;
       }
     }
+    state.battle.holdMs = animMs;
     return;
   }
 
@@ -1147,9 +1187,11 @@ function attemptCapture(
     const player = activePokemon(state);
     player.currentHp = statsOf(player).hp;
     state.battle = freshBattle(state.battle.routeId);
+    waitForAnim();
     return;
   }
   onEnemyFainted(state, events, mods, now);
+  waitForAnim();
 }
 
 function maybeAutoCapture(

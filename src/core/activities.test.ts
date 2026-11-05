@@ -407,6 +407,7 @@ describe('lendários', () => {
     advance(s, BALANCE.combat.spawnDelayMs + 100, 0);
     for (let i = 0; i < BALANCE.legendary.throwLimit && s.battle.kind === 'legendary'; i++) {
       throwBall(s, 'poke-ball', 0);
+      s.battle.holdMs = undefined; // sem esperar a bola parar de balançar
     }
     if (!s.legends.caught.includes(ARTICUNO)) {
       expect(s.battle.kind).toBe('wild');

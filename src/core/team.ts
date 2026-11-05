@@ -43,6 +43,23 @@ export function addToTeam(state: GameState, uid: number): boolean {
   return true;
 }
 
+/**
+ * Põe um Pokémon de fora na equipe (o que o PC faz ao arrastar): numa vaga livre ou, com `targetUid`, no lugar de
+ * quem já está lá, que volta para o PC.
+ */
+export function placeInTeam(state: GameState, uid: number, targetUid?: number): boolean {
+  const order = teamPokemon(state).map((p) => p.uid);
+  if (order.includes(uid)) return false;
+  const i = targetUid === undefined ? -1 : order.indexOf(targetUid);
+  if (i < 0) return addToTeam(state, uid);
+  if (!findPokemon(state, uid) || busyUids(state).has(uid) || isFallen(state, uid)) return false;
+  order[i] = uid;
+  if (i === 0) state.battle.playerStatus = null;
+  state.activeUid = order[0];
+  state.battleTeam = order.slice(1);
+  return true;
+}
+
 /** Tira da equipe. Quem luta só sai se houver outro para assumir (o próximo da fila). */
 export function removeFromTeam(state: GameState, uid: number): boolean {
   if (uid === state.activeUid) {

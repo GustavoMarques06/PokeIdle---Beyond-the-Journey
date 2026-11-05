@@ -97,6 +97,8 @@ export function combatantOf(p: CombatantSource, moveBoost?: Record<TypeName, num
 
 export interface DamageResult {
   moveId: string;
+  /** Tipo com que o golpe acertou (Pixilar e afins convertem golpes Normais). */
+  moveType: TypeName;
   damage: number;
   missed: boolean;
   crit: boolean;
@@ -123,6 +125,22 @@ function effectiveness(
   const resist = ability?.resist?.[type];
   if (resist !== undefined) total *= resist;
   return { type: byType, total };
+}
+
+/** Tipo com que o golpe sai: Aerilar, Pixilar e Refrigerar convertem os golpes Normais. */
+function moveTypeOf(attacker: Combatant, moveId: string): TypeName {
+  const type = getMove(moveId).type;
+  return (type === 'normal' ? attacker.ability?.convertNormal : undefined) ?? type;
+}
+
+/** Tipo real do golpe e efetividade contra o alvo (a mesma conta do dano). */
+export function moveMatchup(
+  attacker: Combatant,
+  defender: Combatant,
+  moveId: string,
+): { type: TypeName; effectiveness: number } {
+  const type = moveTypeOf(attacker, moveId);
+  return { type, effectiveness: effectiveness(attacker, defender, type).total };
 }
 
 /** O golpe é anulado pela habilidade do alvo e a recuperaria (Absorção de Água etc.)? */
@@ -152,19 +170,23 @@ function baseDamage(
 
   const levelFactor = (2 * attacker.level) / 5 + 2;
   const raw = (levelFactor * move.power * (atk / Math.max(1, def))) / 50 + 2;
-  const stab = attacker.types.includes(move.type) ? (ab?.stab ?? BALANCE.combat.stab) : 1;
-  const { type: byType, total: eff } = effectiveness(attacker, defender, move.type);
-  const boost = attacker.moveBoost?.[move.type] ?? 1;
+  // Aerilar, Pixilar e Refrigerar: golpe Normal vira de outro tipo (com bônus de mesmo tipo e +20%).
+  const type = moveTypeOf(attacker, moveId);
+  const converted = type !== move.type;
+  const stab = attacker.types.includes(type) ? (ab?.stab ?? BALANCE.combat.stab) : 1;
+  const { type: byType, total: eff } = effectiveness(attacker, defender, type);
+  const boost = attacker.moveBoost?.[type] ?? 1;
   const burn = attacker.burned && physical && !ab?.guts ? BALANCE.status.burnAttackMultiplier : 1;
 
-  let mods = 1;
-  if (ab?.lowHp && ab.lowHp.type === move.type && (attacker.hpRatio ?? 1) <= 1 / 3) mods *= ab.lowHp.mult;
-  if (ab?.typeBoost?.type === move.type) mods *= ab.typeBoost.mult;
+  let mods = converted ? 1.2 : 1;
+  if (ab?.secondHit) mods *= 1 + ab.secondHit;
+  if (ab?.lowHp && ab.lowHp.type === type && (attacker.hpRatio ?? 1) <= 1 / 3) mods *= ab.lowHp.mult;
+  if (ab?.typeBoost?.type === type) mods *= ab.typeBoost.mult;
   if (ab?.technician && move.power <= 60) mods *= ab.technician;
   if (ab?.tintedLens && byType < 1) mods *= 2;
   if (held) {
     mods *= (held.damage ?? 1) * (physical ? (held.physical ?? 1) : (held.special ?? 1));
-    if (held.type?.type === move.type) mods *= held.type.mult;
+    if (held.type?.type === type) mods *= held.type.mult;
     if (byType > 1) mods *= held.superEffective ?? 1;
   }
   if (defAb) {
@@ -194,8 +216,9 @@ export function calcDamage(
   scale = 1,
 ): DamageResult {
   const { damage, eff } = baseDamage(attacker, defender, moveId, scale);
+  const moveType = moveTypeOf(attacker, moveId);
   if (rng.next() * 100 >= hitChance(attacker, defender, moveId)) {
-    return { moveId, damage: 0, missed: true, crit: false, effectiveness: eff };
+    return { moveId, moveType, damage: 0, missed: true, crit: false, effectiveness: eff };
   }
   const c = BALANCE.combat;
   const crit = rng.next() < critChanceOf(attacker);
@@ -203,6 +226,7 @@ export function calcDamage(
   const final = damage * variance * (crit ? c.critMultiplier : 1);
   return {
     moveId,
+    moveType,
     damage: eff === 0 ? 0 : Math.max(1, Math.floor(final)),
     missed: false,
     crit,

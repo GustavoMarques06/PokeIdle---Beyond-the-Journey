@@ -4,7 +4,7 @@
 // golpe só da próxima vez.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { THROWABLE_BALLS, getMove, getRoute, getSpecies, typeEffectiveness } from '../../game-data';
+import { THROWABLE_BALLS, getMove, getRoute, megaLabel } from '../../game-data';
 import { legendaryRules } from '../../core/legendary';
 import { bossLook } from '../../core/rival';
 import { canCaptureHere } from '../../core/nuzlocke';
@@ -30,6 +30,7 @@ import {
   runAway,
   selectMove,
   setEncounterMode,
+  playerMoveMatchup,
   switchActive,
   throwBall,
   type EncounterMode,
@@ -173,7 +174,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   useEffect(() => {
     if (typed >= message.length) return;
     const speed = state.settings.animSpeed || 1;
-    const t = setTimeout(() => setTyped((n) => Math.min(message.length, n + Math.round(2 * speed))), TYPE_MS);
+    const t = setTimeout(() => setTyped((n) => Math.min(message.length, n + Math.round(4 * speed))), TYPE_MS);
     return () => clearTimeout(t);
   }, [typed, message, state.settings.animSpeed]);
 
@@ -350,7 +351,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
           </div>
           {mega && (
             <button className="dialog-mega" onClick={doMega} title="Mega Evoluir (tecla M)">
-              MEGA
+              {megaLabel(mega.form)}
             </button>
           )}
           {challengeLabel && (
@@ -441,11 +442,11 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
             <div className="bc-moves">
               {movesOf(player).map((move) => {
                 const mv = getMove(move);
-                const eff = b.enemy ? typeEffectiveness(mv.type, getSpecies(b.enemy.speciesId).types) : 1;
+                const { type, effectiveness: eff } = playerMoveMatchup(state, move);
                 return (
                   <button
                     key={move}
-                    className={`bc-move type-bg-${mv.type} ${b.pendingMove === move ? 'queued' : ''}`}
+                    className={`bc-move type-bg-${type} ${b.pendingMove === move ? 'queued' : ''}`}
                     disabled={!waiting}
                     onClick={() => {
                       engine.dispatch((s) => void selectMove(s, move));
@@ -454,7 +455,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                   >
                     <strong>{moveName(move).toUpperCase()}</strong>
                     <small>
-                      <TypeBadge type={mv.type} /> POD {mv.power}
+                      <TypeBadge type={type} /> POD {mv.power}
                       {eff !== 1 && (
                         <span className={`bc-eff ${eff > 1 ? 'up' : 'down'}`}>
                           {eff === 0 ? 'SEM EFEITO' : eff > 1 ? 'SUPER EFETIVO' : 'POUCO EFETIVO'}

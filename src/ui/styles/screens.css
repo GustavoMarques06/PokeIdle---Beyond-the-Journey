@@ -125,7 +125,31 @@
   font: 700 13px var(--font-label);
 }
 
-.party-role,
+.party-role {
+  grid-column: 1;
+  font: 700 12px var(--font-label);
+  color: #fff8b0;
+}
+
+/* O bônus da equipe é uma etiqueta discreta ao lado do papel; o texto completo vai na dica. */
+.party-bonus-chip {
+  grid-column: 2 / -1;
+  justify-self: end;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.22);
+  font: 700 11px var(--font-label);
+  color: #fff8b0;
+}
+
+.party-bonus-chip.dup {
+  opacity: 0.6;
+}
+
 .party-bonus {
   grid-column: 1 / -1;
   font: 700 13px var(--font-label);
@@ -624,6 +648,27 @@
 
 .pcs-team-mon.selected {
   border-color: #f8d030;
+}
+
+.pcs-team-mon.free {
+  justify-content: center;
+  min-height: 46px;
+  border: 2px dashed #6878a0;
+  background: none;
+}
+
+.pcs-team-plus {
+  font: 700 18px var(--font-label);
+  line-height: 1;
+}
+
+.pcs-notice {
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f8e0a0;
+  color: var(--ink);
+  font: 700 13px var(--font-label);
 }
 
 /* Caixa aberta */

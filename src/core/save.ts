@@ -244,6 +244,8 @@ function normalize(state: GameState): void {
   state.pokedex ??= {};
   state.upgrades ??= [];
   state.settings = { ...DEFAULT_SETTINGS, ...state.settings };
+  // O modo Qualidade (3D) saiu do jogo: quem o tinha escolhido volta para Normal.
+  if (state.settings.graphics !== 'performance') state.settings.graphics = 'normal';
   state.research ??= { points: 0, levels: {} };
   state.mastery ??= {};
   state.achievements ??= [];

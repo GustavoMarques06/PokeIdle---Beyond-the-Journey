@@ -2,6 +2,7 @@
 // sintetizados com Web Audio, no estilo chiptune.
 
 import { assetUrl, getSpecies } from '../game-data';
+import { captureRevealMs, captureShakes } from '../core/capture';
 import type { GameEvent, Settings } from '../core/game';
 
 export type Sfx =
@@ -416,7 +417,12 @@ class AudioManager {
           this.sfx('faint');
           break;
         case 'captureAttempt':
-          this.sfx(e.success ? 'capture' : 'escape');
+          // O resultado só soa quando a bola termina de balançar, para não estragar o suspense.
+          this.sfx('throw');
+          setTimeout(
+            () => this.sfx(e.success ? 'capture' : 'escape'),
+            captureRevealMs(captureShakes(e.chance, e.success)),
+          );
           break;
         case 'levelUp':
           this.sfx('levelUp');

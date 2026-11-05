@@ -56,3 +56,16 @@ export function captureChance(
 export function rollCapture(rng: Rng, chance: number): boolean {
   return rng.next() < chance;
 }
+
+/** Quantas vezes a bola balança antes do resultado: quanto mais perto de capturar, mais balanços. */
+export function captureShakes(chance: number, success: boolean): 1 | 2 | 3 {
+  if (success || chance >= 0.6) return 3;
+  return chance >= 0.3 ? 2 : 1;
+}
+
+/** Quando o resultado aparece: arremesso e quique (720 ms) mais os balanços (iguais às animações de game.css). */
+export const captureRevealMs = (shakes: number): number => 720 + 560 * shakes;
+
+/** Duração total da animação de captura; a batalha espera por ela. */
+export const captureAnimMs = (shakes: number, success: boolean): number =>
+  captureRevealMs(shakes) + (success ? 600 : 450);

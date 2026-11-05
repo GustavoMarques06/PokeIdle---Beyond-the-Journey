@@ -16,6 +16,8 @@ transferência leva o jogo de um aparelho para outro.
   escolha do inicial no laboratório, com o rival da região levando o que tem vantagem sobre o seu.
 - **6 regiões** (Kanto, Johto, Hoenn, Sinnoh, Unova e Kalos), **96 áreas**, **48 ginásios**, Elite Four e
   Campeão em cada uma. Kalos é o pós-jogo: tudo no nível 100, com selvagens e líderes reforçados.
+- **Dois modos gráficos** (Opções): Normal (pixel art) e Desempenho (sem clima nem tons de dia e noite, para aparelhos
+  simples).
 - **668 espécies** das Gerações I a VI, com sprites no estilo Black/White (frente, costas e shiny): animados
   até a Geração V e na maior parte da VI; o resto da VI usa os sprites estáticos do mesmo estilo.
 - **Batalha automática** em tempo real, com tipos, habilidades, itens segurados, status, clima e dia/noite.
@@ -218,11 +220,12 @@ Os padrões de manchas do Spinda não têm sprite pronto: o jogo recolore o spri
 
 As artes geradas para o jogo ficam em `art/` e passam por scripts antes de entrar em `public/`:
 
-| Script                              | Uso                                                                    |
-| ----------------------------------- | ---------------------------------------------------------------------- |
-| `python scripts/sprite-feet.py`     | Mede onde ficam os pés de cada sprite, para alinhar o Pokémon à sombra |
-| `python scripts/weather-sprites.py` | Converte as artes de clima de `art/weather/` em folhas transparentes   |
-| `python scripts/frame-corners.py`   | Converte os ornamentos das molduras de `art/frames/`                   |
+| Script                            | Uso                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| `python scripts/sprite-feet.py`   | Mede onde ficam os pés de cada sprite, para alinhar o Pokémon à sombra   |
+| `python scripts/build-weather.py` | Monta os climas (chuva, neve, tempestade e os ambientes: folhas, pétalas, vaga-lumes, aurora, estrelas cadentes) a partir das folhas do pixelfx |
+| `python scripts/build-fx.py`      | Monta os efeitos de golpe e de status de `art/fx-packs`                  |
+| `python scripts/frame-corners.py` | Converte os ornamentos das molduras de `art/frames/`                     |
 
 Os scripts em Python precisam do [Pillow](https://pypi.org/project/pillow/).
 
@@ -275,6 +278,15 @@ Em desenvolvimento. Ainda faltam:
 
 - Seletor de idioma (hoje o jogo está só em português).
 - Testar o instalador do aplicativo desktop.
+
+## Créditos de terceiros
+
+- **Climas** (`public/sprites/weather`): chuva, neve, tempestade e os ambientes de céu limpo (folhas, pétalas, vaga-lumes, aurora, estrelas cadentes) do [pixelfx](https://github.com/patch-gg/pixelfx), de
+  Patch e Hugo Duprez (MIT).
+- **Efeitos de golpe e de status** (`public/sprites/fx`): [PVFX Foundry](https://nerijs.itch.io/pvfx-foundry), de nerijs (folhas
+  em CC0; o toolkit usado para desenhar é o [pixelfx](https://github.com/patch-gg/pixelfx), de Patch e Hugo Duprez, MIT) e
+  [Pixel Magic Effects](https://foozlecc.itch.io/pixel-magic-sprite-effects), da Foozle (CC0). Licenças em
+  `public/sprites/fx/LICENSE-*.txt`. Os pacotes originais ficam em `art/fx-packs` e `scripts/build-fx.py` monta as folhas.
 
 ## Aviso legal
 

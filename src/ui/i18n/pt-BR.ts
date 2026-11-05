@@ -388,7 +388,9 @@ export function describeEvent(e: GameEvent): string | null {
       return s;
     }
     case 'megaEvolved':
-      return `${speciesName(e.speciesId)} sofreu Mega Evolução!`;
+      return e.form === 'primal'
+        ? `${speciesName(e.speciesId)} sofreu Regressão Primal!`
+        : `${speciesName(e.speciesId)} sofreu Mega Evolução!`;
     case 'switched':
       return e.reason === 'fainted'
         ? `${speciesName(e.from)} desmaiou! ${speciesName(e.to)} entrou na batalha.`

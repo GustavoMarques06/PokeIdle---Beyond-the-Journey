@@ -1,6 +1,6 @@
 // PC: o sistema de armazenamento dos portáteis. Equipe no alto, a caixa aberta (6×5) com nome e
 // papel de parede, ‹ › e a faixa de caixas para navegar. Pokémon se movem arrastando ou com
-// "Mover" + clique no destino (ocupado = troca). Busca e filtros apagam quem não bate, sem tirar
+// "Mover" + clique no destino (ocupado = troca), inclusive para a equipe. Busca e filtros apagam quem não bate, sem tirar
 // ninguém do lugar; a seleção múltipla faz as ações em lote. A ficha da Equipe aparece embaixo.
 
 import { useEffect, useRef, useState } from 'react';
@@ -36,7 +36,7 @@ import {
   type PcSpot,
 } from '../../core/pc';
 import { isPerfect, pokemonName, type PokemonInstance } from '../../core/pokemon';
-import { reservePokemon } from '../../core/team';
+import { placeInTeam, removeFromTeam, reservePokemon, reserveSlotsUnlocked } from '../../core/team';
 import { audio } from '../audio';
 import { GenderMark, ItemIcon, PixelIcon, PokemonSprite, Shiny } from '../components/common';
 import { genderOf } from '../../core/gender';
@@ -44,6 +44,7 @@ import { useHotkeys } from '../hotkeys';
 import { TYPE_NAMES, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 import { Summary, busyLabel } from './PartyScreen';
+import { PC_DRAG, TEAM_DRAG, teamDropProps } from './teamDrag';
 
 const SORTS: { id: PcSort; label: string }[] = [
   { id: 'dex', label: 'Nº da Pokédex' },
@@ -71,6 +72,7 @@ export function PcScreen({ state }: { state: GameState }) {
   const [box, setBox] = useState(() => findInPc(boxes, selected)?.box ?? 0);
   const [holding, setHolding] = useState<PcSpot | null>(null);
   const [dragFrom, setDragFrom] = useState<PcSpot | null>(null);
+  const [notice, setNotice] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [filter, setFilter] = useState<BoxFilter>(EMPTY_FILTER);
   const [showFilters, setShowFilters] = useState(false);
@@ -92,6 +94,7 @@ export function PcScreen({ state }: { state: GameState }) {
     { uid: state.activeUid, role: 'LUTANDO' },
     ...reservePokemon(state).map((p, i) => ({ uid: p.uid, role: `${i + 2}º DA EQUIPE` })),
   ];
+  const freeSlots = Math.max(0, reserveSlotsUnlocked(state) - (team.length - 1));
   const shown = byUid.get(selected) ?? byUid.get(state.activeUid)!;
   const patch = (p: Partial<BoxFilter>) => setFilter((f) => ({ ...f, ...p }));
 
@@ -110,6 +113,29 @@ export function PcScreen({ state }: { state: GameState }) {
     engine.dispatch((s) => void movePc(s, from, to));
     setSelected(uid);
     audio.sfx('click');
+  };
+
+  /** Leva um Pokémon do PC para a equipe: numa vaga livre ou no lugar de `target`, que volta para o PC. */
+  const toTeam = (uid: number, target?: number) => {
+    const p = byUid.get(uid);
+    if (!p) return;
+    const busy = busyLabel(state, uid);
+    let placed = false;
+    engine.dispatch((s) => void (placed = placeInTeam(s, uid, target)));
+    setNotice(
+      placed ? '' : busy ? `${pokemonName(p)} não está disponível: ${busy}.` : 'A equipe está cheia.',
+    );
+    if (placed) setSelected(uid);
+    audio.sfx(placed ? 'click' : 'miss');
+  };
+
+  /** Clique na equipe ou numa vaga: solta quem está sendo movido; sem ninguém, mostra a ficha. */
+  const onTeamClick = (target?: number) => {
+    if (holding) {
+      const uid = boxes[holding.box]?.slots[holding.slot];
+      setHolding(null);
+      if (uid) toTeam(uid, target);
+    } else if (target) setSelected(target);
   };
 
   const onCell = (spot: PcSpot, uid: number) => {
@@ -162,7 +188,13 @@ export function PcScreen({ state }: { state: GameState }) {
               <button
                 key={uid}
                 className={`pcs-team-mon ${selected === uid ? 'selected' : ''}`}
-                onClick={() => setSelected(uid)}
+                onClick={() => onTeamClick(uid)}
+                draggable={team.length > 1}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'move';
+                  e.dataTransfer.setData(TEAM_DRAG, String(uid));
+                }}
+                {...teamDropProps((from) => toTeam(from, uid))}
                 title={`${role}: ${label(p)}`}
                 aria-label={`${role}: ${label(p)}`}
               >
@@ -171,7 +203,27 @@ export function PcScreen({ state }: { state: GameState }) {
               </button>
             );
           })}
+          {Array.from({ length: freeSlots }, (_, i) => (
+            <button
+              key={i}
+              className="pcs-team-mon free"
+              onClick={() => onTeamClick()}
+              {...teamDropProps((from) => toTeam(from))}
+              title="Vaga livre: arraste um Pokémon da caixa para cá"
+              aria-label="Vaga livre na equipe"
+            >
+              <span className="pcs-team-plus" aria-hidden>
+                +
+              </span>
+              <small>VAGA</small>
+            </button>
+          ))}
         </div>
+        {notice && (
+          <p className="pcs-notice" role="status">
+            {notice}
+          </p>
+        )}
 
         <div className="pcs-box">
           <div className="pcs-box-head">
@@ -235,6 +287,7 @@ export function PcScreen({ state }: { state: GameState }) {
                     onDragStart={(e) => {
                       e.dataTransfer.effectAllowed = 'move';
                       e.dataTransfer.setData('text/plain', `${box}:${slot}`);
+                      e.dataTransfer.setData(PC_DRAG, String(uid));
                       setDragFrom(spot);
                       setHolding(null);
                     }}
@@ -242,10 +295,14 @@ export function PcScreen({ state }: { state: GameState }) {
                       setDragFrom(null);
                       clearTimeout(flipTimer.current);
                     }}
-                    onDragOver={(e) => dragFrom && e.preventDefault()}
+                    onDragOver={(e) => {
+                      if (dragFrom || e.dataTransfer.types.includes(TEAM_DRAG)) e.preventDefault();
+                    }}
                     onDrop={(e) => {
                       e.preventDefault();
+                      const member = Number(e.dataTransfer.getData(TEAM_DRAG));
                       if (dragFrom) move(dragFrom, spot);
+                      else if (member) engine.dispatch((s) => void removeFromTeam(s, member));
                       setDragFrom(null);
                     }}
                     onClick={() => onCell(spot, uid)}
@@ -332,8 +389,8 @@ export function PcScreen({ state }: { state: GameState }) {
         <div className="pcs-holding" role="status">
           <PokemonSprite speciesId={heldMon.speciesId} kind="icon" />
           <span>
-            Movendo <strong>{pokemonName(heldMon)}</strong>: clique num espaço (de qualquer caixa) para
-            soltar. Ocupado = troca de lugar.
+            Movendo <strong>{pokemonName(heldMon)}</strong>: clique num espaço (de qualquer caixa) ou na
+            equipe para soltar. Ocupado = troca de lugar.
           </span>
           <button className="pbtn small" onClick={() => setHolding(null)}>
             Cancelar

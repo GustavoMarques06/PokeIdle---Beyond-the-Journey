@@ -499,3 +499,42 @@ html,
 body {
   overscroll-behavior-y: none;
 }
+
+/* Modo Desempenho: sem filtros caros, sem brilhos nem animações de enfeite. */
+html.gfx-performance .scene-night,
+html.gfx-performance .scene-dusk,
+html.gfx-performance .scene-dawn,
+html.gfx-performance .scene-water,
+html.gfx-performance .scene-weather-anim,
+html.gfx-performance .scene-fog,
+html.gfx-performance .scene-sun,
+html.gfx-performance .scene-sandstorm,
+html.gfx-performance .mega-burst {
+  display: none;
+}
+
+/* Só os filtros de enfeite, que são os caros (sombras e brilhos em sprites animados). Os que têm função ficam: as
+   silhuetas da Pokédex, de lendários e de fósseis, a insígnia que falta, botões desativados, flashes de captura. */
+html.gfx-performance .battle-mon.st-burn,
+html.gfx-performance .battle-mon.st-poison,
+html.gfx-performance .battle-mon.st-paralysis,
+html.gfx-performance .battle-mon.st-freeze,
+html.gfx-performance .battle-mon.st-sleep,
+html.gfx-performance .battle-mon.rage-1 .sprite,
+html.gfx-performance .battle-mon.rage-2 .sprite,
+html.gfx-performance .trainer-card[class*='card-frame-']::before,
+html.gfx-performance .coach-sprite,
+html.gfx-performance .lab-arrow,
+html.gfx-performance .dex-dpad,
+html.gfx-performance .gba-logo {
+  filter: none !important;
+}
+
+html.gfx-performance .battle-cmds.waiting,
+html.gfx-performance .dialog-challenge,
+html.gfx-performance .dialog-mega,
+html.gfx-performance .new-badge,
+html.gfx-performance .menu-alert,
+html.gfx-performance .perfect-tag {
+  animation: none !important;
+}

@@ -13,17 +13,51 @@ const API = 'https://pokeapi.co/api/v2';
 
 // Espécie base → Mega Stone (as de dois formatos, X e Y, ganham o sufixo). Mega Rayquaza não usa pedra.
 const STONES = {
-  venusaur: 'venusaurite', charizard: 'charizardite', blastoise: 'blastoisinite', alakazam: 'alakazite',
-  gengar: 'gengarite', kangaskhan: 'kangaskhanite', pinsir: 'pinsirite', gyarados: 'gyaradosite',
-  aerodactyl: 'aerodactylite', mewtwo: 'mewtwonite', ampharos: 'ampharosite', scizor: 'scizorite',
-  heracross: 'heracronite', houndoom: 'houndoominite', tyranitar: 'tyranitarite', blaziken: 'blazikenite',
-  gardevoir: 'gardevoirite', mawile: 'mawilite', aggron: 'aggronite', medicham: 'medichamite',
-  manectric: 'manectite', banette: 'banettite', absol: 'absolite', garchomp: 'garchompite',
-  lucario: 'lucarionite', abomasnow: 'abomasite', beedrill: 'beedrillite', pidgeot: 'pidgeotite',
-  slowbro: 'slowbronite', steelix: 'steelixite', sceptile: 'sceptilite', swampert: 'swampertite',
-  sableye: 'sablenite', sharpedo: 'sharpedonite', camerupt: 'cameruptite', altaria: 'altarianite',
-  glalie: 'glalitite', salamence: 'salamencite', metagross: 'metagrossite', latias: 'latiasite',
-  latios: 'latiosite', lopunny: 'lopunnite', gallade: 'galladite', audino: 'audinite', diancie: 'diancite',
+  venusaur: 'venusaurite',
+  charizard: 'charizardite',
+  blastoise: 'blastoisinite',
+  alakazam: 'alakazite',
+  gengar: 'gengarite',
+  kangaskhan: 'kangaskhanite',
+  pinsir: 'pinsirite',
+  gyarados: 'gyaradosite',
+  aerodactyl: 'aerodactylite',
+  mewtwo: 'mewtwonite',
+  ampharos: 'ampharosite',
+  scizor: 'scizorite',
+  heracross: 'heracronite',
+  houndoom: 'houndoominite',
+  tyranitar: 'tyranitarite',
+  blaziken: 'blazikenite',
+  gardevoir: 'gardevoirite',
+  mawile: 'mawilite',
+  aggron: 'aggronite',
+  medicham: 'medichamite',
+  manectric: 'manectite',
+  banette: 'banettite',
+  absol: 'absolite',
+  garchomp: 'garchompite',
+  lucario: 'lucarionite',
+  abomasnow: 'abomasite',
+  beedrill: 'beedrillite',
+  pidgeot: 'pidgeotite',
+  slowbro: 'slowbronite',
+  steelix: 'steelixite',
+  sceptile: 'sceptilite',
+  swampert: 'swampertite',
+  sableye: 'sablenite',
+  sharpedo: 'sharpedonite',
+  camerupt: 'cameruptite',
+  altaria: 'altarianite',
+  glalie: 'glalitite',
+  salamence: 'salamencite',
+  metagross: 'metagrossite',
+  latias: 'latiasite',
+  latios: 'latiosite',
+  lopunny: 'lopunnite',
+  gallade: 'galladite',
+  audino: 'audinite',
+  diancie: 'diancite',
 };
 
 const KINDS = [
@@ -33,7 +67,11 @@ const KINDS = [
   ['back-shiny', 'other/showdown/back/shiny'],
 ];
 
-const titleCase = (slug) => slug.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+const titleCase = (slug) =>
+  slug
+    .split('-')
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
 
 async function json(url) {
   const res = await fetch(url);
@@ -50,6 +88,45 @@ async function save(url, file) {
 }
 
 const megas = [];
+// Regressões Primais: mesmo mecanismo da Mega, com o Orb no lugar da pedra.
+const PRIMALS = [
+  [10077, 'kyogre', 'blue-orb'],
+  [10078, 'groudon', 'red-orb'],
+];
+for (const [id, base, orb] of PRIMALS) {
+  const p = await json(`${API}/pokemon/${id}`);
+  const species = Number(p.species.url.split('/').at(-2));
+  const form = 'primal';
+  const stat = Object.fromEntries(p.stats.map((s) => [s.stat.name, s.base_stat]));
+  for (const [folder, path] of KINDS)
+    await save(
+      `${RAW}/pokemon/${path}/${id}.gif`,
+      join(ROOT, 'public/sprites/pokemon/forms', folder, `${species}-${form}.gif`),
+    );
+  await save(
+    `${RAW}/pokemon/versions/generation-vii/icons/${id}.png`,
+    join(ROOT, 'public/sprites/pokemon/forms/icon', `${species}-${form}.png`),
+  );
+  await save(`${RAW}/items/${orb}.png`, join(ROOT, 'public/sprites/items', `${orb}.png`));
+  megas.push({
+    stone: orb,
+    stoneName: titleCase(orb),
+    speciesId: species,
+    form,
+    name: `Primal ${titleCase(base)}`,
+    types: p.types.map((t) => t.type.name),
+    baseStats: {
+      hp: stat.hp,
+      atk: stat.attack,
+      def: stat.defense,
+      spAtk: stat['special-attack'],
+      spDef: stat['special-defense'],
+      spe: stat.speed,
+    },
+    ability: p.abilities[0].ability.name,
+  });
+  console.log('ok', p.name, orb);
+}
 for (let id = 10033; id <= 10090; id++) {
   const p = await json(`${API}/pokemon/${id}`).catch(() => null);
   if (!p || !p.name.includes('-mega')) continue;
@@ -65,12 +142,20 @@ for (let id = 10033; id <= 10090; id++) {
   const stat = Object.fromEntries(p.stats.map((s) => [s.stat.name, s.base_stat]));
   const okSprites = [];
   for (const [folder, path] of KINDS)
-    okSprites.push(await save(`${RAW}/pokemon/${path}/${id}.gif`, join(ROOT, 'public/sprites/pokemon/forms', folder, `${species}-${form}.gif`)));
+    okSprites.push(
+      await save(
+        `${RAW}/pokemon/${path}/${id}.gif`,
+        join(ROOT, 'public/sprites/pokemon/forms', folder, `${species}-${form}.gif`),
+      ),
+    );
   if (!okSprites.every(Boolean)) {
     console.log('sprites incompletos (ignorada):', p.name);
     continue;
   }
-  await save(`${RAW}/pokemon/versions/generation-vii/icons/${id}.png`, join(ROOT, 'public/sprites/pokemon/forms/icon', `${species}-${form}.png`));
+  await save(
+    `${RAW}/pokemon/versions/generation-vii/icons/${id}.png`,
+    join(ROOT, 'public/sprites/pokemon/forms/icon', `${species}-${form}.png`),
+  );
   if (!(await save(`${RAW}/items/${stone}.png`, join(ROOT, 'public/sprites/items', `${stone}.png`)))) {
     console.log('pedra sem ícone:', stone);
   }
@@ -82,8 +167,12 @@ for (let id = 10033; id <= 10090; id++) {
     name: `Mega ${titleCase(base)}${suffix ? ` ${suffix.slice(1).toUpperCase()}` : ''}`,
     types: p.types.map((t) => t.type.name),
     baseStats: {
-      hp: stat.hp, atk: stat.attack, def: stat.defense, spAtk: stat['special-attack'],
-      spDef: stat['special-defense'], spe: stat.speed,
+      hp: stat.hp,
+      atk: stat.attack,
+      def: stat.defense,
+      spAtk: stat['special-attack'],
+      spDef: stat['special-defense'],
+      spe: stat.speed,
     },
     ability: p.abilities.find((a) => !a.is_hidden)?.ability.name ?? p.abilities[0].ability.name,
   });

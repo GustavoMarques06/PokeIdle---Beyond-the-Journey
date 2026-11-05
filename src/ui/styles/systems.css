@@ -35,8 +35,7 @@ html.reduced-motion .hud-events {
 }
 
 /* --- Cenário: noite, clima, times de treinador --------------------------------------- */
-.scene-night,
-.scene-weather {
+.scene-night {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -48,35 +47,18 @@ html.reduced-motion .hud-events {
   mix-blend-mode: multiply;
 }
 
-/* Clima: folhas de quadros desenhadas (public/sprites/weather, ver scripts/weather-sprites.py).
-   Cada uma tem --frames quadros lado a lado; a animação anda de quadro em quadro. */
-.scene-weather {
-  /* Por cima dos Pokémon (2); as caixas de status (3, vêm depois no DOM), números e efeitos ficam acima. */
+/* Clima: chuva, neve e tempestade são WebP animados (public/sprites/weather) esticados sobre a cena; areia, névoa e
+   sol são desenhados aqui em CSS. */
+.scene-weather-anim {
+  position: absolute;
+  inset: 0;
   z-index: 3;
-  --frames: 4;
-  background-repeat: no-repeat;
-  background-size: calc(var(--frames) * 100%) 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
   image-rendering: pixelated;
-  animation: weather-frames var(--weather-ms, 600ms) steps(var(--frames), jump-none) infinite;
-}
-
-@keyframes weather-frames {
-  from {
-    background-position-x: 0%;
-  }
-  to {
-    background-position-x: 100%;
-  }
-}
-
-.weather-rain {
-  opacity: 0.85;
-  --weather-ms: 480ms;
-}
-
-.weather-hail {
-  opacity: 0.75;
-  --weather-ms: 640ms;
+  pointer-events: none;
+  user-select: none;
 }
 
 .weather-sand {
@@ -84,17 +66,186 @@ html.reduced-motion .hud-events {
   --weather-ms: 640ms;
 }
 
-.weather-fog {
-  --frames: 5;
-  opacity: 0.38;
-  --weather-ms: 6s;
+/* Tempestade de areia desenhada pelo jogo: uma névoa quente que ondula e três camadas de grãos que cruzam a cena
+   em velocidades diferentes (as de perto são maiores e mais rápidas), sem véu sólido. */
+.scene-sandstorm {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-/* Sol: só clareia a cena (os raios brilham em vez de pintar por cima). */
-.weather-sun {
-  opacity: 0.45;
-  mix-blend-mode: screen;
-  --weather-ms: 2.6s;
+.sand-haze {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(100deg, rgb(214 168 96 / 0.5), rgb(232 196 128 / 0.22) 55%, rgb(200 150 80 / 0.46)),
+    radial-gradient(90% 60% at 20% 100%, rgb(190 140 70 / 0.3), transparent 70%);
+  animation: sand-haze 5s ease-in-out infinite;
+}
+
+@keyframes sand-haze {
+  50% {
+    opacity: 0.7;
+    transform: translateX(-2%);
+  }
+}
+
+.sand-layer {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  image-rendering: pixelated;
+  animation: sand-blow linear infinite;
+}
+
+/* Grãos levados pelo vento: riscos curtos aleatórios em dois azulejos, andando um azulejo inteiro por volta (sem emenda). */
+.sand-layer.l0 {
+  --tw: calc(var(--u) * 40);
+  --th: calc(var(--u) * 22.5);
+  background-image: url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2264%22%20height=%2236%22%20shape-rendering=%22crispEdges%22%3E%3Crect%20x=%2256%22%20y=%2230%22%20width=%226%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%220.78%22/%3E%3Crect%20x=%2213%22%20y=%2212%22%20width=%227%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%220.83%22/%3E%3Crect%20x=%227%22%20y=%2229%22%20width=%224%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%220.61%22/%3E%3Crect%20x=%2252%22%20y=%223%22%20width=%227%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%220.98%22/%3E%3Crect%20x=%2242%22%20y=%2211%22%20width=%227%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%220.92%22/%3E%3Crect%20x=%224%22%20y=%223%22%20width=%223%22%20height=%221%22%20fill=%22%23e8c07a%22%20fill-opacity=%220.95%22/%3E%3Crect%20x=%222%22%20y=%2230%22%20width=%227%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%220.75%22/%3E%3Crect%20x=%2234%22%20y=%2215%22%20width=%224%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%220.77%22/%3E%3Crect%20x=%2230%22%20y=%2218%22%20width=%223%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%221.0%22/%3E%3Crect%20x=%2246%22%20y=%2217%22%20width=%223%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%220.89%22/%3E%3Crect%20x=%2219%22%20y=%222%22%20width=%227%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%220.8%22/%3E%3Crect%20x=%2226%22%20y=%227%22%20width=%223%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%220.72%22/%3E%3Crect%20x=%2255%22%20y=%221%22%20width=%223%22%20height=%221%22%20fill=%22%23e8c07a%22%20fill-opacity=%220.64%22/%3E%3Crect%20x=%2231%22%20y=%2225%22%20width=%223%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%220.74%22/%3E%3Crect%20x=%2241%22%20y=%2213%22%20width=%227%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%220.7%22/%3E%3Crect%20x=%2222%22%20y=%221%22%20width=%225%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%220.89%22/%3E%3Crect%20x=%229%22%20y=%2216%22%20width=%223%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%220.55%22/%3E%3Crect%20x=%2252%22%20y=%2232%22%20width=%226%22%20height=%221%22%20fill=%22%23e8c07a%22%20fill-opacity=%220.86%22/%3E%3Crect%20x=%2229%22%20y=%2233%22%20width=%224%22%20height=%221%22%20fill=%22%23e8c07a%22%20fill-opacity=%220.99%22/%3E%3Crect%20x=%2227%22%20y=%2225%22%20width=%224%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%220.73%22/%3E%3Crect%20x=%221%22%20y=%2218%22%20width=%224%22%20height=%221%22%20fill=%22%23b98a46%22%20fill-opacity=%221.0%22/%3E%3Crect%20x=%2214%22%20y=%2212%22%20width=%223%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%221.0%22/%3E%3Crect%20x=%2242%22%20y=%227%22%20width=%227%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%221.0%22/%3E%3Crect%20x=%2229%22%20y=%2217%22%20width=%224%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%220.9%22/%3E%3Crect%20x=%2254%22%20y=%2219%22%20width=%225%22%20height=%221%22%20fill=%22%23f8e6b8%22%20fill-opacity=%220.58%22/%3E%3Crect%20x=%2214%22%20y=%2216%22%20width=%223%22%20height=%221%22%20fill=%22%23f4d79a%22%20fill-opacity=%220.82%22/%3E%3C/svg%3E');
+  background-size: var(--tw) var(--th);
+  animation-duration: 1.5s;
+}
+
+.sand-layer.l1 {
+  --tw: calc(var(--u) * 64);
+  --th: calc(var(--u) * 36);
+  background-image: url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2264%22%20height=%2236%22%20shape-rendering=%22crispEdges%22%3E%3Crect%20x=%2254%22%20y=%226%22%20width=%227%22%20height=%221%22%20fill=%22%23f8e2a8%22%20fill-opacity=%220.82%22/%3E%3Crect%20x=%2225%22%20y=%2234%22%20width=%228%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.61%22/%3E%3Crect%20x=%2218%22%20y=%2229%22%20width=%226%22%20height=%221%22%20fill=%22%23f8e2a8%22%20fill-opacity=%220.65%22/%3E%3Crect%20x=%222%22%20y=%227%22%20width=%228%22%20height=%221%22%20fill=%22%23f8e2a8%22%20fill-opacity=%220.99%22/%3E%3Crect%20x=%2227%22%20y=%222%22%20width=%228%22%20height=%221%22%20fill=%22%23ffffff%22%20fill-opacity=%220.71%22/%3E%3Crect%20x=%2214%22%20y=%223%22%20width=%225%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.85%22/%3E%3Crect%20x=%2214%22%20y=%2224%22%20width=%229%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.99%22/%3E%3Crect%20x=%2243%22%20y=%2221%22%20width=%227%22%20height=%221%22%20fill=%22%23f8e2a8%22%20fill-opacity=%220.92%22/%3E%3Crect%20x=%2246%22%20y=%2231%22%20width=%226%22%20height=%221%22%20fill=%22%23ffffff%22%20fill-opacity=%220.85%22/%3E%3Crect%20x=%2212%22%20y=%2212%22%20width=%226%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.85%22/%3E%3Crect%20x=%2213%22%20y=%228%22%20width=%229%22%20height=%221%22%20fill=%22%23f8e2a8%22%20fill-opacity=%220.59%22/%3E%3Crect%20x=%2237%22%20y=%2218%22%20width=%225%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.92%22/%3E%3Crect%20x=%227%22%20y=%2224%22%20width=%227%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.79%22/%3E%3Crect%20x=%2236%22%20y=%2214%22%20width=%228%22%20height=%221%22%20fill=%22%23a87438%22%20fill-opacity=%220.62%22/%3E%3Crect%20x=%2251%22%20y=%228%22%20width=%229%22%20height=%221%22%20fill=%22%23ffffff%22%20fill-opacity=%220.66%22/%3E%3Crect%20x=%2210%22%20y=%227%22%20width=%229%22%20height=%221%22%20fill=%22%23ffffff%22%20fill-opacity=%220.63%22/%3E%3C/svg%3E');
+  background-size: var(--tw) var(--th);
+  animation-duration: 0.9s;
+  opacity: 0.95;
+}
+
+/* Rajadas: riscos horizontais que passam depressa. */
+.sand-layer.l2 {
+  left: 0;
+  width: 200%;
+  background-image: linear-gradient(90deg, transparent, rgb(238 204 140 / 0.6) 40%, transparent 80%);
+  background-size: 120px 3px;
+  background-repeat: repeat-y;
+  background-position: 0 0;
+  animation-name: sand-gust;
+  animation-duration: 0.7s;
+  opacity: 0.5;
+  -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 3px, transparent 3px 41px);
+  mask-image: repeating-linear-gradient(180deg, #000 0 3px, transparent 3px 41px);
+}
+
+@keyframes sand-blow {
+  to {
+    background-position: calc(var(--tw) * -1) var(--th);
+  }
+}
+
+@keyframes sand-gust {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+html.reduced-motion .scene-sandstorm .sand-layer,
+html.reduced-motion .scene-sandstorm .sand-haze {
+  animation: none;
+}
+
+/* Névoa: três faixas largas de cerração que andam devagar em sentidos e velocidades diferentes. */
+.scene-fog {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fog-band {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  background-repeat: repeat-x;
+  background-size: 50% 100%;
+  background-image:
+    radial-gradient(ellipse 40% 60% at 18% 55%, rgb(240 244 248 / 0.85), transparent 75%),
+    radial-gradient(ellipse 44% 55% at 55% 45%, rgb(230 236 243 / 0.78), transparent 75%),
+    radial-gradient(ellipse 36% 58% at 88% 55%, rgb(242 246 250 / 0.82), transparent 75%);
+  animation: fog-drift linear infinite;
+}
+
+.fog-band.b0 {
+  bottom: -6%;
+  height: 58%;
+  animation-duration: 44s;
+}
+
+.fog-band.b1 {
+  bottom: 22%;
+  height: 50%;
+  opacity: 0.85;
+  animation-duration: 66s;
+  animation-direction: reverse;
+}
+
+.fog-band.b2 {
+  top: 2%;
+  height: 42%;
+  opacity: 0.7;
+  animation-duration: 90s;
+}
+
+@keyframes fog-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Sol: um brilho quente no canto de cima e raios suaves, sem lavar a cena. */
+.scene-sun {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.scene-sun::before,
+.scene-sun::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.scene-sun::before {
+  background: radial-gradient(
+    70% 80% at 100% 0%,
+    rgb(255 232 160 / 0.5),
+    rgb(255 214 120 / 0.16) 48%,
+    transparent 72%
+  );
+  animation: sun-breathe 7s ease-in-out infinite;
+}
+
+.scene-sun::after {
+  background: repeating-conic-gradient(
+    from 195deg at 100% 0%,
+    rgb(255 240 190 / 0.2) 0 3.5deg,
+    transparent 3.5deg 10deg
+  );
+  -webkit-mask-image: radial-gradient(90% 100% at 100% 0%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(90% 100% at 100% 0%, #000 0%, transparent 78%);
+  animation: sun-breathe 7s ease-in-out infinite reverse;
+}
+
+@keyframes sun-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+html.reduced-motion .fog-band,
+html.reduced-motion .scene-sun::before,
+html.reduced-motion .scene-sun::after {
+  animation: none;
 }
 
 .boss-banner small {
@@ -2112,13 +2263,13 @@ html.reduced-motion .scene-toast {
 /* --- Onboarding: atividades novas e dica da primeira visita -------------------------------- */
 .new-badge {
   position: absolute;
-  top: -4px;
-  right: -2px;
+  top: -2px;
+  right: 0;
   padding: 0 3px;
   border: 1px solid var(--ink);
   background: var(--red);
   color: #fff;
-  font: 700 12px var(--font-label);
+  font: 700 10px var(--font-label);
   animation: blink-soft 1s steps(2, end) infinite;
 }
 

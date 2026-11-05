@@ -134,7 +134,9 @@ describe('interface', () => {
     fireEvent.click(screen.getByLabelText(/Charmander/));
     fireEvent.click(labDialog()); // completa a fala
     fireEvent.click(screen.getByText('NÃO'));
-    expect(document.querySelector('.lab-starter')).toBeNull();
+    // Ao recusar, o inicial volta para a bola (animação) e depois some.
+    expect(document.querySelector('.lab-starter.returning')).not.toBeNull();
+    await waitFor(() => expect(document.querySelector('.lab-starter')).toBeNull(), { timeout: 2000 });
     fireEvent.click(screen.getByLabelText('Próxima região'));
     expect(document.querySelector('.lab-sign')!.textContent).toContain('Johto');
     fireEvent.click(screen.getByLabelText(/Totodile/));
@@ -277,7 +279,14 @@ describe('notificações', () => {
       side: 'player',
       attacker: 1,
       target: 2,
-      result: { moveId: 'tackle', damage: 1, missed: false, crit: false, effectiveness: 1 },
+      result: {
+        moveId: 'tackle',
+        moveType: 'normal',
+        damage: 1,
+        missed: false,
+        crit: false,
+        effectiveness: 1,
+      },
     } as const;
     expect(pickNotifications([hatched, attack], last, 0)).toHaveLength(1);
     expect(pickNotifications([hatched], last, 30_000)).toHaveLength(0);

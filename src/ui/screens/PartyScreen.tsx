@@ -1,7 +1,9 @@
 // Tela POKéMON: a equipe (até 6, em ordem: o 1º luta) no estilo FRLG e a ficha de resumo. A
 // coleção fica no PC (PcScreen), que reaproveita a ficha daqui.
 
+import { teamDropProps } from './teamDrag';
 import { useState } from 'react';
+import { audio } from '../audio';
 import {
   BALANCE,
   MASTERY_BONUS_PER_LEVEL,
@@ -56,6 +58,7 @@ import { levelProgress } from '../../core/progression';
 import {
   addToTeam,
   moveInTeam,
+  placeInTeam,
   removeFromTeam,
   reservePokemon,
   reserveSlotsUnlocked,
@@ -126,13 +129,15 @@ function PartySlot({
       <span className="party-hp">
         {p.currentHp}/{stats.hp}
       </span>
-      <span className="party-role">
-        {lead ? 'LUTANDO' : fainted ? 'DESMAIADO' : 'ESPERANDO A VEZ'}
-        {bonus &&
-          (bonus.duplicate
-            ? ' · espécie repetida: sem bônus'
-            : ` · +${formatPercent(bonus.effective)} ${BONUS_NAMES[bonus.kind]}`)}
-      </span>
+      <span className="party-role">{lead ? 'LUTANDO' : fainted ? 'DESMAIADO' : 'NA FILA'}</span>
+      {bonus && (
+        <span
+          className={`party-bonus-chip ${bonus.duplicate ? 'dup' : ''}`}
+          title={`${bonus.duplicate ? 'Espécie repetida: sem bônus' : `+${formatPercent(bonus.effective)} ${BONUS_NAMES[bonus.kind]}`} (bônus que este Pokémon dá à equipe)`}
+        >
+          {bonus.duplicate ? 'sem bônus' : `+${formatPercent(bonus.effective)} ${BONUS_NAMES[bonus.kind]}`}
+        </span>
+      )}
     </button>
   );
 }
@@ -212,16 +217,43 @@ function TeamPicker({
   );
 }
 
-export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: () => void }) {
+/** Bônus e equipes salvas: abrem numa janela, para a coluna lateral ficar só com a equipe. */
+export function TeamDetails({ state }: { state: GameState }) {
+  return (
+    <div className="party-screen">
+      <TeamBonuses state={state} />
+      <Presets state={state} />
+    </div>
+  );
+}
+
+/** A ficha de um Pokémon, na janela. */
+export function MonSheet({ state, uid }: { state: GameState; uid: number }) {
+  const p = state.collection.find((x) => x.uid === uid);
+  return p ? <Summary state={state} p={p} /> : null;
+}
+
+export function PartyScreen({
+  state,
+  onOpenPc,
+  onOpenMon,
+  onOpenDetails,
+  openMon,
+}: {
+  state: GameState;
+  onOpenPc?: () => void;
+  /** Toque num Pokémon: abre a ficha dele na janela. */
+  onOpenMon?: (uid: number) => void;
+  onOpenDetails?: () => void;
+  /** Quem está com a ficha aberta. */
+  openMon?: number;
+}) {
   const engine = useEngine();
-  const [selected, setSelected] = useState(state.activeUid);
   const [picking, setPicking] = useState(false);
   const team = teamPokemon(state);
   const slots = teamSlotsUnlocked(state);
   const free = slots - team.length;
   const bonusOf = new Map(passiveContributions(state).map((c) => [c.uid, c]));
-  const active = state.collection.find((p) => p.uid === state.activeUid)!;
-  const current = state.collection.find((p) => p.uid === selected) ?? active;
   const nextLock = state.challenge === 'solo' ? undefined : TEAM_SLOTS[slots - 1];
 
   return (
@@ -232,14 +264,22 @@ export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: 
           <small>o 1º luta; se desmaiar, entra o próximo</small>
         </h3>
         {team.map((p, i) => (
-          <div key={p.uid} className={`team-row ${i === 0 ? 'lead' : ''}`}>
+          <div
+            key={p.uid}
+            className={`team-row ${i === 0 ? 'lead' : ''}`}
+            {...teamDropProps((uid) => {
+              let placed = false;
+              engine.dispatch((s) => void (placed = placeInTeam(s, uid, p.uid)));
+              audio.sfx(placed ? 'click' : 'miss');
+            })}
+          >
             <PartySlot
               p={p}
               lead={i === 0}
-              selected={selected === p.uid}
+              selected={openMon === p.uid}
               bonus={bonusOf.get(p.uid)}
               mega={i === 0 ? megaActive(state, p)?.form : undefined}
-              onClick={() => setSelected(p.uid)}
+              onClick={() => onOpenMon?.(p.uid)}
             />
             <div className="team-row-tools">
               <button
@@ -283,12 +323,19 @@ export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: 
               onClose={() => setPicking(false)}
               onPick={(uid) => {
                 engine.dispatch((s) => void addToTeam(s, uid));
-                setSelected(uid);
                 if (free <= 1) setPicking(false);
               }}
             />
           ) : (
-            <button className="party-empty party-add" onClick={() => setPicking(true)}>
+            <button
+              className="party-empty party-add"
+              onClick={() => setPicking(true)}
+              {...teamDropProps((uid) => {
+                let placed = false;
+                engine.dispatch((s) => void (placed = placeInTeam(s, uid)));
+                audio.sfx(placed ? 'click' : 'miss');
+              })}
+            >
               <span className="party-empty-plus">+</span>
               <span>
                 Adicionar Pokémon ({free} {free > 1 ? 'vagas livres' : 'vaga livre'})
@@ -307,9 +354,13 @@ export function PartyScreen({ state, onOpenPc }: { state: GameState; onOpenPc?: 
         )}
       </div>
 
-      <TeamBonuses state={state} />
-      <Summary state={state} p={current} />
-      <Presets state={state} />
+      <button className="pc-open frame frame-menu" onClick={onOpenDetails}>
+        <ItemIcon id="exp-share" size={32} />
+        <span>
+          <strong>BÔNUS E EQUIPES SALVAS</strong>
+          <small>o que a equipe dá e as formações guardadas</small>
+        </span>
+      </button>
 
       {/* A coleção mora no PC (PcScreen); daqui só se abre o PC. */}
       <button className="pc-open frame frame-menu" onClick={onOpenPc}>

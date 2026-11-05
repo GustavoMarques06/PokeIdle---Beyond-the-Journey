@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from 'react';
 import type { GameEvent, GameState } from '../core/game';
+import { pokemonName } from '../core/pokemon';
 import { audio } from './audio';
 import { BattleDialog, type ScreenId } from './battle/BattleDialog';
 import { openHelp } from './help/open';
@@ -22,7 +23,7 @@ import { SaveIndicator } from './components/SaveIndicator';
 import { Intro } from './intro/Intro';
 import { Toasts } from './components/Toasts';
 import { useHotkeys } from './hotkeys';
-import { PartyScreen } from './screens/PartyScreen';
+import { MonSheet, PartyScreen, TeamDetails } from './screens/PartyScreen';
 import { seenFlag, tipFlag, unseenTabs, type Tab } from './screens/activities/tabs';
 import { NextSteps } from './components/NextSteps';
 import { useEngine, useGameEvents, useGameState } from './useGame';
@@ -89,13 +90,15 @@ export function App() {
   const highContrast = state?.settings.highContrast ?? false;
   const largeText = state?.settings.largeText ?? false;
   // Sem save ainda, segue a preferência do sistema (o jogador pode mudar nas Opções).
+  const graphics = state?.settings.graphics ?? 'normal';
   const reducedMotion =
     state?.settings.reducedMotion ?? !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   useEffect(() => {
     document.documentElement.classList.toggle('hc', highContrast);
     document.documentElement.classList.toggle('large-text', largeText);
     document.documentElement.classList.toggle('reduced-motion', reducedMotion);
-  }, [highContrast, largeText, reducedMotion]);
+    document.documentElement.classList.toggle('gfx-performance', graphics === 'performance');
+  }, [highContrast, largeText, reducedMotion, graphics]);
   // Na abertura, a batalha que segue rodando ao fundo fica em silêncio.
   useGameEvents(useCallback((events: GameEvent[]) => inGameRef.current && audio.play(events), []));
 
@@ -152,8 +155,12 @@ function useIdle(): boolean {
   return idle;
 }
 
+/** O que abre na janela além das telas do menu: a ficha de um Pokémon ou os bônus e equipes salvas. */
+type Detail = number | 'team' | null;
+
 function GameScreen({ state }: { state: GameState }) {
   const [screen, setScreen] = useState<ScreenId>('party');
+  const [detail, setDetail] = useState<Detail>(null);
   // Aba de ATIVIDADES pedida pelo painel de próximos passos (abre direto nela).
   const [activityTab, setActivityTab] = useState<Tab | undefined>(undefined);
   const area = useRef<HTMLDivElement>(null);
@@ -176,20 +183,26 @@ function GameScreen({ state }: { state: GameState }) {
       // A AJUDA é uma página à parte, em outra aba do navegador.
       if (id === 'help') return openHelp();
       setScreen(id);
+      setDetail(null);
       setActivityTab(tab);
-      // No celular (uma coluna), a tela aberta fica abaixo da batalha: rola até ela.
-      if (window.matchMedia?.('(max-width: 900px)').matches) {
-        requestAnimationFrame(() => area.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-      }
       // Pelo teclado, o foco vai para a tela aberta (leitores de tela anunciam o conteúdo novo).
       if (viaKeyboard) requestAnimationFrame(() => area.current?.focus({ preventScroll: true }));
     },
     [engine],
   );
+  const closeWindow = useCallback(() => {
+    setScreen('party');
+    setDetail(null);
+  }, []);
+  // Pelo menu ou pelo atalho, a tela que já está aberta fecha a janela.
+  const toggle = useCallback<Open>(
+    (id, viaKeyboard, tab) => (id === screen && id !== 'party' ? closeWindow() : open(id, viaKeyboard, tab)),
+    [screen, open, closeWindow],
+  );
   useHotkeys(
     Object.fromEntries(
       MENU_ITEMS.flatMap((item, i) =>
-        menuUnlocked(state, item.id) ? [[menuKey(i), () => open(item.id, true)]] : [],
+        menuUnlocked(state, item.id) ? [[menuKey(i), () => toggle(item.id, true)]] : [],
       ),
     ),
   );
@@ -211,14 +224,25 @@ function GameScreen({ state }: { state: GameState }) {
   }, [engine, onboarded]);
 
   return (
-    <div className={`game game-enter ${idle ? 'idle' : ''}`}>
+    <div
+      className={`game game-enter ${idle ? 'idle' : ''} ${screen !== 'party' || detail !== null ? 'window-open' : ''}`}
+    >
       <nav className="skip-links" aria-label="Atalhos de navegação">
         <a href="#game-menu">Pular para o menu</a>
         <a href="#screen-area">Pular para a tela aberta</a>
       </nav>
       <LiveHud open={open} />
       <LiveBattle open={open} />
-      <LiveSide screen={screen} activityTab={activityTab} open={open} area={area} />
+      <LiveSide screen={screen} detail={detail} open={open} toggle={toggle} onDetail={setDetail} />
+      {(screen !== 'party' || detail !== null) && (
+        <LiveWindow
+          screen={screen}
+          detail={detail}
+          activityTab={activityTab}
+          onClose={closeWindow}
+          area={area}
+        />
+      )}
     </div>
   );
 }
@@ -245,39 +269,139 @@ const LiveBattle = memo(function LiveBattle({ open }: { open: Open }) {
   );
 });
 
+/** A coluna lateral é o que se olha o tempo todo: o menu e a equipe. Todo o resto abre na janela. */
 const LiveSide = memo(function LiveSide({
   screen,
-  activityTab,
+  detail,
   open,
-  area,
+  toggle,
+  onDetail,
 }: {
   screen: ScreenId;
-  activityTab: Tab | undefined;
+  detail: Detail;
   open: Open;
-  area: RefObject<HTMLDivElement | null>;
+  toggle: Open;
+  onDetail: (d: Detail) => void;
 }) {
   const state = useGameState(SIDE_MS)!;
+  const switchToParty = () => {
+    if (screen !== 'party') open('party');
+  };
   return (
     <aside className="side-column">
-      <GameMenu state={state} current={screen} onSelect={open} />
+      <GameMenu state={state} current={screen} onSelect={toggle} />
       {state.settings.nextSteps && (
         <NextSteps
           state={state}
           onOpen={(t) => open(t.screen, false, t.screen === 'activities' ? (t.tab as Tab) : undefined)}
         />
       )}
+      <div className="screen-area" role="region" aria-label="Equipe">
+        <PartyScreen
+          state={state}
+          onOpenPc={() => open('pc')}
+          onOpenMon={(uid) => {
+            switchToParty();
+            onDetail(uid);
+          }}
+          onOpenDetails={() => {
+            switchToParty();
+            onDetail('team');
+          }}
+          openMon={typeof detail === 'number' ? detail : undefined}
+        />
+      </div>
+    </aside>
+  );
+});
+
+/**
+ * Janela flutuante: cada tela tem o espaço que precisa e a batalha nunca some. Ao abrir, a batalha encolhe e fica inteira
+ * à esquerda, e a janela ocupa a direita, abaixo do menu; dá para arrastá-la pela barra e redimensioná-la pelo canto.
+ * No celular, a batalha fica fixa no alto e a janela embaixo dela, acima do menu.
+ */
+const LiveWindow = memo(function LiveWindow({
+  screen,
+  detail,
+  activityTab,
+  onClose,
+  area,
+}: {
+  screen: ScreenId;
+  detail: Detail;
+  activityTab: Tab | undefined;
+  onClose: () => void;
+  area: RefObject<HTMLDivElement | null>;
+}) {
+  const state = useGameState(SIDE_MS)!;
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
+  const monUid = typeof detail === 'number' ? detail : null;
+  const mon = monUid === null ? undefined : state.collection.find((p) => p.uid === monUid);
+  const title =
+    detail === 'team'
+      ? 'BÔNUS E EQUIPES SALVAS'
+      : mon
+        ? `FICHA DE ${pokemonName(mon).toUpperCase()}`
+        : MENU_ITEMS.find((m) => m.id === screen)?.label;
+  // O Esc é primeiro de quem está por cima: avisos abertos e um Pokémon sendo movido no PC.
+  useHotkeys({
+    Escape: () => {
+      if (!document.querySelector('.modal-backdrop, .pcs-grid.holding')) onClose();
+    },
+  });
+  return (
+    <section
+      className="screen-window frame frame-menu"
+      role="dialog"
+      aria-label={title}
+      style={offset.x || offset.y ? { left: offset.x, top: offset.y } : undefined}
+    >
+      <header
+        className="screen-window-bar"
+        onPointerDown={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          if (!window.matchMedia?.('(min-width: 901px)').matches) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drag.current = { px: e.clientX, py: e.clientY, ...offset };
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current;
+          if (!d) return;
+          const x = d.x + e.clientX - d.px;
+          const y = d.y + e.clientY - d.py;
+          // A barra nunca sai da tela: sempre dá para pegar a janela de volta.
+          const bar = e.currentTarget.getBoundingClientRect();
+          const left = bar.left - offset.x + x;
+          const top = bar.top - offset.y + y;
+          setOffset({
+            x: x + Math.max(0, 40 - (left + bar.width)) - Math.max(0, left - (window.innerWidth - 40)),
+            y: y + Math.max(0, -top) - Math.max(0, top + bar.height - window.innerHeight),
+          });
+        }}
+        onPointerUp={() => {
+          drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+      >
+        <h2>{title}</h2>
+        <button className="pbtn small" onClick={onClose} title="Fechar (Esc)">
+          ✕ Fechar
+        </button>
+      </header>
       {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}
       <div
-        className="screen-area screen-enter"
-        key={`${screen}:${activityTab ?? ''}`}
+        className="screen-area screen-window-body screen-enter"
+        key={`${screen}:${String(detail)}:${activityTab ?? ''}`}
         ref={area}
         id="screen-area"
         tabIndex={-1}
-        role="region"
-        aria-label={MENU_ITEMS.find((m) => m.id === screen)?.label}
       >
         <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
-          {screen === 'party' && <PartyScreen state={state} onOpenPc={() => open('pc')} />}
+          {detail === 'team' && <TeamDetails state={state} />}
+          {monUid !== null && <MonSheet state={state} uid={monUid} />}
           {screen === 'dex' && <DexScreen state={state} />}
           {screen === 'bag' && <BagScreen state={state} />}
           {screen === 'shop' && <ShopScreen state={state} />}
@@ -289,6 +413,6 @@ const LiveSide = memo(function LiveSide({
           {screen === 'pc' && <PcScreen state={state} />}
         </Suspense>
       </div>
-    </aside>
+    </section>
   );
 });

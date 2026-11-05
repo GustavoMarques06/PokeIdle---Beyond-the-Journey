@@ -161,18 +161,24 @@
   }
 }
 
-/* Arte desenhada (public/sprites/fx/<tipo>.png, 6 quadros de 64×64). */
+/* Arte desenhada (public/sprites/fx, tiras de --n quadros; ver fxart.ts): anda quadro a quadro. */
 .fx-art {
-  width: calc(var(--u) * 40);
-  height: calc(var(--u) * 40);
-  margin: calc(var(--u) * -20) 0 0 calc(var(--u) * -20);
-  background-size: 600% 100%;
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: calc(var(--n) * 100%) 100%;
   image-rendering: pixelated;
-  animation: fx-art var(--fx-ms, 520ms) steps(6, jump-none) both;
+  animation: fx-art var(--fx-ms, 520ms) steps(var(--n), jump-none) both;
 }
 
-.fx-art.big {
-  transform: scale(1.4);
+.fx-art.loop {
+  animation-iteration-count: infinite;
+  animation-fill-mode: none;
+}
+
+.fx-art.low {
+  z-index: 2;
 }
 
 @keyframes fx-art {

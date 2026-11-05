@@ -51,7 +51,7 @@ export const SYSTEM: Section = {
       keywords: 'mobile android iphone pwa instalar app tela inicial',
       a: [
         {
-          p: 'Pode. No celular, a tela vira **uma coluna só** (batalha em cima, menu de abas fixo embaixo) e funciona tanto **em pé** quanto **deitado**. Os botões têm tamanho bom para o toque.',
+          p: 'Pode. No celular, a tela vira **uma coluna só** (batalha em cima, menu de abas fixo embaixo; as telas abrem numa janela abaixo da batalha, que continua à vista) e funciona tanto **em pé** quanto **deitado**. Os botões têm tamanho bom para o toque.',
         },
         {
           ul: [
@@ -77,6 +77,7 @@ export const SYSTEM: Section = {
           ul: [
             '**Evoluir automaticamente** e **Mostrar números de dano**.',
             '**Áudio:** volume, efeitos sonoros, gritos dos Pokémon e música.',
+            '**Gráficos:** **Normal** (pixel art, o padrão) ou **Desempenho** (mais leve, para celulares simples: sem clima nem tons de dia e noite na cena e com menos efeitos).',
             '**Reduzir animações** e **velocidade das animações** (para quem se incomoda com movimento).',
             '**Contraste alto** e **Texto maior** (acessibilidade).',
             '**Avisar sobre:** escolha quais notificações quer receber (creche, expedições, visitantes, progresso, shiny).',

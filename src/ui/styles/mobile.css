@@ -186,6 +186,34 @@
     contain: paint;
   }
 
+  /* Batalha fixa no alto (só a cena) e a janela entre ela e a barra de abas, em vez de a página crescer sem fim. */
+  .game.window-open .battle-column {
+    position: fixed;
+    z-index: 45;
+    inset: env(safe-area-inset-top) 0 auto;
+    padding: 4px;
+    background: var(--ink);
+  }
+
+  .game.window-open .battle-ui {
+    display: none;
+  }
+
+  .screen-window {
+    position: fixed;
+    z-index: 50;
+    inset: calc(56.25vw + env(safe-area-inset-top)) 0 calc(72px + env(safe-area-inset-bottom));
+    min-width: 0;
+    min-height: 0;
+    resize: none;
+  }
+
+  .screen-window-body {
+    flex: 1;
+    overflow: hidden auto;
+    contain: none;
+  }
+
   .game-menu {
     position: fixed;
     z-index: 60;
@@ -402,5 +430,17 @@
 
   .toasts {
     bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Celular deitado com janela aberta: batalha à esquerda, janela à direita. */
+@media (max-width: 900px) and (orientation: landscape) {
+  .game.window-open .battle-column {
+    right: 50%;
+    display: block;
+  }
+
+  .screen-window {
+    inset: env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom)) 50%;
   }
 }

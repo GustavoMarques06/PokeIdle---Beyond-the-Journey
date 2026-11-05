@@ -18,7 +18,7 @@ export const TEAM: Section = {
           ul: [
             'O **primeiro** da lista é quem **luta**.',
             'Os outros ficam **esperando a vez**. Eles entram em campo quando o primeiro desmaia, ou quando têm uma **vantagem grande de tipo** contra o inimigo.',
-            'Todos dão **bônus** para a equipe pelo seu tipo (mais dano, mais EXP, mais moedas, mais chance de captura...). O bônus aparece embaixo do nome de cada um e o total fica no quadro **BÔNUS DA EQUIPE**.',
+            'Todos dão **bônus** para a equipe pelo seu tipo (mais dano, mais EXP, mais moedas, mais chance de captura...). O bônus aparece embaixo do nome de cada um e o total fica no botão **BÔNUS E EQUIPES SALVAS**, abaixo da equipe.',
             'Quem espera a vez também ganha **metade da EXP** de cada vitória.',
           ],
         },
@@ -26,7 +26,7 @@ export const TEAM: Section = {
           img: 'equipe.webp',
           alt: 'Lista da equipe com setas para subir e descer',
           caption:
-            'Use as setas ▲ ▼ para mudar a ordem e o ✕ para tirar alguém da equipe. Toque num Pokémon para abrir a ficha dele.',
+            'Use as setas ▲ ▼ para mudar a ordem e o ✕ para tirar alguém da equipe. Toque num Pokémon para abrir a ficha dele numa janela.',
         },
         {
           p: 'Para pôr alguém na equipe: **POKéMON** → botão **+ Adicionar Pokémon** (ou abra a ficha de um Pokémon e toque em **Pôr na equipe**). Para fazê-lo lutar na hora: **Pôr para lutar**.',
@@ -145,13 +145,13 @@ export const TEAM: Section = {
           ul: [
             'Tem **busca** por nome, **filtros** (tipo, etiqueta, shiny, perfeitos, repetidos) e ordenação.',
             'Dá para **selecionar vários** de uma vez para etiquetar ou transferir.',
-            'Para pôr alguém na equipe: abra a ficha dele e toque em **Pôr na equipe**.',
+            'Para pôr alguém na equipe: **arraste** da caixa para a equipe (solte numa vaga livre ou em cima de quem vai sair). No celular, toque em **Mover** e depois na equipe. Também dá pela ficha, em **Pôr na equipe**.',
           ],
         },
         {
           img: 'pc.webp',
           alt: 'Tela do PC com as caixas de Pokémon',
-          caption: 'As caixas do PC. A equipe aparece em cima; abaixo, a ficha do Pokémon selecionado.',
+          caption: 'As caixas do PC. A equipe aparece em cima; ao lado, a ficha do Pokémon selecionado.',
         },
         { p: '[[go:pc|Abrir o PC]]' },
       ],

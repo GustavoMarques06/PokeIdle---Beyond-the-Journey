@@ -2,28 +2,17 @@
 
 Anotações para retomar mais tarde. Atualize ao resolver.
 
-## Cenários de batalha: ovais desenhados nas imagens
+## Cenários de batalha (resolvido em 5/11)
 
-**Situação:** os 22 cenários novos (salas da Liga por tipo, `street`, `rocket-base`, `lab`, `seafloor`, `tower`,
-`swamp`, `snowfield`, `ruins`, `summit`, `powerplant`, `jungle`) foram gerados com **plataformas ovais de vidro
-desenhadas no chão**, no centro da imagem. Os Pokémon ficam nas posições padrão do jogo (inimigo à direita, o
-seu à esquerda), então **não ficam sobre esses ovais**. Os cenários originais não têm oval, só manchas de luz
-suaves nessas duas posições.
+As 19 imagens corrigidas (`art/maps/correcao/`) entraram com os ovais trocados por manchas de luz suaves; as caixas
+cinza de interface do `summit` e do `league-hall` foram retiradas. Nos que ainda tinham vidro duro (`league-psychic`,
+`tower`, `ruins`, `lab`, `jungle`) o oval foi suavizado por script. `league-fight`, `league-ice`, `league-ghost` e
+`powerplant` não vieram na correção: ficam as versões antigas, só com o contorno do oval apagado.
 
-**Como resolver:**
-1. A outra IA refaz cada cenário **sem os ovais** e com duas manchas de luz suaves (instruções em
-   `prompts/cenarios-correcao.md`). Uma imagem por arquivo, 3:2, nome igual ao id (ex.: `league-ice.png`), em
-   `art/maps/`. A tentativa já enviada (`art/maps/correcao.jpg`) não serviu: baixa resolução e cenas mudadas.
-2. Reduzir para 753 × 500 e trocar os arquivos em `public/sprites/backgrounds/`.
-3. Nada a mudar no código: `sceneBases` em `src/ui/battle/scene.ts` já usa as posições padrão.
-
-**Plano B (já pronto, desligado):** `USE_OVAL_SPOTS = true` em `src/ui/battle/scene.ts` posiciona os
-Pokémon sobre os ovais desenhados. Foi desligado porque o resultado ficava menos consistente com o resto do jogo.
-
-**Itens menores nos mesmos cenários:**
-- Conferir em batalha `tower`, `swamp`, `snowfield`, `ruins`, `summit`, `jungle`, `powerplant` e `league-water`.
-- As imagens das folhas 5 e 6 (quadradas) foram esticadas para 3:2; ficam levemente mais suaves que os originais.
-- Os originais antigos estão em `art/maps/_backup-antigos/`.
+**Ainda vale:** as folhas da correção têm resolução baixa (1024 ou 1376 px para 4 cenários) e algumas são quadradas,
+então foram cortadas e esticadas para 3:2. Gerar cada cenário individual em 1506×1000 melhoraria a nitidez.
+As manchas de luz não ficam exatamente nas posições dos Pokémon (inimigo à direita, o seu à esquerda).
+Backup das versões com ovais: `art/maps/_backup-com-ovais/`. `USE_OVAL_SPOTS` em `scene.ts` segue desligado.
 
 ## Outros
 
@@ -32,7 +21,7 @@ Pokémon sobre os ovais desenhados. Foi desligado porque o resultado ficava meno
 - **Build do Windows (Tauri):** os ícones novos entraram, mas o build ainda não foi rodado para conferir.
 - **Combate:** golpes de status (Sono, Dança da Espada etc.) não existem; é uma mudança grande nas regras.
 - **Molduras do cartão de treinador:** dependem de arte nova.
-- **Shinies e 6ª geração:** conferir sprites que faltam (ver PokeAPI/sprites).
+- **Shinies e 6ª geração:** conferido em 5/11: os 668 Pokémon têm sprite shiny (frente e costas). Nada a fazer.
 
 ## Mega Evolução (pronta)
 
@@ -48,9 +37,32 @@ baixa sprites (frente, costas, shiny, ícone) e as pedras. Cada Mega Stone custa
 - Habilidades específicas das Megas (Garras Duras, Pixilar, Elo Parental...) são **aproximações** com o que o motor
   suporta (bônus de atributo ou de tipo); estão em `abilities.ts`.
 
+**Feito depois:**
+- Pixilar, Aerilar e Refrigerar agora convertem golpes Normais (STAB e +20%); Elo Parental soma um segundo golpe de 25%.
+- **Regressões Primais:** Kyogre (Blue Orb) e Groudon (Red Orb), mesma mecânica da Mega, com as habilidades Mar
+  Primordial e Terra Desolada (aproximadas: +30% do tipo e imunidade ao tipo oposto). Total: 49 formas.
+
 **Falta (opcional):**
-- Equilibrar preço e força (120.000 por pedra foi um palpite).
-- Mega Rayquaza (aprende Dragon Ascent, sem pedra) e as Regressões Primais.
-- Efeitos reais de algumas habilidades (Elo Parental bate duas vezes, Pixilar converte golpes Normal, etc.).
+- Mega Rayquaza (aprende Dragon Ascent, sem pedra): o golpe não existe nos dados do jogo.
+- Equilibrar preço e força (120.000 por pedra foi um palpite; jogar um pouco e ajustar `MEGA_STONE_PRICE`).
 - Se rodar `npm run data:fetch --fresh`, rode `node scripts/fetch-megas.mjs` e `python scripts/sprite-feet.py` depois.
 - Se rodar `npm run data:fetch`, os times de chefe com Mega já saem certos (o script lê o terceiro item).
+
+## Modo Qualidade (3D): descartado em 5/11
+
+Foi feito (sprites 3D do Showdown e do HOME, efeitos do pixelfx, interface de vidro) e **removido a pedido**: não ficou bom ao
+lado da pixel art. O jogo voltou ao pixel art. Ficaram só o modo **Desempenho** (Opções > Gráficos) e o tamanho real dos
+Pokémon. Quem tinha salvo em Qualidade volta para Normal (`save.ts`).
+
+**Tamanho real dos Pokémon:** a batalha usa a altura real de cada espécie (`heights.json`, `scripts/fetch-heights.mjs`)
+com raiz quadrada e teto/piso, então Rattata e Magikarp aparecem pequenos e Onix e Wailord, grandes.
+
+**Efeitos em pixel art (5/11):** 14 tipos de golpe (todos menos aço, veneno, inseto e dragão, que seguem com as partículas
+de CSS) e 5 status em loop (sono, paralisia, queimadura, congelamento, veneno) usam folhas de PVFX Foundry e Foozle (CC0).
+`scripts/build-fx.py` monta tudo de `art/fx-packs`; ajuste `k` (tamanho) e `at` (ancoragem) em `IMPACTS`/`STATUS` se algum
+ficar torto. Falta achar efeitos bons para aço, veneno, inseto e dragão (PVFX tem mais de 100, só escolhi os melhores).
+
+**Climas novos (5/11):** chuva, neve (para o granizo) e tempestade (chuva à noite) são WebP animados do pixelfx
+(`scripts/build-weather.py`); areia, névoa e sol são desenhados em CSS (`WeatherLayer` em `effects.tsx`). Os antigos saíram.
+Sobram do pixelfx, ainda não usados: folhas de outono, pétalas, vaga-lumes, aurora, estrelas cadentes, nevasca e raios de sol
+(alguns escurecem a cena inteira). O clima segue o relógio do jogo; ligar neve às rotas frias seria uma melhoria separada.

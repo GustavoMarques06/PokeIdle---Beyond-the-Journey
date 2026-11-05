@@ -15,6 +15,10 @@ export interface AbilityDef {
   stat?: Partial<Record<StatKey, number>>;
   /** Com HP ≤ 1/3, golpes desse tipo causam mais dano. */
   lowHp?: { type: TypeName; mult: number };
+  /** Golpes Normais viram deste tipo (e ganham o bônus de mesmo tipo) com +20% de dano (Aerilar, Pixilar...). */
+  convertNormal?: TypeName;
+  /** Cada golpe é seguido de um segundo, com esta fração do dano (Elo Parental: 0,25). */
+  secondHit?: number;
   /** Golpes desse tipo causam mais dano sempre. */
   typeBoost?: { type: TypeName; mult: number };
   /** Bônus de mesmo tipo (padrão 1,5). */
@@ -593,29 +597,29 @@ export const ABILITIES: AbilityDef[] = [
   A({
     id: 'parental-bond',
     name: 'Elo Parental',
-    description: 'Age 20% mais rápido (golpes em dobro, simplificado).',
-    intervalMult: 0.8,
+    description: 'Cada golpe é seguido de um segundo, com 25% do dano.',
+    secondHit: 0.25,
     passive: { kind: 'damage', value: 0.04 },
   }),
   A({
     id: 'aerilate',
     name: 'Aerilar',
-    description: 'Golpes de Voador causam 30% a mais.',
-    typeBoost: { type: 'flying', mult: 1.3 },
+    description: 'Golpes Normais viram de Voador e causam 20% a mais.',
+    convertNormal: 'flying',
     passive: { kind: 'damage', value: 0.03 },
   }),
   A({
     id: 'pixilate',
     name: 'Pixilar',
-    description: 'Golpes de Fada causam 30% a mais.',
-    typeBoost: { type: 'fairy', mult: 1.3 },
+    description: 'Golpes Normais viram de Fada e causam 20% a mais.',
+    convertNormal: 'fairy',
     passive: { kind: 'damage', value: 0.03 },
   }),
   A({
     id: 'refrigerate',
     name: 'Refrigerar',
-    description: 'Golpes de Gelo causam 30% a mais.',
-    typeBoost: { type: 'ice', mult: 1.3 },
+    description: 'Golpes Normais viram de Gelo e causam 20% a mais.',
+    convertNormal: 'ice',
     passive: { kind: 'damage', value: 0.03 },
   }),
   A({
@@ -688,6 +692,22 @@ export const ABILITIES: AbilityDef[] = [
     regen: 0.02,
     shedSkin: 0.3,
     passive: { kind: 'heal', value: 0.03 },
+  }),
+  A({
+    id: 'primordial-sea',
+    name: 'Mar Primordial',
+    description: 'Golpes de Água causam 30% a mais e golpes de Fogo não causam dano.',
+    typeBoost: { type: 'water', mult: 1.3 },
+    resist: { fire: 0 },
+    passive: { kind: 'defense', value: 0.04 },
+  }),
+  A({
+    id: 'desolate-land',
+    name: 'Terra Desolada',
+    description: 'Golpes de Fogo causam 30% a mais e golpes de Água não causam dano.',
+    typeBoost: { type: 'fire', mult: 1.3 },
+    resist: { water: 0 },
+    passive: { kind: 'damage', value: 0.04 },
   }),
   A({
     id: 'cloud-nine',

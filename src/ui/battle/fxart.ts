@@ -1,0 +1,49 @@
+// Efeitos de golpe (um por tipo) e de status (em loop) em pixel art, de dois pacotes CC0: PVFX Foundry (nerijs) e Pixel
+// Magic Effects (Foozle). As folhas ficam em public/sprites/fx e os dados em generated/fx-art.json
+// (scripts/build-fx.py). Os tipos sem efeito aqui (aço, veneno, inseto, dragão) seguem com as partículas de CSS.
+
+import fxJson from '../../game-data/generated/fx-art.json';
+
+export interface FxArt {
+  name: string;
+  /** Tamanho de um quadro recortado e quantidade de quadros. */
+  w: number;
+  h: number;
+  n: number;
+  /** Duração de uma volta (ms, na velocidade normal). */
+  ms: number;
+  /** Ponto de impacto dentro do quadro. */
+  ax: number;
+  ay: number;
+  /** Onde ancora no Pokémon: centro do corpo, pés ou cabeça. */
+  at: 'body' | 'floor' | 'head';
+  /** Tamanho de 1 pixel do efeito em pixels virtuais da cena. */
+  k: number;
+  loop: boolean;
+  /** Golpe forte sem versão própria: toca maior. */
+  boost?: boolean;
+}
+
+const DATA = fxJson as unknown as {
+  types: Record<string, { src: string; big?: string }>;
+  status: Record<string, string>;
+  sheets: Record<string, Omit<FxArt, 'name' | 'boost'>>;
+};
+
+const get = (name: string): FxArt | undefined =>
+  DATA.sheets[name] ? { name, ...DATA.sheets[name] } : undefined;
+
+/** O efeito do tipo de golpe, se houver (super efetivo e crítico usam o forte, ou o normal ampliado). */
+export function impactArt(type: string, big: boolean): FxArt | undefined {
+  const t = DATA.types[type];
+  if (!t) return undefined;
+  const art = get((big && t.big) || t.src);
+  return art && big && !t.big ? { ...art, boost: true } : art;
+}
+
+/** O efeito em loop de um status (sono, paralisia, queimadura, congelamento, veneno). */
+export const statusArt = (kind: string): FxArt | undefined =>
+  DATA.status[kind] ? get(DATA.status[kind]) : undefined;
+
+/** Quanto tempo o efeito fica na tela, na velocidade escolhida. */
+export const artMs = (art: FxArt, speed: number) => Math.round(art.ms / speed) + 80;

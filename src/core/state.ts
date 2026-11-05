@@ -92,6 +92,8 @@ export interface Settings {
   battleMode: 'auto' | 'manual';
   /** Painel de próximos passos na coluna do menu. */
   nextSteps: boolean;
+  /** Gráficos: desempenho (mais leve: sem clima, tons de dia/noite e efeitos pesados) ou normal. */
+  graphics: 'performance' | 'normal';
 }
 
 /** Efeito de status em andamento. `turns` conta as ações restantes de sono. */
@@ -177,6 +179,8 @@ export interface TrainerInfo {
 
 export interface BattleState {
   kind: BattleKind;
+  /** Pausa da luta enquanto a bola balança depois de uma captura que falhou (ms). */
+  holdMs?: number;
   routeId: string;
   enemy: EnemyState | null;
   /** Time do treinador adversário (chefe, Rocket, Torre) e o índice do Pokémon atual. */
@@ -375,6 +379,7 @@ export const DEFAULT_SETTINGS: Settings = {
   largeText: false,
   battleMode: 'auto',
   nextSteps: true,
+  graphics: 'normal',
 };
 
 export const EMPTY_STATS: GameStats = {

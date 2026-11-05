@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { captureChance } from './capture';
+import { captureAnimMs, captureChance, captureRevealMs, captureShakes } from './capture';
+
+describe('animação de captura', () => {
+  it('balança mais quanto mais perto de capturar, e sempre 3 vezes ao capturar', () => {
+    expect(captureShakes(0.1, false)).toBe(1);
+    expect(captureShakes(0.3, false)).toBe(2);
+    expect(captureShakes(0.6, false)).toBe(3);
+    expect(captureShakes(0.01, true)).toBe(3);
+  });
+
+  it('o resultado aparece antes do fim da animação', () => {
+    for (const shakes of [1, 2, 3]) {
+      expect(captureRevealMs(shakes)).toBeLessThan(captureAnimMs(shakes, false));
+    }
+    expect(captureAnimMs(3, true)).toBe(3000);
+  });
+});
 
 describe('captureChance', () => {
   it('HP baixo aumenta a chance', () => {

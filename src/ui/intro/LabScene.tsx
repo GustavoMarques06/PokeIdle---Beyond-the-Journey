@@ -11,6 +11,8 @@ import { LAB, LAB_W, paintLab, ringUri, shadowUri } from './lab';
 /** Pixels visíveis dentro dos sprites (medidos nos arquivos), para alinhar os pés ao chão. */
 const OAK_FEET = 71;
 const OAK_SIZE = 80;
+/** Altura do desenho do Carvalho dentro do sprite (linhas 8 a 71). */
+const OAK_DRAWN = 63;
 const BALL_SIZE = 30;
 const BALL_BOTTOM = 24;
 const BALL_VISIBLE = 18;
@@ -50,6 +52,18 @@ export function LabScene({
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [u, setU] = useState(3.5);
+  // Ao dizer NÃO, o inicial volta para a bola antes de sumir.
+  const [leaving, setLeaving] = useState<number | null>(null);
+  const [prevOpened, setPrevOpened] = useState(opened);
+  if (opened !== prevOpened) {
+    setPrevOpened(opened);
+    setLeaving(opened === null && prevOpened !== null && taken !== prevOpened ? prevOpened : null);
+  }
+  useEffect(() => {
+    if (leaving === null) return;
+    const t = setTimeout(() => setLeaving(null), 750);
+    return () => clearTimeout(t);
+  }, [leaving]);
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
@@ -131,7 +145,15 @@ export function LabScene({
         }}
       />
 
-      {opened !== null && <OpenedStarter id={opened} u={u} at={at} />}
+      {(opened ?? leaving) !== null && (
+        <OpenedStarter
+          id={(opened ?? leaving)!}
+          ball={LAB.balls[Math.max(0, ids.indexOf((opened ?? leaving)!))]}
+          leaving={opened === null}
+          at={at}
+          oakScale={oakScale}
+        />
+      )}
 
       {/* Rival da região, entrando pela direita com a bola que levou */}
       {rivalSprite && (
@@ -185,7 +207,7 @@ export function LabScene({
         return (
           <button
             key={id}
-            className={`lab-ball ${focused ? 'selected' : ''} ${isOpen ? 'opened' : ''}`}
+            className={`lab-ball ${focused ? 'selected' : ''} ${isOpen ? 'opened' : ''} ${leaving === id ? 'closing' : ''}`}
             onClick={() => onPick(i)}
             onMouseEnter={() => opened === null && onFocus(i)}
             onFocus={() => opened === null && onFocus(i)}
@@ -212,22 +234,42 @@ export function LabScene({
   );
 }
 
-/** O inicial no tapete, saindo da bola num clarão; a sombra se ajusta aos pés dele. */
-function OpenedStarter({ id, u, at }: { id: number; u: number; at: (v: number) => number }) {
+/** O inicial no tapete: sai da bola num clarão e salta até lá; ao dizer NÃO, encolhe e volta para a bola. */
+function OpenedStarter({
+  id,
+  ball,
+  leaving,
+  at,
+  oakScale,
+}: {
+  id: number;
+  ball: { x: number; y: number };
+  leaving: boolean;
+  at: (v: number) => number;
+  oakScale: number;
+}) {
   const species = getSpecies(id);
   const [sw, sh] = species.spriteSize?.front ?? [40, 40];
-  const scale = Math.max(2, Math.min(Math.floor(u * 1.3), Math.floor((58 * u) / sh)));
+  const [feetCx, feetW, feetBottom, feetTop] = spriteFeet(id, 'front') ?? [sw / 2, sw * 0.7, sh, 0];
+  // Proporção com o professor: o inicial é bem menor que ele (no máximo ~2/3 da altura dele, e quase sempre
+  // menos). Escala fracionária: o sprite continua em pixels nítidos.
+  const drawn = Math.max(1, feetBottom - feetTop);
+  const scale = Math.max(1.4, Math.min(oakScale * 0.62, (OAK_DRAWN * oakScale * 0.68) / drawn));
   const w = sw * scale;
   const h = sh * scale;
-  const [feetCx, feetW, feetBottom] = spriteFeet(id, 'front') ?? [sw / 2, sw * 0.7, sh, 0];
   const feetX = Math.min(0.72, Math.max(0.28, feetCx / sw)) * w;
-  const shadowW = Math.max(at(26), Math.round(Math.min(sw * 0.9, feetW * 1.3) * scale));
+  const shadowW = Math.max(at(20), Math.round(Math.min(sw * 0.9, feetW * 1.3) * scale));
   const shadowH = Math.round(shadowW * 0.2);
+  // Deslocamento da bola (na mesa) até o ponto onde ele fica, e a metade do caminho, mais alta (arco do salto).
+  const dx = at(ball.x - LAB.starter.x);
+  const dy = at(ball.y - 10 - LAB.starter.y);
   return (
     <>
-      <span className="lab-burst" style={{ left: at(LAB.starter.x), top: at(LAB.starter.y - 20) }} />
+      {!leaving && (
+        <span className="lab-burst" style={{ left: at(ball.x), top: at(ball.y - 12) }} key={`b-${id}`} />
+      )}
       <span
-        className="lab-shadow"
+        className={`lab-shadow ${leaving ? 'leaving' : 'arriving'}`}
         style={{
           backgroundImage: shadowUri(30, 6),
           left: at(LAB.starter.x) - shadowW / 2,
@@ -237,8 +279,8 @@ function OpenedStarter({ id, u, at }: { id: number; u: number; at: (v: number) =
         }}
       />
       <img
-        key={id}
-        className="lab-starter"
+        key={`${id}-${leaving ? 'out' : 'in'}`}
+        className={`lab-starter ${leaving ? 'returning' : ''}`}
         src={assetUrl(species.sprites.front)}
         alt={species.name}
         draggable={false}
@@ -248,6 +290,9 @@ function OpenedStarter({ id, u, at }: { id: number; u: number; at: (v: number) =
           left: at(LAB.starter.x) - feetX,
           top: at(LAB.starter.y) - feetBottom * scale,
           ['--ps' as string]: `${scale}px`,
+          ['--dx' as string]: `${dx}px`,
+          ['--dy' as string]: `${dy}px`,
+          ['--hop' as string]: `${at(14)}px`,
         }}
       />
     </>

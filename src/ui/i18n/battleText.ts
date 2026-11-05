@@ -73,7 +73,10 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
     case 'ranAway':
       return { text: 'Fugiu em segurança!', important: true };
     case 'megaEvolved':
-      return { text: `${mine(e.speciesId, ctx)} sofreu Mega Evolução!`, important: true };
+      return {
+        text: `${mine(e.speciesId, ctx)} sofreu ${e.form === 'primal' ? 'Regressão Primal' : 'Mega Evolução'}!`,
+        important: true,
+      };
     case 'switched':
       return {
         text:

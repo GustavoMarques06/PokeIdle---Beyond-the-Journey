@@ -3,7 +3,7 @@ import { MEGAS, ROUTES, getHeldItem, hasAbility, megaFor } from '../game-data';
 import { advance, awaitingCommand, megaAvailable, megaEvolve, newGame } from './game';
 import type { GameEvent, GameState } from './state';
 import { activePokemon } from './state';
-import { combatantOf } from './combat';
+import { calcDamage, combatantOf } from './combat';
 
 const until = (s: GameState, cond: () => boolean, limitMs = 30_000): GameEvent[] => {
   const events: GameEvent[] = [];
@@ -25,7 +25,7 @@ function game(manual: boolean, held: string | null = 'charizardite-x') {
 
 describe('Mega Evolução', () => {
   it('cada pedra pertence a uma espécie e custa caro na loja', () => {
-    expect(MEGAS.length).toBeGreaterThanOrEqual(46);
+    expect(MEGAS.length).toBeGreaterThanOrEqual(48);
     expect(new Set(MEGAS.map((m) => m.stone)).size).toBe(MEGAS.length);
     for (const m of MEGAS) {
       const item = getHeldItem(m.stone);
@@ -126,5 +126,33 @@ describe('Mega Evolução', () => {
     expect(s.battle.megaUid === activePokemon(s).uid || events.some((e) => e.type === 'megaEvolved')).toBe(
       true,
     );
+  });
+});
+
+describe('habilidades das Megas com efeito próprio', () => {
+  const ivs = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
+  const rng = { next: () => 0.5 };
+
+  it('Pixilar converte golpes Normais em Fada (STAB e +20%)', () => {
+    const base = combatantOf({ speciesId: 282, level: 50, ivs }); // Gardevoir (Psíquico/Fada)
+    const mega = combatantOf({ speciesId: 282, level: 50, ivs, megaForm: 'mega' });
+    const foe = combatantOf({ speciesId: 149, level: 50, ivs }); // Dragonite: Fada é super efetivo, Normal não
+    expect(mega.ability?.convertNormal).toBe('fairy');
+    const move = 'body-slam';
+    const normal = calcDamage(base, foe, move, rng, 1);
+    const fairy = calcDamage(mega, foe, move, rng, 1);
+    expect(fairy.effectiveness).toBe(normal.effectiveness * 2);
+    expect(fairy.damage).toBeGreaterThan(normal.damage * 2);
+  });
+
+  it('Elo Parental soma um segundo golpe de 25%', () => {
+    const base = { speciesId: 115, level: 50, ivs };
+    const foe = combatantOf({ speciesId: 19, level: 50, ivs });
+    const mega = combatantOf({ ...base, megaForm: 'mega' });
+    const plain = { ...mega, ability: undefined };
+    const a = calcDamage(mega, foe, 'body-slam', rng, 1).damage;
+    const b = calcDamage(plain, foe, 'body-slam', rng, 1).damage;
+    expect(a / b).toBeGreaterThan(1.2);
+    expect(a / b).toBeLessThan(1.3);
   });
 });

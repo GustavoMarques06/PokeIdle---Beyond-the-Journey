@@ -1,5 +1,5 @@
-// PRÓXIMOS PASSOS: o que vale a pena fazer agora, na coluna do menu. Mostra as três sugestões
-// mais urgentes (o resto num clique) e, quando dá, a ação direto no botão.
+// PRÓXIMOS PASSOS: o que vale a pena fazer agora, na coluna do menu. Mostra a sugestão
+// mais urgente (o resto num clique) e, quando dá, a ação direto no botão.
 
 import { useMemo, useState } from 'react';
 import { nextSteps, type NextStep, type StepAction, type StepTarget } from '../../core/agenda';
@@ -19,8 +19,8 @@ import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { ItemIcon, PixelIcon } from './common';
 
-// No celular, duas sugestões bastam: o resto está em "Todos".
-const SHOWN = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 900px)').matches ? 2 : 3;
+// Só a sugestão mais urgente: a coluna lateral é da equipe, e o resto está em "Todos".
+const SHOWN = 1;
 
 const ACTION_LABEL: Record<StepAction['kind'], string> = {
   boss: 'Desafiar',

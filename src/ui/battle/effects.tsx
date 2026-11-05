@@ -1,11 +1,11 @@
 // Efeitos da cena de batalha: impacto por tipo de golpe (partículas em pixel art, descritas por
 // tabela), brilho de shiny e a entrada com Poké Ball. Tudo em CSS (ver styles/effects.css).
-// Para trocar o efeito de um tipo por arte desenhada, coloque public/sprites/fx/<tipo>.png
-// (folha de 6 quadros de 64×64 lado a lado) e acrescente o tipo em FX_ART.
+// Os tipos com arte desenhada (fxart.ts, public/sprites/fx) usam ArtFx; os outros, as partículas daqui.
 
 import type { CSSProperties } from 'react';
 import { assetUrl } from '../../game-data';
 import { ItemIcon, PixelIcon } from '../components/common';
+import type { FxArt } from './fxart';
 
 type Motion = 'burst' | 'rise' | 'fall' | 'ring' | 'slash' | 'spin' | 'bolt';
 type Shape = 'square' | 'circle' | 'ring' | 'bar' | 'diamond';
@@ -40,9 +40,6 @@ const FX: Record<string, FxDef> = {
   fairy: { motion: 'spin', shape: 'diamond', colors: ['#ffd0e8', '#f8a8d8', '#ffffff'], count: 11, size: 4 },
 };
 
-/** Tipos que já têm arte própria em public/sprites/fx/<tipo>.png. */
-const FX_ART = new Set<string>([]);
-
 /** Números estáveis por id (o mesmo golpe desenha sempre igual; render puro). */
 function seeded(id: number) {
   let h = (id * 2654435761) >>> 0;
@@ -50,6 +47,47 @@ function seeded(id: number) {
     h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0;
     return h / 4294967296;
   };
+}
+
+/** Animação desenhada: toca uma tira de quadros com o ponto de impacto em (x, y), em pixels virtuais da cena. */
+export function ArtFx({
+  art,
+  x,
+  y,
+  speed,
+  flip = false,
+  low = false,
+}: {
+  art: FxArt;
+  x: number;
+  y: number;
+  speed: number;
+  /** Espelha (golpe que acerta o Pokémon do jogador, que olha para o outro lado). */
+  flip?: boolean;
+  /** Fica por baixo das caixas de status (efeitos que duram enquanto o status durar). */
+  low?: boolean;
+}) {
+  const k = art.k * (art.boost ? 1.3 : 1);
+  const u = (v: number) => `calc(var(--u) * ${v})`;
+  return (
+    <span
+      className={`fx-art ${art.loop ? 'loop' : ''} ${low ? 'low' : ''}`}
+      style={{
+        left: u(x),
+        top: u(y),
+        width: u(art.w * k),
+        height: u(art.h * k),
+        marginLeft: u(-art.ax * k),
+        marginTop: u(-art.ay * k),
+        transformOrigin: `${u(art.ax * k)} ${u(art.ay * k)}`,
+        transform: flip ? 'scaleX(-1)' : undefined,
+        backgroundImage: `url(${assetUrl(`sprites/fx/${art.name}.png`)})`,
+        ['--n' as string]: art.n,
+        ['--fx-ms' as string]: `${Math.round(art.ms / speed)}ms`,
+      }}
+      aria-hidden
+    />
+  );
 }
 
 /** Impacto de um golpe no alvo: (x, y) é o centro do alvo, em pixels virtuais. */
@@ -73,15 +111,6 @@ export function MoveFx({
     top: `calc(var(--u) * ${y})`,
     ['--fx-ms' as string]: `${Math.round(520 / speed)}ms`,
   };
-  if (FX_ART.has(type)) {
-    return (
-      <span
-        className={`fx fx-art ${big ? 'big' : ''}`}
-        style={{ ...pos, backgroundImage: `url(${assetUrl(`sprites/fx/${type}.png`)})` }}
-        aria-hidden
-      />
-    );
-  }
   const def = FX[type] ?? FX.normal;
   const rand = seeded(id);
   const count = big ? Math.round(def.count * 1.5) : def.count;
@@ -138,4 +167,73 @@ export function SendOutBall({ x, y, ball = 'poke-ball' }: { x: number; y: number
       <span className="fx-sendout-flash" />
     </span>
   );
+}
+
+/** Ambiente de céu limpo, só enfeite: depende do lugar e da hora (folhas na mata, vaga-lumes à noite, aurora no gelo). */
+const AMBIENT: Record<string, { day?: string; night?: string }> = {
+  forest: { day: 'leaves', night: 'fireflies' },
+  meadow: { day: 'blossoms', night: 'fireflies' },
+  route: { day: 'leaves', night: 'stars' },
+  plains: { night: 'stars' },
+  river: { night: 'fireflies' },
+  swamp: { night: 'fireflies' },
+  ruins: { night: 'stars' },
+  beach: { night: 'stars' },
+  desert: { night: 'stars' },
+  mountain: { night: 'aurora' },
+  snowfield: { night: 'aurora' },
+};
+
+export function ambientFor(scene: string, night: boolean): string | undefined {
+  const a = AMBIENT[scene];
+  return night ? a?.night : a?.day;
+}
+
+/**
+ * Clima sobre a cena. Chuva, neve (o granizo) e tempestade (a chuva à noite) são animações de pixel art do pixelfx
+ * (public/sprites/weather, scripts/build-weather.py); areia, névoa e sol são desenhados em CSS.
+ */
+export function WeatherLayer({ weather, night, scene }: { weather: string; night: boolean; scene: string }) {
+  const anim =
+    weather === 'rain'
+      ? night
+        ? 'storm'
+        : 'rain'
+      : weather === 'hail'
+        ? 'snow'
+        : weather === 'clear'
+          ? ambientFor(scene, night)
+          : undefined;
+  if (anim) {
+    return (
+      <img
+        className="scene-weather-anim"
+        src={assetUrl(`sprites/weather/${anim}.webp`)}
+        alt=""
+        aria-hidden
+        draggable={false}
+      />
+    );
+  }
+  if (weather === 'sand') {
+    return (
+      <span className="scene-sandstorm" aria-hidden>
+        <i className="sand-haze" />
+        {Array.from({ length: 3 }, (_, k) => (
+          <i key={k} className={`sand-layer l${k}`} />
+        ))}
+      </span>
+    );
+  }
+  if (weather === 'fog') {
+    return (
+      <span className="scene-fog" aria-hidden>
+        {Array.from({ length: 3 }, (_, k) => (
+          <i key={k} className={`fog-band b${k}`} />
+        ))}
+      </span>
+    );
+  }
+  if (weather === 'sun') return <span className="scene-sun" aria-hidden />;
+  return null;
 }

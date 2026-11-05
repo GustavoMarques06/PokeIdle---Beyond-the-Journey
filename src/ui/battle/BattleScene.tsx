@@ -9,10 +9,11 @@ import {
   formSet,
   formSprite,
   getItem,
-  getMove,
   getRoute,
   getSpecies,
+  heightMeters,
   isMegaForm,
+  megaLabel,
   matchupOf,
   spriteFeet,
 } from '../../game-data';
@@ -49,7 +50,9 @@ import { setEvolving, useShownPokemon } from '../evolutionView';
 import { EncounterModeSwitch } from './BattleDialog';
 import { EncounterFlash, LevelUpWindow, PokemonCenter, TrainerIntro } from './BattleFx';
 import { EvolutionOverlay } from './EvolutionOverlay';
-import { MoveFx, SendOutBall, ShinySparkle } from './effects';
+import { captureAnimMs, captureShakes } from '../../core/capture';
+import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer } from './effects';
+import { artMs, impactArt, statusArt, type FxArt } from './fxart';
 
 interface Floater {
   id: number;
@@ -103,6 +106,8 @@ interface Spark {
   /** Tipo do golpe (define o efeito). */
   type: string;
   big: boolean;
+  /** Arte desenhada deste tipo de golpe, se houver (senão, partículas de CSS). */
+  art?: FxArt;
 }
 
 /** Contador animado (o HP desce número a número, como nos jogos). */
@@ -131,6 +136,8 @@ interface CaptureAnim {
   id: number;
   ball: string;
   success: boolean;
+  /** Quantas vezes a bola balança antes do resultado (1 a 3; sempre 3 ao capturar). */
+  shakes: 1 | 2 | 3;
   speciesId: number;
   shiny: boolean;
   /** Identidade do inimigo no momento do arremesso. */
@@ -142,9 +149,10 @@ const keyOf = (e: { speciesId: number; level: number; maxHp: number } | null) =>
 
 /** Escala dos sprites (pixels virtuais por pixel do sprite) e altura máxima no cenário. */
 const ENEMY_SCALE = 1.25;
-const ENEMY_MAX_H = 66;
+const ENEMY_MAX_H = 76;
 const PLAYER_SCALE = 1.65;
-const PLAYER_MAX_H = 96;
+const PLAYER_MAX_H = 104;
+const MIN_SPRITE_K = 0.5;
 
 /**
  * Tamanho do sprite no cenário e onde ficam os pés: `feetX` é a distância da borda esquerda ao
@@ -155,13 +163,30 @@ function spriteBox(speciesId: number, kind: 'front' | 'back', scale: number, max
   const feet = spriteFeet(speciesId, kind, formSprite(speciesId, form, kind) ? form : undefined);
   const [w, h] = feet ? [feet[5], feet[6]] : (getSpecies(speciesId).spriteSize?.[kind] ?? [64, 64]);
   const [cx, fw, bottom, top, hover] = feet ?? [w / 2, w * 0.6, h, 0, 0];
-  // A altura máxima vale para o desenho, não para a margem vazia em volta dele.
-  const k = Math.min(scale, maxH / Math.max(1, bottom - top));
+  // Tamanho pela altura REAL da espécie (raiz quadrada, para os gigantes não engolirem a cena e os pequenos não
+  // sumirem): Rattata 0,3 m ≈ 55% de 1 m; Charizard 1,7 m ≈ 130%; Onix 8,8 m e Wailord 14,5 m batem no teto.
+  // A altura vale para o desenho, não para a margem vazia em volta dele.
+  const meters = heightMeters(speciesId, formSprite(speciesId, form, kind) ? form : undefined);
+  const targetH = Math.min(maxH, Math.max(maxH * 0.3, maxH * 0.58 * Math.sqrt(meters)));
+  const drawn = Math.max(1, bottom - top);
+  // Abaixo de meio pixel virtual por pixel do sprite, o navegador começa a comer linhas do desenho: os muito pequenos
+  // (ou de sprite muito grande) param nesse mínimo, sem passar da altura máxima da cena.
+  const k = Math.min(scale * 4, Math.max(targetH / drawn, Math.min(MIN_SPRITE_K, maxH / drawn)));
   // Asas e caudas muito longas não podem empurrar o corpo para fora do cenário.
   const feetX = Math.min(0.72, Math.max(0.28, cx / w)) * w * k;
   const feetW = Math.min(0.85, Math.max(0.4, (fw * 1.25) / w)) * w * k;
   // Quem voa/flutua na animação ganha uma sombra menor, que pulsa com o bater de asas.
-  return { w: w * k, h: h * k, feetX, feetY: bottom * k, feetW, hovering: hover >= 0.1 };
+  // `bodyH`: altura do desenho, sem a margem vazia do quadro (é por ela que se acha a cabeça e o centro do corpo).
+  return { w: w * k, h: h * k, bodyH: drawn * k, feetX, feetY: bottom * k, feetW, hovering: hover >= 0.1 };
+}
+
+/** Caminho do sprite de batalha. */
+function battleSpritePath(speciesId: number, kind: 'front' | 'back', shiny: boolean, form?: string) {
+  const s = getSpecies(speciesId).sprites;
+  return (
+    formSprite(speciesId, form, kind, shiny) ??
+    (kind === 'front' ? (shiny && s.frontShiny) || s.front : (shiny && s.backShiny) || s.back)
+  );
 }
 
 function BattleSprite({
@@ -185,10 +210,7 @@ function BattleSprite({
   innerRef?: Ref<HTMLDivElement>;
   form?: string;
 }) {
-  const s = getSpecies(speciesId).sprites;
-  const src =
-    formSprite(speciesId, form, kind, shiny) ??
-    (kind === 'front' ? (shiny && s.frontShiny) || s.front : (shiny && s.backShiny) || s.back);
+  const src = battleSpritePath(speciesId, kind, shiny, form);
   const box = spriteBox(speciesId, kind, scale, maxH, form);
   return (
     <>
@@ -294,6 +316,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const sceneKey = b.kind === 'tower' ? 'city' : route.scene;
   const theme = SCENE_THEMES[sceneKey] ?? 'meadow';
   const { enemy: ENEMY_BASE, player: PLAYER_BASE } = sceneBases(sceneKey);
+  const gfx = state.settings.graphics;
   const weather = b.kind === 'tower' ? 'clear' : routeWeather(route, state.env);
   const night =
     state.env.period === 'night' &&
@@ -350,12 +373,14 @@ export function BattleScene({ state }: { state: GameState }) {
                 },
               );
               const id = nextId.current++;
-              const type = getMove(r.moveId).type;
-              setSparks((list) => [
-                ...list.slice(-4),
-                { id, side: target, type, big: r.effectiveness > 1 || r.crit },
-              ]);
-              setTimeout(() => setSparks((list) => list.filter((x) => x.id !== id)), 700 / speed);
+              const type = r.moveType;
+              const big = r.effectiveness > 1 || r.crit;
+              const art = impactArt(type, big);
+              setSparks((list) => [...list.slice(-4), { id, side: target, type, big, art }]);
+              setTimeout(
+                () => setSparks((list) => list.filter((x) => x.id !== id)),
+                art ? artMs(art, speed) : 700 / speed,
+              );
               if (r.effectiveness > 1 || r.crit) setShake((n) => n + 1);
             }
           }
@@ -392,6 +417,7 @@ export function BattleScene({ state }: { state: GameState }) {
             id: nextId.current++,
             ball: e.ball,
             success: e.success,
+            shakes: captureShakes(e.chance, e.success),
             speciesId: e.speciesId,
             shiny: enemy?.shiny ?? false,
             enemyKey: keyOf(enemy),
@@ -444,7 +470,7 @@ export function BattleScene({ state }: { state: GameState }) {
   // A animação de captura dura ~2 s; depois some sozinha.
   useEffect(() => {
     if (!capture) return;
-    const t = setTimeout(() => setCapture(null), capture.success ? 2300 : 1500);
+    const t = setTimeout(() => setCapture(null), captureAnimMs(capture.shakes, capture.success));
     return () => clearTimeout(t);
   }, [capture]);
 
@@ -518,7 +544,8 @@ export function BattleScene({ state }: { state: GameState }) {
   const enemy = b.enemy;
   // Uma tentativa que falhou só é mostrada enquanto o mesmo inimigo está em campo.
   const staleEscape = capture !== null && !capture.success && keyOf(enemy) !== capture.enemyKey;
-  const hideEnemy = capture !== null && !staleEscape;
+  // Só some o Pokémon que está dentro da bola: quem entra depois da captura aparece normalmente.
+  const hideEnemy = capture !== null && keyOf(enemy) === capture.enemyKey;
   // Castform muda com o clima; Unown, Deerling e Spinda mostram a forma deles.
   const mega = megaActive(state, player);
   const playerForm = mega?.form ?? battleForm(player.speciesId, player.form, weather);
@@ -526,7 +553,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const playerBox = spriteBox(player.speciesId, 'back', PLAYER_SCALE, PLAYER_MAX_H, playerForm);
   const enemyBox = enemy
     ? spriteBox(enemy.speciesId, 'front', ENEMY_SCALE, ENEMY_MAX_H, enemyForm)
-    : { w: 40, h: 40 };
+    : { w: 40, h: 40, bodyH: 40 };
 
   // Árvore de berry da rota e foto da cena.
   const treeRouteId = route.kind === 'trial' && route.farm ? route.farm : route.id;
@@ -594,12 +621,8 @@ export function BattleScene({ state }: { state: GameState }) {
           </div>
         </div>
       )}
-      {weather !== 'clear' && !state.settings.reducedMotion && (
-        <span
-          className={`scene-weather weather-${weather}`}
-          style={{ backgroundImage: `url(${assetUrl(`sprites/weather/${weather}.png`)})` }}
-          aria-hidden
-        />
+      {!state.settings.reducedMotion && gfx !== 'performance' && (
+        <WeatherLayer weather={weather} night={state.env.period === 'night'} scene={sceneKey} />
       )}
 
       <div className="scene-hud">
@@ -684,7 +707,9 @@ export function BattleScene({ state }: { state: GameState }) {
         <div className="status-box status-enemy frame frame-status">
           <div className="status-name">
             <span>
-              {isMegaForm(enemy.speciesId, enemy.form) && <b className="mega-tag">MEGA </b>}
+              {isMegaForm(enemy.speciesId, enemy.form) && (
+                <b className="mega-tag">{megaLabel(enemy.form)} </b>
+              )}
               {(enemy.nickname ?? getSpecies(enemy.speciesId).name).toUpperCase()}
               <GenderMark gender={genderOf(enemy)} />
               {enemy.shiny && <Shiny />}
@@ -711,7 +736,7 @@ export function BattleScene({ state }: { state: GameState }) {
       <div className={`status-box status-player frame frame-status ${levelUp ? 'leveling' : ''}`}>
         <div className="status-name">
           <span>
-            {mega && <b className="mega-tag">MEGA </b>}
+            {mega && <b className="mega-tag">{megaLabel(mega.form)} </b>}
             {pokemonName(player).toUpperCase()}
             <GenderMark gender={genderOf(player)} />
             {player.shiny && <Shiny />}
@@ -756,19 +781,56 @@ export function BattleScene({ state }: { state: GameState }) {
           {f.text}
         </span>
       ))}
-      {sparks.map((s) => (
-        <MoveFx
-          key={s.id}
-          id={s.id}
-          type={s.type}
-          big={s.big}
-          speed={animSpeed}
-          x={s.side === 'enemy' ? ENEMY_BASE.x : PLAYER_BASE.x}
-          y={s.side === 'enemy' ? ENEMY_BASE.y - enemyBox.h / 2 : PLAYER_BASE.y - playerBox.h / 2}
-        />
-      ))}
+      {sparks.map((s) => {
+        const base = s.side === 'enemy' ? ENEMY_BASE : PLAYER_BASE;
+        const box = s.side === 'enemy' ? enemyBox : playerBox;
+        if (s.art) {
+          return (
+            <ArtFx
+              key={s.id}
+              art={s.art}
+              x={base.x}
+              y={s.art.at === 'floor' ? base.y - 1 : base.y - box.bodyH / 2}
+              speed={animSpeed}
+              flip={s.side === 'player'}
+            />
+          );
+        }
+        return (
+          <MoveFx
+            key={s.id}
+            id={s.id}
+            type={s.type}
+            big={s.big}
+            speed={animSpeed}
+            x={base.x}
+            y={base.y - box.bodyH / 2}
+          />
+        );
+      })}
+      {/* Status em loop sobre o Pokémon: sono, paralisia, queimadura, congelamento e veneno */}
+      {!state.settings.reducedMotion &&
+        gfx !== 'performance' &&
+        (
+          [
+            ['enemy', hideEnemy ? undefined : enemy?.status?.kind, ENEMY_BASE, enemyBox],
+            ['player', b.playerStatus?.kind, PLAYER_BASE, playerBox],
+          ] as const
+        ).map(([side, kind, base, box]) => {
+          const art = kind ? statusArt(kind) : undefined;
+          return art ? (
+            <ArtFx
+              key={`status-${side}-${kind}`}
+              art={art}
+              x={base.x}
+              y={art.at === 'head' ? base.y - box.bodyH - 2 : base.y - 1}
+              speed={animSpeed}
+              low
+            />
+          ) : null;
+        })}
       {shinyFx !== null && enemy?.shiny && (
-        <ShinySparkle key={`shiny-${shinyFx}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.h / 2} />
+        <ShinySparkle key={`shiny-${shinyFx}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.bodyH / 2} />
       )}
       {mega && (
         <span
@@ -876,12 +938,11 @@ export function BattleScene({ state }: { state: GameState }) {
 /** Bola arremessada + Pokémon sendo "sugado" para dentro, com balanço e resultado. */
 function CaptureGhost({ anim, base: ENEMY_BASE }: { anim: CaptureAnim; base: { x: number; y: number } }) {
   const box = spriteBox(anim.speciesId, 'front', ENEMY_SCALE, ENEMY_MAX_H);
-  const s = getSpecies(anim.speciesId).sprites;
-  const src = (anim.shiny && s.frontShiny) || s.front;
+  const src = battleSpritePath(anim.speciesId, 'front', anim.shiny);
   return (
     <>
       <div
-        className={`capture-ghost ${anim.success ? 'caught' : 'escape'}`}
+        className={`capture-ghost ${anim.success ? 'caught' : `escape s${anim.shakes}`}`}
         style={{
           left: `calc(var(--u) * ${ENEMY_BASE.x - box.feetX})`,
           top: `calc(var(--u) * ${ENEMY_BASE.y - box.feetY + 1})`,
@@ -892,7 +953,7 @@ function CaptureGhost({ anim, base: ENEMY_BASE }: { anim: CaptureAnim; base: { x
         <img className="sprite" src={assetUrl(src)} alt="" />
       </div>
       <img
-        className={`capture-ball ${anim.success ? 'caught' : 'escape'}`}
+        className={`capture-ball ${anim.success ? 'caught' : `escape s${anim.shakes}`}`}
         src={assetUrl(getItem(anim.ball)?.sprite)}
         alt=""
         style={{

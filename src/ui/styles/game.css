@@ -845,7 +845,9 @@ html.reduced-motion .status-box .expbar-fill::after {
   text-shadow: 2px 2px 0 var(--red-dark);
 }
 
-/* Captura */
+/* Captura: a bola é lançada, quica e balança n vezes (1 a 3). Se o Pokémon escapa, ela abre; se não, clica e brilha.
+   As durações (T) acompanham captureMs() em BattleScene.tsx. */
+
 .capture-ball {
   position: absolute;
   z-index: 6;
@@ -854,103 +856,6 @@ html.reduced-motion .status-box .expbar-fill::after {
   left: var(--tx);
   top: var(--ty);
 }
-.capture-ball.caught {
-  animation: ball-caught 2.2s linear forwards;
-}
-.capture-ball.escape {
-  animation: ball-escape 1.4s linear forwards;
-}
-
-@keyframes ball-caught {
-  0% {
-    left: calc(var(--u) * 70);
-    top: calc(var(--u) * 100);
-    rotate: 0deg;
-  }
-  10% {
-    left: calc((var(--u) * 70 + var(--tx)) / 2);
-    top: calc(var(--ty) - var(--u) * 36);
-    rotate: 360deg;
-  }
-  20% {
-    left: var(--tx);
-    top: var(--ty);
-    rotate: 720deg;
-  }
-  24% {
-    top: calc(var(--ty) - var(--u) * 6);
-    rotate: 720deg;
-  }
-  28%,
-  36% {
-    top: var(--ty);
-    rotate: 720deg;
-  }
-  40% {
-    rotate: 700deg;
-  }
-  44% {
-    rotate: 740deg;
-  }
-  48%,
-  56% {
-    rotate: 720deg;
-  }
-  60% {
-    rotate: 700deg;
-  }
-  64% {
-    rotate: 740deg;
-  }
-  68%,
-  100% {
-    left: var(--tx);
-    top: var(--ty);
-    rotate: 720deg;
-    filter: brightness(1);
-  }
-  72% {
-    filter: brightness(0.6);
-  }
-}
-
-@keyframes ball-escape {
-  0% {
-    left: calc(var(--u) * 70);
-    top: calc(var(--u) * 100);
-    rotate: 0deg;
-    opacity: 1;
-  }
-  16% {
-    left: calc((var(--u) * 70 + var(--tx)) / 2);
-    top: calc(var(--ty) - var(--u) * 36);
-    rotate: 360deg;
-  }
-  32% {
-    left: var(--tx);
-    top: var(--ty);
-    rotate: 720deg;
-  }
-  48% {
-    rotate: 700deg;
-  }
-  56% {
-    rotate: 740deg;
-  }
-  64% {
-    rotate: 720deg;
-    opacity: 1;
-    scale: 1;
-  }
-  72%,
-  100% {
-    left: var(--tx);
-    top: var(--ty);
-    opacity: 0;
-    scale: 1.6;
-  }
-}
-
 .capture-ghost {
   position: absolute;
   z-index: 2;
@@ -960,55 +865,439 @@ html.reduced-motion .status-box .expbar-fill::after {
   width: 100%;
   height: 100%;
 }
-.capture-ghost.caught {
-  animation: absorb 2.2s steps(1, end) forwards;
-}
-.capture-ghost.escape {
-  animation: absorb-escape 1.4s steps(1, end) forwards;
-}
 
-@keyframes absorb {
+@keyframes ball-escape-1 {
   0% {
+    left: calc(var(--u) * 70);
+    top: calc(var(--u) * 100);
+    rotate: 0deg;
+    opacity: 1;
+    filter: none;
+    scale: 1;
+  }
+  13.87% {
+    left: calc((var(--u) * 70 + var(--tx)) / 2);
+    top: calc(var(--ty) - var(--u) * 36);
+    rotate: 360deg;
+  }
+  27.75% {
+    left: var(--tx);
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  33.99% {
+    top: calc(var(--ty) - var(--u) * 7);
+    rotate: 720deg;
+  }
+  41.62% {
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  48.55% {
+    rotate: 720deg;
+  }
+  54.91% {
+    rotate: 690deg;
+  }
+  61.85% {
+    rotate: 750deg;
+  }
+  68.21% {
+    rotate: 720deg;
+  }
+  73.99% {
+    rotate: 720deg;
+    opacity: 1;
+    scale: 1;
     filter: none;
   }
-  18% {
-    filter: brightness(0) invert(1) sepia(1) saturate(6) hue-rotate(-30deg);
+  85.69% {
+    opacity: 1;
+    scale: 1.25;
+    filter: brightness(3);
+  }
+  100.0%,
+  100% {
+    left: var(--tx);
+    top: var(--ty);
+    opacity: 0;
+    scale: 1.7;
+  }
+}
+
+@keyframes absorb-escape-1 {
+  0% {
+    filter: none;
+    scale: 1;
+    opacity: 1;
+  }
+  21.64% {
+    filter: brightness(0) invert(1);
     scale: 0.6;
   }
-  21% {
+  24.97% {
     scale: 0.2;
   }
-  23%,
+  27.75%,
+  73.99% {
+    scale: 0;
+    opacity: 0;
+  }
+  84.39% {
+    scale: 1;
+    opacity: 1;
+    filter: brightness(0) invert(1);
+  }
+  92.2%,
   100% {
+    scale: 1;
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.capture-ball.escape.s1 {
+  animation: ball-escape-1 1730ms linear forwards;
+}
+.capture-ghost.escape.s1 {
+  animation: absorb-escape-1 1730ms steps(1, end) forwards;
+}
+
+@keyframes ball-escape-2 {
+  0% {
+    left: calc(var(--u) * 70);
+    top: calc(var(--u) * 100);
+    rotate: 0deg;
+    opacity: 1;
+    filter: none;
+    scale: 1;
+  }
+  10.48% {
+    left: calc((var(--u) * 70 + var(--tx)) / 2);
+    top: calc(var(--ty) - var(--u) * 36);
+    rotate: 360deg;
+  }
+  20.96% {
+    left: var(--tx);
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  25.68% {
+    top: calc(var(--ty) - var(--u) * 7);
+    rotate: 720deg;
+  }
+  31.44% {
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  36.68% {
+    rotate: 720deg;
+  }
+  41.48% {
+    rotate: 690deg;
+  }
+  46.72% {
+    rotate: 750deg;
+  }
+  51.53% {
+    rotate: 720deg;
+  }
+  61.14% {
+    rotate: 720deg;
+  }
+  65.94% {
+    rotate: 690deg;
+  }
+  71.18% {
+    rotate: 750deg;
+  }
+  75.98% {
+    rotate: 720deg;
+  }
+  80.35% {
+    rotate: 720deg;
+    opacity: 1;
+    scale: 1;
+    filter: none;
+  }
+  89.19% {
+    opacity: 1;
+    scale: 1.25;
+    filter: brightness(3);
+  }
+  100.0%,
+  100% {
+    left: var(--tx);
+    top: var(--ty);
+    opacity: 0;
+    scale: 1.7;
+  }
+}
+
+@keyframes absorb-escape-2 {
+  0% {
+    filter: none;
+    scale: 1;
+    opacity: 1;
+  }
+  16.35% {
+    filter: brightness(0) invert(1);
+    scale: 0.6;
+  }
+  18.86% {
+    scale: 0.2;
+  }
+  20.96%,
+  80.35% {
+    scale: 0;
+    opacity: 0;
+  }
+  88.21% {
+    scale: 1;
+    opacity: 1;
+    filter: brightness(0) invert(1);
+  }
+  94.1%,
+  100% {
+    scale: 1;
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.capture-ball.escape.s2 {
+  animation: ball-escape-2 2290ms linear forwards;
+}
+.capture-ghost.escape.s2 {
+  animation: absorb-escape-2 2290ms steps(1, end) forwards;
+}
+
+@keyframes ball-escape-3 {
+  0% {
+    left: calc(var(--u) * 70);
+    top: calc(var(--u) * 100);
+    rotate: 0deg;
+    opacity: 1;
+    filter: none;
+    scale: 1;
+  }
+  8.42% {
+    left: calc((var(--u) * 70 + var(--tx)) / 2);
+    top: calc(var(--ty) - var(--u) * 36);
+    rotate: 360deg;
+  }
+  16.84% {
+    left: var(--tx);
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  20.63% {
+    top: calc(var(--ty) - var(--u) * 7);
+    rotate: 720deg;
+  }
+  25.26% {
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  29.47% {
+    rotate: 720deg;
+  }
+  33.33% {
+    rotate: 690deg;
+  }
+  37.54% {
+    rotate: 750deg;
+  }
+  41.4% {
+    rotate: 720deg;
+  }
+  49.12% {
+    rotate: 720deg;
+  }
+  52.98% {
+    rotate: 690deg;
+  }
+  57.19% {
+    rotate: 750deg;
+  }
+  61.05% {
+    rotate: 720deg;
+  }
+  68.77% {
+    rotate: 720deg;
+  }
+  72.63% {
+    rotate: 690deg;
+  }
+  76.84% {
+    rotate: 750deg;
+  }
+  80.7% {
+    rotate: 720deg;
+  }
+  84.21% {
+    rotate: 720deg;
+    opacity: 1;
+    scale: 1;
+    filter: none;
+  }
+  91.32% {
+    opacity: 1;
+    scale: 1.25;
+    filter: brightness(3);
+  }
+  100.0%,
+  100% {
+    left: var(--tx);
+    top: var(--ty);
+    opacity: 0;
+    scale: 1.7;
+  }
+}
+
+@keyframes absorb-escape-3 {
+  0% {
+    filter: none;
+    scale: 1;
+    opacity: 1;
+  }
+  13.14% {
+    filter: brightness(0) invert(1);
+    scale: 0.6;
+  }
+  15.16% {
+    scale: 0.2;
+  }
+  16.84%,
+  84.21% {
+    scale: 0;
+    opacity: 0;
+  }
+  90.53% {
+    scale: 1;
+    opacity: 1;
+    filter: brightness(0) invert(1);
+  }
+  95.26%,
+  100% {
+    scale: 1;
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.capture-ball.escape.s3 {
+  animation: ball-escape-3 2850ms linear forwards;
+}
+.capture-ghost.escape.s3 {
+  animation: absorb-escape-3 2850ms steps(1, end) forwards;
+}
+
+@keyframes ball-caught {
+  0% {
+    left: calc(var(--u) * 70);
+    top: calc(var(--u) * 100);
+    rotate: 0deg;
+    opacity: 1;
+    filter: none;
+    scale: 1;
+  }
+  8.0% {
+    left: calc((var(--u) * 70 + var(--tx)) / 2);
+    top: calc(var(--ty) - var(--u) * 36);
+    rotate: 360deg;
+  }
+  16.0% {
+    left: var(--tx);
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  19.6% {
+    top: calc(var(--ty) - var(--u) * 7);
+    rotate: 720deg;
+  }
+  24.0% {
+    top: var(--ty);
+    rotate: 720deg;
+  }
+  28.0% {
+    rotate: 720deg;
+  }
+  31.67% {
+    rotate: 690deg;
+  }
+  35.67% {
+    rotate: 750deg;
+  }
+  39.33% {
+    rotate: 720deg;
+  }
+  46.67% {
+    rotate: 720deg;
+  }
+  50.33% {
+    rotate: 690deg;
+  }
+  54.33% {
+    rotate: 750deg;
+  }
+  58.0% {
+    rotate: 720deg;
+  }
+  65.33% {
+    rotate: 720deg;
+  }
+  69.0% {
+    rotate: 690deg;
+  }
+  73.0% {
+    rotate: 750deg;
+  }
+  76.67% {
+    rotate: 720deg;
+  }
+  80.0% {
+    rotate: 720deg;
+    filter: none;
+    scale: 1;
+  }
+  82.0% {
+    filter: brightness(2.2);
+    scale: 1.12;
+  }
+  86.67%,
+  100% {
+    rotate: 720deg;
+    filter: brightness(0.6);
+    scale: 1;
+  }
+}
+
+@keyframes absorb-caught {
+  0% {
+    filter: none;
+    scale: 1;
+    opacity: 1;
+  }
+  12.48% {
+    filter: brightness(0) invert(1);
+    scale: 0.6;
+  }
+  14.4% {
+    scale: 0.2;
+  }
+  16.0%,
+  100.0% {
     scale: 0;
     opacity: 0;
   }
 }
 
-@keyframes absorb-escape {
-  0% {
-    filter: none;
-  }
-  28% {
-    filter: brightness(0) invert(1);
-    scale: 0.5;
-  }
-  32%,
-  68% {
-    scale: 0;
-    opacity: 0;
-  }
-  70% {
-    scale: 1;
-    opacity: 1;
-    filter: brightness(0) invert(1);
-  }
-  76%,
-  100% {
-    filter: none;
-    scale: 1;
-    opacity: 1;
-  }
+.capture-ball.caught {
+  animation: ball-caught 3000ms linear forwards;
+}
+.capture-ghost.caught {
+  animation: absorb-caught 3000ms steps(1, end) forwards;
 }
 
 .capture-stars {
@@ -1017,24 +1306,22 @@ html.reduced-motion .status-box .expbar-fill::after {
   display: flex;
   gap: calc(var(--u) * 4);
   opacity: 0;
-  animation: stars 2.2s steps(1, end) forwards;
+  animation: stars 3000ms steps(1, end) forwards;
 }
-
 .capture-stars .pixel-icon {
   width: calc(var(--u) * 9);
   height: calc(var(--u) * 9);
 }
-
 @keyframes stars {
   0%,
-  70% {
+  82.0% {
     opacity: 0;
     translate: 0 0;
   }
-  72% {
+  83.33% {
     opacity: 1;
   }
-  85% {
+  91.67% {
     translate: 0 calc(var(--u) * -6);
   }
   100% {
@@ -1489,6 +1776,16 @@ html.reduced-motion .status-box .expbar-fill::after {
     filter 0.08s;
 }
 
+/* Os comandos de apoio ficam mais calmos: quem chama a atenção é a cena (e o LUTAR, na sua vez). */
+.bc-big:not(.bc-fight):not(:disabled) {
+  filter: saturate(0.65) brightness(1.04);
+}
+
+.bc-big:not(.bc-fight):hover:not(:disabled),
+.bc-big:not(.bc-fight):focus-visible {
+  filter: none;
+}
+
 .bc-big strong {
   font: 700 17px var(--font-label);
   letter-spacing: 0.04em;
@@ -1911,6 +2208,98 @@ html.reduced-motion .menu-label {
   min-height: 0;
   overflow: hidden auto;
   scrollbar-color: var(--menu-blue) #dbe6f8;
+}
+
+/* --- Janela flutuante ---------------------------------------------------------------- */
+/* Ao abrir, a batalha encolhe e fica inteira à esquerda; a janela flutua à direita, abaixo do menu. Arrastar a barra
+   muda left/top (App.tsx) e o canto de baixo redimensiona. */
+.screen-window {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  min-height: 240px;
+  overflow: hidden;
+  resize: both;
+  box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
+}
+
+.screen-window-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--menu-select);
+  box-shadow: inset 0 -3px 0 var(--red);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.screen-window-bar:active {
+  cursor: grabbing;
+}
+
+.screen-window-bar h2 {
+  overflow: hidden;
+  margin: 0;
+  font: 700 16px var(--font-label);
+  letter-spacing: 1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screen-window-body {
+  container-type: inline-size;
+  padding: 10px;
+}
+
+@media (min-width: 901px) {
+  .game.window-open {
+    grid-template-columns: minmax(0, 1fr) clamp(540px, 46vw, 900px);
+  }
+
+  /* Batalha estreita: o texto e os comandos empilham, em vez de dividir a largura e cortar os botões. */
+  .game.window-open .battle-column {
+    --deck-h: 236px;
+  }
+
+  .game.window-open .battle-ui {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 96px;
+  }
+
+  .battle-column {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .side-column,
+  .screen-window {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* 58px: a altura do menu, que continua à mão acima da janela. */
+  .screen-window {
+    margin-top: 58px;
+  }
+}
+
+/* Com espaço, o PC fica lado a lado: as caixas à esquerda e o resto (filtros, ficha) à direita. */
+@container (min-width: 760px) {
+  .screen-window-body .pcs {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
+    align-items: start;
+  }
+
+  .screen-window-body .pcs > .pcs-terminal {
+    grid-row: 1 / span 20;
+  }
 }
 
 /* Status (QMD/ENV/PAR/DRM/CGL) e Poké Balls da equipe de batalha na caixa do jogador */

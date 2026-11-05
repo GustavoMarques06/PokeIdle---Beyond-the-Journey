@@ -31,22 +31,98 @@ const FRESH = process.argv.includes('--fresh');
 const MAX_ID = 721; // Gerações I–VI (a VI sem animação: não há sprites animados no estilo Black/White).
 
 const LEARNSET_VERSION_GROUPS = [
-  'firered-leafgreen', 'emerald', 'heartgold-soulsilver', 'platinum', 'black-2-white-2', 'x-y', 'omega-ruby-alpha-sapphire',
+  'firered-leafgreen',
+  'emerald',
+  'heartgold-soulsilver',
+  'platinum',
+  'black-2-white-2',
+  'x-y',
+  'omega-ruby-alpha-sapphire',
 ];
 /** Máquinas e tutores: Black 2/White 2; quem não existia lá (Geração VI) usa X/Y. */
 const TM_VERSION_GROUPS = ['black-2-white-2', 'x-y'];
 const FALLBACK_MOVE = 'tackle';
 // Golpes que o combate simples não modela (autodestruição, recarga, dois turnos, poder variável…).
 const MOVE_BLACKLIST = new Set([
-  'self-destruct', 'explosion', 'dream-eater', 'focus-punch', 'snore', 'future-sight', 'doom-desire', 'solar-beam',
-  'sky-attack', 'skull-bash', 'razor-wind', 'hyper-beam', 'giga-impact', 'blast-burn', 'hydro-cannon', 'frenzy-plant',
-  'rock-wrecker', 'roar-of-time', 'fly', 'dig', 'dive', 'bounce', 'sky-drop', 'phantom-force', 'shadow-force', 'bide',
-  'counter', 'mirror-coat', 'metal-burst', 'endeavor', 'false-swipe', 'present', 'magnitude', 'low-kick', 'grass-knot',
-  'heavy-slam', 'heat-crash', 'reversal', 'flail', 'return', 'frustration', 'hidden-power', 'spit-up', 'natural-gift',
-  'fling', 'last-resort', 'belch', 'final-gambit', 'thrash', 'petal-dance', 'outrage', 'uproar', 'rollout', 'ice-ball',
-  'fury-cutter', 'echoed-voice', 'round', 'pursuit', 'payback', 'avalanche', 'revenge', 'assurance', 'stored-power',
-  'punishment', 'trump-card', 'wring-out', 'crush-grip', 'electro-ball', 'gyro-ball', 'beat-up', 'water-spout',
-  'eruption', 'struggle', 'freeze-shock', 'ice-burn', 'shell-trap', 'steel-beam', 'mind-blown', 'meteor-beam',
+  'self-destruct',
+  'explosion',
+  'dream-eater',
+  'focus-punch',
+  'snore',
+  'future-sight',
+  'doom-desire',
+  'solar-beam',
+  'sky-attack',
+  'skull-bash',
+  'razor-wind',
+  'hyper-beam',
+  'giga-impact',
+  'blast-burn',
+  'hydro-cannon',
+  'frenzy-plant',
+  'rock-wrecker',
+  'roar-of-time',
+  'fly',
+  'dig',
+  'dive',
+  'bounce',
+  'sky-drop',
+  'phantom-force',
+  'shadow-force',
+  'bide',
+  'counter',
+  'mirror-coat',
+  'metal-burst',
+  'endeavor',
+  'false-swipe',
+  'present',
+  'magnitude',
+  'low-kick',
+  'grass-knot',
+  'heavy-slam',
+  'heat-crash',
+  'reversal',
+  'flail',
+  'return',
+  'frustration',
+  'hidden-power',
+  'spit-up',
+  'natural-gift',
+  'fling',
+  'last-resort',
+  'belch',
+  'final-gambit',
+  'thrash',
+  'petal-dance',
+  'outrage',
+  'uproar',
+  'rollout',
+  'ice-ball',
+  'fury-cutter',
+  'echoed-voice',
+  'round',
+  'pursuit',
+  'payback',
+  'avalanche',
+  'revenge',
+  'assurance',
+  'stored-power',
+  'punishment',
+  'trump-card',
+  'wring-out',
+  'crush-grip',
+  'electro-ball',
+  'gyro-ball',
+  'beat-up',
+  'water-spout',
+  'eruption',
+  'struggle',
+  'freeze-shock',
+  'ice-burn',
+  'shell-trap',
+  'steel-beam',
+  'mind-blown',
+  'meteor-beam',
 ]);
 
 /** Fundos de batalha (Showdown) para cada cena do jogo. */
@@ -77,24 +153,109 @@ const UI_TRAINERS = {
 };
 
 const UI_ITEMS = [
-  'exp-share', 'amulet-coin', 'potion', 'town-map', 'macho-brace', 'muscle-band', 'lucky-egg', 'shiny-charm',
-  'explorer-kit', 'rare-candy', 'up-grade', 'vs-seeker', 'coin-case', 'nugget', 'star-piece', 'fame-checker',
-  'teachy-tv', 'pokemon-box', 'escape-rope', 'dowsing-machine', 'berry-pouch', 'oval-charm', 'tm-case', 'pokeblock-case',
+  'exp-share',
+  'amulet-coin',
+  'potion',
+  'town-map',
+  'macho-brace',
+  'muscle-band',
+  'lucky-egg',
+  'shiny-charm',
+  'explorer-kit',
+  'rare-candy',
+  'up-grade',
+  'vs-seeker',
+  'coin-case',
+  'nugget',
+  'star-piece',
+  'fame-checker',
+  'teachy-tv',
+  'pokemon-box',
+  'escape-rope',
+  'dowsing-machine',
+  'berry-pouch',
+  'oval-charm',
+  'tm-case',
+  'pokeblock-case',
 ];
 /** Sprites oficiais dos itens seguráveis, das vitaminas e dos ícones da interface (ver helditems.ts). */
 const SPRITE_ONLY_ITEMS = [
-  'charcoal', 'mystic-water', 'miracle-seed', 'magnet', 'never-melt-ice', 'black-belt', 'poison-barb', 'soft-sand',
-  'sharp-beak', 'twisted-spoon', 'silver-powder', 'hard-stone', 'spell-tag', 'dragon-fang', 'black-glasses', 'silk-scarf',
-  'leftovers', 'choice-band', 'choice-specs', 'choice-scarf', 'assault-vest', 'life-orb', 'focus-sash', 'expert-belt',
-  'shell-bell', 'rocky-helmet', 'scope-lens', 'wide-lens', 'quick-claw', 'wise-glasses', 'hp-up', 'protein', 'iron',
-  'calcium', 'zinc', 'carbos', 'bottle-cap', 'ability-capsule', 'ability-patch', 'linking-cord', 'vs-recorder',
-  'machine-part', 'mystery-egg', 'poke-radar', 'dynamax-band', 'relic-crown', 'rainbow-pass', 'catching-charm',
+  'charcoal',
+  'mystic-water',
+  'miracle-seed',
+  'magnet',
+  'never-melt-ice',
+  'black-belt',
+  'poison-barb',
+  'soft-sand',
+  'sharp-beak',
+  'twisted-spoon',
+  'silver-powder',
+  'hard-stone',
+  'spell-tag',
+  'dragon-fang',
+  'black-glasses',
+  'silk-scarf',
+  'leftovers',
+  'choice-band',
+  'choice-specs',
+  'choice-scarf',
+  'assault-vest',
+  'life-orb',
+  'focus-sash',
+  'expert-belt',
+  'shell-bell',
+  'rocky-helmet',
+  'scope-lens',
+  'wide-lens',
+  'quick-claw',
+  'wise-glasses',
+  'hp-up',
+  'protein',
+  'iron',
+  'calcium',
+  'zinc',
+  'carbos',
+  'bottle-cap',
+  'ability-capsule',
+  'ability-patch',
+  'linking-cord',
+  'vs-recorder',
+  'machine-part',
+  'mystery-egg',
+  'poke-radar',
+  'dynamax-band',
+  'relic-crown',
+  'rainbow-pass',
+  'catching-charm',
 ];
-const SHOP_ITEMS = ['poke-ball', 'great-ball', 'ultra-ball', 'moon-stone', 'thunder-stone', 'water-stone', 'leaf-stone', 'fire-stone'];
+const SHOP_ITEMS = [
+  'poke-ball',
+  'great-ball',
+  'ultra-ball',
+  'moon-stone',
+  'thunder-stone',
+  'water-stone',
+  'leaf-stone',
+  'fire-stone',
+];
 /** Bolas especiais, repelentes e incensos (ver capture.ts e lures.ts). */
 const CAPTURE_ITEMS = [
-  'net-ball', 'dusk-ball', 'quick-ball', 'timer-ball', 'repeat-ball', 'nest-ball', 'luxury-ball', 'heal-ball',
-  'repel', 'super-repel', 'max-repel', 'sea-incense', 'rose-incense', 'rock-incense', 'odd-incense',
+  'net-ball',
+  'dusk-ball',
+  'quick-ball',
+  'timer-ball',
+  'repeat-ball',
+  'nest-ball',
+  'luxury-ball',
+  'heal-ball',
+  'repel',
+  'super-repel',
+  'max-repel',
+  'sea-incense',
+  'rose-incense',
+  'rock-incense',
+  'odd-incense',
 ];
 const ICON_SHEET = { url: `${SHOWDOWN}/sprites/pokemonicons-sheet.png`, cols: 12, w: 40, h: 30 };
 
@@ -124,7 +285,8 @@ async function getJson(url) {
       await writeFile(cachePath, JSON.stringify(json));
       return json;
     } catch (err) {
-      if (err.notFound || attempt >= 4) throw new Error(`Falha ao buscar ${url}: ${err.message}`, { cause: err });
+      if (err.notFound || attempt >= 4)
+        throw new Error(`Falha ao buscar ${url}: ${err.message}`, { cause: err });
       await sleep(500 * attempt);
     }
   }
@@ -195,11 +357,32 @@ async function cropIcon(sheetPath, num, dest) {
 const idFromUrl = (url) => Number(url.split('/').filter(Boolean).pop());
 const englishName = (names, fallback) => names.find((n) => n.language.name === 'en')?.name ?? fallback;
 const AILMENTS = new Set(['burn', 'poison', 'paralysis', 'sleep', 'freeze']);
-const STAT_KEYS = { hp: 'hp', attack: 'atk', defense: 'def', 'special-attack': 'spAtk', 'special-defense': 'spDef', speed: 'spe' };
-const GENERATION_NUMBERS = { 'generation-i': 1, 'generation-ii': 2, 'generation-iii': 3, 'generation-iv': 4, 'generation-v': 5, 'generation-vi': 6 };
+const STAT_KEYS = {
+  hp: 'hp',
+  attack: 'atk',
+  defense: 'def',
+  'special-attack': 'spAtk',
+  'special-defense': 'spDef',
+  speed: 'spe',
+};
+const GENERATION_NUMBERS = {
+  'generation-i': 1,
+  'generation-ii': 2,
+  'generation-iii': 3,
+  'generation-iv': 4,
+  'generation-v': 5,
+  'generation-vi': 6,
+};
 /** Evolução por saber um golpe de certo tipo (Sylveon) vira uma pedra. */
 const MOVE_TYPE_ITEM = { fairy: 'shiny-stone' };
-const LOCATION_ITEM_BY_TYPE = { grass: 'leaf-stone', bug: 'leaf-stone', ice: 'ice-stone', electric: 'thunder-stone', steel: 'thunder-stone', rock: 'thunder-stone' };
+const LOCATION_ITEM_BY_TYPE = {
+  grass: 'leaf-stone',
+  bug: 'leaf-stone',
+  ice: 'ice-stone',
+  electric: 'thunder-stone',
+  steel: 'thunder-stone',
+  rock: 'thunder-stone',
+};
 const EXTRA_EVOLUTION_ITEMS = ['shiny-stone', 'dusk-stone', 'dawn-stone'];
 
 // --- evoluções ------------------------------------------------------------------------
@@ -221,9 +404,11 @@ function parseEvolution(details, toTypes) {
   const anyLocation = details.find((x) => x.location);
   const anyMoveType = details.find((x) => MOVE_TYPE_ITEM[x.known_move_type?.name]);
   if (d.trigger.name === 'use-item' && anyItem) return withTime({ trigger: 'item', item: anyItem.item.name });
-  if (d.trigger.name === 'trade') return anyHeld ? { trigger: 'item', item: anyHeld.held_item.name } : { trigger: 'level', minLevel: 38 };
+  if (d.trigger.name === 'trade')
+    return anyHeld ? { trigger: 'item', item: anyHeld.held_item.name } : { trigger: 'level', minLevel: 38 };
   if (anyHeld) return withTime({ trigger: 'item', item: anyHeld.held_item.name });
-  if (anyMoveType && !anyLevel) return { trigger: 'item', item: MOVE_TYPE_ITEM[anyMoveType.known_move_type.name] };
+  if (anyMoveType && !anyLevel)
+    return { trigger: 'item', item: MOVE_TYPE_ITEM[anyMoveType.known_move_type.name] };
   if (anyLevel) return withTime({ trigger: 'level', minLevel: anyLevel.min_level });
   if (anyHappiness) return withTime({ trigger: 'item', item: 'soothe-bell' });
   if (anyLocation) return { trigger: 'item', item: LOCATION_ITEM_BY_TYPE[toTypes[0]] ?? 'shiny-stone' };
@@ -243,7 +428,9 @@ async function main() {
   await mkdir(DATA_OUT, { recursive: true });
 
   // 1. Nomes citados no conteúdo → ids.
-  const routes = WORLD.REGIONS.flatMap((reg) => reg.routes.map((rt) => ({ ...rt, regionId: reg.id, regionName: reg.name })));
+  const routes = WORLD.REGIONS.flatMap((reg) =>
+    reg.routes.map((rt) => ({ ...rt, regionId: reg.id, regionName: reg.name })),
+  );
   const slugs = new Set(WORLD.EXTRA_SPECIES);
   for (const g of WORLD.STARTERS) for (const s of g.starters) slugs.add(s);
   for (const rt of routes) {
@@ -271,7 +458,7 @@ async function main() {
   // 2. Fecha as linhas evolutivas (inclui bebês e formas finais até a Geração V).
   const wanted = new Set(slugToId.values());
   const chains = new Map();
-  for (let changed = true; changed; ) {
+  for (let changed = true; changed;) {
     changed = false;
     await mapLimit([...wanted], 8, async (id) => {
       if (chains.has(id)) return;
@@ -290,10 +477,15 @@ async function main() {
   const ids = [...wanted].sort((a, b) => a - b);
   console.log(`Buscando ${ids.length} espécies (com linhas evolutivas)...`);
   const raw = await mapLimit(ids, 8, async (id) => {
-    const [pokemon, species] = await Promise.all([getJson(`${API}/pokemon/${id}`), getJson(`${API}/pokemon-species/${id}`)]);
+    const [pokemon, species] = await Promise.all([
+      getJson(`${API}/pokemon/${id}`),
+      getJson(`${API}/pokemon-species/${id}`),
+    ]);
     return { id, pokemon, species, chain: chains.get(id) ?? (await getJson(species.evolution_chain.url)) };
   });
-  const typesById = new Map(raw.map((x) => [x.id, [...x.pokemon.types].sort((a, b) => a.slot - b.slot).map((t) => t.type.name)]));
+  const typesById = new Map(
+    raw.map((x) => [x.id, [...x.pokemon.types].sort((a, b) => a.slot - b.slot).map((t) => t.type.name)]),
+  );
 
   // 3. Golpes: por nível (versão de referência) e por máquina/tutor (Black 2/White 2).
   const moveNames = new Set([FALLBACK_MOVE, ...WORLD.TM_POOL]);
@@ -328,7 +520,9 @@ async function main() {
     const bred = (group) =>
       pokemon.moves
         .filter((m) =>
-          m.version_group_details.some((v) => v.version_group.name === group && v.move_learn_method.name === 'egg'),
+          m.version_group_details.some(
+            (v) => v.version_group.name === group && v.move_learn_method.name === 'egg',
+          ),
         )
         .map((m) => m.move.name);
     const egg = LEARNSET_VERSION_GROUPS.map(bred).find((list) => list.length > 0) ?? [];
@@ -360,7 +554,9 @@ async function main() {
 
   console.log('Buscando tabela de tipos...');
   const typeIndex = await getJson(`${API}/type?limit=100`);
-  const typeNames = typeIndex.results.map((t) => t.name).filter((n) => !['unknown', 'shadow', 'stellar'].includes(n));
+  const typeNames = typeIndex.results
+    .map((t) => t.name)
+    .filter((n) => !['unknown', 'shadow', 'stellar'].includes(n));
   const types = await mapLimit(typeNames, 6, (name) => getJson(`${API}/type/${name}`));
   const typeChart = {};
   for (const t of types) {
@@ -389,7 +585,9 @@ async function main() {
     });
     // Duas evoluções no mesmo nível (Wurmple, Tyrogue…): as extras passam a usar pedras
     // distintas para continuarem alcançáveis.
-    const usedItems = new Set(evolutions.filter((e) => e.trigger === 'item').map((e) => `${e.item}:${e.time ?? ''}`));
+    const usedItems = new Set(
+      evolutions.filter((e) => e.trigger === 'item').map((e) => `${e.item}:${e.time ?? ''}`),
+    );
     let levelSeen = false;
     for (const e of evolutions) {
       if (e.trigger !== 'level') continue;
@@ -457,7 +655,12 @@ async function main() {
       ['front_shiny', 'gen5-shiny', 'front-shiny', 'frontShiny'],
       ['back_shiny', 'gen5-back-shiny', 'back-shiny', 'backShiny'],
     ]) {
-      spriteJobs.push({ entry, field, urls: candidates(key, sd), destNoExt: path.join(SPRITE_OUT, 'pokemon', folder, String(id)) });
+      spriteJobs.push({
+        entry,
+        field,
+        urls: candidates(key, sd),
+        destNoExt: path.join(SPRITE_OUT, 'pokemon', folder, String(id)),
+      });
     }
     iconJobs.push({ entry, url: pokemon.sprites.versions['generation-vii'].icons.front_default });
     const cryUrl = pokemon.cries?.legacy ?? pokemon.cries?.latest;
@@ -526,7 +729,9 @@ async function main() {
     const res = await fetch(`${SHOWDOWN}/sprites/trainers/`);
     await writeFile(listingPath, await res.text());
   }
-  const available = new Set([...(await readFile(listingPath, 'utf8')).matchAll(/href="([^"]+)\.png"/g)].map((m) => m[1]));
+  const available = new Set(
+    [...(await readFile(listingPath, 'utf8')).matchAll(/href="([^"]+)\.png"/g)].map((m) => m[1]),
+  );
   const trainerFiles = { ...UI_TRAINERS };
   for (const reg of WORLD.REGIONS) {
     for (const rt of reg.routes) {
@@ -539,7 +744,13 @@ async function main() {
   const trainerMissing = [];
   await mapLimit(Object.entries(trainerFiles), 6, async ([key, candidates]) => {
     const file = candidates.find((c) => available.has(c));
-    if (!file || !(await download(`${SHOWDOWN}/sprites/trainers/${file}.png`, path.join(SPRITE_OUT, 'trainers', `${key}.png`)))) {
+    if (
+      !file ||
+      !(await download(
+        `${SHOWDOWN}/sprites/trainers/${file}.png`,
+        path.join(SPRITE_OUT, 'trainers', `${key}.png`),
+      ))
+    ) {
       trainerMissing.push(key);
     }
   });
@@ -550,13 +761,16 @@ async function main() {
     if (!(await download(url, path.join(SPRITE_OUT, 'badges', `${b.id}.png`)))) missing++;
   });
   await mapLimit(Object.entries(BACKGROUNDS), 4, async ([key, file]) => {
-    if (!(await download(`${SHOWDOWN}/fx/${file}.png`, path.join(SPRITE_OUT, 'backgrounds', `${key}.png`)))) missing++;
+    if (!(await download(`${SHOWDOWN}/fx/${file}.png`, path.join(SPRITE_OUT, 'backgrounds', `${key}.png`))))
+      missing++;
   });
 
   // 7. Mundo com ids numéricos.
   const team = (list) =>
     list.map(([s, level, form]) =>
-      s.startsWith('$rival:') ? { rivalStage: Number(s.slice(7)), level } : { speciesId: idOf(s), level, ...(form ? { form } : {}) },
+      s.startsWith('$rival:')
+        ? { rivalStage: Number(s.slice(7)), level }
+        : { speciesId: idOf(s), level, ...(form ? { form } : {}) },
     );
   const withSpecies = (obj) => {
     if (!obj.species) return obj;
@@ -564,8 +778,16 @@ async function main() {
     return { ...rest, speciesId: idOf(slug) };
   };
   const world = {
-    starters: WORLD.STARTERS.map((g) => ({ generation: g.generation, region: g.region, ids: g.starters.map(idOf) })),
-    regions: WORLD.REGIONS.map((reg) => ({ id: reg.id, name: reg.name, routes: reg.routes.map((rt) => rt.id) })),
+    starters: WORLD.STARTERS.map((g) => ({
+      generation: g.generation,
+      region: g.region,
+      ids: g.starters.map(idOf),
+    })),
+    regions: WORLD.REGIONS.map((reg) => ({
+      id: reg.id,
+      name: reg.name,
+      routes: reg.routes.map((rt) => rt.id),
+    })),
     routes: routes.map((rt) => ({
       id: rt.id,
       name: rt.name,
@@ -617,12 +839,17 @@ async function main() {
   }
   for (const rt of routes) {
     const tm = rt.boss?.reward?.tm;
-    if (tm && (!moves[tm] || !learners(tm))) console.warn(`  aviso: TM do chefe de ${rt.id} (${tm}) não é aprendível`);
-    if ((rt.kind ?? 'wild') === 'wild' && !rt.encounters.length) throw new Error(`Rota sem encontros: ${rt.id}`);
+    if (tm && (!moves[tm] || !learners(tm)))
+      console.warn(`  aviso: TM do chefe de ${rt.id} (${tm}) não é aprendível`);
+    if ((rt.kind ?? 'wild') === 'wild' && !rt.encounters.length)
+      throw new Error(`Rota sem encontros: ${rt.id}`);
   }
 
   const write = (file, data) => writeFile(path.join(DATA_OUT, file), JSON.stringify(data) + '\n');
-  await write('species.json', species.sort((a, b) => a.id - b.id));
+  await write(
+    'species.json',
+    species.sort((a, b) => a.id - b.id),
+  );
   await write('moves.json', moves);
   await write('type-chart.json', typeChart);
   await write('items.json', items);

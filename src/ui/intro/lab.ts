@@ -18,7 +18,7 @@ export const LAB = {
     { x: 128, y: 75 },
     { x: 150, y: 75 },
   ],
-  starter: { x: 128, y: 144 },
+  starter: { x: 128, y: 136 },
   oak: { x: 66, y: 120 },
   /** Placa com o logo, na parede. */
   sign: { x: 52, y: 12, w: 62, h: 22 },

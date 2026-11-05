@@ -38,5 +38,11 @@ export function isMegaForm(speciesId: number, form: string | undefined): boolean
   return !!form && MEGAS.some((m) => m.speciesId === speciesId && m.form === form);
 }
 
+/** Regressão Primal (Kyogre e Groudon): mesma mecânica, com outro nome na tela. */
+export const isPrimalForm = (form: string | undefined) => form === 'primal';
+
+/** "MEGA" ou "PRIMAL", para os rótulos. */
+export const megaLabel = (form: string | undefined) => (isPrimalForm(form) ? 'PRIMAL' : 'MEGA');
+
 export const megaOfForm = (speciesId: number, form: string | undefined): MegaDef | undefined =>
   MEGAS.find((m) => m.speciesId === speciesId && m.form === form);

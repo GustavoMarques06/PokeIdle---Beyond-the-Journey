@@ -3,9 +3,9 @@
 // para o mesmo cache do service worker (public/sw.js), em segundo plano e com prioridade baixa:
 // abrir a Pokédex, trocar de Pokémon ou encontrar uma espécie nova não espera a rede.
 //
-// Ordem: primeiro o que é pequeno e aparece em todo lugar (ícones, itens, insígnias,
+// Ordem: primeiro o código do jogo (sem ele, nada abre offline), depois o que é pequeno e aparece em todo lugar (ícones, itens, insígnias,
 // treinadores, cenários, mapas, sons), depois os sprites de frente (Pokédex, equipe), os de
-// costas (batalha) e por fim os shiny. Com "economia de dados" ligada ou internet 2G, só o
+// costas (batalha), os shiny e por fim as animações de clima. Com "economia de dados" ligada ou internet 2G, só o
 // essencial é baixado sozinho; o resto espera o jogador pedir nas Opções.
 
 import { useSyncExternalStore } from 'react';
@@ -15,15 +15,18 @@ import { isTauri } from '../engine/storage';
 const CACHE = 'pokeidle-v1';
 const PARALLEL = 4;
 
-type Group = 'essential' | 'front' | 'back' | 'shiny';
+type Group = 'app' | 'essential' | 'front' | 'back' | 'shiny' | 'weather';
 
 function groupOf(path: string): Group {
+  if (path.startsWith('assets/')) return 'app';
+  // Animações pesadas (até 2,7 MB) e só de enfeite: por último, e nunca como "essencial".
+  if (path.startsWith('sprites/weather/')) return 'weather';
   if (/^sprites\/pokemon\/(front-shiny|back-shiny)\//.test(path)) return 'shiny';
   if (/^sprites\/pokemon\/back\//.test(path)) return 'back';
   if (/^sprites\/pokemon\/(front|forms)\//.test(path)) return 'front';
   return 'essential';
 }
-const ORDER: Group[] = ['essential', 'front', 'back', 'shiny'];
+const ORDER: Group[] = ['app', 'essential', 'front', 'back', 'shiny', 'weather'];
 
 export interface PreloadStatus {
   /** Disponível neste ambiente (navegador com cache, build de produção). */
@@ -91,7 +94,7 @@ async function pump(cache: Cache): Promise<void> {
   if (status.running) return;
   update({ running: true, offline: false }, true);
   const next = () => {
-    const i = queue.findIndex((f) => allowAll || f.group === 'essential');
+    const i = queue.findIndex((f) => allowAll || f.group === 'app' || f.group === 'essential');
     return i < 0 ? undefined : queue.splice(i, 1)[0];
   };
   const worker = async () => {
@@ -173,6 +176,12 @@ export async function startPreload(): Promise<void> {
       group: groupOf(path),
       tries: 0,
     }));
+    // Código de versões antigas (o hash muda a cada build) não serve mais: libera o espaço.
+    const current = new Set(all.map((f) => f.url));
+    for (const url of cached) {
+      if (new URL(url).pathname.includes('/assets/') && !current.has(url) && cached.delete(url))
+        await cache.delete(url);
+    }
     const missing = all.filter((f) => !cached.has(f.url));
     queue = missing.sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group));
     allowAll = !saveData();
