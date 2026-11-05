@@ -6,15 +6,16 @@
    ============================================================================= */
 .lab-screen {
   --dialog-h: 112px;
-  --lab-w: min(100%, 1240px, calc((100dvh - 3 * var(--gap) - var(--dialog-h)) * 16 / 10));
+  --lab-w: min(100%, 1240px, calc((100dvh / var(--ui-zoom) - 3 * var(--gap) - var(--dialog-h)) * 16 / 10));
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--gap-lg);
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100vh / var(--ui-zoom));
+  min-height: calc(100dvh / var(--ui-zoom));
+  zoom: var(--ui-zoom);
   padding: var(--gap);
   background:
     linear-gradient(45deg, rgb(255 255 255 / 0.03) 25%, transparent 25% 75%, rgb(255 255 255 / 0.03) 75%) 0

@@ -5,8 +5,22 @@
 const CACHE = 'pokeidle-v1';
 const CORE = ['./', './index.html', './ajuda.html', './manifest.webmanifest', './icons/icon-192.png'];
 
+// O Cloudflare redireciona /ajuda.html para /ajuda e /index.html para /. O navegador recusa uma resposta redirecionada
+// numa navegação, então as páginas são guardadas como uma resposta nova, sem essa marca.
+async function precache() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(
+    CORE.map(async (path) => {
+      const response = await fetch(path, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`${path}: ${response.status}`);
+      const { status, statusText, headers } = response;
+      await cache.put(path, new Response(await response.blob(), { status, statusText, headers }));
+    }),
+  );
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {

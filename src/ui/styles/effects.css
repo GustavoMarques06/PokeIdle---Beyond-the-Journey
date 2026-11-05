@@ -599,7 +599,7 @@
 
 /* Com o professor falando no canto esquerdo (primeiros minutos), os avisos vão para o canto
    inferior direito, sobre a coluna lateral. */
-@media (min-width: 901px) {
+@media (min-width: 901px) and (min-height: 521px) {
   html.coach-open .toasts {
     left: auto;
     right: 14px;

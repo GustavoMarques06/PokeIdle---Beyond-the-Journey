@@ -31,6 +31,9 @@ const CYCLE_MS = 8000;
  *  tamanho máximo (pixels virtuais). */
 const LEGEND = { fromRight: 56, feet: 144, maxW: 108, maxH: 100, maxScale: 1.75 };
 const MARCH_GAP = 34;
+/** Logo em retrato: centralizado, dentro do céu (largura em pixels virtuais; a arte tem proporção 329×135). */
+const PORTRAIT_LOGO_W = 200;
+const PORTRAIT_LOGO_H = (PORTRAIT_LOGO_W * 135) / 329;
 
 export function StartScreen({ onStart }: { onStart: () => void }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -56,8 +59,9 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
   const layout: StartLayout = {
     w: Math.max(GBA_W, Math.ceil(view.w / u)),
     h: Math.max(GBA_H, Math.ceil(view.h / u)),
-    // Em retrato, quase metade da altura extra vai para o céu; o resto, para a faixa preta.
-    oy: landscape ? 0 : Math.round((view.h / u - GBA_H) * 0.45),
+    // Em retrato, a maior parte da altura extra vai para o céu (onde ficam o logo e o lendário); o resto, para a faixa
+    // preta do convite. Assim as faixas não engolem a tela.
+    oy: landscape ? 0 : Math.round((view.h / u - GBA_H) * 0.72),
   };
   const { w: W, h: H, oy } = layout;
 
@@ -123,7 +127,13 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
         maxH: LEGEND.maxH,
         maxScale: LEGEND.maxScale,
       }
-    : { cx: W / 2, feet: BANDS.grassTop + oy + 6, maxW: 210, maxH: BANDS.grassTop + oy - 78, maxScale: 3 };
+    : {
+        cx: W / 2,
+        feet: BANDS.grassTop + oy + 6,
+        maxW: 210,
+        maxH: BANDS.grassTop + oy + 6 - (BANDS.skyTop + PORTRAIT_LOGO_H + 6),
+        maxScale: 3,
+      };
   const fit = Math.min(slot.maxScale, slot.maxW / sw, slot.maxH / sh);
   const px = u * fit >= 2 ? Math.floor(u * fit) : u * fit;
   const legendW = Math.round(sw * px);
@@ -180,6 +190,11 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           src={assetUrl('brand/logo.png')}
           alt="PokéIdle — Beyond the Journey"
           draggable={false}
+          style={
+            landscape
+              ? undefined
+              : { left: v((W - PORTRAIT_LOGO_W) / 2), top: v(BANDS.skyTop + 3), width: v(PORTRAIT_LOGO_W) }
+          }
         />
 
         <div

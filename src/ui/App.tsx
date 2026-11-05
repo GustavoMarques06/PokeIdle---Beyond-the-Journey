@@ -165,6 +165,11 @@ function GameScreen({ state }: { state: GameState }) {
   const [activityTab, setActivityTab] = useState<Tab | undefined>(undefined);
   const area = useRef<HTMLDivElement>(null);
   const idle = useIdle();
+  // O menu inicial pode ter rolado (no celular, o foco automático rola a página): o jogo sempre começa no topo.
+  // (Entre chaves: nos navegadores novos, scrollTo devolve uma Promise, que o React tomaria por função de limpeza.)
+  useEffect(() => {
+    window.scrollTo?.(0, 0);
+  }, []);
   // Baixa as outras telas quando o navegador estiver ocioso (ou logo depois, sem essa API).
   useEffect(() => {
     if (window.requestIdleCallback) {
@@ -361,22 +366,26 @@ const LiveWindow = memo(function LiveWindow({
         className="screen-window-bar"
         onPointerDown={(e) => {
           if ((e.target as HTMLElement).closest('button')) return;
-          if (!window.matchMedia?.('(min-width: 901px)').matches) return;
+          if (!window.matchMedia?.('(min-width: 901px) and (min-height: 521px)').matches) return;
           e.currentTarget.setPointerCapture(e.pointerId);
           drag.current = { px: e.clientX, py: e.clientY, ...offset };
         }}
         onPointerMove={(e) => {
           const d = drag.current;
           if (!d) return;
-          const x = d.x + e.clientX - d.px;
-          const y = d.y + e.clientY - d.py;
-          // A barra nunca sai da tela: sempre dá para pegar a janela de volta.
           const bar = e.currentTarget.getBoundingClientRect();
-          const left = bar.left - offset.x + x;
-          const top = bar.top - offset.y + y;
+          // Em monitores grandes a interface tem zoom: o mouse anda em pixels da tela, a janela em pixels do zoom.
+          const zoom = bar.width / e.currentTarget.offsetWidth || 1;
+          const x = d.x + (e.clientX - d.px) / zoom;
+          const y = d.y + (e.clientY - d.py) / zoom;
+          // A barra nunca sai da tela: sempre dá para pegar a janela de volta.
+          const left = bar.left + (x - offset.x) * zoom;
+          const top = bar.top + (y - offset.y) * zoom;
           setOffset({
-            x: x + Math.max(0, 40 - (left + bar.width)) - Math.max(0, left - (window.innerWidth - 40)),
-            y: y + Math.max(0, -top) - Math.max(0, top + bar.height - window.innerHeight),
+            x:
+              x +
+              (Math.max(0, 40 - (left + bar.width)) - Math.max(0, left - (window.innerWidth - 40))) / zoom,
+            y: y + (Math.max(0, -top) - Math.max(0, top + bar.height - window.innerHeight)) / zoom,
           });
         }}
         onPointerUp={() => {

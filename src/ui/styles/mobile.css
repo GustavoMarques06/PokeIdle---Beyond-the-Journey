@@ -1,6 +1,6 @@
-/* Celulares e janelas estreitas: uma coluna só (HUD, batalha, ficha e tela aberta) e o menu
-   fixo embaixo, como uma barra de abas que rola para o lado. */
-@media (max-width: 900px) {
+/* Celulares e janelas estreitas ou baixas (um celular deitado passa de 900 px de largura, mas tem pouca altura): uma
+   coluna só (HUD, batalha, ficha e tela aberta) e o menu fixo embaixo, como uma barra de abas que rola para o lado. */
+@media (max-width: 900px), (max-height: 520px) {
   .game {
     display: flex;
     flex-direction: column;
@@ -267,7 +267,7 @@
 }
 
 /* Toque: alvos de pelo menos ~40 px (a recomendação é 44 px; os botões pequenos ficam perto). */
-@media (pointer: coarse), (max-width: 900px) {
+@media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
   .pbtn.tiny {
     min-height: 36px;
     min-width: 40px;
@@ -324,7 +324,7 @@
 }
 
 /* Abertura no celular: cena, diálogo e (quando aberta) a ficha do inicial empilhados. */
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 520px) {
   .lab-screen {
     --lab-w: 100%;
     --gap: 6px;
@@ -379,7 +379,7 @@
 
 /* Celular deitado: a cena à esquerda e mensagens e comandos à direita, tudo numa tela só; o resto
    (menu de abas, telas abertas) fica logo abaixo. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+@media (orientation: landscape) and (max-height: 520px) {
   .game {
     padding-bottom: calc(56px + env(safe-area-inset-bottom));
   }
@@ -399,6 +399,45 @@
 
   .hud > .hud-trainer {
     flex: 0 1 140px;
+  }
+
+  /* Abertura: cena à esquerda e diálogo à direita, para a fala não ficar abaixo da tela. */
+  .prologue {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .prologue-stage {
+    flex: none;
+    width: min(58%, calc((100dvh - 16px) * 16 / 10));
+  }
+
+  .prologue-dialog {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .lab-screen {
+    --lab-w: min(58%, calc((100dvh - 12px) * 16 / 10));
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lab-scene {
+    flex: none;
+    width: var(--lab-w);
+  }
+
+  .lab-dialog {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .lab-card {
+    flex: 0 0 100%;
   }
 
   .battle-column {
@@ -422,10 +461,7 @@
 
   .game-menu .menu-item,
   .game-menu .menu-item.active {
-    min-height: 48px;
-    flex-direction: row;
-    gap: 4px;
-    font-size: 10px;
+    min-height: 50px;
   }
 
   .toasts {
@@ -434,7 +470,7 @@
 }
 
 /* Celular deitado com janela aberta: batalha à esquerda, janela à direita. */
-@media (max-width: 900px) and (orientation: landscape) {
+@media (orientation: landscape) and (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
   .game.window-open .battle-column {
     right: 50%;
     display: block;

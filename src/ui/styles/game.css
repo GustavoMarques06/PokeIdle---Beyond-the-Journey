@@ -7,12 +7,71 @@
     auto,
     32px 32px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(400px, 28vw, 540px);
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 28%, 540px);
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--gap);
-  height: 100vh;
-  min-width: 1100px;
+  /* `zoom` multiplica também as medidas da janela: a divisão mantém a tela do tamanho certo. */
+  height: calc(100vh / var(--ui-zoom));
+  height: calc(100dvh / var(--ui-zoom));
+  min-width: 0;
   padding: var(--gap);
+  zoom: var(--ui-zoom);
+}
+
+/* Monitores grandes: a interface cresce junto com a tela, em vez de ficar minúscula num mar de grama. */
+:root {
+  --ui-zoom: 1;
+}
+
+@media (min-width: 1800px) and (min-height: 950px) {
+  :root {
+    --ui-zoom: 1.25;
+  }
+}
+
+@media (min-width: 2200px) and (min-height: 1200px) {
+  :root {
+    --ui-zoom: 1.5;
+  }
+}
+
+@media (min-width: 2500px) and (min-height: 1350px) {
+  :root {
+    --ui-zoom: 1.75;
+  }
+}
+
+@media (min-width: 3000px) and (min-height: 1650px) {
+  :root {
+    --ui-zoom: 2;
+  }
+}
+
+@media (min-width: 3600px) and (min-height: 2000px) {
+  :root {
+    --ui-zoom: 2.5;
+  }
+}
+
+.toasts,
+.modal {
+  zoom: var(--ui-zoom);
+}
+
+/* Janela de 901 a 1250 px: a batalha fica estreita, então texto e comandos dividem melhor a largura. */
+@media (min-width: 901px) and (min-height: 521px) and (max-width: 1250px) {
+  .battle-column {
+    --deck-h: 156px;
+  }
+
+  .battle-ui {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .dialog-foot {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
 }
 
 /* --- HUD superior ------------------------------------------------------------- */
@@ -2257,9 +2316,9 @@ html.reduced-motion .menu-label {
   padding: 10px;
 }
 
-@media (min-width: 901px) {
+@media (min-width: 901px) and (min-height: 521px) {
   .game.window-open {
-    grid-template-columns: minmax(0, 1fr) clamp(540px, 46vw, 900px);
+    grid-template-columns: minmax(0, 1fr) clamp(480px, 46%, 900px);
   }
 
   /* Batalha estreita: o texto e os comandos empilham, em vez de dividir a largura e cortar os botões. */

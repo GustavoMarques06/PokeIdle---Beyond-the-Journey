@@ -252,9 +252,9 @@ function OpenedStarter({
   const [sw, sh] = species.spriteSize?.front ?? [40, 40];
   const [feetCx, feetW, feetBottom, feetTop] = spriteFeet(id, 'front') ?? [sw / 2, sw * 0.7, sh, 0];
   // Proporção com o professor: o inicial é bem menor que ele (no máximo ~2/3 da altura dele, e quase sempre
-  // menos). Escala fracionária: o sprite continua em pixels nítidos.
+  // menos), em qualquer tamanho de tela. Sem piso fixo: num celular, ele passaria do professor, que encolhe junto.
   const drawn = Math.max(1, feetBottom - feetTop);
-  const scale = Math.max(1.4, Math.min(oakScale * 0.62, (OAK_DRAWN * oakScale * 0.68) / drawn));
+  const scale = Math.min(oakScale * 0.62, (OAK_DRAWN * oakScale * 0.68) / drawn);
   const w = sw * scale;
   const h = sh * scale;
   const feetX = Math.min(0.72, Math.max(0.28, feetCx / sw)) * w;
