@@ -210,7 +210,7 @@ describe('interface', () => {
     expect(document.querySelector('.coach')).toBeNull();
   });
 
-  it('momentos clássicos: piscada de encontro, janela de nível e Centro Pokémon', () => {
+  it('momentos clássicos: destaque do shiny, janela de nível e Centro Pokémon', () => {
     const engine = new GameEngine(memoryStorage());
     engine.newGame(4, 'Bia');
     mount(engine);
@@ -219,8 +219,13 @@ describe('interface', () => {
     const s = engine.state!;
     const uid = s.activeUid;
 
+    // Encontro comum entra direto (num jogo idle, um clarão a cada luta cansa); o shiny ganha clarão e destaque.
     act(() => engine.dispatch(() => [{ type: 'spawn', speciesId: 19, level: 3, shiny: false, boss: false }]));
+    expect(document.querySelector('.enc-flash')).toBeNull();
+    expect(document.querySelector('.rare-banner')).toBeNull();
+    act(() => engine.dispatch(() => [{ type: 'spawn', speciesId: 19, level: 3, shiny: true, boss: false }]));
     expect(document.querySelector('.enc-flash')).not.toBeNull();
+    expect(document.querySelector('.rare-banner')?.textContent).toContain('SHINY');
 
     // Janela de nível: primeiro o ganho de cada atributo ("+N").
     act(() => engine.dispatch(() => [{ type: 'levelUp', uid, speciesId: 4, level: 6 }]));

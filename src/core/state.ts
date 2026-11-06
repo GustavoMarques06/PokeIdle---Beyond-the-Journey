@@ -188,6 +188,8 @@ export interface BattleState {
   kind: BattleKind;
   /** Pausa da luta enquanto a bola balança depois de uma captura que falhou (ms). */
   holdMs?: number;
+  /** Pausa quando aparece um shiny: dá tempo de ver e de lançar uma bola, que continua liberada (ms). */
+  shinyPauseMs?: number;
   routeId: string;
   enemy: EnemyState | null;
   /** Time do treinador adversário (chefe, Rocket, Torre) e o índice do Pokémon atual. */

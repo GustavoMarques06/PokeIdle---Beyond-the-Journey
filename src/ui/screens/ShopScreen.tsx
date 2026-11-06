@@ -32,6 +32,7 @@ import { ItemIcon, Money, TypeBadge, Window } from '../components/common';
 import {
   UPGRADE_TEXT,
   formatDuration,
+  formatNumber,
   itemDescription,
   itemName,
   moveName,
@@ -108,7 +109,7 @@ function FarmTime({ price, coins, income }: { price: number; coins: number; inco
           : 'Tempo de jogo que este preço representa no ritmo atual de moedas.'
       }
     >
-      {text} de farm
+      {missing > 0 ? `Faltam ₽${formatNumber(missing)} · ${text} de farm` : `${text} de farm`}
     </small>
   );
 }

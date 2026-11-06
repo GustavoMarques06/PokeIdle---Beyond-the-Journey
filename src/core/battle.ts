@@ -149,6 +149,12 @@ export function step(
     spawnEnemy(state, rng, now, events, mods);
     return;
   }
+  // Apareceu um shiny: a luta espera um instante, para o automático não passar por cima dele.
+  if (b.shinyPauseMs) {
+    b.shinyPauseMs -= dt;
+    if (b.shinyPauseMs > 0) return;
+    b.shinyPauseMs = undefined;
+  }
   // A bola ainda está balançando: a luta espera o resultado aparecer.
   if (b.holdMs) {
     b.holdMs -= dt;
@@ -677,6 +683,9 @@ export function currentEncounters(state: GameState, routeId: string) {
   });
 }
 
+/** Quanto a luta espera quando aparece um shiny. */
+const SHINY_PAUSE_MS = 5000;
+
 function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[], mods: Modifiers): void {
   const b = state.battle;
   b.megaUid = undefined;
@@ -780,6 +789,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
   b.playerUsed = [];
   if (roamer) Object.assign(b.enemy, { roamer: true, fleeMs: BALANCE.roamers.fleeMs });
   b.phase = 'fighting';
+  b.shinyPauseMs = shiny && b.kind === 'wild' ? SHINY_PAUSE_MS : undefined;
   b.playerStatus = null;
   dexEntry(state, speciesId).seen = true;
   const spawnAt = events.length;

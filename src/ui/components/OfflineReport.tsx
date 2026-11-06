@@ -31,7 +31,7 @@ export function OfflineReport({ report, onClose }: { report: Report; onClose: ()
           (report.kills === 0 ? (
             <p className="hint">{T.offline.nothing}</p>
           ) : (
-            <dl className="report-grid">
+            <dl className="report-grid report-hero">
               <dt>VITÓRIAS</dt>
               <dd>{formatNumber(report.kills)}</dd>
               <dt>EXP</dt>
@@ -48,16 +48,16 @@ export function OfflineReport({ report, onClose }: { report: Report; onClose: ()
               </dd>
             </dl>
           ))}
-        {report.levelUps.map((l) => (
-          <p key={l.uid} className="report-line">
-            <PokemonSprite speciesId={l.speciesId} kind="icon" /> {speciesName(l.speciesId)}: Nv. {l.from} →
-            Nv. {l.to}
-          </p>
-        ))}
         {report.evolutions.map((e) => (
           <p key={`${e.uid}-${e.to}`} className="report-line rare">
             <PokemonSprite speciesId={e.to} kind="icon" /> {speciesName(e.from)} evoluiu para{' '}
             {speciesName(e.to)}!
+          </p>
+        ))}
+        {report.levelUps.map((l) => (
+          <p key={l.uid} className="report-line">
+            <PokemonSprite speciesId={l.speciesId} kind="icon" /> {speciesName(l.speciesId)}: Nv. {l.from} →
+            Nv. {l.to}
           </p>
         ))}
         {report.training?.map((t) => (

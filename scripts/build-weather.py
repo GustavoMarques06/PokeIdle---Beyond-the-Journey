@@ -11,6 +11,16 @@ from pathlib import Path
 from PIL import Image
 
 STEP = 3
+# As folhas do pixelfx são feitas para fundo escuro e trazem um véu preto na tela inteira, que escurecia o cenário em até
+# 54%. Aqui ele sai: VEIL diz quanto sobra dele em cada clima (0 = nada; chuva e tempestade ficam só um pouco mais escuras).
+VEIL = {'rain': 0.25, 'snow': 0.15, 'storm': 0.35}
+# Nestes, o escuro opaco também é cenário do pacote (capim preto, nuvens), não efeito.
+DARK_IS_SCENERY = {'fireflies', 'storm'}
+# Linhas de baixo (de 180) que somem: montes de folhas e poças cobririam os pés dos Pokémon.
+CLEAR_BOTTOM = {'leaves': 18, 'rain': 10, 'storm': 10, 'snow': 18}
+# Menos partículas, para não atrapalhar a visão da luta. Antes de exportar, no pixelfx:
+#   src/fx/weather/cherry-blossoms.js: `near ? 54 : 90` vira `near ? 10 : 14`; sem as chamadas blossoms() e scatter()
+#   src/fx/weather/falling-leaves.js:  `trips(t, D, 62,` vira `trips(t, D, 14,`
 # Climas de ambiente: arquivo de saída → (folha de origem, intervalo entre quadros, WebP com perdas?)
 AMBIENT = {
     'leaves': ('falling-leaves', 3, False),
@@ -19,6 +29,27 @@ AMBIENT = {
     'aurora': ('aurora', 6, True),  # degradês suaves: com perdas fica bem menor
     'stars': ('shooting-stars', 3, False),
 }
+
+
+def thin_veil(frame, name):
+    """Reduz o véu: pixels escuros e translúcidos são o fundo; o desenho (claro ou opaco) fica como está."""
+    keep = VEIL.get(name, 0)
+    limit = 256 if name in DARK_IS_SCENERY else 200
+    floor = frame.height - CLEAR_BOTTOM.get(name, 0)
+    # A tempestade tem nuvens riscadas em azul-escuro, que pareciam fios cruzando a cena.
+    dark = 130 if name == 'storm' else 70
+    rgba = frame.copy()
+    data = rgba.load()
+    for y in range(rgba.height):
+        for x in range(rgba.width):
+            r, g, b, a = data[x, y]
+            if a and a < limit and max(r, g, b) < dark:
+                data[x, y] = (r, g, b, int(a * keep))
+            elif y >= floor:
+                data[x, y] = (r, g, b, 0)
+    return rgba
+
+
 src = Path(sys.argv[1])
 out = Path(__file__).resolve().parent.parent / 'public' / 'sprites' / 'weather'
 out.mkdir(parents=True, exist_ok=True)
@@ -29,7 +60,7 @@ for outname, name, step, lossy in jobs:
     frames = []
     for f in meta['frames'][::step]:
         r = f['frame']
-        frames.append(sheet.crop((r['x'], r['y'], r['x'] + r['w'], r['y'] + r['h'])))
+        frames.append(thin_veil(sheet.crop((r['x'], r['y'], r['x'] + r['w'], r['y'] + r['h'])), outname))
     ms = round(1000 * step / meta['meta']['pixelfx']['fps'])
     path = out / f'{outname}.webp'
     opts = dict(quality=70, method=4) if lossy else dict(lossless=True, method=4)

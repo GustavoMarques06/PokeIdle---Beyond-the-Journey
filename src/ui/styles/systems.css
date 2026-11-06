@@ -2292,3 +2292,9 @@ html.reduced-motion .scene-toast {
     min-width: 760px;
   }
 }
+
+/* A placa da área entra embaixo: em cima ficaria sobre o nome e o HP do inimigo. */
+.area-banner {
+  align-items: flex-end;
+  justify-content: center;
+}

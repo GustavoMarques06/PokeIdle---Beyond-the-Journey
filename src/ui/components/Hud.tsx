@@ -140,8 +140,12 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
             title={`${Math.min(prog.kills, route.killsRequired)} de ${route.killsRequired} vitórias`}
           >
             <Bar value={prog.kills} max={route.killsRequired} tone="grass" />
-            <small>
-              {Math.min(prog.kills, route.killsRequired)}/{route.killsRequired}
+            <small className="hud-goal">
+              {prog.kills < route.killsRequired
+                ? `faltam ${route.killsRequired - prog.kills}`
+                : route.boss && !prog.bossDefeated
+                  ? 'chefe liberado!'
+                  : 'área concluída'}
             </small>
           </div>
         )}

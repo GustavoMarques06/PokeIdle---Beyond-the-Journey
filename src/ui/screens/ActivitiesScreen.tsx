@@ -53,6 +53,7 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
   const [tab, setTab] = useState<Tab>(() => initialTab ?? unseenTabs(state)[0] ?? 'daycare');
   const now = state.lastTimerAt;
   const unseen = new Set(unseenTabs(state));
+  const firstUnseen = unseenTabs(state).find((id) => tabOpen(state, id));
   const open = tabOpen(state, tab);
   const isNew = open && unseen.has(tab);
   const showTip = open && !state.flags.includes(tipFlag(tab));
@@ -89,7 +90,8 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
                 >
                   {isOpen ? t.icon : <PixelIcon name="lock" scale={2} />}
                   <span>{t.label}</span>
-                  {unseen.has(t.id) && <span className="new-badge">NOVO</span>}
+                  {/* Um selo por vez: quando tudo é novo, nada se destaca. */}
+                  {t.id === firstUnseen && <span className="new-badge">NOVO</span>}
                   {ready[t.id] && <span className="menu-alert" />}
                 </button>
               );

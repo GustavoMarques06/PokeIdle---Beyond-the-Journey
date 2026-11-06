@@ -49,6 +49,7 @@ import { SCENE_H, SCENE_THEMES, SCENE_W, paintScene, sceneBases } from './scene'
 import { setEvolving, useShownPokemon } from '../evolutionView';
 import { EncounterModeSwitch } from './BattleDialog';
 import { EncounterFlash, LevelUpWindow, PokemonCenter, TrainerIntro } from './BattleFx';
+import { RareBanner } from './RareBanner';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
 import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer } from './effects';
@@ -212,6 +213,8 @@ function BattleSprite({
 }) {
   const src = battleSpritePath(speciesId, kind, shiny, form);
   const box = spriteBox(speciesId, kind, scale, maxH, form);
+  // No celular os sprites baixam na hora: enquanto o desenho não chega, uma Poké Ball ocupa o lugar.
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   return (
     <>
       <span
@@ -233,7 +236,14 @@ function BattleSprite({
           height: `calc(var(--u) * ${box.h})`,
         }}
       >
-        <img className="sprite" src={assetUrl(src)} alt={getSpecies(speciesId).name} draggable={false} />
+        {loadedSrc !== src && <span className="sprite-loading" aria-hidden />}
+        <img
+          className="sprite"
+          src={assetUrl(src)}
+          alt={getSpecies(speciesId).name}
+          draggable={false}
+          onLoad={() => setLoadedSrc(src ?? null)}
+        />
         {formSet(speciesId)?.rule === 'pattern' && form && (
           <SpindaSpots pattern={form} src={assetUrl(src)!} kind={kind} />
         )}
@@ -437,7 +447,8 @@ export function BattleScene({ state }: { state: GameState }) {
           if (e.boss && trainer && st.battle.bossIndex === 0) {
             setEncounter({ id, trainer });
             setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 1700 / speed);
-          } else if (st.battle.kind === 'wild') {
+          } else if (st.battle.kind === 'wild' && e.shiny) {
+            // Só no raro: num jogo idle, um clarão a cada encontro cansa os olhos.
             setEncounter({ id });
             setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 420 / speed);
           }
@@ -865,6 +876,7 @@ export function BattleScene({ state }: { state: GameState }) {
           speed={animSpeed}
         />
       )}
+      <RareBanner />
       {encounter &&
         (encounter.trainer ? (
           <TrainerIntro

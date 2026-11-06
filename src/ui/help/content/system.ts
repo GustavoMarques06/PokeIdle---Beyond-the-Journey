@@ -63,7 +63,7 @@ export const SYSTEM: Section = {
           p: 'No celular, o jogo baixa sozinho só o essencial e os sprites conforme eles aparecem, para poupar seus dados. Para jogar **sem internet** com todos os Pokémon, vá em **TREINADOR** → **DADOS** → **Baixar tudo** (de preferência no Wi-Fi).',
         },
         {
-          tip: 'Ao tocar numa aba do menu, a tela abre numa janela abaixo da batalha. Toque em **Fechar** para voltar ao menu.',
+          tip: 'Ao tocar numa aba do menu, a tela abre numa janela abaixo da batalha. O menu de ícones continua embaixo, para trocar de tela com um toque. **Segure** um botão ou ícone para ver a explicação dele.',
         },
       ],
     },

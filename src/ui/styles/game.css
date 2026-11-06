@@ -578,7 +578,8 @@ html.reduced-motion .hud-route.done .pbar {
 /* Caixas de status (inimigo em cima à esquerda, jogador embaixo à direita) */
 .status-box {
   position: absolute;
-  z-index: 3;
+  /* Acima do clima: nome e HP nunca ficam atrás de pétalas ou chuva. */
+  z-index: 4;
   width: calc(var(--u) * 100);
   padding: calc(var(--u) * 0.5) calc(var(--u) * 2) calc(var(--u) * 1);
   font-size: calc(var(--u) * 6.2);
@@ -2522,4 +2523,119 @@ html.reduced-motion .menu-label {
 
 html.reduced-motion .dialog-mega {
   animation: none;
+}
+
+/* --- Sprite ainda baixando ----------------------------------------------------------------- */
+/* Só aparece se demorar: com o sprite já no aparelho, não dá tempo de piscar. */
+.sprite-loading {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  width: calc(var(--u) * 12);
+  height: calc(var(--u) * 12);
+  translate: -50% 0;
+  border: calc(var(--u) * 1) solid var(--ink);
+  border-radius: 50%;
+  background: linear-gradient(#e85848 0 44%, var(--ink) 44% 56%, #f8f8f8 56%);
+  opacity: 0;
+  animation: sprite-wait 1s steps(2, end) 0.25s infinite;
+}
+
+@keyframes sprite-wait {
+  0%,
+  100% {
+    opacity: 0.85;
+    rotate: -12deg;
+  }
+  50% {
+    opacity: 0.85;
+    rotate: 12deg;
+  }
+}
+
+html.reduced-motion .sprite-loading {
+  animation: none;
+  opacity: 0.85;
+}
+
+/* --- Destaque do que é raro ---------------------------------------------------------------- */
+.rare-banner {
+  position: absolute;
+  z-index: 7;
+  /* À esquerda, para não cobrir o próprio shiny, que fica à direita. */
+  top: 34%;
+  left: 3%;
+  max-width: 50%;
+  padding: calc(var(--u) * 2) calc(var(--u) * 4);
+  background: #fff4c0;
+  color: var(--ink);
+  font: 700 clamp(13px, calc(var(--u) * 6), 22px) var(--font-label);
+  text-align: center;
+  animation: rare-in 0.3s steps(4, end);
+  pointer-events: none;
+}
+
+@keyframes rare-in {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+html.reduced-motion .rare-banner {
+  animation: none;
+}
+
+/* --- Menu com os nomes à vista (PC) --------------------------------------------------------- */
+@media (min-width: 901px) and (min-height: 521px) {
+  .game-menu {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: 44px;
+    gap: 0;
+  }
+
+  .menu-item,
+  .menu-item.active {
+    flex-direction: column;
+    flex: none;
+    gap: 0;
+    min-height: 0;
+    padding: 1px;
+    font-size: 10px;
+  }
+
+  .menu-label,
+  .menu-item.active .menu-label {
+    max-width: 100%;
+    opacity: 1;
+  }
+
+  .menu-item .item-icon,
+  .menu-item .pixel-icon {
+    max-width: 24px;
+    max-height: 24px;
+  }
+
+  /* Com 7 abas ou mais o menu ocupa duas linhas: a janela começa abaixo dele. */
+  .game:has(.game-menu .menu-item:nth-child(7)) .screen-window {
+    margin-top: 110px;
+  }
+}
+
+/* --- Contraste ------------------------------------------------------------------------------ */
+.bc-big small {
+  opacity: 1;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.55);
+}
+
+.dialog-history {
+  color: var(--ink-soft);
+}
+
+@media (hover: none) {
+  /* Sem mouse, o estado "em repouso" é o único que se vê: nada de cores lavadas. */
+  .bc-big:not(.bc-fight):not(:disabled) {
+    filter: none;
+  }
 }

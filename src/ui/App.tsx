@@ -23,6 +23,7 @@ import { SaveIndicator } from './components/SaveIndicator';
 import { Intro } from './intro/Intro';
 import { SafetyNotice } from './components/SafetyNotice';
 import { Toasts } from './components/Toasts';
+import { TouchTips } from './components/TouchTips';
 import { UpdateNotice } from './components/UpdateNotice';
 import { useHotkeys } from './hotkeys';
 import { MonSheet, PartyScreen, TeamDetails } from './screens/PartyScreen';
@@ -122,6 +123,7 @@ export function App() {
         </div>
       )}
       <UpdateNotice />
+      <TouchTips />
       {inGame ? <GameScreen state={state} /> : <Intro save={state} onEnter={() => setAtTitle(false)} />}
       {inGame && !engine.offlineReport && <ProfessorCall state={state} />}
       {inGame && engine.offlineReport && (

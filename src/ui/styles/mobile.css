@@ -551,8 +551,32 @@
   }
 
   /* Janela aberta: a cena fica no alto e a janela usa todo o resto. O menu sai (o Fechar traz de volta). */
+  /* O menu fica, em uma linha só de ícones: trocar de tela é um toque, sem passar pelo Fechar. */
   .game.window-open .game-menu {
+    display: flex;
+    grid-auto-rows: auto;
+  }
+
+  .game.window-open .game-menu .menu-item,
+  .game.window-open .game-menu .menu-item.active {
+    flex: 1 1 0;
+    min-height: 38px;
+    padding: 1px;
+  }
+
+  .game.window-open .game-menu .menu-label {
     display: none;
+  }
+
+  .game.window-open .game-menu .item-icon,
+  .game.window-open .game-menu .pixel-icon {
+    max-width: 26px;
+    max-height: 26px;
+  }
+
+  .game.window-open .toasts,
+  .game.window-open .save-indicator {
+    --menu-h: 56px;
   }
 
   .game.window-open .battle-column {
@@ -561,8 +585,7 @@
   }
 
   .screen-window {
-    inset: calc(var(--mini-h) + 10px + env(safe-area-inset-top)) 0 0;
-    padding-bottom: env(safe-area-inset-bottom);
+    inset: calc(var(--mini-h) + 10px + env(safe-area-inset-top)) 0 calc(56px + env(safe-area-inset-bottom));
   }
 
   .screen-window-bar {
@@ -636,6 +659,14 @@
     font-size: 9px;
   }
 
+  /* Com largura sobrando, os nomes ficam mais fáceis de ler. */
+  @media (min-width: 380px) {
+    .game-menu .menu-item,
+    .game-menu .menu-item.active {
+      font-size: 10px;
+    }
+  }
+
   .game-menu .item-icon,
   .game-menu .pixel-icon {
     max-width: 24px;
@@ -703,7 +734,7 @@
   }
 
   .screen-window {
-    inset: env(safe-area-inset-top) 0 0 50%;
+    inset: env(safe-area-inset-top) 0 calc(56px + env(safe-area-inset-bottom)) 50%;
   }
 }
 
@@ -808,10 +839,6 @@
     flex: 1 1 0;
     padding-bottom: 0;
     border-bottom: none;
-  }
-
-  .hud-route-bar small {
-    display: none;
   }
 
   .hud-money .money {

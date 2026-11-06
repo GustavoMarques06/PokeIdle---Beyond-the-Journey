@@ -420,10 +420,77 @@ html.reduced-motion .save-indicator .item-icon {
   }
 }
 
-/* Deitado, a tela é baixa: no topo, o aviso não cobre o menu. */
+/* Deitado, a tela é baixa: no alto, o aviso não cobre o menu. */
 @media (orientation: landscape) and (max-height: 520px) {
+  /* Do lado da batalha: à direita ficam a janela e o botão Fechar. */
   .safety-notice {
     top: max(8px, env(safe-area-inset-top));
     bottom: auto;
+    left: max(8px, env(safe-area-inset-left));
+    transform: none;
+    width: auto;
+    max-width: 46vw;
   }
+}
+
+/* --- Avisos fora da batalha ---------------------------------------------------------------- */
+/* Salvar acontece o tempo todo: um canto discreto, longe da rota e da cena. */
+.save-indicator {
+  top: auto;
+  right: auto;
+  bottom: 8px;
+  left: 8px;
+  translate: 0 0;
+  zoom: var(--ui-zoom);
+}
+
+@media (max-width: 900px), (max-height: 520px) {
+  .save-indicator {
+    bottom: calc(var(--menu-h, 66px) + 10px + env(safe-area-inset-bottom));
+  }
+
+  .save-indicator span {
+    display: none;
+  }
+}
+
+/* No toque, o :hover fica preso depois de um toque: o painel só abre com o toque nele mesmo. */
+@media (hover: none) {
+  .hud-pop:hover:not(:focus-within) .hud-panel {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Dica do toque longo. */
+.touch-tip {
+  position: fixed;
+  z-index: 300;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1.3;
+  pointer-events: none;
+}
+
+/* O relatório cabe na tela e abre com os números em destaque. */
+.modal {
+  max-height: 92dvh;
+  overflow: hidden auto;
+}
+
+/* Janelas de aviso ficam acima do menu do celular: o botão de continuar nunca pode ficar atrás dele. */
+.modal-backdrop {
+  z-index: 70;
+}
+
+.report-hero {
+  padding: 4px 8px;
+  border: 2px solid var(--menu-blue-light);
+  background: #f4f8ff;
+}
+
+.report-hero dd {
+  margin: 0;
+  font-size: 22px;
+  color: var(--menu-blue-dark);
 }
