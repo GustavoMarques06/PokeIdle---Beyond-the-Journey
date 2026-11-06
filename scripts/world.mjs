@@ -717,6 +717,7 @@ const johto = {
       'meadow',
       [58.1, 63.8],
       [
+        ['togepi', 8, 56, 60],
         ['sentret', 25, 56, 59, 'day'],
         ['hoothoot', 25, 56, 59, 'night'],
         ['pidgey', 15, 56, 59, 'day'],
@@ -963,6 +964,7 @@ const johto = {
       'icecave',
       [61.7, 27.6],
       [
+        ['snorunt', 12, 70, 73],
         ['swinub', 20, 70, 73],
         ['jynx', 15, 70, 73],
         ['delibird', 10, 70, 73],
@@ -998,6 +1000,7 @@ const johto = {
       'cave',
       [92, 55.2],
       [
+        ['tyrogue', 10, 72, 76],
         ['ponyta', 15, 72, 76],
         ['rapidash', 10, 73, 76],
         ['dodrio', 10, 72, 76],
@@ -1142,6 +1145,7 @@ const hoenn = {
       'forest',
       [12, 58.8],
       [
+        ['surskit', 10, 66, 69],
         ['zigzagoon', 20, 66, 69],
         ['wurmple', 15, 66, 69, 'day'],
         ['poochyena', 15, 66, 69, 'night'],
@@ -1316,6 +1320,8 @@ const hoenn = {
       'forest',
       [49.6, 19.2],
       [
+        ['absol', 6, 76, 79],
+        ['swablu', 10, 76, 79],
         ['tropius', 10, 76, 79],
         ['kecleon', 10, 76, 79],
         ['linoone', 15, 76, 79],
@@ -1603,6 +1609,7 @@ const sinnoh = {
       'forest',
       [27.3, 52.5],
       [
+        ['combee', 10, 76, 79],
         ['buneary', 10, 76, 79],
         ['wurmple', 10, 76, 79],
         ['beautifly', 10, 76, 79, 'day'],
@@ -1640,6 +1647,7 @@ const sinnoh = {
       'meadow',
       [53.7, 63.5],
       [
+        ['spiritomb', 4, 78, 81, 'night'],
         ['ponyta', 15, 78, 81],
         ['staravia', 15, 78, 81],
         ['bibarel', 15, 78, 81],
@@ -1994,6 +2002,7 @@ const unova = {
       'meadow',
       [88.3, 71.7],
       [
+        ['munna', 10, 82, 85],
         ['patrat', 20, 82, 85],
         ['lillipup', 20, 82, 85],
         ['purrloin', 15, 82, 85, 'night'],
@@ -2029,6 +2038,8 @@ const unova = {
       'desert',
       [77, 66.3],
       [
+        ['larvesta', 5, 84, 87],
+        ['litwick', 10, 84, 87, 'night'],
         ['sandile', 20, 84, 87],
         ['darumaka', 15, 84, 87],
         ['scraggy', 15, 84, 87],
@@ -2099,6 +2110,8 @@ const unova = {
       'plains',
       [51.6, 53.2],
       [
+        ['bouffalant', 6, 88, 91],
+        ['emolga', 10, 88, 91],
         ['blitzle', 15, 88, 91],
         ['zebstrika', 5, 90, 91],
         ['minccino', 15, 88, 91],
@@ -2133,6 +2146,7 @@ const unova = {
       'route',
       [28.1, 56.2],
       [
+        ['pawniard', 8, 90, 93],
         ['deerling', 15, 90, 93],
         ['karrablast', 10, 90, 93],
         ['shelmet', 10, 90, 93],
