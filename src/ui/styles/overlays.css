@@ -308,7 +308,7 @@
 
 @media (max-width: 900px), (max-height: 520px) {
   .coach {
-    bottom: calc(64px + env(safe-area-inset-bottom));
+    bottom: var(--menu-h);
   }
 
   .coach-sprite {
@@ -333,7 +333,7 @@
 
   /* Os avisos sobem para não ficarem atrás do professor. */
   html.coach-open .toasts {
-    bottom: calc(64px + 160px + env(safe-area-inset-bottom));
+    bottom: calc(var(--menu-h) + 160px);
   }
 }
 
@@ -412,7 +412,7 @@ html.reduced-motion .save-indicator .item-icon {
 
 @media (max-width: 900px), (max-height: 520px) {
   .safety-notice {
-    bottom: calc(var(--menu-offset, 110px) + env(safe-area-inset-bottom));
+    bottom: calc(var(--menu-h) + 8px);
   }
 
   .update-notice p {
@@ -420,12 +420,10 @@ html.reduced-motion .save-indicator .item-icon {
   }
 }
 
-/* Deitado, a tela é baixa: no alto, o aviso não cobre o menu. */
+/* Deitado, a tela é baixa: o aviso fica no canto, sem cobrir nada que se toque. */
 @media (orientation: landscape) and (max-height: 520px) {
-  /* Do lado da batalha: à direita ficam a janela e o botão Fechar. */
+  /* Do lado da batalha: à direita ficam a janela e o botão Fechar, e no alto, o aviso de versão nova. */
   .safety-notice {
-    top: max(8px, env(safe-area-inset-top));
-    bottom: auto;
     left: max(8px, env(safe-area-inset-left));
     transform: none;
     width: auto;
@@ -446,7 +444,7 @@ html.reduced-motion .save-indicator .item-icon {
 
 @media (max-width: 900px), (max-height: 520px) {
   .save-indicator {
-    bottom: calc(var(--menu-h, 66px) + 10px + env(safe-area-inset-bottom));
+    bottom: calc(var(--menu-h) + 10px);
   }
 
   .save-indicator span {
@@ -474,13 +472,24 @@ html.reduced-motion .save-indicator .item-icon {
 
 /* O relatório cabe na tela e abre com os números em destaque. */
 .modal {
-  max-height: 92dvh;
+  max-height: calc(92dvh / var(--ui-zoom));
   overflow: hidden auto;
 }
 
 /* Janelas de aviso ficam acima do menu do celular: o botão de continuar nunca pode ficar atrás dele. */
 .modal-backdrop {
   z-index: 70;
+  /* Sem isto, o conteúdo largo (o mapa ampliado) empurra a janela para fora da tela. */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Avisos do jogo e o professor continuam acima das janelas. */
+.notice {
+  z-index: 80;
+}
+
+.coach {
+  z-index: 75;
 }
 
 .report-hero {

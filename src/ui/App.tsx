@@ -22,6 +22,8 @@ import { ProfessorCall } from './components/ProfessorCall';
 import { SaveIndicator } from './components/SaveIndicator';
 import { Intro } from './intro/Intro';
 import { SafetyNotice } from './components/SafetyNotice';
+import { PerfSuggest } from './components/PerfSuggest';
+import { setPerfMode, usePerfMode } from './perfMode';
 import { Toasts } from './components/Toasts';
 import { TouchTips } from './components/TouchTips';
 import { UpdateNotice } from './components/UpdateNotice';
@@ -99,8 +101,10 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('hc', highContrast);
     document.documentElement.classList.toggle('large-text', largeText);
-    document.documentElement.classList.toggle('reduced-motion', reducedMotion);
+    // O Desempenho aproveita tudo o que já desliga movimento (são dezenas de regras).
+    document.documentElement.classList.toggle('reduced-motion', reducedMotion || graphics === 'performance');
     document.documentElement.classList.toggle('gfx-performance', graphics === 'performance');
+    setPerfMode(graphics === 'performance');
   }, [highContrast, largeText, reducedMotion, graphics]);
   // Na abertura, a batalha que segue rodando ao fundo fica em silêncio.
   useGameEvents(useCallback((events: GameEvent[]) => inGameRef.current && audio.play(events), []));
@@ -130,7 +134,8 @@ export function App() {
         <OfflineReport report={engine.offlineReport} onClose={() => engine.dismissOfflineReport()} />
       )}
       {inGame && <Toasts />}
-      {inGame && <SafetyNotice state={state} />}
+      {inGame && <SafetyNotice />}
+      {inGame && <PerfSuggest />}
       {inGame && <SaveIndicator />}
     </>
   );
@@ -262,16 +267,19 @@ function GameScreen({ state }: { state: GameState }) {
 // algumas vezes por segundo. Com `memo`, o GameScreen (que muda pouco) não as arrasta junto.
 const HUD_MS = 250;
 const SIDE_MS = 400;
+// No Desempenho, menos ainda: as ações do jogador continuam chegando na hora.
+const PERF_BATTLE_MS = 300;
+const PERF_SLOW_MS = 1000;
 
 type Open = (id: ScreenId, viaKeyboard?: boolean, tab?: Tab) => void;
 
 const LiveHud = memo(function LiveHud({ open }: { open: Open }) {
-  const state = useGameState(HUD_MS)!;
+  const state = useGameState(usePerfMode() ? PERF_SLOW_MS : HUD_MS)!;
   return <Hud state={state} onOpenMap={() => open('map')} />;
 });
 
 const LiveBattle = memo(function LiveBattle({ open }: { open: Open }) {
-  const state = useGameState()!;
+  const state = useGameState(usePerfMode() ? PERF_BATTLE_MS : 0)!;
   return (
     <main className="battle-column">
       <BattleScene state={state} />
@@ -294,7 +302,7 @@ const LiveSide = memo(function LiveSide({
   toggle: Open;
   onDetail: (d: Detail) => void;
 }) {
-  const state = useGameState(SIDE_MS)!;
+  const state = useGameState(usePerfMode() ? PERF_SLOW_MS : SIDE_MS)!;
   const switchToParty = () => {
     if (screen !== 'party') open('party');
   };
@@ -344,7 +352,7 @@ const LiveWindow = memo(function LiveWindow({
   onClose: () => void;
   area: RefObject<HTMLDivElement | null>;
 }) {
-  const state = useGameState(SIDE_MS)!;
+  const state = useGameState(usePerfMode() ? PERF_SLOW_MS : SIDE_MS)!;
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const monUid = typeof detail === 'number' ? detail : null;
@@ -366,7 +374,7 @@ const LiveWindow = memo(function LiveWindow({
       className="screen-window frame frame-menu"
       role="dialog"
       aria-label={title}
-      style={offset.x || offset.y ? { left: offset.x, top: offset.y } : undefined}
+      style={offset.x || offset.y ? { translate: `${offset.x}px ${offset.y}px` } : undefined}
     >
       <header
         className="screen-window-bar"

@@ -52,7 +52,8 @@ export async function downloadBackup(state: GameState, now: number, code?: strin
   a.href = url;
   a.download = transferFileName(state, now);
   a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // O iPhone pergunta antes de salvar: o arquivo precisa continuar disponível até a resposta.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
   markBackup(now);
 }
 
@@ -73,7 +74,17 @@ export const shouldSuggestInstall = (now: number) =>
 
 export const snoozeInstall = (now: number) => writeTime(KEYS.installSnooze, now);
 
-/** Pede ao navegador para não apagar os dados deste site quando faltar espaço (o pedido vale por abertura). */
+/**
+ * Pede ao navegador para não apagar os dados deste site quando faltar espaço. Espera o primeiro toque: alguns navegadores
+ * mostram uma pergunta, que não faz sentido antes de o jogador fazer algo. O pedido vale por abertura.
+ */
 export function requestPersistentStorage(): void {
-  void navigator.storage?.persist?.().catch(() => undefined);
+  const ask = async () => {
+    try {
+      if (!(await navigator.storage?.persisted?.())) await navigator.storage?.persist?.();
+    } catch {
+      // Sem suporte: sobram a instalação e as cópias.
+    }
+  };
+  window.addEventListener('pointerdown', () => void ask(), { once: true });
 }

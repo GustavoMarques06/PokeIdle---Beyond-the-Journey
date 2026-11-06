@@ -322,7 +322,11 @@
 
 .prologue-stage,
 .prologue-dialog {
-  width: min(100%, 1100px, calc((100dvh / var(--ui-zoom) - 3 * var(--gap) - var(--dialog-h)) * 16 / 10));
+  width: min(
+    100%,
+    1100px,
+    calc((100dvh / var(--ui-zoom) - 3 * var(--gap) - var(--dialog-h) - 8px) * 16 / 10)
+  );
 }
 
 .prologue-stage {

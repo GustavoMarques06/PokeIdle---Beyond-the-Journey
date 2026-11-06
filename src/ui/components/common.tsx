@@ -1,6 +1,7 @@
 // Componentes visuais reutilizáveis: sprites, ícones, molduras, barras e rótulos de tipo.
 
-import type { ImgHTMLAttributes, ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ImgHTMLAttributes, type ReactNode } from 'react';
+import { usePerfMode } from '../perfMode';
 import {
   PLAYER_AVATARS,
   assetUrl,
@@ -64,12 +65,67 @@ export function PokemonSprite({
         : getSpecies(speciesId).spriteSize?.[kind]
       : undefined;
   return (
-    <img
+    <SpriteImage
       style={size ? { width: size[0] * pixelScale!, height: size[1] * pixelScale! } : undefined}
       className={`sprite sprite-${kind} ${size ? 'pixel-scaled' : ''} ${silhouette ? 'silhouette' : ''} ${className}`}
       src={src}
       alt={silhouette ? '???' : getSpecies(speciesId).name}
+    />
+  );
+}
+
+/**
+ * Sprite de Pokémon. São GIFs animados, de até 271 quadros, e o navegador decodifica e redesenha cada um o tempo todo; no
+ * modo Desempenho fica só o primeiro quadro, num canvas (nada mais a decodificar nem a repintar).
+ */
+export function SpriteImage({
+  src,
+  alt,
+  className,
+  style,
+  onLoad,
+  onError,
+}: {
+  src?: string;
+  alt: string;
+  className?: string;
+  style?: CSSProperties;
+  onLoad?: () => void;
+  onError?: () => void;
+}) {
+  const perf = usePerfMode();
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (!perf || !src) return;
+    const image = new Image();
+    image.onload = () => {
+      const el = canvas.current;
+      if (el) {
+        el.width = image.naturalWidth;
+        el.height = image.naturalHeight;
+        el.getContext('2d')?.drawImage(image, 0, 0);
+      }
+      onLoad?.();
+    };
+    image.onerror = () => onError?.();
+    image.src = src;
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+    };
+    // onLoad e onError mudam a cada render; só importa redesenhar quando o sprite muda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perf, src]);
+  if (perf) return <canvas ref={canvas} className={className} style={style} role="img" aria-label={alt} />;
+  return (
+    <img
+      className={className}
+      style={style}
+      src={src}
+      alt={alt}
       draggable={false}
+      onLoad={onLoad}
+      onError={onError}
     />
   );
 }

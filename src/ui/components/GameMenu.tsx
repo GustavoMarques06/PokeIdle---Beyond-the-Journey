@@ -1,7 +1,7 @@
 // Menu do jogo: uma fileira de abas com ícones de itens em pixel art. Só a aba aberta mostra o
 // nome (as outras, na dica); as setas andam pelas abas (com o bipe dos menus) e Enter abre.
 
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useEngine } from '../useGame';
 import { RESEARCH } from '../../game-data';
 import { audio } from '../audio';
@@ -20,6 +20,8 @@ export const MENU_ITEMS: {
   icon: ReactNode;
   key?: string;
   external?: boolean;
+  /** Não aparece na barra (só o atalho de teclado). */
+  hidden?: boolean;
 }[] = [
   { id: 'party', label: 'POKéMON', icon: <ItemIcon id="poke-ball" size={28} /> },
   { id: 'dex', label: 'POKéDEX', icon: <PixelIcon name="pokedex" scale={2} /> },
@@ -31,7 +33,15 @@ export const MENU_ITEMS: {
   { id: 'trainer', label: 'TREINADOR', icon: <ItemIcon id="vs-seeker" size={28} /> },
   { id: 'upgrades', label: 'MELHORIAS', icon: <ItemIcon id="up-grade" size={28} /> },
   { id: 'pc', label: 'PC', icon: <ItemIcon id="pokemon-box" size={28} /> },
-  { id: 'help', label: 'AJUDA', icon: <PixelIcon name="help" scale={3} />, key: 'h', external: true },
+  // Fora da barra: abre em outra aba, e um toque errado tiraria o jogador do jogo. Fica na tela TREINADOR e na tecla H.
+  {
+    id: 'help',
+    label: 'AJUDA',
+    icon: <PixelIcon name="help" scale={3} />,
+    key: 'h',
+    external: true,
+    hidden: true,
+  },
 ];
 
 /** Tecla de atalho de cada item: 1–9 e, para o décimo, 0; a AJUDA usa o H. */
@@ -106,9 +116,21 @@ export function GameMenu({
     });
   }, [engine, migrated]);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  // A altura real do menu vale para o que precisa ficar acima dele: janela, avisos e o fim da página.
+  const nav = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = nav.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const update = () =>
+      document.documentElement.style.setProperty('--menu-h', `${el.getBoundingClientRect().height}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   // A tecla de cada aba segue a posição dela na lista completa (não muda quando outra aparece).
-  const visible = MENU_ITEMS.map((item, i) => ({ ...item, key: menuKey(i) })).filter((item) =>
-    menuUnlocked(state, item.id),
+  const visible = MENU_ITEMS.map((item, i) => ({ ...item, key: menuKey(i) })).filter(
+    (item) => !item.hidden && menuUnlocked(state, item.id),
   );
   const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
     const from = buttons.current.indexOf(document.activeElement as HTMLButtonElement);
@@ -121,7 +143,13 @@ export function GameMenu({
     audio.sfx('cursor');
   };
   return (
-    <nav className="game-menu frame frame-menu" aria-label="Menu" id="game-menu" onKeyDown={onKeyDown}>
+    <nav
+      ref={nav}
+      className="game-menu frame frame-menu"
+      aria-label="Menu"
+      id="game-menu"
+      onKeyDown={onKeyDown}
+    >
       {visible.map((item, i) => {
         const fresh = menuIsNew(state, item.id);
         return (

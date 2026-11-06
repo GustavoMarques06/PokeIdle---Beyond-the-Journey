@@ -43,10 +43,10 @@ def thin_veil(frame, name):
     for y in range(rgba.height):
         for x in range(rgba.width):
             r, g, b, a = data[x, y]
-            if a and a < limit and max(r, g, b) < dark:
-                data[x, y] = (r, g, b, int(a * keep))
-            elif y >= floor:
+            if y >= floor:
                 data[x, y] = (r, g, b, 0)
+            elif a and a < limit and max(r, g, b) < dark:
+                data[x, y] = (r, g, b, int(a * keep))
     return rgba
 
 

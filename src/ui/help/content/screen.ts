@@ -94,7 +94,7 @@ export const SCREEN: Section = {
       keywords: 'abas menu bloqueada liberar novo selo desbloquear',
       a: [
         {
-          p: 'O menu começa só com **POKéMON, POKéDEX, MOCHILA, TREINADOR e AJUDA**, para não assustar. As outras vão aparecendo com um selo **NOVO** quando fazem sentido:',
+          p: 'O menu começa só com **POKéMON, POKéDEX, MOCHILA e TREINADOR**, para não assustar. As outras vão aparecendo com um selo **NOVO** quando fazem sentido:',
         },
         {
           table: {

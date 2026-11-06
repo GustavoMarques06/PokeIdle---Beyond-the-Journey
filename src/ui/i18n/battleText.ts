@@ -1,7 +1,6 @@
-import { SUPPORT_MOVES } from '../../game-data';
 // Mensagens da caixa de batalha, no tom dos RPGs portáteis clássicos.
 
-import { ACHIEVEMENTS, getRoute } from '../../game-data';
+import { ACHIEVEMENTS, SUPPORT_MOVES, getRoute } from '../../game-data';
 import type { GameEvent } from '../../core/game';
 import { STATUS_TEXT, effectText, itemName, moveName, speciesName } from './pt-BR';
 

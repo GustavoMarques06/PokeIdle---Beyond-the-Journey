@@ -20,6 +20,7 @@ Backup das versões com ovais: `art/maps/_backup-com-ovais/`. `USE_OVAL_SPOTS` e
   arquivos individuais e trocar em `public/icons/`, `public/brand/logo.png` e `src-tauri/icons/`.
 - **Build do Windows (Tauri):** os ícones novos entraram, mas o build ainda não foi rodado para conferir.
 - **Combate:** golpes de apoio (status, atributos e cura) entraram como um 5º golpe, uma vez por luta (`supportMoves.ts`). Não são 4 golpes escolhíveis como nos jogos e ficam de fora do progresso offline, que é uma estimativa. Em 7.200 lutas simuladas, as vitórias mudaram até 1,4 ponto e cada luta durou ~1 s a mais.
+- **Modo Desempenho:** sprites parados (primeiro quadro do GIF num canvas), sem efeitos, animações e números de dano, batalha redesenhada ~3x por segundo. Com CPU simulada 8x mais lenta: de 16 para 49 FPS. Falta testar em um PC fraco de verdade (a simulação não inclui a placa de vídeo).
 - **Save na nuvem:** não feito, por decisão. O save fica só no aparelho; há lembrete semanal de backup e aviso para instalar no iPhone.
 - **Molduras do cartão de treinador:** dependem de arte nova.
 - **Shinies e 6ª geração:** conferido em 5/11: os 668 Pokémon têm sprite shiny (frente e costas). Nada a fazer.

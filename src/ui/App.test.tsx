@@ -58,7 +58,7 @@ describe('interface', () => {
 
     // Quem começa vê só as abas do início; as outras aparecem com o progresso.
     const shown = () => [...document.querySelectorAll('.menu-item .menu-label')].map((el) => el.textContent);
-    expect(shown()).toEqual(['POKéMON', 'POKéDEX', 'MOCHILA', 'TREINADOR', 'AJUDA']);
+    expect(shown()).toEqual(['POKéMON', 'POKéDEX', 'MOCHILA', 'TREINADOR']);
     await act(async () => engine.dispatch((s) => void (s.stats.totalKills = 12)));
     expect(shown()).toContain('LOJA');
     expect(screen.getByTitle(/^LOJA .*novo!/)).toBeTruthy();

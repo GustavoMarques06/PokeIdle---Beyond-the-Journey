@@ -4,14 +4,7 @@
 // golpe só da próxima vez.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  THROWABLE_BALLS,
-  describeSupport,
-  getMove,
-  getRoute,
-  megaLabel,
-  supportMoveOf,
-} from '../../game-data';
+import { THROWABLE_BALLS, describeSupport, getMove, getRoute, megaLabel } from '../../game-data';
 import { legendaryRules } from '../../core/legendary';
 import { bossLook } from '../../core/rival';
 import { canCaptureHere } from '../../core/nuzlocke';
@@ -38,6 +31,8 @@ import {
   selectMove,
   setEncounterMode,
   playerMoveMatchup,
+  supportOf,
+  supportReady,
   switchActive,
   throwBall,
   type EncounterMode,
@@ -274,7 +269,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const mega = state.settings.battleMode === 'manual' ? megaAvailable(state) : undefined;
   const doMega = () => engine.dispatch((s) => megaEvolve(s));
   const player = activePokemon(state);
-  const supportMove = supportMoveOf(player.speciesId, player.level);
+  const supportMove = supportOf(state, player);
   const reserves = reservePokemon(state);
   const runLabel = wild ? 'FUGIR' : b.kind === 'boss' || b.kind === 'rocket' ? 'FUGIR' : 'DESISTIR';
   const runHint = !wild
@@ -482,7 +477,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                 <button
                   key={supportMove.id}
                   className={`bc-move type-bg-${supportMove.type} ${b.pendingMove === supportMove.id ? 'queued' : ''}`}
-                  disabled={!waiting || !!b.enemy?.playerSupportUsed?.includes(player.uid)}
+                  disabled={!waiting || !supportReady(state, player)}
                   title={describeSupport(supportMove)}
                   onClick={() => {
                     engine.dispatch((s) => void selectMove(s, supportMove.id));

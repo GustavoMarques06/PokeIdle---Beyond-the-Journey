@@ -37,7 +37,16 @@ import { reservePokemon } from '../../core/team';
 import { isPerfect, pokemonName, statsOf } from '../../core/pokemon';
 import type { Stats } from '../../core/stats';
 import { levelProgress } from '../../core/progression';
-import { ExpBar, GenderMark, HpBar, ItemIcon, PixelIcon, Shiny, TrainerImage } from '../components/common';
+import {
+  SpriteImage,
+  ExpBar,
+  GenderMark,
+  HpBar,
+  ItemIcon,
+  PixelIcon,
+  Shiny,
+  TrainerImage,
+} from '../components/common';
 import { genderOf } from '../../core/gender';
 import { activeLure } from '../../core/lures';
 import { STATUS_TEXT, TYPE_NAMES, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
@@ -214,7 +223,8 @@ function BattleSprite({
   const src = battleSpritePath(speciesId, kind, shiny, form);
   const box = spriteBox(speciesId, kind, scale, maxH, form);
   // No celular os sprites baixam na hora: enquanto o desenho não chega, uma Poké Ball ocupa o lugar.
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  // Erro também encerra a espera (sem internet ou sem o arquivo, ela balançaria para sempre).
+  const [settledSrc, setSettledSrc] = useState<string | undefined>(undefined);
   return (
     <>
       <span
@@ -236,13 +246,13 @@ function BattleSprite({
           height: `calc(var(--u) * ${box.h})`,
         }}
       >
-        {loadedSrc !== src && <span className="sprite-loading" aria-hidden />}
-        <img
+        {src && settledSrc !== src && <span className="sprite-loading" aria-hidden />}
+        <SpriteImage
           className="sprite"
           src={assetUrl(src)}
           alt={getSpecies(speciesId).name}
-          draggable={false}
-          onLoad={() => setLoadedSrc(src ?? null)}
+          onLoad={() => setSettledSrc(src)}
+          onError={() => setSettledSrc(src)}
         />
         {formSet(speciesId)?.rule === 'pattern' && form && (
           <SpindaSpots pattern={form} src={assetUrl(src)!} kind={kind} />
@@ -353,7 +363,7 @@ export function BattleScene({ state }: { state: GameState }) {
     (events: GameEvent[]) => {
       const st = engine.state;
       if (!st) return;
-      const motion = !st.settings.reducedMotion;
+      const motion = !st.settings.reducedMotion && st.settings.graphics !== 'performance';
       const speed = st.settings.animSpeed || 1;
       for (const e of events) {
         if (e.type === 'attack') {
@@ -394,7 +404,7 @@ export function BattleScene({ state }: { state: GameState }) {
               if (r.effectiveness > 1 || r.crit) setShake((n) => n + 1);
             }
           }
-          if (st.settings.showDamageNumbers) {
+          if (st.settings.showDamageNumbers && st.settings.graphics !== 'performance') {
             const tone: Floater['tone'] = r.missed
               ? 'miss'
               : r.crit
@@ -413,15 +423,15 @@ export function BattleScene({ state }: { state: GameState }) {
             setFloaters((list) => [...list.slice(-6), f]);
             setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
           }
-        } else if (e.type === 'effect' && e.amount && st.settings.showDamageNumbers) {
+        } else if (motion && e.type === 'effect' && e.amount && st.settings.showDamageNumbers) {
           const f: Floater = { id: nextId.current++, side: e.side, text: `+${e.amount}`, tone: 'heal' };
           setFloaters((list) => [...list.slice(-6), f]);
           setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
-        } else if (e.type === 'statusDamage' && st.settings.showDamageNumbers) {
+        } else if (e.type === 'statusDamage' && motion && st.settings.showDamageNumbers) {
           const f: Floater = { id: nextId.current++, side: e.side, text: `-${e.damage}`, tone: 'status' };
           setFloaters((list) => [...list.slice(-6), f]);
           setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
-        } else if (e.type === 'supportMove' && (e.outcome === 'heal' || e.outcome === 'boost')) {
+        } else if (motion && e.type === 'supportMove' && (e.outcome === 'heal' || e.outcome === 'boost')) {
           const f: Floater = {
             id: nextId.current++,
             side: e.side,
@@ -447,7 +457,7 @@ export function BattleScene({ state }: { state: GameState }) {
           if (e.boss && trainer && st.battle.bossIndex === 0) {
             setEncounter({ id, trainer });
             setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 1700 / speed);
-          } else if (st.battle.kind === 'wild' && e.shiny) {
+          } else if (st.battle.kind === 'wild' && (e.shiny || e.roamer || e.perfect)) {
             // Só no raro: num jogo idle, um clarão a cada encontro cansa os olhos.
             setEncounter({ id });
             setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 420 / speed);
@@ -631,7 +641,7 @@ export function BattleScene({ state }: { state: GameState }) {
       {areaBanner && (
         <div
           key={`area-${areaBanner.id}`}
-          className={`area-banner ${state.settings.reducedMotion ? 'still' : ''}`}
+          className={`area-banner ${state.settings.reducedMotion || gfx === 'performance' ? 'still' : ''}`}
           style={{ ['--speed' as string]: animSpeed }}
           aria-live="polite"
         >
@@ -891,7 +901,7 @@ export function BattleScene({ state }: { state: GameState }) {
       {b.phase === 'defeat' && (
         <PokemonCenter
           balls={Math.min(6, 1 + reserves.length)}
-          reducedMotion={state.settings.reducedMotion}
+          reducedMotion={state.settings.reducedMotion || gfx === 'performance'}
         />
       )}
 
@@ -947,7 +957,7 @@ export function BattleScene({ state }: { state: GameState }) {
           from={evolutions[0].from}
           to={evolutions[0].to}
           shiny={evolutions[0].shiny}
-          reducedMotion={state.settings.reducedMotion}
+          reducedMotion={state.settings.reducedMotion || gfx === 'performance'}
           onReveal={() => setEvolving(null)}
           onDone={() => setEvolutions((list) => list.slice(1))}
         />
@@ -971,7 +981,7 @@ function CaptureGhost({ anim, base: ENEMY_BASE }: { anim: CaptureAnim; base: { x
           height: `calc(var(--u) * ${box.h})`,
         }}
       >
-        <img className="sprite" src={assetUrl(src)} alt="" />
+        <SpriteImage className="sprite" src={assetUrl(src)} alt="" />
       </div>
       <img
         className={`capture-ball ${anim.success ? 'caught' : `escape s${anim.shakes}`}`}

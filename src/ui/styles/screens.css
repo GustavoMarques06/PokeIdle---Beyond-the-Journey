@@ -2553,3 +2553,21 @@ button.tag-dot:disabled {
     white-space: nowrap;
   }
 }
+
+/* As cinco abas do Treinador sempre numa linha. */
+.activity-tabs.trainer-tabs {
+  display: flex;
+}
+
+.trainer-tabs .activity-tab {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.trainer-help {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+}

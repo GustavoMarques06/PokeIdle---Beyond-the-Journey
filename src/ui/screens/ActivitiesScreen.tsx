@@ -53,7 +53,7 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
   const [tab, setTab] = useState<Tab>(() => initialTab ?? unseenTabs(state)[0] ?? 'daycare');
   const now = state.lastTimerAt;
   const unseen = new Set(unseenTabs(state));
-  const firstUnseen = unseenTabs(state).find((id) => tabOpen(state, id));
+  const firstUnseen = unseenTabs(state)[0];
   const open = tabOpen(state, tab);
   const isNew = open && unseen.has(tab);
   const showTip = open && !state.flags.includes(tipFlag(tab));

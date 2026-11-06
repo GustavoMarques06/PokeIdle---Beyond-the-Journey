@@ -16,6 +16,7 @@ import {
   getSpecies,
   lineRoot,
   megaFor,
+  blockedBy,
   routeIndex,
   supportMoveOf,
   type Ailment,
@@ -149,18 +150,17 @@ export function step(
     spawnEnemy(state, rng, now, events, mods);
     return;
   }
-  // Apareceu um shiny: a luta espera um instante, para o automático não passar por cima dele.
+  // A luta espera por um shiny (para o automático não passar por cima dele) e pela bola que está balançando.
+  // Os dois contam juntos: uma bola que falhou durante a pausa não pode travar a próxima.
   if (b.shinyPauseMs) {
     b.shinyPauseMs -= dt;
-    if (b.shinyPauseMs > 0) return;
-    b.shinyPauseMs = undefined;
+    if (b.shinyPauseMs <= 0) b.shinyPauseMs = undefined;
   }
-  // A bola ainda está balançando: a luta espera o resultado aparecer.
   if (b.holdMs) {
     b.holdMs -= dt;
-    if (b.holdMs > 0) return;
-    b.holdMs = undefined;
+    if (b.holdMs <= 0) b.holdMs = undefined;
   }
+  if (b.shinyPauseMs || b.holdMs) return;
   // Modo manual: na vez do ativo, tudo para até o jogador escolher (como nos portáteis).
   if (awaitingCommand(state)) return;
   if (b.enemy) b.enemy.elapsedMs = (b.enemy.elapsedMs ?? 0) + dt;
@@ -253,15 +253,26 @@ export function playerMoveMatchup(state: GameState, moveId: string) {
   return moveMatchup(combatantOf(playerSource(state, activePokemon(state))), combatantOf(enemy), moveId);
 }
 
+/** O golpe de apoio do Pokémon nesta batalha (não vale nas raides nem no duelo fantasma, que são de força pura). */
+export function supportOf(state: GameState, p: { speciesId: number; level: number }) {
+  const kind = state.battle.kind;
+  return kind === 'raid' || kind === 'ghost' ? undefined : supportMoveOf(p.speciesId, p.level);
+}
+
+/** O golpe de apoio, se dá para usar agora: uma vez por luta, e curar com o HP cheio só gastaria a vez. */
+export function supportReady(state: GameState, p: PokemonInstance) {
+  const move = supportOf(state, p);
+  if (!move || state.battle.supportUsed?.includes(p.uid)) return undefined;
+  if (move.effect.kind === 'heal' && p.currentHp >= statsOf(p).hp) return undefined;
+  return move;
+}
+
 /** LUTAR: só no modo manual e só na vez do ativo (o cronômetro do golpe não se adianta clicando). */
 export function selectMove(state: GameState, move: string): boolean {
   const b = state.battle;
   if (!awaitingCommand(state)) return false;
   const active = activePokemon(state);
-  const isSupport =
-    supportMoveOf(active.speciesId, active.level)?.id === move &&
-    !b.enemy?.playerSupportUsed?.includes(active.uid);
-  if (!isSupport && !movesOf(active).includes(move)) return false;
+  if (supportReady(state, active)?.id !== move && !movesOf(active).includes(move)) return false;
   b.pendingMove = move;
   return true;
 }
@@ -315,7 +326,7 @@ function takeTurn(
   const pc = combatantOf(playerSource(state, player), duel ? mods.enemyMoveBoost : mods.playerMoveBoost);
   const ec = combatantOf(enemy, mods.enemyMoveBoost);
   // Golpes de apoio: os aumentos de atributo valem até o fim do encontro.
-  if (enemy.playerBoost?.uid === player.uid) applyBoost(pc, enemy.playerBoost.stats);
+  applyBoost(pc, b.supportBoosts?.[player.uid]);
   applyBoost(ec, enemy.supportBoost);
   pc.burned = b.playerStatus?.kind === 'burn';
   ec.burned = enemy.status?.kind === 'burn';
@@ -477,8 +488,8 @@ function takeTurn(
   if (isPlayer) b.pendingMove = undefined;
 
   // Golpe de apoio: uma vez por luta, por escolha no modo manual; no automático e nos inimigos, só em lutas longas.
-  const support = duel || b.kind === 'raid' ? undefined : supportMoveOf(self.speciesId, self.level);
-  const supportSpent = isPlayer ? enemy.playerSupportUsed?.includes(player.uid) : enemy.supportUsed;
+  const support = supportOf(state, self);
+  const supportSpent = isPlayer ? b.supportUsed?.includes(player.uid) : enemy.supportUsed;
   if (support && !supportSpent) {
     const pickedIt = picked === support.id;
     const scale = isPlayer ? scales.playerDamage : scales.enemyDamage;
@@ -486,15 +497,20 @@ function takeTurn(
       expectedDamage(self, foe, chooseMove(self, foe), scale) * SUPPORT_RULES.minHitsToKo < hp(other);
     const useful = () => {
       const e = support.effect;
-      if (e.kind === 'heal') return hp(side) / maxHp(side) < SUPPORT_RULES.healBelow;
+      if (e.kind === 'heal') {
+        // O lendário vencido fica com 1 de HP esperando a bola: curar fecharia a chance de captura.
+        if (!isPlayer && b.kind === 'legendary') return false;
+        return hp(side) / maxHp(side) < SUPPORT_RULES.healBelow;
+      }
       if (!longFight()) return false;
-      return e.kind === 'ailment' ? canGetStatus(e.ailment, other, side) : hp(side) / maxHp(side) >= 0.5;
+      if (e.kind === 'ailment') return !blockedBy(e, foe.types) && canGetStatus(e.ailment, other, side);
+      return hp(side) / maxHp(side) >= 0.5;
     };
     const wants = isPlayer
       ? !manualMode(state) && useful()
       : useful() && rng.next() < (b.kind === 'wild' ? SUPPORT_RULES.wildChance : SUPPORT_RULES.trainerChance);
     if (pickedIt || wants) {
-      if (isPlayer) (enemy.playerSupportUsed ??= []).push(player.uid);
+      if (isPlayer) (b.supportUsed ??= []).push(player.uid);
       else enemy.supportUsed = true;
       const report = (outcome: 'ailment' | 'boost' | 'heal' | 'miss' | 'immune', extra = {}) =>
         events.push({
@@ -512,10 +528,10 @@ function takeTurn(
         setHp(side, before + maxHp(side) * e.fraction);
         report('heal', { amount: hp(side) - before });
       } else if (e.kind === 'boost') {
-        if (isPlayer) enemy.playerBoost = { uid: player.uid, stats: e.stats };
+        if (isPlayer) (b.supportBoosts ??= {})[player.uid] = e.stats;
         else enemy.supportBoost = e.stats;
         report('boost');
-      } else if (!canGetStatus(e.ailment, other, side)) {
+      } else if (blockedBy(e, foe.types) || !canGetStatus(e.ailment, other, side)) {
         report('immune');
       } else if (rng.next() * 100 >= e.accuracy) {
         report('miss');
@@ -787,9 +803,16 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     });
   }
   b.playerUsed = [];
+  // O próximo Pokémon do mesmo treinador é a mesma luta: apoios gastos e aumentos continuam valendo.
+  if (!(b.team.length > 0 && b.bossIndex > 0)) {
+    b.supportUsed = undefined;
+    b.supportBoosts = undefined;
+  }
   if (roamer) Object.assign(b.enemy, { roamer: true, fleeMs: BALANCE.roamers.fleeMs });
   b.phase = 'fighting';
-  b.shinyPauseMs = shiny && b.kind === 'wild' ? SHINY_PAUSE_MS : undefined;
+  // No manual a luta já espera o jogador; nas lutas sem captura, não há o que esperar.
+  b.shinyPauseMs =
+    shiny && (b.kind === 'wild' || b.kind === 'legendary') && !manualMode(state) ? SHINY_PAUSE_MS : undefined;
   b.playerStatus = null;
   dexEntry(state, speciesId).seen = true;
   const spawnAt = events.length;

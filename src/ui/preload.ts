@@ -11,10 +11,13 @@
 
 import { useSyncExternalStore } from 'react';
 import { isTauri } from '../engine/storage';
+import { isPerfMode } from './perfMode';
 
 /** O mesmo nome de cache do public/sw.js (o service worker serve o que estiver lá). */
 const CACHE = 'pokeidle-v1';
 const PARALLEL = 4;
+/** Máquina fraca não precisa de quatro downloads disputando com o jogo. */
+const PARALLEL_PERF = 2;
 
 type Group = 'app' | 'essential' | 'front' | 'back' | 'shiny' | 'weather';
 
@@ -132,7 +135,7 @@ async function pump(cache: Cache): Promise<void> {
       }
     }
   };
-  await Promise.all(Array.from({ length: PARALLEL }, worker));
+  await Promise.all(Array.from({ length: isPerfMode() ? PARALLEL_PERF : PARALLEL }, worker));
   update(
     {
       running: false,
@@ -184,7 +187,9 @@ export async function startPreload(): Promise<void> {
         await cache.delete(url);
     }
     writeSizes(files);
-    const all = files.map(([path, size]) => ({
+    // No Desempenho o clima nem aparece: nada de baixar 5 MB de animações.
+    const wanted = isPerfMode() ? files.filter(([path]) => groupOf(path) !== 'weather') : files;
+    const all = wanted.map(([path, size]) => ({
       url: new URL(`${import.meta.env.BASE_URL}${path}`, location.href).href,
       size,
       group: groupOf(path),
@@ -198,7 +203,7 @@ export async function startPreload(): Promise<void> {
     }
     const missing = all.filter((f) => !cached.has(f.url));
     queue = missing.sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group));
-    allowAll = optedIn() || (!saveData() && !isPhone());
+    allowAll = optedIn() || (!saveData() && !isPhone() && !isPerfMode());
     const bytes = all.reduce((s, f) => s + f.size, 0);
     update(
       {

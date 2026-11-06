@@ -9,12 +9,13 @@ import { useGameEvents } from '../useGame';
 const SHOW_MS = 4200;
 
 const vibrate = (pattern: number | number[]) => {
-  navigator.vibrate?.(pattern);
+  if (!document.documentElement.classList.contains('reduced-motion')) navigator.vibrate?.(pattern);
 };
 
 /** A mensagem de destaque de um evento, se ele merecer uma. */
 export function rareMessage(e: GameEvent): string | null {
-  if (e.type === 'spawn' && e.shiny) return `Um ${speciesName(e.speciesId)} SHINY apareceu!`;
+  // Só o que dá para capturar: num Pokémon de treinador, a faixa e a fanfarra não fariam sentido.
+  if (e.type === 'spawn' && e.shiny && !e.boss) return `Um ${speciesName(e.speciesId)} SHINY apareceu!`;
   if (e.type === 'captured' && e.shiny) return `${speciesName(e.speciesId)} SHINY capturado!`;
   if (e.type === 'captured' && e.perfect) return `${speciesName(e.speciesId)} PERFEITO capturado!`;
   return null;
@@ -25,7 +26,6 @@ export function RareBanner() {
   useGameEvents(
     useCallback((events: GameEvent[]) => {
       for (const e of events) {
-        if (e.type === 'captured') vibrate(30);
         if (e.type === 'bossDefeated') vibrate(60);
         const text = rareMessage(e);
         if (!text) continue;

@@ -136,9 +136,6 @@ export interface EnemyState {
   /** Golpe de apoio: já usado por este inimigo, e os atributos que ele aumentou. */
   supportUsed?: boolean;
   supportBoost?: Partial<Record<StatKey, number>>;
-  /** Golpe de apoio do jogador nesta luta (some com o encontro): quem já usou e o aumento de quem está em campo. */
-  playerSupportUsed?: number[];
-  playerBoost?: { uid: number; stats: Partial<Record<StatKey, number>> };
   /** Raide: etapa de fúria (0 a 2). */
   rage?: number;
   /** Encontrado pescando ou surfando. */
@@ -186,6 +183,9 @@ export interface TrainerInfo {
 
 export interface BattleState {
   kind: BattleKind;
+  /** Golpes de apoio do jogador nesta luta (contra um treinador, vale para o time inteiro dele): quem já usou e os aumentos. */
+  supportUsed?: number[];
+  supportBoosts?: Record<number, Partial<Record<StatKey, number>>>;
   /** Pausa da luta enquanto a bola balança depois de uma captura que falhou (ms). */
   holdMs?: number;
   /** Pausa quando aparece um shiny: dá tempo de ver e de lançar uma bola, que continua liberada (ms). */

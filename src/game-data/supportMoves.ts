@@ -5,7 +5,7 @@ import supportJson from './generated/support-moves.json';
 import type { Ailment, StatKey, TypeName } from './types';
 
 export type SupportEffect =
-  | { kind: 'ailment'; ailment: Ailment; accuracy: number }
+  | { kind: 'ailment'; ailment: Ailment; accuracy: number; immune?: TypeName[] }
   | { kind: 'boost'; stats: Partial<Record<StatKey, number>> }
   | { kind: 'heal'; fraction: number };
 
@@ -22,24 +22,31 @@ const S = (id: string, name: string, type: TypeName, effect: SupportEffect): Sup
   type,
   effect,
 });
-const ail = (ailment: Ailment, accuracy: number): SupportEffect => ({ kind: 'ailment', ailment, accuracy });
+const ail = (ailment: Ailment, accuracy: number, immune?: TypeName[]): SupportEffect => ({
+  kind: 'ailment',
+  ailment,
+  accuracy,
+  immune,
+});
+/** Pós não afetam Planta; Thunder Wave, como todo golpe Elétrico, não afeta Terra. */
+const POWDER: TypeName[] = ['grass'];
 const up = (stats: Partial<Record<StatKey, number>>): SupportEffect => ({ kind: 'boost', stats });
 const HEAL: SupportEffect = { kind: 'heal', fraction: 0.5 };
 
 export const SUPPORT_MOVES: Record<string, SupportMove> = Object.fromEntries(
   [
-    S('spore', 'Spore', 'grass', ail('sleep', 100)),
-    S('sleep-powder', 'Sleep Powder', 'grass', ail('sleep', 75)),
+    S('spore', 'Spore', 'grass', ail('sleep', 100, POWDER)),
+    S('sleep-powder', 'Sleep Powder', 'grass', ail('sleep', 75, POWDER)),
     S('hypnosis', 'Hypnosis', 'psychic', ail('sleep', 60)),
     S('sing', 'Sing', 'normal', ail('sleep', 55)),
     S('lovely-kiss', 'Lovely Kiss', 'normal', ail('sleep', 75)),
     S('dark-void', 'Dark Void', 'dark', ail('sleep', 50)),
-    S('thunder-wave', 'Thunder Wave', 'electric', ail('paralysis', 90)),
-    S('stun-spore', 'Stun Spore', 'grass', ail('paralysis', 75)),
+    S('thunder-wave', 'Thunder Wave', 'electric', ail('paralysis', 90, ['ground'])),
+    S('stun-spore', 'Stun Spore', 'grass', ail('paralysis', 75, POWDER)),
     S('glare', 'Glare', 'normal', ail('paralysis', 100)),
     S('will-o-wisp', 'Will-O-Wisp', 'fire', ail('burn', 85)),
     S('toxic', 'Toxic', 'poison', ail('poison', 90)),
-    S('poison-powder', 'Poison Powder', 'poison', ail('poison', 75)),
+    S('poison-powder', 'Poison Powder', 'poison', ail('poison', 75, POWDER)),
     S('poison-gas', 'Poison Gas', 'poison', ail('poison', 90)),
     S('swords-dance', 'Swords Dance', 'normal', up({ atk: 1.6 })),
     S('nasty-plot', 'Nasty Plot', 'dark', up({ spAtk: 1.6 })),
@@ -56,7 +63,7 @@ export const SUPPORT_MOVES: Record<string, SupportMove> = Object.fromEntries(
     S('quiver-dance', 'Quiver Dance', 'bug', up({ spAtk: 1.25, spDef: 1.25, spe: 1.25 })),
     S('hone-claws', 'Hone Claws', 'dark', up({ atk: 1.3 })),
     S('recover', 'Recover', 'normal', HEAL),
-    S('soft-boil', 'Soft-Boiled', 'normal', HEAL),
+    S('soft-boiled', 'Soft-Boiled', 'normal', HEAL),
     S('roost', 'Roost', 'flying', HEAL),
     S('slack-off', 'Slack Off', 'normal', HEAL),
     S('synthesis', 'Synthesis', 'grass', HEAL),
@@ -65,6 +72,10 @@ export const SUPPORT_MOVES: Record<string, SupportMove> = Object.fromEntries(
     S('milk-drink', 'Milk Drink', 'normal', HEAL),
   ].map((m) => [m.id, m]),
 );
+
+/** O alvo é imune a este golpe por ser de certo tipo? */
+export const blockedBy = (effect: { immune?: TypeName[] }, types: TypeName[]): boolean =>
+  !!effect.immune?.some((t) => types.includes(t));
 
 /** Regras de uso no automático e pelos inimigos. */
 export const SUPPORT_RULES = {

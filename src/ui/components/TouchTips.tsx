@@ -3,13 +3,13 @@
 
 import { useEffect, useState } from 'react';
 
-const HOLD_MS = 450;
+/** Acima do tempo de um toque lento: quem só demora um pouco para soltar não perde o clique. */
+const HOLD_MS = 600;
 const SHOW_MS = 3500;
 const MOVE_TOLERANCE = 10;
 
 interface Tip {
   text: string;
-  x: number;
   y: number;
 }
 
@@ -29,14 +29,15 @@ export function TouchTips() {
       clearTimeout(timer);
       swallowClick = false;
       const touch = e.touches[0];
-      const el = (e.target as Element | null)?.closest?.('[title]');
+      // A dica é a do botão tocado, não a de quem está em volta dele.
+      const el = (e.target as Element | null)?.closest?.('button, a, [title]');
       const text = el?.getAttribute('title');
       if (!touch || !text) return;
       startX = touch.clientX;
       startY = touch.clientY;
       timer = setTimeout(() => {
         swallowClick = true;
-        setTip({ text, x: startX, y: startY });
+        setTip({ text, y: startY });
         clearTimeout(hide);
         hide = setTimeout(() => setTip(null), SHOW_MS);
       }, HOLD_MS);
@@ -55,6 +56,12 @@ export function TouchTips() {
       e.stopPropagation();
     };
 
+    // No Android, segurar uma imagem abriria o menu do sistema por cima da dica.
+    const onContextMenu = (e: Event) => {
+      if ((e.target as Element | null)?.closest?.('[title]')) e.preventDefault();
+    };
+
+    document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('touchstart', onStart, { passive: true });
     document.addEventListener('touchmove', onMove, { passive: true });
     document.addEventListener('touchend', onEnd);
@@ -63,6 +70,7 @@ export function TouchTips() {
     return () => {
       clearTimeout(timer);
       clearTimeout(hide);
+      document.removeEventListener('contextmenu', onContextMenu);
       document.removeEventListener('touchstart', onStart);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);

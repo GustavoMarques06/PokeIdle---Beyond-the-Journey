@@ -371,7 +371,7 @@ class AudioManager {
     for (const e of events) {
       switch (e.type) {
         case 'spawn':
-          if (e.shiny) this.sfx('fanfare');
+          if (e.shiny && !e.boss) this.sfx('fanfare');
           if (e.water) this.sfx('splash');
           this.cry(e.speciesId);
           break;

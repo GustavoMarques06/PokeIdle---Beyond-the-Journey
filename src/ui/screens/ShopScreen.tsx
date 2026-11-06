@@ -97,19 +97,20 @@ function roughTime(ms: number): string {
 
 /** "≈ 25 min de farm" ao lado do preço, para dar noção do quanto o item custa de verdade. */
 function FarmTime({ price, coins, income }: { price: number; coins: number; income: number }) {
-  if (income <= 0) return null;
   const missing = price - coins;
-  const text = roughTime((price / income) * 3_600_000);
+  const short = missing > 0 ? `Faltam ₽${formatNumber(missing)}` : '';
+  if (income <= 0) return short ? <small className="farm-time short">{short}</small> : null;
+  const left = roughTime((missing / income) * 3_600_000);
   return (
     <small
       className={`farm-time ${missing > 0 ? 'short' : ''}`}
       title={
         missing > 0
-          ? `Faltam ${missing} moedas: ${roughTime((missing / income) * 3_600_000)} no ritmo atual.`
+          ? `Faltam ${formatNumber(missing)} moedas: ${left} no ritmo atual.`
           : 'Tempo de jogo que este preço representa no ritmo atual de moedas.'
       }
     >
-      {missing > 0 ? `Faltam ₽${formatNumber(missing)} · ${text} de farm` : `${text} de farm`}
+      {missing > 0 ? `${short} · ${left} de farm` : `${roughTime((price / income) * 3_600_000)} de farm`}
     </small>
   );
 }
@@ -316,8 +317,8 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
     { id: 'tms', label: 'TMs' },
   ];
   const openSection = deptChips.some((c) => c.id === section) ? section : deptChips[0].id;
-  const tmHits = tmShelf(state).some((t) => matches(query, moveName(t.move), tmLabel(t.move)));
-  const found = tmHits || entries.some((e) => matches(query, itemName(e.id), describe(e.id)));
+  const tmHits = searching && tmShelf(state).some((t) => matches(query, moveName(t.move), tmLabel(t.move)));
+  const found = !searching || tmHits || entries.some((e) => matches(query, itemName(e.id), describe(e.id)));
 
   return (
     <Window

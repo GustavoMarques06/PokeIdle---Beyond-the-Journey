@@ -143,6 +143,7 @@ export function PcScreen({ state }: { state: GameState }) {
     if (holding) {
       move(holding, spot);
       setHolding(null);
+      setNotice('');
     } else if (multi) {
       if (uid) setPicked((l) => (l.includes(uid) ? l.filter((x) => x !== uid) : [...l, uid]));
     } else if (uid) {
@@ -200,7 +201,7 @@ export function PcScreen({ state }: { state: GameState }) {
                 aria-label={`${role}: ${label(p)}`}
               >
                 <PokemonSprite speciesId={p.speciesId} kind="icon" />
-                <small>{role === 'ATIVO' ? 'ATIVO' : role.split(' ')[0].slice(0, 3)}</small>
+                <small>{role.split(' ')[0].slice(0, 3)}</small>
               </button>
             );
           })}
@@ -368,7 +369,7 @@ export function PcScreen({ state }: { state: GameState }) {
                 <button
                   className="pbtn small primary"
                   onClick={() => {
-                    if (freeSlots > 0) toTeam(selected);
+                    if (freeSlots > 0) toTeam(shown.uid);
                     else {
                       setHolding(selectedSpot);
                       setBox(selectedSpot.box);
@@ -392,7 +393,7 @@ export function PcScreen({ state }: { state: GameState }) {
               <button
                 className="pbtn small"
                 disabled={team.length < 2}
-                onClick={() => engine.dispatch((s) => void removeFromTeam(s, selected))}
+                onClick={() => engine.dispatch((s) => void removeFromTeam(s, shown.uid))}
               >
                 Tirar da equipe
               </button>

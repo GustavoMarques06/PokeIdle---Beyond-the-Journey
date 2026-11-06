@@ -10,7 +10,7 @@ const ROOT = join(import.meta.dirname, '..');
 const WANTED = new Set(
   `spore sleep-powder hypnosis sing lovely-kiss dark-void thunder-wave stun-spore glare will-o-wisp toxic poison-powder
   poison-gas swords-dance nasty-plot dragon-dance calm-mind bulk-up agility rock-polish iron-defense acid-armor barrier
-  amnesia growth quiver-dance hone-claws recover soft-boil roost slack-off synthesis moonlight morning-sun milk-drink`.split(
+  amnesia growth quiver-dance hone-claws recover soft-boiled roost slack-off synthesis moonlight morning-sun milk-drink`.split(
     /\s+/,
   ),
 );
@@ -55,6 +55,14 @@ await Promise.all(
     }
   }),
 );
+// Arquivo parcial tiraria o golpe de espécies sem aviso: melhor não escrever nada.
+if (failed > 0) {
+  console.error(`${failed} espécies falharam: nada foi gravado. Tente de novo.`);
+  process.exit(1);
+}
+const seen = new Set(Object.values(out).flatMap((list) => list.map(([move]) => move)));
+const unused = [...WANTED].filter((move) => !seen.has(move));
+if (unused.length) console.warn('Golpes que nenhuma espécie aprende (nome errado?):', unused.join(', '));
 const sorted = Object.fromEntries(Object.entries(out).sort((a, b) => Number(a[0]) - Number(b[0])));
 await writeFile(join(ROOT, 'src/game-data/generated/support-moves.json'), JSON.stringify(sorted));
 console.log(

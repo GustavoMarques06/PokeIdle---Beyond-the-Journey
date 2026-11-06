@@ -24,6 +24,11 @@ export function Intro({ save, onEnter }: { save: GameState | null; onEnter: () =
     return () => audio.setTrack('game');
   }, []);
 
+  // Cada etapa da abertura começa do topo, sem herdar a rolagem da anterior.
+  useEffect(() => {
+    window.scrollTo?.(0, 0);
+  }, [phase.id]);
+
   if (phase.id === 'start') return <StartScreen onStart={() => setPhase({ id: 'title' })} />;
   if (phase.id === 'title') {
     return (

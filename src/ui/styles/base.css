@@ -5,6 +5,8 @@
    ============================================================================= */
 
 :root {
+  /* Altura do menu fixo do celular (GameMenu.tsx mede de verdade). */
+  --menu-h: 66px;
   /* Tinta e papel */
   --ink: #283050;
   --ink-soft: #485068;
@@ -501,6 +503,8 @@ body {
 }
 
 /* Modo Desempenho: sem filtros caros, sem brilhos nem animações de enfeite. */
+html.gfx-performance .ground-shadow,
+html.gfx-performance .fx-sendout,
 html.gfx-performance .scene-night,
 html.gfx-performance .scene-dusk,
 html.gfx-performance .scene-dawn,
@@ -530,13 +534,12 @@ html.gfx-performance .gba-logo {
   filter: none !important;
 }
 
-html.gfx-performance .battle-cmds.waiting,
-html.gfx-performance .dialog-challenge,
-html.gfx-performance .dialog-mega,
-html.gfx-performance .new-badge,
-html.gfx-performance .menu-alert,
-html.gfx-performance .perfect-tag {
+/* Nada se mexe na tela do jogo, além da bola de captura (sem ela, não dá para ver o resultado). */
+html.gfx-performance .game *:not(.capture-ball, .capture-ghost, .capture-stars, .sprite-loading),
+html.gfx-performance .game,
+html.gfx-performance .toast {
   animation: none !important;
+  transition: none !important;
 }
 
 /* --- Celulares (principalmente iPhone) ---------------------------------------------------- */

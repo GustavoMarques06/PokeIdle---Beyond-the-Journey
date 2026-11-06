@@ -75,7 +75,6 @@ export function Rich({ text, ctx }: { text: string; ctx: RichContext }) {
   return <>{out}</>;
 }
 
-/** Imagem com legenda; um toque a amplia (Esc ou outro toque fecha). */
 /** Imagens que também têm versão de celular (public/help/cel). */
 const CEL_IMAGES = new Set(
   [
@@ -94,6 +93,7 @@ const CEL_IMAGES = new Set(
   ].map((n) => `${n}.webp`),
 );
 
+/** Imagem com legenda; um toque a amplia (Esc ou outro toque fecha). */
 function Figure({
   src,
   alt,

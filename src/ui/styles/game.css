@@ -2553,9 +2553,15 @@ html.reduced-motion .dialog-mega {
   }
 }
 
+/* Sem balançar, mas com a mesma espera: com o sprite já no aparelho, a bola não pode piscar. */
 html.reduced-motion .sprite-loading {
-  animation: none;
-  opacity: 0.85;
+  animation: sprite-still 0.01s steps(1, end) 0.25s forwards;
+}
+
+@keyframes sprite-still {
+  to {
+    opacity: 0.85;
+  }
 }
 
 /* --- Destaque do que é raro ---------------------------------------------------------------- */
@@ -2590,7 +2596,7 @@ html.reduced-motion .rare-banner {
 @media (min-width: 901px) and (min-height: 521px) {
   .game-menu {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     grid-auto-rows: 44px;
     gap: 0;
   }
@@ -2617,8 +2623,8 @@ html.reduced-motion .rare-banner {
     max-height: 24px;
   }
 
-  /* Com 7 abas ou mais o menu ocupa duas linhas: a janela começa abaixo dele. */
-  .game:has(.game-menu .menu-item:nth-child(7)) .screen-window {
+  /* Com 6 abas ou mais o menu ocupa duas linhas: a janela começa abaixo dele. */
+  .game:has(.game-menu .menu-item:nth-child(6)) .screen-window {
     margin-top: 110px;
   }
 }

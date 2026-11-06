@@ -30,12 +30,13 @@ export function TitleScreen({
   onNewGame: () => void;
   onBack: () => void;
 }) {
-  // O foco automático rola a página até o botão: a tela sempre começa do topo.
-  useEffect(() => {
-    window.scrollTo?.(0, 0);
-  }, []);
   const engine = useEngine();
   const [loading, setLoading] = useState(false);
+  // O foco automático rola a página até o botão (também ao voltar de CARREGAR JOGO): a tela sempre começa do topo.
+  // Entre chaves: scrollTo pode devolver uma Promise, que o React tomaria por função de limpeza.
+  useEffect(() => {
+    window.scrollTo?.(0, 0);
+  }, [loading]);
   const [text, setText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -49,8 +50,10 @@ export function TitleScreen({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (loading) setLoading(false);
-        else onBack();
+        if (loading) {
+          setLoading(false);
+          setMessage(null);
+        } else onBack();
         return;
       }
       if (loading) return;
@@ -140,7 +143,12 @@ export function TitleScreen({
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 e.target.value = '';
-                if (file) await load(await file.text());
+                if (file)
+                  try {
+                    await load(await file.text());
+                  } catch {
+                    setMessage('Não foi possível ler este arquivo. Tente de novo ou cole o código.');
+                  }
               }}
             />
           </div>
@@ -218,7 +226,7 @@ function SaveSummary({ state }: { state: GameState }) {
       <span className="save-team" aria-label="Equipe">
         <small className="save-label">EQUIPE</small>
         {team.map(({ p, role }) => (
-          <span key={p.uid} className={`save-mon ${role === 'ATIVO' ? 'lead' : ''}`}>
+          <span key={p.uid} className={`save-mon ${role === 'LUTANDO' ? 'lead' : ''}`}>
             <PokemonSprite speciesId={p.speciesId} kind="icon" shiny={p.shiny} />
             <span className="save-mon-info">
               <b>

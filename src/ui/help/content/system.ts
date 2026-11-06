@@ -68,6 +68,17 @@ export const SYSTEM: Section = {
       ],
     },
     {
+      id: 'desempenho',
+      q: 'O jogo está pesado. O que eu faço?',
+      keywords: 'lento travando travado desempenho fps pc fraco graficos bateria otimizar',
+      a: [
+        {
+          p: 'Vá em **TREINADOR** → **OPÇÕES** → **Gráficos** e escolha **Desempenho**. Os Pokémon ficam parados e somem o clima, os efeitos, os números de dano e as animações. **O progresso é o mesmo**: só muda o que aparece na tela.',
+        },
+        { p: 'Se o jogo perceber que está pesado, ele mesmo oferece essa opção uma vez.' },
+      ],
+    },
+    {
       id: 'iphone-save',
       q: 'Como evito que o iPhone apague meu save?',
       keywords: 'iphone ipad safari apagou sumiu sete dias instalar tela de inicio backup proteger',

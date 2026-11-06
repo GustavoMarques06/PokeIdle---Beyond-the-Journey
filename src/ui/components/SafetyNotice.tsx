@@ -2,8 +2,8 @@
 // cópia de tempos em tempos. Um de cada vez, sem bloquear o jogo.
 
 import { useEffect, useState } from 'react';
-import type { GameState } from '../../core/game';
 import { isTauri } from '../../engine/storage';
+import { useEngine } from '../useGame';
 import {
   downloadBackup,
   shouldRemindBackup,
@@ -13,20 +13,46 @@ import {
 } from '../backup';
 
 const SHOW_AFTER_MS = 20_000;
+const CHECK_EVERY_MS = 3_600_000;
 
-export function SafetyNotice({ state }: { state: GameState }) {
-  const [notice, setNotice] = useState<'install' | 'backup' | null>(null);
+export function SafetyNotice() {
+  const engine = useEngine();
+  const [notice, setNotice] = useState<'install' | 'backup' | 'failed' | null>(null);
   useEffect(() => {
     if (isTauri()) return;
-    const t = setTimeout(() => {
+    const check = () => {
       const now = Date.now();
-      setNotice(shouldSuggestInstall(now) ? 'install' : shouldRemindBackup(state, now) ? 'backup' : null);
-    }, SHOW_AFTER_MS);
-    return () => clearTimeout(t);
-    // Só ao entrar no jogo: o estado muda o tempo todo e não deve reabrir o aviso.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      const state = engine.state;
+      if (!state) return;
+      setNotice(
+        (cur) =>
+          cur ?? (shouldSuggestInstall(now) ? 'install' : shouldRemindBackup(state, now) ? 'backup' : null),
+      );
+    };
+    const first = setTimeout(check, SHOW_AFTER_MS);
+    // Num jogo idle, a aba pode ficar aberta por dias: o lembrete não pode depender de reabrir.
+    const again = setInterval(check, CHECK_EVERY_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(again);
+    };
+  }, [engine]);
 
+  if (notice === 'failed') {
+    return (
+      <div className="update-notice safety-notice frame frame-dialog" role="alert">
+        <p>
+          <strong>Não deu para baixar a cópia.</strong> Tente em TREINADOR → DADOS, onde também dá para copiar
+          o código.
+        </p>
+        <span className="update-notice-actions">
+          <button className="pbtn small" onClick={() => setNotice(null)}>
+            Entendi
+          </button>
+        </span>
+      </div>
+    );
+  }
   if (notice === 'install') {
     return (
       <div className="update-notice safety-notice frame frame-dialog" role="status">
@@ -59,8 +85,8 @@ export function SafetyNotice({ state }: { state: GameState }) {
           <button
             className="pbtn small primary"
             onClick={() => {
-              void downloadBackup(state, Date.now());
               setNotice(null);
+              if (engine.state) downloadBackup(engine.state, Date.now()).catch(() => setNotice('failed'));
             }}
           >
             Baixar cópia

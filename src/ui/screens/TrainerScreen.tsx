@@ -44,6 +44,7 @@ import { HOTKEY_HELP } from '../hotkeys';
 import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { downloadBackup } from '../backup';
+import { openHelp } from '../help/open';
 import { preloadEverything, usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
 
@@ -132,6 +133,10 @@ export function TrainerScreen({ state }: { state: GameState }) {
           </button>
         ))}
       </div>
+
+      <button className="pbtn small trainer-help" onClick={openHelp}>
+        <PixelIcon name="help" scale={2} /> Como jogar (abre em outra aba)
+      </button>
 
       {tab === 'card' && (
         <>
@@ -458,7 +463,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
               </label>
               <p className="hint">
                 {state.settings.graphics === 'performance'
-                  ? 'Desempenho: sem clima nem tons de dia e noite na cena, e menos efeitos. Bom para celulares simples.'
+                  ? 'Desempenho: Pokémon parados, sem clima, efeitos, números de dano nem animações. O progresso é o mesmo. Para aparelhos mais fracos.'
                   : 'Normal: pixel art, como o jogo foi desenhado.'}
               </p>
               <label className="option-row">
@@ -532,7 +537,8 @@ function SaveTools({ state }: { state: GameState }) {
   };
 
   const download = async () => {
-    await downloadBackup(state, Date.now(), code || (await generate()));
+    // Sempre um código novo: o que está na tela pode ser de antes de continuar jogando.
+    await downloadBackup(state, Date.now(), await generate());
   };
 
   const load = async (text: string) => {
