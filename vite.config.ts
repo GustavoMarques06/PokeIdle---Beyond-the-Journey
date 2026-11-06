@@ -2,8 +2,12 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { assetManifest } from './scripts/asset-manifest.mjs';
 
+// Muda a cada build: é assim que o jogo aberto percebe que saiu versão nova (components/UpdateNotice.tsx).
+const buildId = String(Date.now());
+
 export default defineConfig({
-  plugins: [react(), assetManifest()],
+  plugins: [react(), assetManifest({ buildId })],
+  define: { __BUILD_ID__: JSON.stringify(buildId) },
   // Caminhos relativos para funcionar empacotado (ex.: Tauri) sem servidor.
   base: './',
   build: {

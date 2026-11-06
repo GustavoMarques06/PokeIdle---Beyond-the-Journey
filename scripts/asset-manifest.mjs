@@ -8,7 +8,7 @@ import { join, relative } from 'node:path';
 /** Pastas de public/ com arquivos do jogo; o resto (ícones do app, sw.js) é do PWA. */
 const ASSET_DIRS = ['sprites', 'audio', 'maps', 'brand', 'help', 'icons'];
 
-export function assetManifest() {
+export function assetManifest({ buildId }) {
   return {
     name: 'asset-manifest',
     apply: 'build',
@@ -31,6 +31,8 @@ export function assetManifest() {
       }
       files.sort((a, b) => a[0].localeCompare(b[0]));
       this.emitFile({ type: 'asset', fileName: 'asset-manifest.json', source: JSON.stringify({ files }) });
+      // O número desta versão: o jogo compara com o que leva no código para saber se há atualização.
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ id: buildId }) });
     },
   };
 }

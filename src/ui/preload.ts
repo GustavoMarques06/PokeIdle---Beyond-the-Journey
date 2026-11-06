@@ -6,7 +6,8 @@
 // Ordem: primeiro o código do jogo (sem ele, nada abre offline), depois o que é pequeno e aparece em todo lugar (ícones, itens, insígnias,
 // treinadores, cenários, mapas, sons), depois os sprites de frente (Pokédex, equipe), os de
 // costas (batalha), os shiny e por fim as animações de clima. Com "economia de dados" ligada ou internet 2G, só o
-// essencial é baixado sozinho; o resto espera o jogador pedir nas Opções.
+// essencial é baixado sozinho; o resto espera o jogador pedir nas Opções. No celular também: são ~135 MB de sprites, e o
+// iPhone não informa se está em dados móveis. Quem pede "Baixar tudo" não precisa pedir de novo.
 
 import { useSyncExternalStore } from 'react';
 import { isTauri } from '../engine/storage';
@@ -85,6 +86,19 @@ const saveData = (): boolean => {
     .connection;
   return !!c?.saveData || c?.effectiveType === '2g' || c?.effectiveType === 'slow-2g';
 };
+
+/** Tela de toque: não baixa tudo sem o jogador pedir. */
+const isPhone = (): boolean => !!window.matchMedia?.('(pointer: coarse)').matches;
+
+const OPT_IN_KEY = 'pokeidle.offlineAll';
+
+function optedIn(): boolean {
+  try {
+    return localStorage.getItem(OPT_IN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 let queue: { url: string; size: number; group: Group; tries: number }[] = [];
 let allowAll = false;
@@ -184,7 +198,7 @@ export async function startPreload(): Promise<void> {
     }
     const missing = all.filter((f) => !cached.has(f.url));
     queue = missing.sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group));
-    allowAll = !saveData();
+    allowAll = optedIn() || (!saveData() && !isPhone());
     const bytes = all.reduce((s, f) => s + f.size, 0);
     update(
       {
@@ -206,6 +220,11 @@ export async function startPreload(): Promise<void> {
 /** Baixa também o que esperava (economia de dados) ou o que ficou por falta de internet. */
 export function preloadEverything(): void {
   allowAll = true;
+  try {
+    localStorage.setItem(OPT_IN_KEY, '1');
+  } catch {
+    // Sem acesso ao armazenamento: pergunta de novo na próxima abertura.
+  }
   update({ waitingForData: false }, true);
   if (cacheRef) void pump(cacheRef);
 }

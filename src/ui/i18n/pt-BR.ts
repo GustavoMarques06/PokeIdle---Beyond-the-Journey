@@ -2,6 +2,7 @@
 
 import {
   ACHIEVEMENTS,
+  SUPPORT_MOVES,
   getHeldItem,
   getItem,
   getTrainingItem,
@@ -346,7 +347,7 @@ export const STATUS_TEXT: Record<
 };
 
 export const speciesName = (id: number) => getSpecies(id).name;
-export const moveName = (id: string) => getMove(id).name;
+export const moveName = (id: string) => SUPPORT_MOVES[id]?.name ?? getMove(id).name;
 export const itemName = (id: string) => getItem(id)?.name ?? UPGRADE_TEXT[id]?.name ?? id;
 
 export function formatDuration(ms: number): string {
@@ -399,6 +400,8 @@ export function describeEvent(e: GameEvent): string | null {
           : `${speciesName(e.to)} entrou no lugar de ${speciesName(e.from)} (vantagem de tipo).`;
     case 'ranAway':
       return `Fugiu do ${speciesName(e.speciesId)} selvagem.`;
+    case 'supportMove':
+      return `${speciesName(e.speciesId)} usou ${SUPPORT_MOVES[e.move]?.name ?? e.move}.`;
     case 'statusSkip':
       return `${speciesName(e.speciesId)} ${STATUS_TEXT[e.status].skip}.`;
     case 'statusCured':

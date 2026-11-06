@@ -11,7 +11,8 @@ const ROOT = join(import.meta.dirname, '..');
 const RAW = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
 const API = 'https://pokeapi.co/api/v2';
 
-// Espécie base → Mega Stone (as de dois formatos, X e Y, ganham o sufixo). Mega Rayquaza não usa pedra.
+// Espécie base → Mega Stone (as de dois formatos, X e Y, ganham o sufixo). A Mega Rayquaza não usa pedra nos jogos
+// (precisa de Dragon Ascent); aqui, o Meteorito faz esse papel, para seguir a regra de segurar um item.
 const STONES = {
   venusaur: 'venusaurite',
   charizard: 'charizardite',
@@ -58,6 +59,7 @@ const STONES = {
   gallade: 'galladite',
   audino: 'audinite',
   diancie: 'diancite',
+  rayquaza: 'meteorite',
 };
 
 const KINDS = [

@@ -538,3 +538,33 @@ html.gfx-performance .menu-alert,
 html.gfx-performance .perfect-tag {
   animation: none !important;
 }
+
+/* --- Celulares (principalmente iPhone) ---------------------------------------------------- */
+html {
+  /* O iOS aumenta as letras por conta própria ao deitar o aparelho. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  /* Toque longo não seleciona texto nem abre o menu de imagem: isto é um jogo. A ajuda continua selecionável. */
+  body:not(.help-body) {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Abaixo de 16 px, o Safari dá zoom na página ao tocar no campo e ela não volta sozinha. */
+  input:not([type='checkbox'], [type='radio'], [type='range']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

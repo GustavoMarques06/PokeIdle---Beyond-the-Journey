@@ -21,7 +21,9 @@ import { OfflineReport } from './components/OfflineReport';
 import { ProfessorCall } from './components/ProfessorCall';
 import { SaveIndicator } from './components/SaveIndicator';
 import { Intro } from './intro/Intro';
+import { SafetyNotice } from './components/SafetyNotice';
 import { Toasts } from './components/Toasts';
+import { UpdateNotice } from './components/UpdateNotice';
 import { useHotkeys } from './hotkeys';
 import { MonSheet, PartyScreen, TeamDetails } from './screens/PartyScreen';
 import { seenFlag, tipFlag, unseenTabs, type Tab } from './screens/activities/tabs';
@@ -119,12 +121,14 @@ export function App() {
           </button>
         </div>
       )}
+      <UpdateNotice />
       {inGame ? <GameScreen state={state} /> : <Intro save={state} onEnter={() => setAtTitle(false)} />}
       {inGame && !engine.offlineReport && <ProfessorCall state={state} />}
       {inGame && engine.offlineReport && (
         <OfflineReport report={engine.offlineReport} onClose={() => engine.dismissOfflineReport()} />
       )}
       {inGame && <Toasts />}
+      {inGame && <SafetyNotice state={state} />}
       {inGame && <SaveIndicator />}
     </>
   );

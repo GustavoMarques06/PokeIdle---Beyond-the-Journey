@@ -35,12 +35,7 @@ import {
   toggleShowcase,
   trainerLevel,
 } from '../../core/meta';
-import {
-  decodeTransferCode,
-  encodeTransferCode,
-  TRANSFER_EXTENSION,
-  transferFileName,
-} from '../../core/transfer';
+import { decodeTransferCode, encodeTransferCode, TRANSFER_EXTENSION } from '../../core/transfer';
 import { Bar, ItemIcon, Money, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { Badges } from '../components/Hud';
 import { StatsPanel } from '../components/StatsPanel';
@@ -48,6 +43,7 @@ import { Automation } from './trainer/Automation';
 import { HOTKEY_HELP } from '../hotkeys';
 import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
+import { downloadBackup } from '../backup';
 import { preloadEverything, usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
 
@@ -536,13 +532,7 @@ function SaveTools({ state }: { state: GameState }) {
   };
 
   const download = async () => {
-    const text = code || (await generate());
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = transferFileName(state, Date.now());
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    await downloadBackup(state, Date.now(), code || (await generate()));
   };
 
   const load = async (text: string) => {
@@ -727,11 +717,11 @@ function GameFiles() {
           {!done && s.offline && ' Sem internet: continua quando a conexão voltar.'}
           {!done &&
             s.waitingForData &&
-            ' O essencial já está pronto; o resto (sprites de batalha e shiny) espera para poupar seus dados.'}
+            ' O essencial já está pronto. Os sprites baixam quando aparecem, para poupar seus dados. Para jogar sem internet com todos eles, baixe tudo (de preferência no Wi-Fi).'}
         </p>
         {!done && !s.running && (
           <button className="pbtn small" onClick={preloadEverything}>
-            Baixar tudo agora
+            Baixar tudo ({formatBytes(Math.max(0, s.bytes - s.bytesDone))})
           </button>
         )}
       </div>

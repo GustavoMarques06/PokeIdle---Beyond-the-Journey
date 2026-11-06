@@ -113,10 +113,71 @@ function FarmTime({ price, coins, income }: { price: number; coins: number; inco
   );
 }
 
+/** Minúsculas e sem acento: "pocao" acha "Poção". */
+const fold = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+/** Todos os termos digitados aparecem no texto? */
+const matches = (query: string, ...texts: string[]) => {
+  const hay = fold(texts.join(' '));
+  return fold(query)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((t) => hay.includes(t));
+};
+
+/** Fileira de categorias: mostra uma por vez, para a lista não virar uma rolagem sem fim. */
+function ShopChips<T extends string>({
+  chips,
+  current,
+  onPick,
+}: {
+  chips: { id: T; label: string }[];
+  current: T;
+  onPick: (id: T) => void;
+}) {
+  return (
+    <div className="shop-chips" role="group" aria-label="Categorias">
+      {chips.map((c) => (
+        <button
+          key={c.id}
+          className={`shop-chip ${current === c.id ? 'active' : ''}`}
+          aria-pressed={current === c.id}
+          onClick={() => onPick(c.id)}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type MartGroup = 'balls' | 'evolution' | 'upgrades' | 'other';
+
+const MART_GROUPS: { id: MartGroup; label: string }[] = [
+  { id: 'balls', label: 'BOLAS' },
+  { id: 'evolution', label: 'EVOLUÇÃO' },
+  { id: 'upgrades', label: 'MELHORIAS' },
+  { id: 'other', label: 'OUTROS' },
+];
+
+const martGroup = (entry: { id: string; kind?: string }): MartGroup =>
+  entry.kind === 'upgrade'
+    ? 'upgrades'
+    : entry.id.endsWith('-ball')
+      ? 'balls'
+      : EVOLVES_WITH.has(entry.id)
+        ? 'evolution'
+        : 'other';
+
 export function ShopScreen({ state }: { state: GameState }) {
   // Quem já está em Celadon abre direto na Loja de Departamentos.
   const [store, setStore] = useState<Store>(atDeptStore(state) ? 'dept' : 'mart');
   const income = useIncome(state);
+  const [query, setQuery] = useState('');
   return (
     <div className="bag-screen shop-screen">
       <div className="bag-pockets">
@@ -140,10 +201,20 @@ export function ShopScreen({ state }: { state: GameState }) {
           <Money value={state.coins} />
         </span>
       </div>
+      {store !== 'merchant' && (
+        <input
+          className="shop-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Procurar item (ex.: pedra, cura, bola)…"
+          aria-label="Procurar item na loja"
+        />
+      )}
       {store === 'mart' ? (
-        <Mart state={state} income={income} />
+        <Mart state={state} income={income} query={query} />
       ) : store === 'dept' ? (
-        <DeptStore state={state} income={income} />
+        <DeptStore state={state} income={income} query={query} />
       ) : (
         <Merchant state={state} income={income} />
       )}
@@ -152,17 +223,33 @@ export function ShopScreen({ state }: { state: GameState }) {
 }
 
 /** POKé MART: itens básicos, liberados pelos chefes vencidos. Compra-se de qualquer lugar. */
-function Mart({ state, income }: { state: GameState; income: number }) {
+function Mart({ state, income, query }: { state: GameState; income: number; query: string }) {
   const engine = useEngine();
   const available = shopEntries(state);
   const locked = SHOP_CATALOG.filter((e) => !available.includes(e));
+  const [group, setGroup] = useState<MartGroup>('balls');
+  const chips = MART_GROUPS.filter((g) => available.some((e) => martGroup(e) === g.id));
+  const current = chips.some((c) => c.id === group) ? group : (chips[0]?.id ?? 'balls');
+  const shown = available.filter((e) =>
+    query.trim()
+      ? matches(
+          query,
+          itemName(e.id),
+          e.kind === 'upgrade' ? (UPGRADE_TEXT[e.id]?.description ?? '') : itemDescription(e.id),
+        )
+      : martGroup(e) === current,
+  );
   return (
     <Window frame="menu" title="POKé MART" icon={<ItemIcon id="coin-case" size={24} />}>
       {state.challenge === 'frugal' && (
         <p className="hint">Desafio “Mochila vazia”: o Poké Mart não vende Poké Balls nesta jornada.</p>
       )}
+      {!query.trim() && chips.length > 1 && <ShopChips chips={chips} current={current} onPick={setGroup} />}
+      {shown.length === 0 && (
+        <p className="hint">Nada encontrado aqui. Tente outra palavra ou a Loja de Departamentos.</p>
+      )}
       <ul className="item-list mart">
-        {available.map((entry) => {
+        {shown.map((entry) => {
           const isUpgrade = entry.kind === 'upgrade';
           const bought = isUpgrade && state.upgrades.includes(entry.id);
           return (
@@ -212,12 +299,24 @@ function Mart({ state, income }: { state: GameState; income: number }) {
 }
 
 /** Loja de Departamentos: todos os itens, mas só se compra estando na área dela. */
-function DeptStore({ state, income }: { state: GameState; income: number }) {
+function DeptStore({ state, income, query }: { state: GameState; income: number; query: string }) {
   const engine = useEngine();
+  const [section, setSection] = useState<DeptSection | 'tms'>('balls');
   const route = getRoute(DEPT_STORE.routeId);
   const unlocked = deptStoreUnlocked(state);
   const here = atDeptStore(state);
   const entries = deptStoreEntries(state);
+  const searching = query.trim().length > 0;
+  const deptChips: { id: DeptSection | 'tms'; label: string }[] = [
+    ...DEPT_SECTIONS.filter((sec) => entries.some((e) => e.section === sec.id)).map((sec) => ({
+      id: sec.id,
+      label: sec.label,
+    })),
+    { id: 'tms', label: 'TMs' },
+  ];
+  const openSection = deptChips.some((c) => c.id === section) ? section : deptChips[0].id;
+  const tmHits = tmShelf(state).some((t) => matches(query, moveName(t.move), tmLabel(t.move)));
+  const found = tmHits || entries.some((e) => matches(query, itemName(e.id), describe(e.id)));
 
   return (
     <Window
@@ -252,8 +351,14 @@ function DeptStore({ state, income }: { state: GameState; income: number }) {
       {state.challenge === 'frugal' && (
         <p className="hint">Desafio “Mochila vazia”: só a Master Ball continua à venda entre as bolas.</p>
       )}
+      {!searching && <ShopChips chips={deptChips} current={openSection} onPick={setSection} />}
+      {searching && !found && <p className="hint">Nada encontrado. Tente outra palavra.</p>}
       {DEPT_SECTIONS.map((sec) => {
-        const list = entries.filter((e) => e.section === sec.id);
+        const list = entries
+          .filter((e) => e.section === sec.id)
+          .filter((e) =>
+            searching ? matches(query, itemName(e.id), describe(e.id)) : sec.id === openSection,
+          );
         if (!list.length) return null;
         return (
           <section key={sec.id} className="dept-section">
@@ -294,16 +399,28 @@ function DeptStore({ state, income }: { state: GameState; income: number }) {
           </section>
         );
       })}
-      <TmShelf state={state} here={here} income={income} />
+      {(searching ? tmHits : openSection === 'tms') && (
+        <TmShelf state={state} here={here} income={income} query={searching ? query : ''} />
+      )}
     </Window>
   );
 }
 
 /** 4º andar: TMs. Os de prêmio desde o início; os dos líderes, depois do Campeão da região. */
-function TmShelf({ state, here, income }: { state: GameState; here: boolean; income: number }) {
+function TmShelf({
+  state,
+  here,
+  income,
+  query,
+}: {
+  state: GameState;
+  here: boolean;
+  income: number;
+  query: string;
+}) {
   const engine = useEngine();
-  const shelf = tmShelf(state);
-  const locked = TM_SHELF.length - shelf.length;
+  const shelf = tmShelf(state).filter((t) => matches(query, moveName(t.move), tmLabel(t.move)));
+  const locked = TM_SHELF.length - tmShelf(state).length;
   return (
     <section className="dept-section tm-shelf">
       <h4>

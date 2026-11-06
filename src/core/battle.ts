@@ -9,6 +9,7 @@ import {
   RAID_LOOT,
   ROUTES,
   SPECIAL_BALLS,
+  SUPPORT_RULES,
   abilitiesOf,
   getMove,
   getRoute,
@@ -16,9 +17,11 @@ import {
   lineRoot,
   megaFor,
   routeIndex,
+  supportMoveOf,
   type Ailment,
   type BuffKind,
   type Route,
+  type StatKey,
   type TypeName,
 } from '../game-data';
 import { combatScales, computeModifiers, masteryLevel, type Modifiers } from './bonuses';
@@ -34,7 +37,16 @@ import {
 import { rollGender } from './gender';
 import { incenseType, repelActive, tickLures } from './lures';
 import { addToCollection, dexEntry, giveItems, markCaught, unlockTm } from './collection';
-import { absorbedBy, attackInterval, calcDamage, chooseMove, combatantOf, moveMatchup } from './combat';
+import {
+  absorbedBy,
+  attackInterval,
+  calcDamage,
+  chooseMove,
+  combatantOf,
+  expectedDamage,
+  moveMatchup,
+  type Combatant,
+} from './combat';
 import { daycareKills } from './daycare';
 import { routeWeather } from './env';
 import { relocateRoamer, roamerCaught } from './events';
@@ -238,7 +250,12 @@ export function playerMoveMatchup(state: GameState, moveId: string) {
 /** LUTAR: só no modo manual e só na vez do ativo (o cronômetro do golpe não se adianta clicando). */
 export function selectMove(state: GameState, move: string): boolean {
   const b = state.battle;
-  if (!awaitingCommand(state) || !movesOf(activePokemon(state)).includes(move)) return false;
+  if (!awaitingCommand(state)) return false;
+  const active = activePokemon(state);
+  const isSupport =
+    supportMoveOf(active.speciesId, active.level)?.id === move &&
+    !b.enemy?.playerSupportUsed?.includes(active.uid);
+  if (!isSupport && !movesOf(active).includes(move)) return false;
   b.pendingMove = move;
   return true;
 }
@@ -291,6 +308,9 @@ function takeTurn(
   const duel = b.kind === 'ghost';
   const pc = combatantOf(playerSource(state, player), duel ? mods.enemyMoveBoost : mods.playerMoveBoost);
   const ec = combatantOf(enemy, mods.enemyMoveBoost);
+  // Golpes de apoio: os aumentos de atributo valem até o fim do encontro.
+  if (enemy.playerBoost?.uid === player.uid) applyBoost(pc, enemy.playerBoost.stats);
+  applyBoost(ec, enemy.supportBoost);
   pc.burned = b.playerStatus?.kind === 'burn';
   ec.burned = enemy.status?.kind === 'burn';
   pc.statused = !!b.playerStatus;
@@ -425,8 +445,81 @@ function takeTurn(
     setStatus(side, null);
   }
 
+  // Queimadura e veneno ferem quem acabou de agir (Cura Venenosa transforma o veneno em cura).
+  const endOfAction = (): boolean => {
+    const after = getStatus(side);
+    const dot = statusDamage(after, maxHp(side));
+    if (dot > 0 && after?.kind === 'poison' && self.ability?.poisonHeal) {
+      setHp(side, hp(side) + maxHp(side) * self.ability.poisonHeal);
+    } else if (dot > 0) {
+      setHp(side, hp(side) - dot);
+      events.push({
+        type: 'statusDamage',
+        side,
+        speciesId: self.speciesId,
+        status: after!.kind,
+        damage: dot,
+      });
+      if (hp(side) <= 0) return onFaint(state, side, now, events, mods);
+    }
+    const regen = (self.ability?.regen ?? 0) + (self.held?.leftovers ?? 0);
+    if (regen > 0 && hp(side) > 0) setHp(side, hp(side) + Math.max(1, maxHp(side) * regen));
+    return false;
+  };
+
   const picked = isPlayer ? b.pendingMove : undefined;
   if (isPlayer) b.pendingMove = undefined;
+
+  // Golpe de apoio: uma vez por luta, por escolha no modo manual; no automático e nos inimigos, só em lutas longas.
+  const support = duel || b.kind === 'raid' ? undefined : supportMoveOf(self.speciesId, self.level);
+  const supportSpent = isPlayer ? enemy.playerSupportUsed?.includes(player.uid) : enemy.supportUsed;
+  if (support && !supportSpent) {
+    const pickedIt = picked === support.id;
+    const scale = isPlayer ? scales.playerDamage : scales.enemyDamage;
+    const longFight = () =>
+      expectedDamage(self, foe, chooseMove(self, foe), scale) * SUPPORT_RULES.minHitsToKo < hp(other);
+    const useful = () => {
+      const e = support.effect;
+      if (e.kind === 'heal') return hp(side) / maxHp(side) < SUPPORT_RULES.healBelow;
+      if (!longFight()) return false;
+      return e.kind === 'ailment' ? canGetStatus(e.ailment, other, side) : hp(side) / maxHp(side) >= 0.5;
+    };
+    const wants = isPlayer
+      ? !manualMode(state) && useful()
+      : useful() && rng.next() < (b.kind === 'wild' ? SUPPORT_RULES.wildChance : SUPPORT_RULES.trainerChance);
+    if (pickedIt || wants) {
+      if (isPlayer) (enemy.playerSupportUsed ??= []).push(player.uid);
+      else enemy.supportUsed = true;
+      const report = (outcome: 'ailment' | 'boost' | 'heal' | 'miss' | 'immune', extra = {}) =>
+        events.push({
+          type: 'supportMove',
+          side,
+          speciesId: self.speciesId,
+          target: foe.speciesId,
+          move: support.id,
+          outcome,
+          ...extra,
+        });
+      const e = support.effect;
+      if (e.kind === 'heal') {
+        const before = hp(side);
+        setHp(side, before + maxHp(side) * e.fraction);
+        report('heal', { amount: hp(side) - before });
+      } else if (e.kind === 'boost') {
+        if (isPlayer) enemy.playerBoost = { uid: player.uid, stats: e.stats };
+        else enemy.supportBoost = e.stats;
+        report('boost');
+      } else if (!canGetStatus(e.ailment, other, side)) {
+        report('immune');
+      } else if (rng.next() * 100 >= e.accuracy) {
+        report('miss');
+      } else {
+        inflict(other, makeStatus(e.ailment, rng), side);
+        report('ailment', { ailment: e.ailment });
+      }
+      return endOfAction();
+    }
+  }
   const moveId =
     picked && pc.moves.includes(picked)
       ? picked
@@ -483,19 +576,16 @@ function takeTurn(
   }
   if (isPlayer && b.kind === 'raid' && result.damage > 0) raidRage(enemy, events);
 
-  // Queimadura e veneno ferem quem acabou de agir (Cura Venenosa transforma o veneno em cura).
-  const after = getStatus(side);
-  const dot = statusDamage(after, maxHp(side));
-  if (dot > 0 && after?.kind === 'poison' && self.ability?.poisonHeal) {
-    setHp(side, hp(side) + maxHp(side) * self.ability.poisonHeal);
-  } else if (dot > 0) {
-    setHp(side, hp(side) - dot);
-    events.push({ type: 'statusDamage', side, speciesId: self.speciesId, status: after!.kind, damage: dot });
-    if (hp(side) <= 0) return onFaint(state, side, now, events, mods);
+  return endOfAction();
+}
+
+/** Aplica um aumento de atributos a quem está lutando. */
+function applyBoost(c: Combatant, stats?: Partial<Record<StatKey, number>>): void {
+  if (!stats) return;
+  c.stats = { ...c.stats };
+  for (const [key, mult] of Object.entries(stats) as [StatKey, number][]) {
+    c.stats[key] = Math.round(c.stats[key] * mult);
   }
-  const regen = (self.ability?.regen ?? 0) + (self.held?.leftovers ?? 0);
-  if (regen > 0 && hp(side) > 0) setHp(side, hp(side) + Math.max(1, maxHp(side) * regen));
-  return false;
 }
 
 /** Raide: o chefe fica furioso ao passar de 2/3 e de 1/3 do HP. */

@@ -80,6 +80,7 @@ export function PcScreen({ state }: { state: GameState }) {
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState<number[]>([]);
   const flipTimer = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const current = boxes[Math.min(box, boxes.length - 1)];
   const stored = boxes.reduce((n, b) => n + b.slots.filter((u) => u).length, 0);
@@ -358,6 +359,53 @@ export function PcScreen({ state }: { state: GameState }) {
           </div>
         </div>
 
+        {/* No toque não há arrastar: as ações do Pokémon selecionado ficam à mão, logo abaixo da caixa. */}
+        {!multi && !holding && (
+          <div className="pcs-actions" role="toolbar" aria-label="Ações do Pokémon selecionado">
+            <strong>{pokemonName(shown)}</strong>
+            {selectedSpot ? (
+              <>
+                <button
+                  className="pbtn small primary"
+                  onClick={() => {
+                    if (freeSlots > 0) toTeam(selected);
+                    else {
+                      setHolding(selectedSpot);
+                      setBox(selectedSpot.box);
+                      setNotice('Toque em quem vai sair da equipe.');
+                    }
+                  }}
+                >
+                  {freeSlots > 0 ? 'Pôr na equipe' : 'Trocar na equipe'}
+                </button>
+                <button
+                  className="pbtn small"
+                  onClick={() => {
+                    setHolding(selectedSpot);
+                    setBox(selectedSpot.box);
+                  }}
+                >
+                  Mover
+                </button>
+              </>
+            ) : (
+              <button
+                className="pbtn small"
+                disabled={team.length < 2}
+                onClick={() => engine.dispatch((s) => void removeFromTeam(s, selected))}
+              >
+                Tirar da equipe
+              </button>
+            )}
+            <button
+              className="pbtn small"
+              onClick={() => sheetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              Ver ficha
+            </button>
+          </div>
+        )}
+
         {/* Todas as caixas: quanto cada uma está cheia (e quantos batem com a busca). */}
         <nav className="pcs-boxes" aria-label="Caixas">
           {boxes.map((b, i) => {
@@ -566,7 +614,11 @@ export function PcScreen({ state }: { state: GameState }) {
         </div>
       )}
 
-      {!multi && shown && <Summary state={state} p={shown} />}
+      {!multi && shown && (
+        <div ref={sheetRef}>
+          <Summary state={state} p={shown} />
+        </div>
+      )}
       {!stored && (
         <p className="hint">
           <ItemIcon id="poke-ball" size={20} /> Seus Pokémon capturados ficam guardados aqui.

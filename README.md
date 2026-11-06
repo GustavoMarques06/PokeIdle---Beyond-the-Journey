@@ -223,6 +223,7 @@ As artes geradas para o jogo ficam em `art/` e passam por scripts antes de entra
 | Script                            | Uso                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------ |
 | `python scripts/sprite-feet.py`   | Mede onde ficam os pés de cada sprite, para alinhar o Pokémon à sombra   |
+| `node scripts/fetch-support-moves.mjs` | Baixa da PokéAPI quem aprende cada golpe de apoio, e em que nível |
 | `python scripts/build-weather.py` | Monta os climas (chuva, neve, tempestade e os ambientes: folhas, pétalas, vaga-lumes, aurora, estrelas cadentes) a partir das folhas do pixelfx |
 | `python scripts/build-fx.py`      | Monta os efeitos de golpe e de status de `art/fx-packs`                  |
 | `python scripts/frame-corners.py` | Converte os ornamentos das molduras de `art/frames/`                     |

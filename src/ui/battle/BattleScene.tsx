@@ -411,6 +411,15 @@ export function BattleScene({ state }: { state: GameState }) {
           const f: Floater = { id: nextId.current++, side: e.side, text: `-${e.damage}`, tone: 'status' };
           setFloaters((list) => [...list.slice(-6), f]);
           setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+        } else if (e.type === 'supportMove' && (e.outcome === 'heal' || e.outcome === 'boost')) {
+          const f: Floater = {
+            id: nextId.current++,
+            side: e.side,
+            text: e.outcome === 'heal' ? `+${e.amount}` : '▲',
+            tone: 'heal',
+          };
+          setFloaters((list) => [...list.slice(-6), f]);
+          setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
         } else if (e.type === 'captureAttempt') {
           const enemy = st.battle.enemy;
           setCapture({

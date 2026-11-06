@@ -63,6 +63,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  const fresh = request.mode === 'navigate' || url.pathname.endsWith('/asset-manifest.json');
+  // A lista de arquivos e o número da versão precisam vir da rede, senão uma versão nova nunca seria percebida.
+  const fresh =
+    request.mode === 'navigate' ||
+    url.pathname.endsWith('/asset-manifest.json') ||
+    url.pathname.endsWith('/version.json');
   event.respondWith(fresh ? networkFirst(request) : cacheFirst(request));
 });

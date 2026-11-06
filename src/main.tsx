@@ -8,6 +8,7 @@ import { GameEngine } from './engine/GameEngine';
 import { createStorage, isTauri } from './engine/storage';
 import { App } from './ui/App';
 import { installNotifications } from './ui/notify';
+import { requestPersistentStorage } from './ui/backup';
 import { startPreload } from './ui/preload';
 import { EngineContext } from './ui/useGame';
 import { installFrames } from './ui/theme/frames';
@@ -41,6 +42,7 @@ void boot();
 if ('serviceWorker' in navigator && import.meta.env.PROD && !isTauri()) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('Service worker falhou', err));
+    requestPersistentStorage();
     // Depois da primeira tela pintada, o resto dos arquivos vai para o cache em segundo plano.
     setTimeout(() => void startPreload(), 1500);
   });

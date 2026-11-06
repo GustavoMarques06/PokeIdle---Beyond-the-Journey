@@ -33,6 +33,7 @@ export {
 export { BALANCE, DEPT_STORE, SHOP, type ShopEntry } from './balance';
 export * from './meta';
 export * from './megas';
+export * from './supportMoves';
 export * from './heights';
 export * from './activities';
 export * from './natures';

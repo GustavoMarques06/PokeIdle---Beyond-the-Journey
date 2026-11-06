@@ -19,6 +19,7 @@ import {
   type Route,
   type ShopEntry,
   type WaterMode,
+  type StatKey,
 } from '../game-data';
 import { addToCollection } from './collection';
 import { eliteItemOf, typeItemOf } from './loadout';
@@ -132,6 +133,12 @@ export interface EnemyState {
   abilitySlot?: 0 | 1 | 2;
   /** Efeitos de uma só vez por luta já gastos ('sturdy', 'sash', 'berry'). */
   used?: string[];
+  /** Golpe de apoio: já usado por este inimigo, e os atributos que ele aumentou. */
+  supportUsed?: boolean;
+  supportBoost?: Partial<Record<StatKey, number>>;
+  /** Golpe de apoio do jogador nesta luta (some com o encontro): quem já usou e o aumento de quem está em campo. */
+  playerSupportUsed?: number[];
+  playerBoost?: { uid: number; stats: Partial<Record<StatKey, number>> };
   /** Raide: etapa de fúria (0 a 2). */
   rage?: number;
   /** Encontrado pescando ou surfando. */
@@ -438,6 +445,16 @@ export type GameEvent =
   | { type: 'learnedMove'; uid: number; speciesId: number; move: string }
   | { type: 'evolved'; uid: number; from: number; to: number }
   | { type: 'evolutionReady'; uid: number; speciesId: number; to: number }
+  | {
+      type: 'supportMove';
+      side: 'player' | 'enemy';
+      speciesId: number;
+      target: number;
+      move: string;
+      outcome: 'ailment' | 'boost' | 'heal' | 'miss' | 'immune';
+      ailment?: Ailment;
+      amount?: number;
+    }
   | { type: 'captureAttempt'; ball: string; success: boolean; speciesId: number; chance: number }
   | { type: 'captured'; uid: number; speciesId: number; shiny: boolean; isNew: boolean; perfect?: boolean }
   | { type: 'bossAvailable'; routeId: string }

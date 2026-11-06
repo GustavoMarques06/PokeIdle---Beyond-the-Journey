@@ -900,3 +900,18 @@ html.reduced-motion .gba-legendary,
 html.reduced-motion .gba-press {
   animation: none;
 }
+
+/* Recorte da câmera e cantos: o logo e o botão de música ficam dentro da área segura. */
+.gba-logo {
+  margin-top: env(safe-area-inset-top);
+  margin-left: env(safe-area-inset-left);
+}
+
+.music-toggle {
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+}
+
+.gba-copy {
+  bottom: calc(var(--u) * 2 + env(safe-area-inset-bottom));
+}

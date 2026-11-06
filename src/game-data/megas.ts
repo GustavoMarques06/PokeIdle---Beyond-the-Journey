@@ -1,7 +1,7 @@
 // Mega Evoluções: o Pokémon segura a Mega Stone da sua espécie e, em batalha, muda de forma (tipos,
 // atributos e habilidade da Mega, sprite próprio) até o fim do encontro. Não é uma espécie nova: a forma só
 // existe durante a luta e nunca é salva no Pokémon. Dados e sprites vêm de scripts/fetch-megas.mjs
-// (Mega Evoluções da 6ª geração, sem a Mega Rayquaza, que não usa pedra).
+// (Mega Evoluções da 6ª geração; a Mega Rayquaza usa o Meteorito, já que aqui toda Mega depende de um item).
 
 import megasJson from './generated/megas.json';
 import type { BaseStats, TypeName } from './types';

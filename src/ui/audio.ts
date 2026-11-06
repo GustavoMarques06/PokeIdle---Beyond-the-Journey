@@ -416,6 +416,11 @@ class AudioManager {
         case 'playerFainted':
           this.sfx('faint');
           break;
+        case 'supportMove':
+          this.sfx(
+            e.outcome === 'heal' ? 'heal' : e.outcome === 'miss' || e.outcome === 'immune' ? 'miss' : 'item',
+          );
+          break;
         case 'captureAttempt':
           // O resultado só soa quando a bola termina de balançar, para não estragar o suspense.
           this.sfx('throw');

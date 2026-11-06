@@ -76,6 +76,24 @@ export function Rich({ text, ctx }: { text: string; ctx: RichContext }) {
 }
 
 /** Imagem com legenda; um toque a amplia (Esc ou outro toque fecha). */
+/** Imagens que também têm versão de celular (public/help/cel). */
+const CEL_IMAGES = new Set(
+  [
+    'tela-principal',
+    'equipe',
+    'ficha-pokemon',
+    'pokedex',
+    'mochila',
+    'loja',
+    'mapa',
+    'atividades',
+    'missoes',
+    'treinador',
+    'melhorias',
+    'pc',
+  ].map((n) => `${n}.webp`),
+);
+
 function Figure({
   src,
   alt,
@@ -98,7 +116,11 @@ function Figure({
   return (
     <figure className="help-figure">
       <button className="help-figure-btn" onClick={() => setZoom(true)} aria-label={`Ampliar: ${alt}`}>
-        <img src={url} alt={alt} loading="lazy" draggable={false} />
+        <picture>
+          {/* Em telas de celular, a imagem mostra o jogo como ele aparece ali. */}
+          {CEL_IMAGES.has(src) && <source media="(max-width: 700px)" srcSet={assetUrl(`help/cel/${src}`)} />}
+          <img src={url} alt={alt} loading="lazy" draggable={false} />
+        </picture>
       </button>
       <figcaption>
         {caption && <Rich text={caption} ctx={ctx} />} <em>Toque na imagem para ampliar.</em>
@@ -111,7 +133,12 @@ function Figure({
           aria-label={alt}
           onClick={() => setZoom(false)}
         >
-          <img src={url} alt={alt} draggable={false} />
+          <picture>
+            {CEL_IMAGES.has(src) && (
+              <source media="(max-width: 700px)" srcSet={assetUrl(`help/cel/${src}`)} />
+            )}
+            <img src={url} alt={alt} draggable={false} />
+          </picture>
           <span>Toque para fechar</span>
         </div>
       )}

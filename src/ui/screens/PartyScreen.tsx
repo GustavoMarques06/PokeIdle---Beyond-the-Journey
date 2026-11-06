@@ -15,6 +15,8 @@ import {
   formName,
   getRoute,
   getSpecies,
+  describeSupport,
+  supportMoveOf,
 } from '../../game-data';
 import {
   BONUS_KINDS,
@@ -500,6 +502,7 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
   const species = getSpecies(p.speciesId);
   const stats = statsOf(p);
   const moves = movesOf(p);
+  const support = supportMoveOf(p.speciesId, p.level);
   const [editing, setEditing] = useState(false);
   const away = busyLabel(state, p.uid);
   const isActive = p.uid === state.activeUid;
@@ -641,6 +644,14 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
               </li>
             );
           })}
+          {support && (
+            <li className={`move type-bg-${support.type}`}>
+              <span className="move-name">{support.name.toUpperCase()}</span>
+              <span className="move-meta">
+                <TypeBadge type={support.type} /> APOIO · 1 vez por luta · {describeSupport(support)}
+              </span>
+            </li>
+          )}
         </ul>
       </div>
 

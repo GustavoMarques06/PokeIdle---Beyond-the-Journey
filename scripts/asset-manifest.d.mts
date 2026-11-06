@@ -1,3 +1,3 @@
 import type { Plugin } from 'vite';
 
-export function assetManifest(): Plugin;
+export function assetManifest(options: { buildId: string }): Plugin;

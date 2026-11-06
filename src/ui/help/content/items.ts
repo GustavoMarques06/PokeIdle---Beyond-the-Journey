@@ -99,7 +99,10 @@ export const ITEMS: Section = {
       keywords: 'mega stone pedra charizard mewtwo transformar transformacao',
       a: [
         {
-          p: 'A **Mega Evolução** é uma transformação **temporária** que deixa certos Pokémon muito mais fortes durante a luta, como nos jogos. Existem **47 Megas** da 6ª geração, entre elas Mega Charizard X e Y, Mega Venusaur, Mega Blastoise, Mega Mewtwo X e Y, Mega Gengar, Mega Lucario e Mega Garchomp.',
+          p: 'A **Mega Evolução** é uma transformação **temporária** que deixa certos Pokémon muito mais fortes durante a luta, como nos jogos. Existem **48 Megas** da 6ª geração, entre elas Mega Charizard X e Y, Mega Venusaur, Mega Blastoise, Mega Mewtwo X e Y, Mega Gengar, Mega Lucario e Mega Garchomp.',
+        },
+        {
+          p: 'A **Mega Rayquaza** não usa Mega Stone nos jogos originais. Aqui, ela segue a mesma regra das outras: basta segurar o **Meteorite**, vendido na Loja de Departamentos.',
         },
         {
           img: 'mega.webp',

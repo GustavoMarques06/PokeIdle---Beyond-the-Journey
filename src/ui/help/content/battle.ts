@@ -83,6 +83,28 @@ export const BATTLE: Section = {
       ],
     },
     {
+      id: 'apoio',
+      q: 'O que são os golpes de apoio?',
+      keywords:
+        'status sono paralisia veneno queimadura dança da espada swords dance cura recover aumentar atributo',
+      a: [
+        {
+          p: 'Além dos 4 golpes de ataque, muitos Pokémon têm um **golpe de apoio**, que não causa dano. Ele aparece na ficha, com a marca **APOIO**, e pode ser usado **uma vez por luta**. É sempre o último que o Pokémon aprendeu por nível.',
+        },
+        {
+          ul: [
+            '**Status:** faz o alvo dormir, paralisa, queima ou envenena (ex.: Spore, Thunder Wave, Will-O-Wisp, Toxic). Pode errar.',
+            '**Atributos:** aumenta atributos até o fim do encontro (ex.: Swords Dance, Nasty Plot, Dragon Dance).',
+            '**Cura:** recupera metade do HP (ex.: Recover, Roost, Synthesis).',
+          ],
+        },
+        {
+          p: 'No **automático**, ele só é usado em lutas longas, para não atrasar o farm, e a cura só quando o HP está abaixo da metade. No **manual**, aparece junto dos outros golpes em **LUTAR**. Os inimigos também usam os deles!',
+        },
+        { tip: 'O progresso com o jogo fechado é uma estimativa e não conta os golpes de apoio.' },
+      ],
+    },
+    {
       id: 'golpes',
       q: 'Como meu Pokémon escolhe os golpes? Posso mudar?',
       keywords: 'moves movimentos ataques tm aprender editar',

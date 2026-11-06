@@ -1,3 +1,4 @@
+import { SUPPORT_MOVES } from '../../game-data';
 // Mensagens da caixa de batalha, no tom dos RPGs portáteis clássicos.
 
 import { ACHIEVEMENTS, getRoute } from '../../game-data';
@@ -31,6 +32,14 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 function foeLabel(speciesId: number, ctx: BattleTextContext): string {
   return ctx.bossBattle ? `${speciesName(speciesId)} inimigo` : `${speciesName(speciesId)} selvagem`;
 }
+
+const SUPPORT_RESULT: Record<string, string> = {
+  sleep: 'adormeceu',
+  paralysis: 'ficou paralisado',
+  burn: 'se queimou',
+  poison: 'foi envenenado',
+  freeze: 'congelou',
+};
 
 export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | null {
   const boss = getRoute(ctx.routeId).boss;
@@ -85,6 +94,22 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
             : `Volte, ${mine(e.from, ctx)}! Vai, ${mine(e.to, ctx)}!`,
         important: true,
       };
+    case 'supportMove': {
+      const who = e.side === 'player' ? mine(e.speciesId, ctx) : foeLabel(e.speciesId, ctx);
+      const foe = e.side === 'player' ? foeLabel(e.target, ctx) : mine(e.target, ctx);
+      const name = SUPPORT_MOVES[e.move]?.name ?? e.move;
+      const result =
+        e.outcome === 'ailment'
+          ? `${foe} ${SUPPORT_RESULT[e.ailment!]}!`
+          : e.outcome === 'boost'
+            ? `${who} ficou mais forte!`
+            : e.outcome === 'heal'
+              ? `${who} recuperou HP!`
+              : e.outcome === 'immune'
+                ? 'Não teve efeito...'
+                : 'Mas errou!';
+      return { text: `${who} usou ${name}! ${result}`, important: false };
+    }
     case 'statusSkip':
     case 'statusCured':
     case 'statusDamage': {

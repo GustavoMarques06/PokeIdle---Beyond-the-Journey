@@ -60,7 +60,39 @@ export const SYSTEM: Section = {
           ],
         },
         {
-          tip: 'No celular, ao tocar numa aba do menu, a tela rola até o conteúdo dela. Para voltar à batalha, é só rolar para cima.',
+          p: 'No celular, o jogo baixa sozinho só o essencial e os sprites conforme eles aparecem, para poupar seus dados. Para jogar **sem internet** com todos os Pokémon, vá em **TREINADOR** → **DADOS** → **Baixar tudo** (de preferência no Wi-Fi).',
+        },
+        {
+          tip: 'Ao tocar numa aba do menu, a tela abre numa janela abaixo da batalha. Toque em **Fechar** para voltar ao menu.',
+        },
+      ],
+    },
+    {
+      id: 'iphone-save',
+      q: 'Como evito que o iPhone apague meu save?',
+      keywords: 'iphone ipad safari apagou sumiu sete dias instalar tela de inicio backup proteger',
+      a: [
+        {
+          p: 'No **Safari**, o iPhone pode apagar os dados de um site depois de **7 dias sem abri-lo**. Para o seu save não correr esse risco:',
+        },
+        {
+          ol: [
+            '**Instale o jogo:** no Safari, toque em **Compartilhar** e depois em **Adicionar à Tela de Início**. Jogue sempre pelo ícone: os dados do app instalado não têm esse limite de 7 dias.',
+            '**Faça uma cópia de vez em quando:** **TREINADOR** → **DADOS** → **Baixar arquivo** (o jogo também lembra você disso). Guarde o arquivo em Arquivos ou no iCloud Drive.',
+          ],
+        },
+        {
+          tip: 'O app instalado e o Safari guardam saves separados. Se você já joga no Safari, baixe uma cópia lá e use **CARREGAR JOGO** no app. Só apague o Safari depois de conferir.',
+        },
+      ],
+    },
+    {
+      id: 'atualizar',
+      q: 'Como o jogo é atualizado?',
+      keywords: 'update atualizar versao nova aviso',
+      a: [
+        {
+          p: 'Quando sai uma versão nova, aparece o aviso **Nova versão do jogo!** no alto da tela. Toque em **Atualizar**: o jogo grava seu progresso e recarrega. Se escolher **Depois**, o aviso volta na próxima vez que abrir o jogo. É preciso estar com internet.',
         },
       ],
     },
@@ -239,7 +271,9 @@ export const TROUBLE: Section = {
             'No aplicativo de Windows, existem backups diários dos últimos 7 dias na pasta de saves do jogo.',
           ],
         },
-        { tip: 'Para nunca passar por isso, faça um backup de vez em quando (veja "Como salvo meu jogo?").' },
+        {
+          tip: 'Para nunca passar por isso, faça um backup de vez em quando (veja "Como salvo meu jogo?"). O jogo lembra você a cada 7 dias. No iPhone, veja também "Como evito que o iPhone apague meu save?".',
+        },
       ],
     },
     {

@@ -4,7 +4,14 @@
 // golpe só da próxima vez.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { THROWABLE_BALLS, getMove, getRoute, megaLabel } from '../../game-data';
+import {
+  THROWABLE_BALLS,
+  describeSupport,
+  getMove,
+  getRoute,
+  megaLabel,
+  supportMoveOf,
+} from '../../game-data';
 import { legendaryRules } from '../../core/legendary';
 import { bossLook } from '../../core/rival';
 import { canCaptureHere } from '../../core/nuzlocke';
@@ -267,6 +274,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const mega = state.settings.battleMode === 'manual' ? megaAvailable(state) : undefined;
   const doMega = () => engine.dispatch((s) => megaEvolve(s));
   const player = activePokemon(state);
+  const supportMove = supportMoveOf(player.speciesId, player.level);
   const reserves = reservePokemon(state);
   const runLabel = wild ? 'FUGIR' : b.kind === 'boss' || b.kind === 'rocket' ? 'FUGIR' : 'DESISTIR';
   const runHint = !wild
@@ -368,8 +376,13 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
               {bossName}: {Math.min(prog.kills, route.killsRequired)}/{route.killsRequired}
             </span>
           )}
-          <button className="log-toggle" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog}>
-            REGISTRO {showLog ? '▼' : '▲'}
+          <button
+            className="log-toggle"
+            onClick={() => setShowLog((v) => !v)}
+            aria-expanded={showLog}
+            aria-label="Registro"
+          >
+            <span className="log-toggle-label">REGISTRO</span> {showLog ? '▼' : '▲'}
           </button>
         </div>
         {showLog && (
@@ -465,6 +478,23 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                   </button>
                 );
               })}
+              {supportMove && (
+                <button
+                  key={supportMove.id}
+                  className={`bc-move type-bg-${supportMove.type} ${b.pendingMove === supportMove.id ? 'queued' : ''}`}
+                  disabled={!waiting || !!b.enemy?.playerSupportUsed?.includes(player.uid)}
+                  title={describeSupport(supportMove)}
+                  onClick={() => {
+                    engine.dispatch((s) => void selectMove(s, supportMove.id));
+                    setView('main');
+                  }}
+                >
+                  <strong>{supportMove.name.toUpperCase()}</strong>
+                  <small>
+                    <TypeBadge type={supportMove.type} /> APOIO · 1 vez por luta
+                  </small>
+                </button>
+              )}
             </div>
           </div>
         )}

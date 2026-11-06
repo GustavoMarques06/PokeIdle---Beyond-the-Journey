@@ -133,6 +133,7 @@ describe('habilidades', () => {
     // Lapras (131): water-absorb no 1º slot.
     fight(s, { speciesId: 131, level: 40, hp: 10, abilitySlot: 0 });
     const enemy = s.battle.enemy!;
+    enemy.playerSupportUsed = [mon.uid]; // o golpe de apoio já foi: aqui interessa o ataque
     s.battle.playerTimerMs = 0;
     s.battle.enemyTimerMs = 1e9;
     const events = run(s, 3);

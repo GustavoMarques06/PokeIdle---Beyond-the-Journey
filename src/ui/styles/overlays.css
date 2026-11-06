@@ -374,3 +374,56 @@
 html.reduced-motion .save-indicator .item-icon {
   animation: none;
 }
+
+/* Aviso de versão nova: acima de tudo (até das janelas), dentro da área segura e sem bloquear o jogo. */
+.update-notice {
+  position: fixed;
+  z-index: 200;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+  width: max-content;
+  max-width: min(720px, calc(100vw - 16px));
+  padding: 6px 10px;
+  zoom: var(--ui-zoom);
+}
+
+.update-notice p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.update-notice-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+/* Avisos de proteção do save: embaixo, para não disputar o topo com o aviso de versão nova. */
+.safety-notice {
+  top: auto;
+  bottom: 14px;
+}
+
+@media (max-width: 900px), (max-height: 520px) {
+  .safety-notice {
+    bottom: calc(var(--menu-offset, 110px) + env(safe-area-inset-bottom));
+  }
+
+  .update-notice p {
+    font-size: 13px;
+  }
+}
+
+/* Deitado, a tela é baixa: no topo, o aviso não cobre o menu. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .safety-notice {
+    top: max(8px, env(safe-area-inset-top));
+    bottom: auto;
+  }
+}

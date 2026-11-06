@@ -602,6 +602,13 @@ export const ABILITIES: AbilityDef[] = [
     passive: { kind: 'damage', value: 0.04 },
   }),
   A({
+    id: 'delta-stream',
+    name: 'Corrente Delta',
+    description: 'Ventos fortes: Elétrico, Gelo e Pedra causam metade do dano.',
+    resist: { electric: 0.5, ice: 0.5, rock: 0.5 },
+    passive: { kind: 'damage', value: 0.03 },
+  }),
+  A({
     id: 'aerilate',
     name: 'Aerilar',
     description: 'Golpes Normais viram de Voador e causam 20% a mais.',
