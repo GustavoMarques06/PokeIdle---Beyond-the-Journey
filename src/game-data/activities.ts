@@ -87,6 +87,7 @@ export type MissionKind =
   | 'evolutions'
   | 'bosses'
   | 'hatch'
+  | 'hatch-type'
   | 'harvest'
   | 'expeditions'
   | 'tower-floors'
@@ -109,6 +110,7 @@ export const DAILY_MISSIONS: MissionTemplate[] = [
   { kind: 'evolutions', targets: [1, 2], reward: { research: 3 } },
   { kind: 'bosses', targets: [1, 2], reward: { coins: 400 } },
   { kind: 'hatch', targets: [1, 2], reward: { research: 3 }, requires: 'daycare' },
+  { kind: 'hatch-type', targets: [1], reward: { coins: 600 }, requires: 'daycare' },
   { kind: 'harvest', targets: [4, 8], reward: { coins: 60 }, requires: 'garden' },
   { kind: 'expeditions', targets: [1, 2], reward: { research: 2 }, requires: 'expeditions' },
   { kind: 'tower-floors', targets: [5, 10], reward: { tokens: 20 }, requires: 'tower' },
@@ -121,6 +123,7 @@ export const WEEKLY_MISSIONS: MissionTemplate[] = [
   { kind: 'evolutions', targets: [5, 8], reward: { research: 4, items: { 'rare-candy': 1 } } },
   { kind: 'bosses', targets: [5, 8], reward: { coins: 1500 } },
   { kind: 'hatch', targets: [5, 10], reward: { research: 4 }, requires: 'daycare' },
+  { kind: 'hatch-type', targets: [3, 4], reward: { coins: 900 }, requires: 'daycare' },
   {
     kind: 'expeditions',
     targets: [6, 10],
@@ -363,3 +366,97 @@ export const LEGENDARIES: LegendaryDef[] = [
   { speciesId: 720, regionId: 'kalos', level: 100, boost: 1.4 }, // Hoopa
   { speciesId: 721, regionId: 'kalos', level: 100, boost: 1.4 }, // Volcanion
 ];
+
+type LegendWeather = 'clear' | 'sun' | 'rain' | 'sand' | 'fog' | 'hail';
+
+/**
+ * Quando cada lendário é avistado: com um destes climas OU num destes períodos do dia (o que vier). Quem não está aqui
+ * aparece a qualquer hora. Os climas mudam a cada 2 h, então cada um tem as suas janelas, como nos jogos.
+ */
+export const LEGEND_WHEN: Record<number, { weather?: LegendWeather[]; period?: ('day' | 'night')[] }> = {
+  144: { weather: ['hail', 'fog'], period: ['night'] }, // Articuno
+  145: { weather: ['rain'], period: ['day'] }, // Zapdos
+  146: { weather: ['sun', 'clear'] }, // Moltres
+  151: { weather: ['fog', 'clear'] }, // Mew
+  243: { weather: ['rain'], period: ['night'] }, // Raikou
+  244: { weather: ['sun'], period: ['day'] }, // Entei
+  245: { weather: ['rain', 'fog'] }, // Suicune
+  249: { weather: ['rain'], period: ['night'] }, // Lugia
+  250: { weather: ['sun', 'clear'], period: ['day'] }, // Ho-Oh
+  251: { period: ['day'] }, // Celebi
+  377: { weather: ['sand'], period: ['day'] }, // Regirock
+  378: { weather: ['hail'], period: ['night'] }, // Regice
+  379: { weather: ['clear', 'fog'] }, // Registeel
+  382: { weather: ['rain'] }, // Kyogre
+  383: { weather: ['sun'] }, // Groudon
+  385: { period: ['night'] }, // Jirachi
+  480: { period: ['day'] }, // Uxie
+  481: { weather: ['clear', 'sun'] }, // Mesprit
+  482: { period: ['night'] }, // Azelf
+  485: { weather: ['sun', 'sand'] }, // Heatran
+  487: { weather: ['fog'], period: ['night'] }, // Giratina
+  488: { period: ['day'] }, // Cresselia
+  491: { period: ['night'] }, // Darkrai
+  492: { weather: ['sun', 'clear'], period: ['day'] }, // Shaymin
+  641: { weather: ['clear', 'fog'] }, // Tornadus
+  642: { weather: ['rain'] }, // Thundurus
+  645: { weather: ['sand', 'sun'] }, // Landorus
+  717: { period: ['night'] }, // Yveltal
+  716: { period: ['day'] }, // Xerneas
+};
+
+/**
+ * O que cada lendário pede para aparecer, como nos jogos: itens-chave na Mochila, Pokémon na equipe ou outros
+ * lendários já capturados (as duplas e os trios que se chamam).
+ */
+export const LEGEND_NEEDS: Record<number, { items?: string[]; team?: number[]; caught?: number[] }> = {
+  151: { caught: [150] }, // Mew depois do Mewtwo
+  249: { items: ['silver-wing'] }, // Lugia: Silver Wing
+  250: { items: ['rainbow-wing'], caught: [243, 244, 245] }, // Ho-Oh: Rainbow Wing e as três feras
+  377: { team: [369, 321] }, // Regis: Relicanth e Wailord na equipe
+  378: { team: [369, 321] },
+  379: { team: [369, 321] },
+  381: { caught: [380] }, // Latios vem atrás da Latias
+  384: { caught: [382, 383] }, // Rayquaza só desce depois de Kyogre e Groudon
+  486: { caught: [377, 378, 379] }, // Regigigas: os três Regis
+  493: { caught: [483, 484, 487] }, // Arceus: Dialga, Palkia e Giratina
+  490: { caught: [489] }, // Manaphy depois do Phione
+  645: { caught: [641, 642] }, // Landorus: Tornadus e Thundurus
+  646: { caught: [643] }, // Kyurem: depois do Reshiram (ou do Zekrom, ver legendary.ts)
+  718: { caught: [716, 717] }, // Zygarde: Xerneas e Yveltal
+};
+
+/** Clima que o lendário traz quando se enfurece (abaixo de metade do HP). */
+export const LEGEND_RAGE_WEATHER: Record<number, LegendWeather> = {
+  144: 'hail',
+  145: 'rain',
+  146: 'sun',
+  249: 'rain',
+  250: 'sun',
+  382: 'rain',
+  383: 'sun',
+  378: 'hail',
+  377: 'sand',
+  485: 'sun',
+  487: 'fog',
+  491: 'fog',
+  641: 'rain',
+  642: 'rain',
+  645: 'sand',
+};
+
+/** Bolas com afinidade temática com um lendário (multiplicador extra só contra ele). */
+export const LEGEND_BALLS: Record<number, Partial<Record<string, number>>> = {
+  491: { 'dusk-ball': 1.5 }, // Darkrai
+  487: { 'dusk-ball': 1.5 }, // Giratina
+  717: { 'dusk-ball': 1.5 }, // Yveltal
+  382: { 'dive-ball': 1.5, 'net-ball': 1.2 }, // Kyogre
+  490: { 'dive-ball': 1.5 }, // Manaphy
+  489: { 'dive-ball': 1.5 }, // Phione
+  249: { 'dive-ball': 1.5 }, // Lugia
+  251: { 'nest-ball': 1.5, 'quick-ball': 1.2 }, // Celebi
+  492: { 'nest-ball': 1.5 }, // Shaymin
+  385: { 'quick-ball': 1.5 }, // Jirachi
+  151: { 'quick-ball': 1.5 }, // Mew
+  493: { 'ultra-ball': 1.3 }, // Arceus
+};

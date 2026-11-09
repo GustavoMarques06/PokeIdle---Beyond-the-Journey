@@ -2,6 +2,7 @@
 // As funções mutam o `GameState` recebido e devolvem eventos para a UI animar.
 
 import {
+  LEGEND_RAGE_WEATHER,
   BALANCE,
   BALL_RULES,
   FOUND_ITEMS,
@@ -53,7 +54,14 @@ import { routeWeather } from './env';
 import { relocateRoamer, roamerCaught } from './events';
 import { addFriendship, friendshipSteps } from './friendship';
 import { breakChain, huntShinyMultiplier, huntWeight, recordEncounter } from './hunt';
-import { endLegendary, legendaryCaught, legendaryDef, legendaryRules } from './legendary';
+import {
+  endLegendary,
+  legendaryCaptureBonus,
+  legendaryCaught,
+  legendaryDef,
+  legendaryRules,
+  legendaryShinyBoost,
+} from './legendary';
 import { progressMission } from './missions';
 import { beforeAction, canInflict, rollAilment, statusDamage, statusInterval } from './status';
 import { bestMatchup, healTeam, nextHealthyReserve, reservePokemon, switchIn } from './team';
@@ -612,6 +620,7 @@ function takeTurn(
     }
   }
   if (isPlayer && b.kind === 'raid' && result.damage > 0) raidRage(enemy, events);
+  if (isPlayer && b.kind === 'legendary' && result.damage > 0) legendRage(state, enemy, events);
 
   return endOfAction();
 }
@@ -632,6 +641,19 @@ function raidRage(enemy: EnemyState, events: GameEvent[]): void {
   enemy.rage = stage;
   enemy.status = undefined;
   events.push({ type: 'raidRage', speciesId: enemy.speciesId, stage });
+}
+
+/**
+ * Lendário: abaixo de metade do HP ele se enfurece uma vez: fica mais rápido e mais forte (a mesma fúria das raides),
+ * se livra do status e, se tiver um, traz o clima dele até o fim da luta.
+ */
+function legendRage(state: GameState, enemy: EnemyState, events: GameEvent[]): void {
+  if (enemy.rage || enemy.hp <= 0 || enemy.hp / enemy.maxHp > 0.5) return;
+  enemy.rage = 1;
+  enemy.status = undefined;
+  const weather = LEGEND_RAGE_WEATHER[enemy.speciesId];
+  if (weather) state.battle.weather = weather;
+  events.push({ type: 'legendRage', speciesId: enemy.speciesId, ...(weather ? { weather } : {}) });
 }
 
 /** Alguém chegou a 0 de HP. Devolve true se a batalha mudou. */
@@ -687,7 +709,7 @@ const DUEL_SCALES = {
 /** Tipos favorecidos pelo clima e pelo período nos encontros selvagens. */
 function encounterTypes(state: GameState, route: Route): TypeName[] {
   const out: TypeName[] = [];
-  const weather = routeWeather(route, state.env);
+  const weather = state.battle.weather ?? routeWeather(route, state.env);
   if (weather === 'rain') out.push('water');
   if (weather === 'sun') out.push('fire', 'grass');
   if (weather === 'sand') out.push('rock', 'ground');
@@ -741,7 +763,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     held = member.held;
     abilitySlot = member.abilitySlot ?? 0;
     ivs = legendaryIvs(rng, legendaryRules(speciesId).guaranteedPerfectIvs);
-    shiny = rollShiny(rng, mods.shiny);
+    shiny = rollShiny(rng, mods.shiny * legendaryShinyBoost(state, speciesId));
   } else if (b.kind === 'raid') {
     const member = b.team[0];
     speciesId = member.speciesId;
@@ -920,7 +942,7 @@ function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, 
   recordForm(
     state,
     player.speciesId,
-    battleForm(player.speciesId, player.form, routeWeather(route, state.env)),
+    battleForm(player.speciesId, player.form, state.battle.weather ?? routeWeather(route, state.env)),
   );
   if (b.kind === 'wild' && enemy.held) {
     giveItems(state, { [enemy.held]: 1 });
@@ -1019,6 +1041,11 @@ function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[]
   for (let i = 0; i < 2; i++) {
     for (const [id, n] of Object.entries(pickWeighted(rng, RAID_LOOT).items)) loot[id] = (loot[id] ?? 0) + n;
   }
+  // Às vezes a raide deixa um ovo raro (vai para o ninho da Creche).
+  if (rng.next() < 0.25) loot['rare-egg'] = 1;
+  // As asas de Johto (chaves de Lugia e Ho-Oh) caem até você ter as duas.
+  const wing = ['silver-wing', 'rainbow-wing'].find((w) => !(state.items[w] > 0));
+  if (wing && rng.next() < 0.15) loot[wing] = 1;
   state.coins += coins;
   state.stats.coinsEarned += coins;
   giveItems(state, loot);
@@ -1238,7 +1265,11 @@ export function currentCaptureChance(state: GameState, ball: string, mods = comp
       ? BALANCE.pseudo.captureRate
       : getSpecies(enemy.speciesId).captureRate;
   const base = captureChance(rate, enemy.hp, enemy.maxHp, ball, ballContext(state) ?? undefined);
-  return Math.min(1, base * mods.capture * researchBonus(state, enemy.speciesId).capture);
+  const legend =
+    state.battle.kind === 'legendary'
+      ? legendaryCaptureBonus(state, enemy.speciesId, ball, enemy.status?.kind, state.lastTimerAt)
+      : 1;
+  return Math.min(1, base * legend * mods.capture * researchBonus(state, enemy.speciesId).capture);
 }
 
 export function throwBall(state: GameState, ball: string, now: number): GameEvent[] {

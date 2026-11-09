@@ -2,7 +2,8 @@
 // caixas de status e efeitos (dano, impacto, captura, subida de nível).
 // Só apresentação — a simulação continua no GameEngine independentemente daqui.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
+import { legendGlow } from '../i18n/legends';
 import {
   BALANCE,
   assetUrl,
@@ -43,6 +44,7 @@ import {
   HpBar,
   ItemIcon,
   PixelIcon,
+  PokemonSprite,
   Shiny,
   TrainerImage,
 } from '../components/common';
@@ -291,6 +293,9 @@ export function BattleScene({ state }: { state: GameState }) {
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [sparks, setSparks] = useState<Spark[]>([]);
   const [capture, setCapture] = useState<CaptureAnim | null>(null);
+  // Lendário: entrada de cinema, fúria e o resultado da bola (rugido ou explosão de estrelas).
+  const [legendIntro, setLegendIntro] = useState<{ id: number; speciesId: number } | null>(null);
+  const [legendFx, setLegendFx] = useState<{ id: number; kind: 'rage' | 'roar' | 'caught' } | null>(null);
   const [levelUp, setLevelUp] = useState<{
     id: number;
     name: string;
@@ -324,7 +329,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const theme = SCENE_THEMES[sceneKey] ?? 'meadow';
   const { enemy: ENEMY_BASE, player: PLAYER_BASE } = sceneBases(sceneKey);
   const gfx = state.settings.graphics;
-  const weather = b.kind === 'tower' ? 'clear' : routeWeather(route, state.env);
+  const weather = b.kind === 'tower' ? 'clear' : (b.weather ?? routeWeather(route, state.env));
   const night =
     state.env.period === 'night' &&
     b.kind !== 'tower' &&
@@ -430,8 +435,28 @@ export function BattleScene({ state }: { state: GameState }) {
           };
           setFloaters((list) => [...list.slice(-6), f]);
           setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+        } else if (e.type === 'legendRage') {
+          const id = nextId.current++;
+          audio.sfx('boss');
+          audio.cry(e.speciesId);
+          if (motion) {
+            setLegendFx({ id, kind: 'rage' });
+            setTimeout(() => setLegendFx((cur) => (cur?.id === id ? null : cur)), 1200);
+          }
         } else if (e.type === 'captureAttempt') {
           const enemy = st.battle.enemy;
+          if (legendaryDef(e.speciesId)) {
+            // Depois que a bola para de balançar: rugido (escapou) ou estrelas (capturado).
+            const id = nextId.current++;
+            const after = captureAnimMs(captureShakes(e.chance, e.success), e.success);
+            const kind = e.success ? 'caught' : 'roar';
+            setTimeout(() => {
+              if (kind === 'roar') audio.cry(e.speciesId);
+              else audio.sfx('fanfare');
+              if (motion) setLegendFx({ id, kind });
+            }, after * (kind === 'roar' ? 0.85 : 0.7));
+            setTimeout(() => setLegendFx((cur) => (cur?.id === id ? null : cur)), after + 1400);
+          }
           setCapture({
             id: nextId.current++,
             ball: e.ball,
@@ -441,6 +466,14 @@ export function BattleScene({ state }: { state: GameState }) {
             shiny: enemy?.shiny ?? false,
             enemyKey: keyOf(enemy),
           });
+        } else if (e.type === 'spawn' && (e.legendary || st.battle.kind === 'legendary')) {
+          const id = nextId.current++;
+          audio.sfx('boss');
+          setTimeout(() => audio.cry(e.speciesId), 900);
+          if (motion) {
+            setLegendIntro({ id, speciesId: e.speciesId });
+            setTimeout(() => setLegendIntro((cur) => (cur?.id === id ? null : cur)), 2800 / speed);
+          }
         } else if (e.type === 'spawn' && motion) {
           const id = nextId.current++;
           const trainer = st.battle.trainer;
@@ -566,6 +599,9 @@ export function BattleScene({ state }: { state: GameState }) {
   const staleEscape = capture !== null && !capture.success && keyOf(enemy) !== capture.enemyKey;
   // Só some o Pokémon que está dentro da bola: quem entra depois da captura aparece normalmente.
   const hideEnemy = capture !== null && keyOf(enemy) === capture.enemyKey;
+  // Lendário em campo (desafio ou errante): aura, partículas, moldura dourada e efeitos.
+  const legendHere = !!enemy && (b.kind === 'legendary' || !!legendaryDef(enemy.speciesId));
+  const motionOn = !state.settings.reducedMotion && gfx !== 'performance';
   // Castform muda com o clima; Unown, Deerling e Spinda mostram a forma deles.
   const mega = megaActive(state, player);
   const playerForm = mega?.form ?? battleForm(player.speciesId, player.form, weather);
@@ -611,7 +647,8 @@ export function BattleScene({ state }: { state: GameState }) {
 
   return (
     <div
-      className={`scene theme-${theme} ${enemy?.water ? `mode-${enemy.water}` : ''}`}
+      className={`scene theme-${theme} ${enemy?.water ? `mode-${enemy.water}` : ''} ${legendHere ? 'legend-battle' : ''} ${legendHere && enemy?.rage ? 'legend-enraged' : ''} ${legendFx ? `legend-fx-${legendFx.kind}` : ''}`}
+      style={legendHere && enemy ? ({ ['--glow' as string]: legendGlow(enemy.speciesId) } as CSSProperties) : undefined}
       ref={wrapRef}
       aria-label="Campo de batalha"
     >
@@ -710,6 +747,33 @@ export function BattleScene({ state }: { state: GameState }) {
         />
       )}
       {capture && !staleEscape && <CaptureGhost anim={capture} base={ENEMY_BASE} />}
+      {legendHere && enemy && !hideEnemy && motionOn && (
+        <span className={`legend-particles type-${getSpecies(enemy.speciesId).types[0]}`} aria-hidden>
+          {Array.from({ length: 12 }, (_, i) => (
+            <i key={i} style={{ ['--i' as string]: i } as CSSProperties} />
+          ))}
+        </span>
+      )}
+      {legendFx?.kind === 'caught' && (
+        <span className="legend-caught-burst" aria-hidden>
+          {Array.from({ length: 16 }, (_, i) => (
+            <i key={i} style={{ ['--a' as string]: `${i * 22.5}deg` } as CSSProperties} />
+          ))}
+        </span>
+      )}
+      {legendIntro && (
+        <div key={legendIntro.id} className="legend-intro" aria-live="polite">
+          <span className="legend-intro-dark" />
+          <span className="legend-intro-silhouette">
+            <PokemonSprite speciesId={legendIntro.speciesId} kind="front" silhouette />
+          </span>
+          <span className="legend-intro-flash" />
+          <div className="legend-intro-card frame frame-dialog">
+            <small>{legendaryDef(legendIntro.speciesId)?.tier === 'pseudo' ? 'QUASE LENDÁRIO' : 'LENDÁRIO'}</small>
+            <strong>Um {speciesName(legendIntro.speciesId).toUpperCase()} apareceu!</strong>
+          </div>
+        </div>
+      )}
 
       <BattleSprite
         key={`mon-${player.uid}-${mega?.form ?? ''}`}
@@ -725,7 +789,7 @@ export function BattleScene({ state }: { state: GameState }) {
       />
 
       {enemy && (
-        <div className="status-box status-enemy frame frame-status">
+        <div className={`status-box status-enemy frame frame-status ${legendHere ? 'legend' : ''}`}>
           <div className="status-name">
             <span>
               {isMegaForm(enemy.speciesId, enemy.form) && (

@@ -497,3 +497,100 @@ html.reduced-motion .save-indicator .item-icon {
   font-size: 22px;
   color: var(--menu-blue-dark);
 }
+
+/* --- Novidades: log de atualizações -------------------------------------------------------------- */
+.news-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(94vw, 520px);
+  max-height: 86vh;
+  padding: 14px;
+  animation: iv-pop 0.3s steps(3, end);
+}
+
+.news-popup h2 {
+  margin: 0;
+  font: 700 18px var(--font-label);
+  color: var(--gold-dark);
+  text-align: center;
+}
+
+.news-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.news-popup .pbtn {
+  align-self: center;
+}
+
+.changelog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changelog-entry {
+  padding: 6px 8px;
+  border: 2px solid var(--menu-blue-light);
+  background: #fff;
+}
+
+.changelog-entry.latest {
+  border-color: var(--gold-dark);
+  background: #fffbe8;
+}
+
+.changelog-entry header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.changelog-entry header strong {
+  font: 700 14px var(--font-label);
+}
+
+.changelog-entry header small {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.changelog-entry ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.change-tag {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 0 4px;
+  font: 700 9px var(--font-label);
+  color: #fff;
+  vertical-align: 1px;
+}
+
+.change-tag.tag-novo {
+  background: var(--hp-good);
+  color: var(--ink);
+}
+
+.change-tag.tag-melhoria {
+  background: var(--menu-blue);
+}
+
+.change-tag.tag-fix {
+  background: var(--red);
+}

@@ -184,7 +184,7 @@ export function computeModifiers(state: GameState): Modifiers {
   const fortune = 0.15 * prestigeLevel(state, 'fortune');
   const dex = dexBonuses(state);
   const route = getRoute(state.battle?.routeId ?? state.currentRouteId);
-  const weather = routeWeather(route, state.env);
+  const weather = state.battle?.weather ?? routeWeather(route, state.env);
   const envBoost = environmentMoveBoost(weather, state.env.period);
 
   return {

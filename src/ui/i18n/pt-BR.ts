@@ -92,6 +92,11 @@ export const ENCOUNTER_MODE_NAMES: Record<string, string> = {
 };
 
 export const ITEM_DESCRIPTIONS: Record<string, string> = {
+  'rainbow-wing': 'Uma pena que brilha com as sete cores. Com ela, Ho-Oh aparece (depois das três feras lendárias).',
+  'silver-wing': 'Uma pena prateada que vem do mar. Com ela, Lugia aparece.',
+  'rare-egg': 'Um ovo raro (bebês e espécies difíceis, 3 IVs perfeitos). Vai sozinho para o ninho da Creche.',
+  'egg-warmer': 'Na Creche: aquece um ovo e adianta metade do caminho até chocar.',
+  'egg-incubator': 'Na Creche: +1 chocadeira para sempre (vale até 2).',
   'net-ball': 'Captura 3,5× melhor contra Pokémon de Água e Inseto.',
   'dusk-ball': 'Captura 3× melhor à noite e em cavernas.',
   'quick-ball': 'Captura 5× melhor nos primeiros 5 segundos do encontro.',
@@ -448,8 +453,10 @@ export function describeEvent(e: GameEvent): string | null {
     }
     case 'hallOfFame':
       return `Hall da Fama: campeão de ${REGION_NAMES[e.regionId] ?? e.regionId}!`;
+    case 'eggReady':
+      return e.count > 1 ? `Creche: ${e.count} ovos prontos para chocar!` : 'Creche: um ovo está pronto para chocar!';
     case 'hatched':
-      return `O ovo chocou: ${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''}!`;
+      return `O ovo chocou:${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''}!`;
     case 'berryReady':
       return `Jardim: ${itemName(e.berry)} pronta para colher.`;
     case 'fossilReady':
@@ -466,6 +473,12 @@ export function describeEvent(e: GameEvent): string | null {
       return `Equipe Rocket em ${getRoute(e.routeId).name}! Vá até lá para enfrentá-los.`;
     case 'rocketLeft':
       return 'A Equipe Rocket foi embora.';
+    case 'legendaryReturned':
+      return `Lendários: ${speciesName(e.speciesId)} voltou e pode ser desafiado de novo.`;
+    case 'legendRumor':
+      return `Boato do dia: dizem que viram ${speciesName(e.speciesId)} por aí! Hoje ele aparece a qualquer hora.`;
+    case 'legendRage':
+      return `${speciesName(e.speciesId)} se enfureceu!`;
     case 'legendaryEnded':
       return e.reason === 'caught'
         ? `${speciesName(e.speciesId)} foi capturado! Uma lenda agora é sua.`
@@ -629,6 +642,7 @@ export const MISSION_TEXT: Record<string, (target: number, type?: string) => str
   'capture-type': (n, t) => `Capture ${n} Pokémon do tipo ${TYPE_NAMES[t ?? ''] ?? t}`,
   evolutions: (n) => `Evolua ${n} Pokémon`,
   bosses: (n) => `Vença ${n} treinador${n > 1 ? 'es' : ''} (chefes ou Rocket)`,
+  'hatch-type': (n, t) => `Choque ${n} ovo${n > 1 ? 's' : ''} de Pokémon do tipo ${TYPE_NAMES[t ?? ''] ?? t}`,
   hatch: (n) => `Choque ${n} ovo${n > 1 ? 's' : ''}`,
   harvest: (n) => `Colha ${n} berries`,
   expeditions: (n) => `Conclua ${n} expedição${n > 1 ? 'ões' : ''}`,
@@ -659,6 +673,8 @@ export const TOAST_EVENTS = new Set<GameEvent['type']>([
   'rocketAppeared',
   'rocketDefeated',
   'legendaryEnded',
+  'legendaryReturned',
+  'legendRumor',
   'towerEnded',
   'missionDone',
   'missionsRefreshed',

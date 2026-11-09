@@ -223,7 +223,23 @@ export const BALANCE = {
     unlock: 'rota-5-6',
     slots: 2,
     killsPerEgg: 60,
-    maxEggs: 3,
+    /** Ovos guardados no ninho (chocando ou esperando a vez). */
+    maxEggs: 6,
+    /** Chocadeiras: só os ovos dentro delas (e o levado na equipe) andam. Mais vagas vêm do Diário. */
+    incubators: 2,
+    /** O ovo levado na equipe anda este tanto mais rápido com as vitórias (como andar com ele nos jogos). */
+    carriedMult: 2,
+    /** Chama Corporal ou Armadura de Magma na equipe: os ovos andam este tanto mais rápido. */
+    flameBodyMult: 2,
+    /** IVs herdados com Destiny Knot num dos pais. */
+    knotIvs: 5,
+    /** Chance de herdar a habilidade oculta, quando a mãe (ou o pai que não é Ditto) tem a dela. */
+    hiddenInherit: 0.6,
+    /** Método Masuda: pais de treinadores diferentes (um veio pelo Cabo Link) multiplicam a chance de shiny. */
+    masudaMultiplier: 2.5,
+    /** Ovo de presente ao fim de uma expedição: chance por hora de expedição (com teto). */
+    giftEggPerHour: 0.04,
+    giftEggMax: 0.5,
     /** Vitórias (em qualquer rota) para cada nível ganho na creche. */
     killsPerLevel: 40,
     hatchLevel: 5,

@@ -15,7 +15,7 @@ import { attackInterval, combatantOf } from './combat';
 import { relocateRoamer, rocketTeam } from './events';
 import { breakChain } from './hunt';
 import { eliteItemOf } from './loadout';
-import { endLegendary, legendaryDef, legendaryStatus } from './legendary';
+import { countEncounter, endLegendary, legendaryDef, legendaryStatus } from './legendary';
 import { evolve, itemEvolution, setLevel } from './progression';
 import { raidTeam } from './raids';
 import { canRematch } from './rematch';
@@ -211,6 +211,7 @@ export function challengeLegendary(state: GameState, speciesId: number, now: num
   if (!def || legendaryStatus(state, def, now) !== 'ready' || state.battle.kind !== 'wild') return false;
   applyChallengePreset(state, 'legendary');
   healTeam(state);
+  countEncounter(state, speciesId);
   state.battle = {
     ...freshBattle(state.currentRouteId),
     kind: 'legendary',

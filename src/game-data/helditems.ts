@@ -43,8 +43,10 @@ export interface HeldItemDef {
   friendship?: number;
   /** Multiplica as EVs ganhas no Campo de Treino. */
   training?: number;
-  /** Impede a evolução. */
+  /** Impede a evolução (e, na Creche, passa a natureza ao filhote). */
   everstone?: boolean;
+  /** Criação: Destiny Knot (5 IVs herdados) ou Power Item (garante o IV de um atributo). */
+  breeding?: { knot?: boolean; power?: StatKey };
   /** Mega Stone: libera a Mega Evolução da espécie em batalha (ver megas.ts). */
   megaStone?: boolean;
 }
@@ -88,6 +90,24 @@ const TYPE_TEXT: Record<TypeName, string> = {
 };
 
 const H = (def: HeldItemDef): HeldItemDef => def;
+
+const STAT_TEXT: Record<StatKey, string> = {
+  hp: 'HP',
+  atk: 'Ataque',
+  def: 'Defesa',
+  spAtk: 'At. Esp.',
+  spDef: 'Def. Esp.',
+  spe: 'Velocidade',
+};
+
+const POWER_ITEMS: [string, string, StatKey, string][] = [
+  ['power-weight', 'Power Weight', 'hp', '#58b878'],
+  ['power-bracer', 'Power Bracer', 'atk', '#e05040'],
+  ['power-belt', 'Power Belt', 'def', '#e0a030'],
+  ['power-lens', 'Power Lens', 'spAtk', '#4880e0'],
+  ['power-band', 'Power Band', 'spDef', '#40b0b0'],
+  ['power-anklet', 'Power Anklet', 'spe', '#e060c0'],
+];
 
 export const HELD_ITEMS: HeldItemDef[] = [
   H({
@@ -259,6 +279,25 @@ export const HELD_ITEMS: HeldItemDef[] = [
     price: 2000,
     everstone: true,
   }),
+  // Criação (ver core/daycare.ts): só fazem efeito em quem está na Creche.
+  H({
+    id: 'destiny-knot',
+    name: 'Destiny Knot',
+    description: 'Na Creche: o filhote herda 5 IVs dos pais, em vez de 3.',
+    icon: { glyph: 'orb', color: '#e84870' },
+    price: 20000,
+    breeding: { knot: true },
+  }),
+  ...POWER_ITEMS.map(([id, name, stat, color]) =>
+    H({
+      id,
+      name,
+      description: `Na Creche: o filhote herda deste pai o IV de ${STAT_TEXT[stat]}.`,
+      icon: { glyph: 'band', color },
+      price: 10000,
+      breeding: { power: stat },
+    }),
+  ),
   H({
     id: 'oran-berry',
     name: 'Oran Berry',
@@ -485,6 +524,13 @@ export function extraItemData(): Record<string, ItemData> {
     name: 'Captura automática',
     sprite: 'sprites/items/catching-charm.png',
   };
+  // Creche: ovo raro (vira ovo no ninho), aquecedor (consumível) e chocadeira extra.
+  // Chaves dos lendários de Johto (ver LEGEND_NEEDS): caem em raides e expedições.
+  out['rainbow-wing'] = { id: 'rainbow-wing', name: 'Rainbow Wing', icon: { glyph: 'gem', color: '#f0a030' } };
+  out['silver-wing'] = { id: 'silver-wing', name: 'Silver Wing', icon: { glyph: 'gem', color: '#b8c8e8' } };
+  out['rare-egg'] = { id: 'rare-egg', name: 'Ovo Raro', sprite: 'sprites/items/mystery-egg.png' };
+  out['egg-warmer'] = { id: 'egg-warmer', name: 'Aquecedor', icon: { glyph: 'sun', color: '#f08030' } };
+  out['egg-incubator'] = { id: 'egg-incubator', name: 'Chocadeira', icon: { glyph: 'capsule', color: '#e8c070' } };
   for (const h of HELD_ITEMS)
     out[h.id] = { id: h.id, name: h.name, sprite: spriteOf(h.id, h.sprite), icon: h.icon };
   for (const t of TRAINING_ITEMS)

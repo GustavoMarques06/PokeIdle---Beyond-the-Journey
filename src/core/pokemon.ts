@@ -67,6 +67,15 @@ export interface PokemonInstance {
   relearned?: string[];
   /** Treinador original, quando veio de uma troca pelo Cabo Link. */
   ot?: string;
+  /** Pais (e avós), quando nasceu de um ovo da Creche. */
+  parents?: EggParent[];
+}
+
+/** Um ancestral na árvore de criação: espécie, se era shiny e os pais dele (um nível só). */
+export interface EggParent {
+  s: number;
+  shiny?: boolean;
+  p?: EggParent[];
 }
 
 /** Feitos de um Pokémon como ativo. */

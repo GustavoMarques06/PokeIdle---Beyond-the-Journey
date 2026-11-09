@@ -45,9 +45,9 @@
   --hp-bad-hi: #f89878;
 
   /* Tipografia */
-  --font-text: 'DotGothic16', ui-sans-serif, system-ui, sans-serif;
+  --font-text: 'Pixelify Sans', ui-sans-serif, system-ui, sans-serif;
   /* A fonte das caixas de diálogo vale para o jogo todo (títulos e rótulos também). */
-  --font-label: 'DotGothic16', ui-sans-serif, system-ui, sans-serif;
+  --font-label: 'Pixelify Sans', ui-sans-serif, system-ui, sans-serif;
 
   /* Espaçamento */
   --gap: 8px;
@@ -72,7 +72,7 @@ body {
   background-size: 32px 32px;
   color: var(--ink);
   font: 15px/1.35 var(--font-text);
-  /* Só existe o peso 400: sem isso o navegador inventa um negrito borrado. */
+  /* A Pixelify Sans junta "fi" numa ligadura que parece um "A"; os pesos 400, 600 e 700 são de verdade. */
   font-synthesis: none;
   font-variant-ligatures: none;
   image-rendering: pixelated;

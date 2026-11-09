@@ -40,6 +40,11 @@ function LootSummary({ loot }: { loot: ExpeditionLoot }) {
           equipe!
         </li>
       ))}
+      {loot.eggs > 0 && (
+        <li>
+          <ItemIcon id="mystery-egg" size={20} /> Um ovo raro! Foi para o ninho da Creche.
+        </li>
+      )}
       {loot.levels.map((l) => (
         <li key={l.uid}>
           Nv{l.from} → Nv{l.to}

@@ -174,6 +174,8 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
     }
     case 'hallOfFame':
       return { text: 'Parabéns! Sua equipe entrou para o HALL DA FAMA!', important: true };
+    case 'eggReady':
+      return { text: 'Oh? Um ovo está se mexendo na Creche! Vá até lá para vê-lo chocar.', important: true };
     case 'hatched':
       return {
         text: `Oh? O ovo chocou! Nasceu um ${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''}!`,
@@ -190,6 +192,15 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
       return { text: `A Equipe Rocket está aprontando em ${getRoute(e.routeId).name}!`, important: true };
     case 'rocketDefeated':
       return { text: `A Equipe Rocket decolou de novo! Você recebeu ${e.coins} moedas.`, important: true };
+    case 'legendRage':
+      return {
+        text: `${speciesName(e.speciesId)} se enfureceu!${e.weather ? ` O clima mudou!` : ''} Ele ficou mais forte e se livrou do status!`,
+        important: true,
+      };
+    case 'legendaryReturned':
+      return { text: `${speciesName(e.speciesId)} voltou a ser avistado!`, important: false };
+    case 'legendRumor':
+      return { text: `Dizem que viram ${speciesName(e.speciesId)} por aí hoje!`, important: true };
     case 'legendaryEnded':
       return {
         text:

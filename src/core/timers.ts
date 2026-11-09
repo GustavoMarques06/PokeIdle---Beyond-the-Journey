@@ -8,6 +8,7 @@ import { environmentAt } from './env';
 import { updateRoamer, updateRocket } from './events';
 import { expeditionDone } from './expeditions';
 import { fossilTimers } from './fossils';
+import { updateLegends } from './legendary';
 import { gardenTimers } from './garden';
 import { sampleHistory } from './history';
 import type { GameEvent, GameState } from './game';
@@ -44,6 +45,7 @@ export function updateTimers(state: GameState, now: number): GameEvent[] {
   updateRoamer(state, now, rng, events);
   updateRocket(state, now, rng, events);
   updateRaid(state, now, rng, events);
+  updateLegends(state, now, events);
   updateMerchant(state, now, rng, events);
   companionTick(state, now, rng, events);
   refreshSeason(state, now);

@@ -20,7 +20,7 @@
     "balance": "tsx scripts/balance-report.ts"
   },
   "dependencies": {
-    "@fontsource/dotgothic16": "^5.3.1",
+    "@fontsource/pixelify-sans": "^5.3.0",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-notification": "^2.7.0",
     "react": "^19.3.1",

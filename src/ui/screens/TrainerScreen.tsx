@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
+  LEGENDARIES,
   ACHIEVEMENTS,
   CARD_FRAMES,
   MEDAL_TIERS,
@@ -55,6 +56,8 @@ import {
 import { openHelp } from '../help/open';
 import { preloadEverything, usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
+import { legendTitle } from '../i18n/legends';
+import { ChangelogList } from '../components/Changelog';
 
 type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode' | 'graphics'>;
 
@@ -105,7 +108,14 @@ const TRAINER_TABS = [
   { id: 'automation', label: 'AUTOMAÇÃO' },
   { id: 'options', label: 'OPÇÕES' },
   { id: 'data', label: 'DADOS' },
+  { id: 'news', label: 'NOVIDADES' },
 ] as const;
+
+/** Título pela coleção de lendários (ver i18n/legends.ts). */
+function legendCardTitle(state: GameState): string | undefined {
+  const all = LEGENDARIES.filter((l) => l.tier !== 'pseudo');
+  return legendTitle(all.filter((l) => state.legends.caught.includes(l.speciesId)).length, all.length);
+}
 
 export function TrainerScreen({ state }: { state: GameState }) {
   const engine = useEngine();
@@ -179,6 +189,12 @@ export function TrainerScreen({ state }: { state: GameState }) {
                     aria-label="Nome do treinador"
                   />
                 </dd>
+                {legendCardTitle(state) && (
+                  <>
+                    <dt>TÍTULO</dt>
+                    <dd className="card-title-legend">{legendCardTitle(state)!.toUpperCase()}</dd>
+                  </>
+                )}
                 <dt>DINHEIRO</dt>
                 <dd>
                   <Money value={state.coins} />
@@ -392,6 +408,12 @@ export function TrainerScreen({ state }: { state: GameState }) {
       )}
 
       {tab === 'automation' && <Automation state={state} />}
+
+      {tab === 'news' && (
+        <Window title="NOVIDADES · LOG DE ATUALIZAÇÕES">
+          <ChangelogList />
+        </Window>
+      )}
 
       {tab === 'options' && (
         <>

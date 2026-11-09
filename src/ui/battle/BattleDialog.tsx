@@ -4,8 +4,8 @@
 // golpe só da próxima vez.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { THROWABLE_BALLS, describeSupport, getMove, getRoute, megaLabel } from '../../game-data';
-import { legendaryRules } from '../../core/legendary';
+import { LEGEND_BALLS, THROWABLE_BALLS, describeSupport, getMove, getRoute, megaLabel } from '../../game-data';
+import { legendaryRules, rumorOf } from '../../core/legendary';
 import { bossLook } from '../../core/rival';
 import { canCaptureHere } from '../../core/nuzlocke';
 import {
@@ -45,7 +45,7 @@ import { HpBar, ItemIcon, PixelIcon, PokemonSprite, TypeBadge } from '../compone
 import { Coach } from '../components/Coach';
 import { useHotkeys } from '../hotkeys';
 import { battleText } from '../i18n/battleText';
-import { ENCOUNTER_MODE_NAMES, itemName, moveName } from '../i18n/pt-BR';
+import { ENCOUNTER_MODE_NAMES, STATUS_TEXT, itemName, moveName } from '../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../useGame';
 
 const MULTIPLIER = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
@@ -66,6 +66,35 @@ export type ScreenId =
   | 'upgrades'
   | 'pc'
   | 'help';
+
+/** Lendário: medidor da melhor chance de captura agora e o que está ajudando (ou o que ajudaria). */
+function LegendCatchMeter({ state, balls }: { state: GameState; balls: string[] }) {
+  const enemy = state.battle.enemy!;
+  const best = Math.max(0, ...balls.map((ball) => currentCaptureChance(state, ball)));
+  const pct = best * 100;
+  const status = enemy.status?.kind;
+  const tips = [
+    status === 'sleep' || status === 'freeze'
+      ? `${STATUS_TEXT[status].name}: ×2,5`
+      : status
+        ? `${STATUS_TEXT[status].name}: ×1,5`
+        : 'Sono ou congelamento: ×2,5',
+    enemy.hp / enemy.maxHp > 0.25 ? 'Baixe mais o HP' : 'HP baixo: ótimo',
+    ...(rumorOf(state, state.lastTimerAt) === enemy.speciesId ? ['Boato do dia: ×1,5'] : []),
+    ...Object.entries(LEGEND_BALLS[enemy.speciesId] ?? {}).map(([ball, m]) => `${itemName(ball)}: ×${m}`),
+  ];
+  return (
+    <div className="legend-meter">
+      <span className="legend-meter-label">
+        CHANCE <strong>{pct < 1 ? pct.toFixed(1) : Math.round(pct)}%</strong>
+      </span>
+      <span className="legend-meter-bar">
+        <i style={{ width: `${Math.min(100, Math.max(2, pct * 2))}%` }} />
+      </span>
+      <small>{tips.join(' · ')}</small>
+    </div>
+  );
+}
 
 /** Onde procurar Pokémon nesta rota: grama, pesca ou surf (tecla E alterna). */
 function ModeSwitch({
@@ -512,6 +541,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                       : 'Não dá para capturar nesta batalha.'}
                 </p>
               )}
+              {usable && b.kind === 'legendary' && b.enemy && <LegendCatchMeter state={state} balls={owned} />}
               {owned.map((ball) => {
                 const chance = usable ? Math.round(currentCaptureChance(state, ball) * 100) : null;
                 const mult = ballMultiplierNow(state, ball);

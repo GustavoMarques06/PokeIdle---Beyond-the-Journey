@@ -263,6 +263,7 @@ function normalize(state: GameState): void {
   state.buffs ??= {};
   state.daycare ??= emptyDaycare();
   state.eggs ??= [];
+  if (state.carriedEgg !== undefined && !state.eggs.some((e) => e.id === state.carriedEgg)) delete state.carriedEgg;
   state.expeditions ??= [];
   state.garden ??= [];
   state.fossils ??= [];

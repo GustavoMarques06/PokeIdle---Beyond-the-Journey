@@ -5,9 +5,11 @@
 // jogo fechado.
 
 import { useEffect } from 'react';
-import { REGIONS, assetUrl, trainerSprite } from '../../game-data';
+import { LEGENDARIES, REGIONS, assetUrl, trainerSprite } from '../../game-data';
 import type { GameState } from '../../core/game';
-import { T } from '../i18n/pt-BR';
+import { legendaryDef } from '../../core/legendary';
+import { T, speciesName } from '../i18n/pt-BR';
+import { LEGEND_LORE, legendGlow, legendTitle } from '../i18n/legends';
 import { legendOf } from '../intro/legends';
 import { useTypewriter } from '../intro/useTypewriter';
 import { useEngine } from '../useGame';
@@ -18,13 +20,29 @@ const SEEN_FLAG = 'professor';
 const FINALE = 'finale';
 const callFlag = (id: string) => `professor:${id}`;
 
+/** Marca de versão das falas de lendário: quem já tinha lendários não recebe todas de uma vez. */
+const LEGENDS_SEEN = 'professor-legends';
+const legendCall = (speciesId: number) => `legend:${speciesId}`;
+
 function pendingCalls(state: GameState): string[] {
   const ids = REGIONS.slice(1)
     .filter((r) => state.routes[r.routes[0]]?.unlocked)
     .map((r) => r.id);
   const last = REGIONS[REGIONS.length - 1].id;
   if (state.hallOfFame.some((h) => h.regionId === last)) ids.push(FINALE);
+  // Primeira captura de cada lendário (os quase lendários não ganham ligação).
+  for (const id of state.legends.caught) if (legendaryDef(id)?.tier !== 'pseudo') ids.push(legendCall(id));
   return ids.filter((id) => !state.flags.includes(callFlag(id)));
+}
+
+function legendText(name: string, speciesId: number, count: number, total: number): string {
+  const lore = LEGEND_LORE[speciesId] ?? '';
+  const title = legendTitle(count, total);
+  return (
+    `${name}! É verdade que você capturou ${speciesName(speciesId).toUpperCase()}?! Incrível! ${lore} ` +
+    `Registrei tudo na sua Pokédex. ${count} de ${total} lendários já estão com você` +
+    (title ? ` — agora você é ${title.toUpperCase()}!` : '!')
+  );
 }
 
 export function ProfessorCall({ state }: { state: GameState }) {
@@ -32,25 +50,50 @@ export function ProfessorCall({ state }: { state: GameState }) {
   const migrated = state.flags.includes(SEEN_FLAG);
   const pending = migrated ? pendingCalls(state)[0] : undefined;
 
+  const legendsMigrated = state.flags.includes(LEGENDS_SEEN);
   useEffect(() => {
-    if (migrated) return;
+    if (migrated && legendsMigrated) return;
     engine.dispatch((s) => {
-      for (const id of pendingCalls(s)) s.flags.push(callFlag(id));
-      s.flags.push(SEEN_FLAG);
+      if (!s.flags.includes(SEEN_FLAG)) {
+        for (const id of pendingCalls(s)) s.flags.push(callFlag(id));
+        s.flags.push(SEEN_FLAG);
+      }
+      if (!s.flags.includes(LEGENDS_SEEN)) {
+        for (const id of s.legends.caught) s.flags.push(callFlag(legendCall(id)));
+        s.flags.push(LEGENDS_SEEN);
+      }
     });
-  }, [engine, migrated]);
+  }, [engine, migrated, legendsMigrated]);
 
-  if (!pending) return null;
+  if (!pending || !legendsMigrated) return null;
   const name = state.trainerName.toUpperCase();
-  const text = pending === FINALE ? T.professor.finale(name) : T.professor.arrival[pending]?.(name);
+  const legendId = pending.startsWith('legend:') ? Number(pending.slice(7)) : undefined;
+  const all = LEGENDARIES.filter((l) => l.tier !== 'pseudo');
+  const text =
+    legendId !== undefined
+      ? legendText(
+          name,
+          legendId,
+          all.filter((l) => state.legends.caught.includes(l.speciesId)).length,
+          all.length,
+        )
+      : pending === FINALE
+        ? T.professor.finale(name)
+        : T.professor.arrival[pending]?.(name);
   if (!text) return null;
   const close = () => engine.dispatch((s) => void s.flags.push(callFlag(pending)));
   return (
     <CallDialog
       key={pending}
       text={text}
-      legend={pending === FINALE ? undefined : legendOf(pending)}
-      button={pending === FINALE ? 'Obrigado, Professor!' : 'Vamos lá!'}
+      legend={
+        legendId !== undefined
+          ? { id: legendId, color: legendGlow(legendId) }
+          : pending === FINALE
+            ? undefined
+            : legendOf(pending)
+      }
+      button={legendId !== undefined ? 'Obrigado, Professor!' : pending === FINALE ? 'Obrigado, Professor!' : 'Vamos lá!'}
       reduced={state.settings.reducedMotion}
       onClose={close}
     />

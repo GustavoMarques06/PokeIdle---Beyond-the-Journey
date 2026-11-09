@@ -16,9 +16,10 @@ export function teamSlotsUnlocked(state: GameState): number {
   return 1 + TEAM_SLOTS.filter((slot) => routeDone(state, slot.requiresRoute)).length;
 }
 
-/** Vagas além da do Pokémon que luta. */
+/** Vagas além da do Pokémon que luta (um ovo levado na equipe ocupa uma delas). */
 export function reserveSlotsUnlocked(state: GameState): number {
-  return teamSlotsUnlocked(state) - 1;
+  const carrying = state.carriedEgg !== undefined && state.eggs.some((e) => e.id === state.carriedEgg);
+  return Math.max(0, teamSlotsUnlocked(state) - 1 - (carrying ? 1 : 0));
 }
 
 /** Os que esperam a vez, na ordem de entrada (sem o ativo e dentro das vagas liberadas). */

@@ -44,6 +44,7 @@ export * from './forms';
 export * from './safari';
 export * from './outfits';
 export * from './captureitems';
+export * from './changelog';
 
 /**
  * Amizade, Hitmon* e Wurmple: a PokéAPI traz essas evoluções como "item" (Sino Calmante,
@@ -272,6 +273,8 @@ export const DEPT_STORE_CATALOG: DeptEntry[] = [
   })),
   { id: 'rare-candy', price: DEPT_STORE.prices['rare-candy'], section: 'other' },
   ...LURE_IDS.map((id): DeptEntry => ({ id, price: DEPT_STORE.prices[id], section: 'other' })),
+  { id: 'egg-warmer', price: 4000, section: 'other' },
+  { id: 'egg-incubator', price: 150000, section: 'other' },
   ...HELD_ITEMS.filter((h) => h.price > 0).map((h): DeptEntry => ({
     id: h.id,
     price: h.price,
@@ -300,9 +303,13 @@ export function itemValue(id: string): number {
 }
 
 /** O que o mercador viajante pode trazer: itens caros de todas as seções, menos as bolas comuns. */
-export const MERCHANT_POOL: DeptEntry[] = DEPT_STORE_CATALOG.filter(
-  (e) => e.price >= 2000 && (e.section !== 'balls' || e.id === 'master-ball'),
-);
+export const MERCHANT_POOL: DeptEntry[] = [
+  ...DEPT_STORE_CATALOG.filter(
+    (e) => e.price >= 2000 && e.id !== 'egg-incubator' && (e.section !== 'balls' || e.id === 'master-ball'),
+  ),
+  // Só o mercador vende ovo raro.
+  { id: 'rare-egg', price: 15000, section: 'other' },
+];
 
 // --- Pesca e Surf ------------------------------------------------------------------------
 

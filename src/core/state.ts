@@ -95,6 +95,8 @@ export interface Settings {
   nextSteps: boolean;
   /** Gráficos: desempenho (mais leve: sem clima, tons de dia/noite e efeitos pesados) ou normal. */
   graphics: 'performance' | 'normal';
+  /** Ovos prontos chocam sozinhos (senão esperam o jogador tocar neles na Creche). */
+  autoHatch: boolean;
 }
 
 /** Efeito de status em andamento. `turns` conta as ações restantes de sono. */
@@ -183,6 +185,8 @@ export interface TrainerInfo {
 
 export interface BattleState {
   kind: BattleKind;
+  /** Clima trazido por um lendário enfurecido (vale até o fim da luta, no lugar do clima da rota). */
+  weather?: 'clear' | 'sun' | 'rain' | 'sand' | 'fog' | 'hail';
   /** Golpes de apoio do jogador nesta luta (contra um treinador, vale para o time inteiro dele): quem já usou e os aumentos. */
   supportUsed?: number[];
   supportBoosts?: Record<number, Partial<Record<StatKey, number>>>;
@@ -275,6 +279,8 @@ export interface GameState {
   buffs: Partial<Record<BuffKind, Buff>>;
   daycare: DaycareState;
   eggs: Egg[];
+  /** Ovo levado na equipe (id): anda mais rápido com as vitórias, mas ocupa uma vaga da equipe. */
+  carriedEgg?: number;
   expeditions: ExpeditionRun[];
   garden: (GardenPlot | null)[];
   fossils: FossilRun[];
@@ -389,6 +395,7 @@ export const DEFAULT_SETTINGS: Settings = {
   battleMode: 'auto',
   nextSteps: true,
   graphics: 'normal',
+  autoHatch: false,
 };
 
 export const EMPTY_STATS: GameStats = {
@@ -474,6 +481,7 @@ export type GameEvent =
   | { type: 'achievement'; id: string }
   | { type: 'hallOfFame'; regionId: string }
   | { type: 'hatched'; uid: number; speciesId: number; shiny: boolean; isNew: boolean }
+  | { type: 'eggReady'; count: number }
   | { type: 'berryReady'; berry: string }
   | { type: 'fossilReady'; speciesId: number }
   | { type: 'expeditionDone'; id: string }
@@ -483,6 +491,9 @@ export type GameEvent =
   | { type: 'rocketAppeared'; routeId: string }
   | { type: 'rocketLeft' }
   | { type: 'legendaryEnded'; speciesId: number; reason: 'fled' | 'defeat' | 'retreat' | 'caught' }
+  | { type: 'legendaryReturned'; speciesId: number }
+  | { type: 'legendRumor'; speciesId: number }
+  | { type: 'legendRage'; speciesId: number; weather?: string }
   | { type: 'rocketDefeated'; coins: number; items: Record<string, number> }
   | { type: 'towerFloor'; floor: number; points: number }
   | { type: 'towerEnded'; floor: number }

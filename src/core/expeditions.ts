@@ -4,6 +4,7 @@
 
 import { BALANCE, EXPEDITIONS, TM_POOL, getSpecies, type ExpeditionDef } from '../game-data';
 import { activityUnlocked, addToCollection, busyUids, findPokemon, routeDone, unlockTm } from './collection';
+import { giveGiftEgg } from './daycare';
 import type { GameEvent, GameState } from './game';
 import { giveForm } from './forms';
 import { progressMission } from './missions';
@@ -28,6 +29,8 @@ export interface ExpeditionLoot {
   pokemon: { uid: number; speciesId: number; shiny: boolean }[];
   tms: string[];
   levels: { uid: number; from: number; to: number }[];
+  /** Ovos raros de presente (vão para o ninho da Creche). */
+  eggs: number;
 }
 
 export function expeditionSlots(state: GameState): number {
@@ -98,7 +101,7 @@ export function claimExpedition(
 
   const uids = run.uids.filter((uid) => findPokemon(state, uid));
   const rng = seededRng(run.seed);
-  const loot: ExpeditionLoot = { coins: 0, research: 0, items: {}, pokemon: [], tms: [], levels: [] };
+  const loot: ExpeditionLoot = { coins: 0, research: 0, items: {}, pokemon: [], tms: [], levels: [], eggs: 0 };
   const table = def.rewards.map((r) => ({ ...r, weight: r.w }));
   const rolls = expeditionRolls(state, def, uids, run.hours);
   for (let i = 0; i < rolls; i++) {
@@ -132,6 +135,12 @@ export function claimExpedition(
     setLevel(p, p.level + gain);
     if (p.level > from) loot.levels.push({ uid, from, to: p.level });
   }
+  // Ovo raro de presente: mais chance quanto mais longa a expedição.
+  const giftChance = Math.min(BALANCE.daycare.giftEggMax, run.hours * BALANCE.daycare.giftEggPerHour);
+  if (rng.next() < giftChance && giveGiftEgg(state, rng, def.name)) loot.eggs = 1;
+  // As asas de Johto (chaves de Lugia e Ho-Oh) também aparecem em expedições longas.
+  const wing = ['silver-wing', 'rainbow-wing'].find((w) => !(state.items[w] > 0) && !loot.items[w]);
+  if (wing && run.hours >= 4 && rng.next() < 0.1) loot.items[wing] = 1;
   state.stats.expeditionsDone++;
   progressMission(state, 'expeditions', 1, events);
   return loot;

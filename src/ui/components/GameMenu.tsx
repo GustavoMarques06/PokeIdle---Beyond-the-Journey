@@ -100,7 +100,8 @@ export function GameMenu({
       unseenTabs(state).length > 0 ||
       state.garden.some((p) => plotReady(p, now)) ||
       state.expeditions.some((r) => expeditionDone(r, now)) ||
-      state.fossils.some((f) => now >= f.readyAt),
+      state.fossils.some((f) => now >= f.readyAt) ||
+      state.eggs.some((e) => e.progress >= e.cycles),
     missions: claimableMissions(state) > 0,
   };
   // Quem já jogava bastante antes das abas aparecerem aos poucos não vê todas como NOVAS.

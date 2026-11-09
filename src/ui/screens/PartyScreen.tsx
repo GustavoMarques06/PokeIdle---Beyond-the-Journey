@@ -504,6 +504,29 @@ function NicknameField({ p }: { p: PokemonInstance }) {
   );
 }
 
+/** Juiz de IVs, com as frases dos jogos (Geração VI em diante). */
+function ivJudge(iv: number): string {
+  if (iv >= 31) return 'Não dá para ser melhor!';
+  if (iv >= 30) return 'Fantástico!';
+  if (iv >= 21) return 'Muito bom.';
+  if (iv >= 11) return 'Bastante decente.';
+  if (iv >= 1) return 'Nada mal.';
+  return 'Não dá para ser pior…';
+}
+
+function ivTotalJudge(ivs: PokemonInstance['ivs']): string {
+  const total = Object.values(ivs).reduce((a, b) => a + b, 0);
+  if (total >= 151) return 'Potencial espetacular!';
+  if (total >= 121) return 'Potencial acima da média.';
+  if (total >= 91) return 'Potencial razoável.';
+  return 'Potencial modesto.';
+}
+
+function bestIvs(ivs: PokemonInstance['ivs']): (keyof PokemonInstance['ivs'])[] {
+  const max = Math.max(...Object.values(ivs));
+  return (Object.keys(ivs) as (keyof PokemonInstance['ivs'])[]).filter((k) => ivs[k] === max);
+}
+
 export function Summary({ state, p: real }: { state: GameState; p: PokemonInstance }) {
   const p = useShownPokemon(real);
   const mvp = weeklyMvp(state, state.lastTimerAt);
@@ -619,12 +642,24 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
               >
                 <th>{STAT_NAMES[k].toUpperCase()}</th>
                 <td>{k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}</td>
-                <td className="iv">
+                <td className="iv" title={`Juiz: ${ivJudge(p.ivs[k])}`}>
                   IV{p.ivs[k]} · EV{evs[k]}
                 </td>
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="iv-judge">
+              <td colSpan={3}>
+                <strong>JUIZ:</strong> {ivTotalJudge(p.ivs)}{' '}
+                {bestIvs(p.ivs).length > 0 && (
+                  <>
+                    O melhor é {bestIvs(p.ivs).map((k) => STAT_NAMES[k]).join(' e ')}: {ivJudge(Math.max(...Object.values(p.ivs)))}
+                  </>
+                )}
+              </td>
+            </tr>
+          </tfoot>
         </table>
         <ul className="move-list">
           <li className="move-list-head">
@@ -666,6 +701,26 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
       </div>
 
       {editing && <MoveEditor state={state} p={p} />}
+
+      {p.parents?.length ? (
+        <div className="lineage">
+          <strong>ÁRVORE DE CRIAÇÃO</strong>
+          <ul>
+            {p.parents.map((par, i) => (
+              <li key={i}>
+                <PokemonSprite speciesId={par.s} kind="icon" shiny={par.shiny} />
+                <span>
+                  {i === 0 ? '1º' : '2º'} pai: {speciesName(par.s)}
+                  {par.shiny ? ' ✦' : ''}
+                  {par.p?.length ? (
+                    <small> (filho de {par.p.map((g) => speciesName(g.s) + (g.shiny ? ' ✦' : '')).join(' × ')})</small>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <Depth state={state} p={p} />
 

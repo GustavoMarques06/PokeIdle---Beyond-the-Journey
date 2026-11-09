@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource/dotgothic16/400.css';
+import '@fontsource/pixelify-sans/400.css';
+import '@fontsource/pixelify-sans/600.css';
+import '@fontsource/pixelify-sans/700.css';
 import './ui/styles/index.css';
 import { GameEngine } from './engine/GameEngine';
 import { createStorage, isTauri } from './engine/storage';

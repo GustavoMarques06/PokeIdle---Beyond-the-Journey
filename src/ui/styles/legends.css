@@ -1,0 +1,594 @@
+/* =============================================================================
+   LENDÁRIOS: cartões, boato do dia, Santuário, medidor de captura e a batalha
+   (entrada de cinema, aura, partículas por tipo, fúria, rugido e explosão de estrelas).
+   ============================================================================= */
+
+/* --- Cartões ---------------------------------------------------------------------------------- */
+.legend-card {
+  position: relative;
+}
+
+.legend-card-art {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+}
+
+.legend-card.ready .legend-card-art .sprite {
+  filter: drop-shadow(0 0 4px var(--glow, #f8d870));
+  animation: legend-float 2.6s ease-in-out infinite;
+}
+
+.legend-card.hidden .legend-card-art .sprite,
+.legend-card.cooldown .legend-card-art .sprite {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.legend-card.rumor {
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 10px var(--glow, var(--gold));
+  animation: rumor-pulse 2s ease-in-out infinite;
+}
+
+.legend-rumor-tag,
+.legend-now-tag {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  padding: 0 4px;
+  background: var(--gold);
+  font: 700 9px var(--font-label);
+  color: var(--ink);
+  animation: alert-bounce 0.9s steps(2, end) infinite;
+}
+
+.legend-now-tag {
+  background: var(--hp-good);
+}
+
+.legend-card .legend-when,
+.legend-card .legend-hunt {
+  font-size: 10px;
+}
+
+.legend-card .legend-hunt {
+  color: var(--gold-dark);
+}
+
+.legend-needs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  text-align: left;
+}
+
+.legend-needs li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.legend-needs .sprite {
+  width: 24px;
+  height: 24px;
+}
+
+@keyframes legend-float {
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+@keyframes rumor-pulse {
+  50% {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 18px var(--glow, var(--gold));
+  }
+}
+
+/* --- Boato do dia ----------------------------------------------------------------------------- */
+.legend-rumor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background:
+    radial-gradient(circle at 12% 50%, color-mix(in srgb, var(--glow) 45%, transparent), transparent 40%),
+    var(--cream);
+}
+
+.legend-rumor strong {
+  font: 700 13px var(--font-label);
+  color: var(--gold-dark);
+}
+
+.legend-rumor p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.legend-rumor-art .sprite {
+  max-height: 56px;
+  filter: drop-shadow(0 0 6px var(--glow));
+  animation: legend-float 2.2s ease-in-out infinite;
+}
+
+/* --- Santuário: pedestais com o lendário flutuando em cima ------------------------------------ */
+.sanctuary-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.sanctuary-title strong {
+  color: var(--gold-dark);
+}
+
+.sanctuary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 6px;
+  padding: 10px 6px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(255 240 200 / 0.6), transparent 60%),
+    linear-gradient(#3a3060, #241c40);
+  border: 2px solid var(--ink);
+}
+
+.pedestal button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.pedestal button:disabled {
+  cursor: default;
+}
+
+.pedestal-mon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: end center;
+  height: 56px;
+}
+
+.pedestal-mon .sprite {
+  max-width: 60px;
+  max-height: 54px;
+  opacity: 0.35;
+}
+
+.pedestal.has .pedestal-mon .sprite {
+  opacity: 1;
+  filter: drop-shadow(0 0 5px var(--glow));
+  animation: legend-float 3s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.27s);
+}
+
+.pedestal-base {
+  width: 46px;
+  height: 10px;
+  margin-top: -4px;
+  border: 2px solid #1a1430;
+  border-radius: 50%;
+  background: linear-gradient(#8a80b0, #4a4070);
+}
+
+.pedestal.has .pedestal-base {
+  background: linear-gradient(#f8e8a0, #c89838);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+.pedestal.open .pedestal-base {
+  box-shadow:
+    0 0 16px var(--glow),
+    0 0 0 2px #fff;
+}
+
+.sanctuary-lore {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px;
+  animation: iv-pop 0.3s steps(3, end);
+}
+
+.sanctuary-lore .sprite {
+  max-height: 72px;
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+
+.sanctuary-lore p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.card-title-legend {
+  color: var(--gold-dark);
+  font-weight: 700;
+}
+
+/* --- Medidor de captura ----------------------------------------------------------------------- */
+.legend-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 2px solid var(--gold-dark);
+  background: var(--menu-select);
+}
+
+.legend-meter-label {
+  font: 700 11px var(--font-label);
+}
+
+.legend-meter-bar {
+  height: 6px;
+  border: 1px solid var(--ink);
+  background: #fff;
+}
+
+.legend-meter-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--gold), var(--hp-good));
+  transition: width 0.4s;
+}
+
+.legend-meter small {
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+/* --- Batalha: aura pulsando na cor do tipo ---------------------------------------------------- */
+.legend-battle .battle-mon-front .sprite {
+  filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 10px var(--glow));
+  animation: legend-aura 2.4s ease-in-out infinite;
+}
+
+.legend-enraged .battle-mon-front .sprite {
+  filter: drop-shadow(0 0 4px #f84040) drop-shadow(0 0 14px #f84040);
+  animation-duration: 0.9s;
+}
+
+@keyframes legend-aura {
+  50% {
+    filter: drop-shadow(0 0 6px var(--glow)) drop-shadow(0 0 18px var(--glow));
+  }
+}
+
+.status-enemy.legend {
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 8px var(--glow, var(--gold));
+}
+
+/* Partículas por tipo em volta do lendário. */
+.legend-particles {
+  position: absolute;
+  z-index: 3;
+  top: 8%;
+  right: 6%;
+  width: 46%;
+  height: 52%;
+  pointer-events: none;
+}
+
+.legend-particles i {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--i) * 8%);
+  width: 4px;
+  height: 4px;
+  background: var(--glow);
+  box-shadow: 0 0 4px var(--glow);
+  opacity: 0;
+  animation: legend-mote 2.8s linear infinite;
+  animation-delay: calc(var(--i) * -0.23s);
+}
+
+.legend-particles.type-ice i {
+  width: 5px;
+  height: 5px;
+  background: #fff;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation-name: legend-fall;
+}
+
+.legend-particles.type-electric i {
+  width: 2px;
+  height: 8px;
+  background: #fff8a0;
+  animation-name: legend-zap;
+  animation-duration: 0.9s;
+}
+
+.legend-particles.type-fire i {
+  border-radius: 50% 50% 0 50%;
+  background: #f8a040;
+}
+
+.legend-particles.type-water i {
+  border-radius: 50%;
+  background: rgb(180 220 255 / 0.9);
+}
+
+.legend-particles.type-ghost i,
+.legend-particles.type-dark i {
+  background: #3a2050;
+  box-shadow: 0 0 6px #a070e0;
+}
+
+@keyframes legend-mote {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 6px -110px;
+  }
+}
+
+@keyframes legend-fall {
+  0% {
+    opacity: 0;
+    translate: 0 -120px;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: -10px 0;
+  }
+}
+
+@keyframes legend-zap {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+  }
+  80% {
+    opacity: 1;
+    translate: 0 -40px;
+  }
+}
+
+/* --- Entrada de cinema: escurece, a silhueta surge, clarão e o cartão com o nome --------------- */
+.legend-intro {
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.legend-intro-dark {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: intro-dark 2.8s ease forwards;
+}
+
+.legend-intro-silhouette {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  translate: -50% 0;
+  animation: intro-sil 2.8s ease forwards;
+}
+
+/* Preto como a silhueta de sempre, com o contorno brilhando na cor do tipo. */
+.legend-intro-silhouette .sprite {
+  height: calc(var(--u, 3px) * 60);
+  filter: brightness(0) drop-shadow(0 0 3px var(--glow)) drop-shadow(0 0 12px var(--glow));
+}
+
+.legend-intro-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  animation: intro-flash 2.8s ease forwards;
+}
+
+.legend-intro-card {
+  position: absolute;
+  bottom: 14%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 16px;
+  translate: -50% 0;
+  opacity: 0;
+  white-space: nowrap;
+  animation: intro-card 2.8s ease forwards;
+}
+
+.legend-intro-card small {
+  font: 700 10px var(--font-label);
+  color: var(--gold-dark);
+  letter-spacing: 2px;
+}
+
+.legend-intro-card strong {
+  font: 700 16px var(--font-label);
+}
+
+@keyframes intro-dark {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  55% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes intro-sil {
+  0%,
+  10% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  35%,
+  52% {
+    opacity: 1;
+    scale: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+    scale: 1.3;
+  }
+}
+
+@keyframes intro-flash {
+  0%,
+  52% {
+    opacity: 0;
+  }
+  58% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes intro-card {
+  0%,
+  55% {
+    opacity: 0;
+    translate: -50% 20px;
+  }
+  65%,
+  90% {
+    opacity: 1;
+    translate: -50% 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- Fúria e rugido: clarão e a tela tremendo ------------------------------------------------- */
+.legend-fx-rage::after,
+.legend-fx-roar::after {
+  content: '';
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 70% 35%, rgb(255 60 40 / 0.5), transparent 60%);
+  animation: rage-flash 1.2s ease-out forwards;
+}
+
+.legend-fx-roar::after {
+  background: radial-gradient(circle at 70% 35%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 60%);
+}
+
+.legend-fx-rage,
+.legend-fx-roar {
+  animation: scene-quake 0.5s steps(6, end);
+}
+
+@keyframes rage-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes scene-quake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  20% {
+    translate: -4px 2px;
+  }
+  40% {
+    translate: 4px -2px;
+  }
+  60% {
+    translate: -3px -1px;
+  }
+  80% {
+    translate: 3px 1px;
+  }
+}
+
+/* --- Captura: explosão de estrelas douradas saindo da bola ------------------------------------ */
+.legend-caught-burst {
+  position: absolute;
+  z-index: 25;
+  top: 36%;
+  right: 26%;
+  pointer-events: none;
+}
+
+.legend-caught-burst i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fff4a0;
+  box-shadow: 0 0 6px #f8c830;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  rotate: var(--a);
+  animation: burst-out 1.3s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes burst-out {
+  from {
+    transform: translateX(0) scale(1.4);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* --- Movimento reduzido ou modo Desempenho: tudo parado --------------------------------------- */
+.reduced-motion :is(
+    .legend-card .sprite,
+    .legend-card.rumor,
+    .legend-rumor-tag,
+    .legend-now-tag,
+    .legend-rumor-art .sprite,
+    .pedestal .sprite,
+    .legend-battle .battle-mon-front .sprite,
+    .legend-fx-rage,
+    .legend-fx-roar
+  ) {
+  animation: none !important;
+}
+
+.reduced-motion :is(.legend-particles, .legend-intro, .legend-caught-burst) {
+  display: none;
+}

@@ -52,6 +52,7 @@ function give(s: GameState, slug: string, level = 20) {
 describe('creche', () => {
   it('só cruza Pokémon compatíveis e choca ovos com vitórias', () => {
     const s = newGame(1, 0, 1);
+    s.settings.autoHatch = true;
     clearUpTo(s, BALANCE.daycare.unlock);
     const a = give(s, 'rattata');
     const b = give(s, 'ekans');
@@ -83,6 +84,7 @@ describe('creche', () => {
 
   it('ovos também chocam com o tempo real', () => {
     const s = newGame(1, 0, 2);
+    s.settings.autoHatch = true;
     clearUpTo(s, BALANCE.daycare.unlock);
     putInDaycare(s, give(s, 'rattata').uid);
     putInDaycare(s, give(s, 'ditto').uid);

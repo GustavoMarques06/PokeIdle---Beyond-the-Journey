@@ -71,6 +71,16 @@ function availableTypes(state: GameState): TypeName[] {
   return [...types];
 }
 
+/** Tipos que a Creche consegue chocar agora: os da coleção que podem ter ovos (sem lendários). */
+function breedableTypes(state: GameState): TypeName[] {
+  const types = new Set<TypeName>();
+  for (const p of state.collection) {
+    const s = getSpecies(p.speciesId);
+    if (!s.legendary && s.eggGroups.length && !s.eggGroups.includes('undiscovered')) for (const t of s.types) types.add(t);
+  }
+  return types.size ? [...types] : availableTypes(state);
+}
+
 /** Recompensas crescem com as regiões liberadas, para continuarem valendo a pena. */
 function rewardScale(state: GameState): number {
   const regions = new Set(ROUTES.filter((r) => state.routes[r.id]?.unlocked).map((r) => r.regionId));
@@ -88,8 +98,8 @@ function buildMission(state: GameState, t: MissionTemplate, rng: Rng, id: string
     reward.items = Object.fromEntries(Object.entries(t.reward.items).map(([k, v]) => [k, v * target]));
   }
   const mission: Mission = { id, kind: t.kind, target, progress: 0, claimed: false, reward };
-  if (t.kind === 'capture-type') {
-    const types = availableTypes(state);
+  if (t.kind === 'capture-type' || t.kind === 'hatch-type') {
+    const types = t.kind === 'hatch-type' ? breedableTypes(state) : availableTypes(state);
     mission.type = types[Math.floor(rng.next() * types.length)] ?? 'normal';
   }
   return mission;

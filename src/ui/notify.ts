@@ -15,11 +15,11 @@ export interface NotifyCategory {
 
 /** Categorias que podem ser ligadas e desligadas nas Opções. */
 export const NOTIFY_CATEGORIES: NotifyCategory[] = [
-  { id: 'breeding', label: 'Creche, fósseis e treino', events: ['hatched', 'fossilReady', 'trainingFull'] },
+  { id: 'breeding', label: 'Creche, fósseis e treino', events: ['eggReady', 'hatched', 'fossilReady', 'trainingFull'] },
   {
     id: 'exploring',
     label: 'Expedições, berries e acompanhante',
-    events: ['expeditionDone', 'berryReady', 'companionFound'],
+    events: ['expeditionDone', 'berryReady', 'companionFound', 'legendaryReturned', 'legendRumor'],
   },
   {
     id: 'visitors',

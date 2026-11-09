@@ -3332,6 +3332,7 @@ export const GAME_CORNER_PRIZES = [
   { kind: 'item', item: 'rare-candy', qty: 1, tokens: 800 },
   { kind: 'item', item: 'ultra-ball', qty: 5, tokens: 600 },
   { kind: 'item', item: 'master-ball', qty: 1, tokens: 25000 },
+  { kind: 'item', item: 'rare-egg', qty: 1, tokens: 3000 },
 ];
 
 // Itens usados em todo o jogo (além dos derivados das evoluções e recompensas).
