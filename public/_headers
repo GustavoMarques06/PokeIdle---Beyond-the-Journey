@@ -1,0 +1,16 @@
+# Cabeçalhos do Cloudflare (Workers Static Assets). Sem isto, tudo vem com "max-age=0, must-revalidate": o navegador
+# pergunta ao servidor de novo a cada sprite, e quem está sem o service worker (iPhone que limpou o cache, aba anônima)
+# espera uma ida e volta pela internet toda vez que um Pokémon aparece.
+
+# Código do build: o nome muda a cada versão (hash), então pode ficar guardado para sempre.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Sprites, sons e mapas: guardados por um dia e usados mesmo vencidos enquanto a versão nova chega por trás.
+# Um arquivo trocado com o mesmo nome é pego pelo pré-carregador (compara o tamanho e baixa sem cache).
+/sprites/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/audio/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/maps/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

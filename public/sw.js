@@ -53,7 +53,9 @@ async function cacheFirst(request) {
   // ignoreVary: módulos são pedidos com outros cabeçalhos que o pré-carregador; com `Vary: Origin`, não seriam achados.
   const hit = await cache.match(request, { ignoreVary: true });
   if (hit) return hit;
-  const response = await fetch(request);
+  // Sem cópia aqui: confirma com o servidor em vez de aceitar a do cache HTTP, que pode ser de antes de uma versão nova
+  // (sprite trocado com o mesmo nome). Ficaria guardada aqui para sempre.
+  const response = await fetch(request, { cache: 'no-cache' });
   if (response.ok) cache.put(request, response.clone());
   return response;
 }

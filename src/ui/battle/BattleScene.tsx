@@ -58,6 +58,7 @@ import { setEvolving, useShownPokemon } from '../evolutionView';
 import { EncounterModeSwitch } from './BattleDialog';
 import { EncounterFlash, LevelUpWindow, PokemonCenter, TrainerIntro } from './BattleFx';
 import { RareBanner } from './RareBanner';
+import { battleSpritePath, useWarmBattleSprites } from './warmSprites';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
 import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer } from './effects';
@@ -183,15 +184,6 @@ function spriteBox(speciesId: number, kind: 'front' | 'back', scale: number, max
   return { w: w * k, h: h * k, bodyH: drawn * k, feetX, feetY: bottom * k, feetW, hovering: hover >= 0.1 };
 }
 
-/** Caminho do sprite de batalha. */
-function battleSpritePath(speciesId: number, kind: 'front' | 'back', shiny: boolean, form?: string) {
-  const s = getSpecies(speciesId).sprites;
-  return (
-    formSprite(speciesId, form, kind, shiny) ??
-    (kind === 'front' ? (shiny && s.frontShiny) || s.front : (shiny && s.backShiny) || s.back)
-  );
-}
-
 function BattleSprite({
   speciesId,
   kind,
@@ -244,6 +236,7 @@ function BattleSprite({
           className="sprite"
           src={assetUrl(src)}
           alt={getSpecies(speciesId).name}
+          priority="high"
           onLoad={() => setSettledSrc(src)}
           onError={() => setSettledSrc(src)}
         />
@@ -326,6 +319,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const b = state.battle;
   const route = getRoute(b.routeId);
   // A Torre de Batalha é sempre num salão; o resto segue o cenário da rota.
+  useWarmBattleSprites(state);
   const sceneKey = b.kind === 'tower' ? 'city' : route.scene;
   const theme = SCENE_THEMES[sceneKey] ?? 'meadow';
   const { enemy: ENEMY_BASE, player: PLAYER_BASE } = sceneBases(sceneKey);
@@ -625,6 +619,7 @@ export function BattleScene({ state }: { state: GameState }) {
       {state.settings.illustratedScenes && (
         <img
           className="scene-backdrop"
+          fetchPriority="high"
           src={assetUrl(`sprites/backgrounds/${sceneKey}.png`)}
           alt=""
           draggable={false}

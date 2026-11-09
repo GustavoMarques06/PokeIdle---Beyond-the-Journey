@@ -85,6 +85,7 @@ export function SpriteImage({
   style,
   onLoad,
   onError,
+  priority,
 }: {
   src?: string;
   alt: string;
@@ -92,6 +93,8 @@ export function SpriteImage({
   style?: CSSProperties;
   onLoad?: () => void;
   onError?: () => void;
+  /** 'high': passa na frente dos downloads em segundo plano (o Pokémon que está em campo agora). */
+  priority?: 'high';
 }) {
   const perf = usePerfMode();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -108,6 +111,7 @@ export function SpriteImage({
       onLoad?.();
     };
     image.onerror = () => onError?.();
+    if (priority) image.fetchPriority = priority;
     image.src = src;
     return () => {
       image.onload = null;
@@ -124,6 +128,7 @@ export function SpriteImage({
       src={src}
       alt={alt}
       draggable={false}
+      fetchPriority={priority}
       onLoad={onLoad}
       onError={onError}
     />

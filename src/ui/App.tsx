@@ -33,6 +33,7 @@ import { MonSheet, PartyScreen, TeamDetails } from './screens/PartyScreen';
 import { seenFlag, tipFlag, unseenTabs, type Tab } from './screens/activities/tabs';
 import { NextSteps } from './components/NextSteps';
 import { useEngine, useGameEvents, useGameState } from './useGame';
+import { useWarmBattleSprites } from './battle/warmSprites';
 
 // A tela de equipe abre primeiro; as demais vêm em pedaços separados, baixados em segundo
 // plano logo depois que o jogo abre (preloadScreens). Sem isso, a primeira abertura de cada
@@ -73,6 +74,8 @@ export function App() {
   // O App só decide abertura × jogo, opções e música: uma vez por segundo basta (as regiões do
   // jogo assinam por conta própria; ações do jogador chegam na hora).
   const state = useGameState(1000);
+  // Já na tela de título: os sprites da rota e da equipe baixam enquanto o jogador ainda não entrou.
+  useWarmBattleSprites(state);
   // Quem abre o jogo com save começa na tela de título (CONTINUAR); quem acabou de criar ou
   // carregar uma jornada entra direto.
   const [atTitle, setAtTitle] = useState(() => engine.state !== null);

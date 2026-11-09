@@ -19,18 +19,20 @@ const PARALLEL = 4;
 /** Máquina fraca não precisa de quatro downloads disputando com o jogo. */
 const PARALLEL_PERF = 2;
 
-type Group = 'app' | 'essential' | 'front' | 'back' | 'shiny' | 'weather';
+type Group = 'app' | 'essential' | 'cries' | 'front' | 'back' | 'shiny' | 'weather';
 
 function groupOf(path: string): Group {
   if (path.startsWith('assets/')) return 'app';
   // Animações pesadas (até 2,7 MB) e só de enfeite: por último, e nunca como "essencial".
   if (path.startsWith('sprites/weather/')) return 'weather';
+  // 721 gritos (7,6 MB): no celular ficam para quando tocarem, sem disputar a internet com os sprites da batalha.
+  if (path.startsWith('audio/cries/')) return 'cries';
   if (/^sprites\/pokemon\/(front-shiny|back-shiny)\//.test(path)) return 'shiny';
   if (/^sprites\/pokemon\/back\//.test(path)) return 'back';
   if (/^sprites\/pokemon\/(front|forms)\//.test(path)) return 'front';
   return 'essential';
 }
-const ORDER: Group[] = ['app', 'essential', 'front', 'back', 'shiny', 'weather'];
+const ORDER: Group[] = ['app', 'essential', 'cries', 'front', 'back', 'shiny', 'weather'];
 
 export interface PreloadStatus {
   /** Disponível neste ambiente (navegador com cache, build de produção). */
@@ -121,7 +123,8 @@ async function pump(cache: Cache): Promise<void> {
         return;
       }
       try {
-        const res = await fetch(f.url, { priority: 'low' } as RequestInit);
+        // `no-cache`: a cópia do cache HTTP pode ser de antes de uma versão nova (o servidor deixa guardar por um dia).
+        const res = await fetch(f.url, { priority: 'low', cache: 'no-cache' } as RequestInit);
         if (res.ok) await cache.put(f.url, res);
         update({ filesDone: status.filesDone + 1, bytesDone: status.bytesDone + f.size });
       } catch {
