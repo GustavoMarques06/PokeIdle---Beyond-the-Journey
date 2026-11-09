@@ -37,7 +37,7 @@ import type { NuzlockeState } from './nuzlocke';
 import type { PcState } from './pc';
 import type { LuresState } from './lures';
 import type { Gender } from './gender';
-import type { SafariState } from './safari';
+import type { SafariProgress, SafariState } from './safari';
 import type { TournamentState } from './tournament';
 import type { GardenPlot } from './garden';
 import { emptyHunt, type HuntState } from './hunt';
@@ -316,6 +316,8 @@ export interface GameState {
   cardFrame: string;
   /** Jogo do Safari em andamento. */
   safari: SafariState | null;
+  /** Pontos de Safari, loja, pedidos do Guarda, Pokédex das zonas e recordes (criado na primeira visita). */
+  safariProgress?: SafariProgress;
   /** Quando cada árvore de berry selvagem dá frutos de novo (por rota; ausente = pronta). */
   berryTrees: Record<string, number>;
   tournament: TournamentState;
@@ -528,10 +530,12 @@ export type GameEvent =
   | {
       type: 'safariResult';
       speciesId: number;
-      action: 'ball' | 'bait' | 'rock' | 'run';
-      outcome: 'caught' | 'missed' | 'fled' | 'stayed' | 'left';
+      action: 'ball' | 'bait' | 'berry' | 'rock' | 'mud' | 'block' | 'photo' | 'run' | 'walk';
+      outcome: 'caught' | 'missed' | 'fled' | 'stayed' | 'left' | 'photo' | 'appeared';
+      mood?: 'watching' | 'eating' | 'angry' | 'muddy';
     }
-  | { type: 'safariEnded'; caught: number }
+  | { type: 'safariEnded'; caught: number; points?: number; record?: boolean; species?: number[]; zone?: string }
+  | { type: 'safariZoneComplete'; zone: string }
   | {
       type: 'tournamentMatch';
       round: number;

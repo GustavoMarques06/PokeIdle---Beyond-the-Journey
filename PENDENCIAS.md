@@ -2,6 +2,39 @@
 
 Anotações para retomar mais tarde. Atualize ao resolver.
 
+## Safari: o que ainda dá para melhorar (anotado em 9/11, depois do Safari novo)
+
+Feito em 9/11: cena viva, humores, passos e caminhos, 5 zonas, surto da semana, berries/Lama/Pokébloco, câmera,
+pedidos do Guarda, Pontos e loja, Pokédex das zonas, recordes e resumo da visita (`core/safari.ts`,
+`SafariPanel.tsx`, `styles/safari.css`, zonas em `game-data/safari.ts`).
+
+**Conferir (sem print ainda):**
+- Berry e Pokébloco em uso (Pokémon comendo, balão ♪, ♥ na berry favorita): o print não saiu porque o Pokémon fugiu.
+- Layout no celular: a cena muda para 4:3 e os botões para 2 colunas abaixo de 420 px de janela, mas não foi visto.
+- Resumo do fim da visita e o aviso de Pokédex de zona completa.
+
+**Detalhes visuais:**
+- O sprite que foge sai sempre na cor normal, mesmo se era shiny (o evento de fuga não diz se era shiny).
+- A pedra e a Lama são desenhadas em CSS (bolinhas cinza e marrom); ficariam melhores como sprites em pixel art.
+- A isca usa o ícone da Oran Berry, mesmo quando a berry jogada é outra; mostrar a berry certa.
+- As zonas bloqueadas mostram o cenário só acinzentado; poderiam ter cadeado por cima e o nome da área que libera.
+- O lago não tem água animada nem a vara aparecendo na pesca (hoje só esconde o mato).
+- Não há som próprio para cada humor nem para a câmera além do clique.
+
+**Texto e clareza:**
+- Os pedidos do Guarda mostram o nome da espécie mesmo antes de você vê-la (o de foto já esconde); padronizar.
+- A berry favorita só aparece (♥) para espécies já capturadas; talvez uma dica do Guarda ("o Doduo adora Pecha").
+- Explicar no saguão quanto vale cada caminho (raros na grama alta, nível +4) de um jeito mais visual.
+
+**Jogo:**
+- O Safari não roda com o jogo fechado; um "Guia do Safari" (expedição curta que traz 1 a 3 capturas) combinaria com o
+  idle.
+- Os Pontos de Safari só compram itens do próprio Safari; poderiam comprar também algo raro (Mega Stone, ovo raro).
+- Recorde de "maior Pokémon" (altura/peso, como nos jogos) ainda não existe.
+- Equilíbrio: 600 passos e 30 bolas por 3.000 moedas não foram medidos com jogo de verdade (quantas capturas por
+  visita, se a grama alta vale os 25 passos).
+- Zonas de Unova e Kalos não existem (as 5 atuais vão até Sinnoh).
+
 ## Cenários de batalha (resolvido em 5/11)
 
 As 19 imagens corrigidas (`art/maps/correcao/`) entraram com os ovais trocados por manchas de luz suaves; as caixas

@@ -13,6 +13,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-09-safari',
+    date: '09/11/2026',
+    title: 'Safari novo',
+    items: [
+      { tag: 'novo', text: 'Cena viva: o Pokémon sai do mato, a isca cai, a pedra faz "tum", a bola sacode e ele foge correndo.' },
+      { tag: 'novo', text: 'Humor como nos jogos de GBA: comendo, irritado ou de olho, e cada humor muda a captura e a fuga.' },
+      { tag: 'novo', text: 'Passos e caminhos: grama baixa, grama alta com os raros e o lago para pescar.' },
+      { tag: 'novo', text: '5 zonas que abrem com o progresso: Planície, Floresta, Montanha, Grande Pântano e o Lago dos Bebês.' },
+      { tag: 'novo', text: 'Surto da semana, berries do Jardim como isca (a favorita funciona melhor), Lama, Pokébloco e câmera.' },
+      { tag: 'novo', text: 'Pedidos do Guarda, Pontos de Safari e loja (bolas, botas, varas, Lama e Pokébloco).' },
+      { tag: 'novo', text: 'Pokédex de cada zona com prêmio ao completar, recordes e um resumo no fim da visita.' },
+    ],
+  },
+  {
     id: '2026-11-09-historia',
     date: '09/11/2026',
     title: 'Uma história nova: Além da Jornada',

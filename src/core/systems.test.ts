@@ -2,7 +2,7 @@
 // histórico por Pokémon/MVP e os climas novos.
 
 import { describe, expect, it } from 'vitest';
-import { BALANCE, FORM_SETS, ROUTES, SAFARI_ENCOUNTERS, formSprite, speciesId } from '../game-data';
+import { BALANCE, FORM_SETS, ROUTES, SAFARI_ENCOUNTERS, SAFARI_PATHS, formSprite, speciesId } from '../game-data';
 import { addToCollection } from './collection';
 import { companionTick, setCompanion } from './companion';
 import { addResearch, researchBonus, researchComplete, tasksDone } from './dexresearch';
@@ -12,7 +12,18 @@ import { activePokemon, freshBattle, newGame, step, throwBall, type GameEvent, t
 import { checkAchievements } from './meta';
 import { recordOf, weekOf, weeklyMvp } from './records';
 import { rngFrom, type Rng } from './rng';
-import { leaveSafari, safariAct, safariCatchChance, safariFleeChance, startSafari } from './safari';
+import {
+  buySafari,
+  leaveSafari,
+  outbreakOf,
+  safariAct,
+  safariCatchChance,
+  safariFleeChance,
+  safariProgress,
+  safariRequests,
+  safariWalk,
+  startSafari,
+} from './safari';
 import { parseSave, serialize } from './save';
 import { harvestTree, treeBerry, treeReady } from './berrytrees';
 import { canPlayTournament, playTournament, tournamentLost, tournamentWon } from './tournament';
@@ -102,24 +113,60 @@ describe('jogo do Safari', () => {
     s.coins = BALANCE.safari.fee;
     expect(startSafari(s, 0)).toBe(true);
     expect(s.coins).toBe(0);
+    // Começa escolhendo o caminho: andar gasta passos e traz um encontro.
+    expect(s.safari!.enemy).toBeNull();
+    const steps = s.safari!.steps!;
+    safariWalk(s, 'grass', 0);
+    expect(s.safari!.steps).toBe(steps - SAFARI_PATHS.grass.steps);
     const e = s.safari!.enemy!;
     const catchBase = safariCatchChance(s, e);
     const fleeBase = safariFleeChance(e);
-    e.rock = 1;
+    e.mood = 'angry';
     expect(safariCatchChance(s, e)).toBeGreaterThan(catchBase);
     expect(safariFleeChance(e)).toBeGreaterThan(fleeBase);
-    e.rock = 0;
-    e.bait = 1;
+    e.mood = 'eating';
     expect(safariCatchChance(s, e)).toBeLessThan(catchBase);
     expect(safariFleeChance(e)).toBeLessThan(fleeBase);
+    e.happy = true; // Pokébloco ou berry favorita: comer não atrapalha
+    expect(safariCatchChance(s, e)).toBeGreaterThan(catchBase);
+    e.mood = 'watching';
+    e.happy = false;
     const events: GameEvent[] = [];
-    for (let i = 0; i < 200 && s.safari; i++) events.push(...safariAct(s, 'ball', 0));
+    for (let i = 0; i < 400 && s.safari; i++) {
+      if (!s.safari.enemy) events.push(...safariWalk(s, 'grass', 0));
+      else events.push(...safariAct(s, 'ball', 0));
+    }
     expect(s.safari).toBeNull();
     expect(events.some((ev) => ev.type === 'safariEnded')).toBe(true);
     const caught = events.filter((ev) => ev.type === 'captured').length;
     expect(s.stats.safariCaptures).toBe(caught);
     const ids = new Set(SAFARI_ENCOUNTERS.map(([slug]) => speciesId(slug)));
     for (const p of s.collection.slice(1)) expect(ids.has(p.speciesId)).toBe(true);
+    // Pontos de Safari e Pokédex da zona.
+    expect(safariProgress(s).points).toBeGreaterThan(0);
+    expect((safariProgress(s).zoneCaught.plains ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('foto vale pontos uma vez, a loja usa os pontos e as zonas abrem com o progresso', () => {
+    const s = newGame(1, 0, 5);
+    clearAll(s, 'zona-safari');
+    s.coins = BALANCE.safari.fee * 2;
+    expect(startSafari(s, 0, 'marsh')).toBe(false); // Grande Pântano ainda fechado
+    expect(startSafari(s, 0, 'plains')).toBe(true);
+    safariWalk(s, 'tall', 0);
+    const before = safariProgress(s).points;
+    safariAct(s, 'photo', 0);
+    const after = safariProgress(s).points;
+    expect(after).toBeGreaterThan(before);
+    safariAct(s, 'photo', 0);
+    expect(safariProgress(s).points).toBe(after);
+    safariProgress(s).points = 1000;
+    expect(buySafari(s, 'good-rod')).toBe(true);
+    expect(buySafari(s, 'good-rod')).toBe(false); // só uma
+    expect(buySafari(s, 'mud')).toBe(true);
+    expect(s.items['safari-mud']).toBe(5);
+    expect(outbreakOf(s, 0)).toBeDefined();
+    expect(safariRequests(s, 0)).toHaveLength(3);
   });
 
   it('sair da visita encerra na hora', () => {

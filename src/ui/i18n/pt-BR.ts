@@ -537,6 +537,8 @@ export function describeEvent(e: GameEvent): string | null {
       return SAFARI_TEXT[e.outcome](speciesName(e.speciesId));
     case 'safariEnded':
       return `Fim do Safari! Você capturou ${e.caught} Pokémon.`;
+    case 'safariZoneComplete':
+      return 'Safari: você completou a Pokédex de uma zona! O Guarda deixou um prêmio.';
     case 'tournamentMatch':
       return e.won
         ? `Torneio: venceu ${e.opponent} por ${e.score[0]}–${e.score[1]} (+${e.coins} moedas).`
@@ -566,6 +568,8 @@ export const SAFARI_TEXT: Record<string, (name: string) => string> = {
   fled: (n) => `${n} fugiu!`,
   stayed: (n) => `${n} está de olho em você…`,
   left: (n) => `Você deixou ${n} para trás.`,
+  photo: (n) => `Clique! Você fotografou ${n}.`,
+  appeared: (n) => `Um ${n} selvagem apareceu!`,
 };
 
 export const TOURNAMENT_PLACES: Record<string, string> = {

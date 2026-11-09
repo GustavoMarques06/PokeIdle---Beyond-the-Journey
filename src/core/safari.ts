@@ -1,8 +1,23 @@
-// Jogo do Safari: sem batalha. Paga-se a entrada, recebe-se um saco de Safari Balls e cada
-// encontro se resolve com bola, isca (ele foge menos, mas é mais difícil de pegar) ou pedra (o
-// contrário). Depois de cada ação ele pode fugir. Acaba quando as bolas acabam.
+// Jogo do Safari: sem batalha. Paga-se a entrada, escolhe-se a zona e recebe-se um saco de Safari Balls e um tanto de
+// passos. A cada passo você escolhe o caminho (grama baixa, grama alta com os raros, ou o lago para pescar) e cada
+// encontro se resolve com bola, isca (ou uma berry do Jardim: a favorita da espécie funciona melhor), pedra, Lama ou
+// Pokébloco, que mudam o humor dele (comendo, irritado, enlameado). Também dá para fotografar. A visita acaba quando
+// as bolas ou os passos acabam. Fora das visitas: Pontos de Safari (loja), pedidos semanais do Guarda, surto da
+// semana, Pokédex de cada zona e recordes.
 
-import { BALANCE, SAFARI_ENCOUNTERS, getSpecies, speciesId } from '../game-data';
+import {
+  BALANCE,
+  BERRIES,
+  SAFARI_PATHS,
+  SAFARI_SHOP,
+  SAFARI_ZONES,
+  SAFARI_ZONE_REWARD,
+  getSpecies,
+  speciesId,
+  type SafariPath,
+  type SafariZone,
+  type SafariZoneId,
+} from '../game-data';
 import { computeModifiers } from './bonuses';
 import { captureChance } from './capture';
 import { addToCollection, dexEntry } from './collection';
@@ -10,9 +25,11 @@ import { addResearch, researchBonus } from './dexresearch';
 import { recordForm, rollForm } from './forms';
 import { progressMission } from './missions';
 import { randomIvs, rollShiny } from './pokemon';
-import { pickWeighted, randInt, rngFrom, type Rng } from './rng';
+import { pickWeighted, randInt, rngFrom, seededRng, type Rng } from './rng';
 import type { Ivs } from './stats';
 import type { GameEvent, GameState } from './state';
+
+export type SafariMood = 'watching' | 'eating' | 'angry' | 'muddy';
 
 export interface SafariEnemy {
   speciesId: number;
@@ -20,124 +37,397 @@ export interface SafariEnemy {
   ivs: Ivs;
   shiny: boolean;
   form?: string;
-  /** Iscas e pedras jogadas neste encontro (até BALANCE.safari.maxStacks cada). */
-  bait: number;
-  rock: number;
+  /** Caminho em que apareceu (o lago é pesca). */
+  path?: SafariPath;
+  /** Humor (como nos jogos de GBA) e quantas ações ele ainda dura. */
+  mood?: SafariMood;
+  moodTurns?: number;
+  /** Comeu um Pokébloco ou a berry favorita: o "comendo" não atrapalha a captura. */
+  happy?: boolean;
+  /** Já foi fotografado neste encontro. */
+  photographed?: boolean;
+  /** Saves antigos (isca e pedra acumuladas). */
+  bait?: number;
+  rock?: number;
 }
 
 export interface SafariState {
+  zone?: SafariZoneId;
   balls: number;
+  /** Passos que sobram (cada caminho gasta alguns). */
+  steps?: number;
+  /** Encontro atual (null: escolhendo o caminho). */
   enemy: SafariEnemy | null;
   /** Espécies capturadas nesta visita. */
   caught: number[];
+  /** Pontos de Safari ganhos nesta visita. */
+  points?: number;
+  /** Espécies fotografadas nesta visita (cada uma vale pontos uma vez). */
+  photos?: number[];
 }
 
-export type SafariAction = 'ball' | 'bait' | 'rock' | 'run';
+export interface SafariRequest {
+  id: string;
+  kind: 'catch' | 'photo' | 'zone';
+  speciesId?: number;
+  zone?: SafariZoneId;
+  target: number;
+  progress: number;
+  reward: number;
+  claimed: boolean;
+}
 
-let table: { speciesId: number; weight: number }[] | null = null;
-function encounters() {
-  return (table ??= SAFARI_ENCOUNTERS.map(([slug, weight]) => ({ speciesId: speciesId(slug), weight })));
+/** Progresso do Safari fora das visitas. */
+export interface SafariProgress {
+  points: number;
+  visits: number;
+  /** Mais capturas numa visita e shinies capturados no Safari. */
+  best: number;
+  shinies: number;
+  /** Espécies já capturadas em cada zona e zonas completas. */
+  zoneCaught: Partial<Record<SafariZoneId, number[]>>;
+  zonesDone: SafariZoneId[];
+  upgrades: { steps: number; goodRod: boolean; superRod: boolean };
+  /** Bolas extras compradas para a próxima visita. */
+  extraBalls: number;
+  requests?: { week: number; list: SafariRequest[] };
+}
+
+export type SafariAction = 'ball' | 'bait' | 'berry' | 'rock' | 'mud' | 'block' | 'photo' | 'run';
+
+const BASE_STEPS = 600;
+const STEPS_PER_UPGRADE = 200;
+
+export function safariProgress(state: GameState): SafariProgress {
+  return (state.safariProgress ??= {
+    points: 0,
+    visits: 0,
+    best: 0,
+    shinies: 0,
+    zoneCaught: {},
+    zonesDone: [],
+    upgrades: { steps: 0, goodRod: false, superRod: false },
+    extraBalls: 0,
+  });
 }
 
 export function safariUnlocked(state: GameState): boolean {
   return !!state.routes[BALANCE.safari.unlock]?.unlocked;
 }
 
-function spawn(state: GameState, rng: Rng, now: number): SafariEnemy {
-  const cfg = BALANCE.safari;
-  const id = pickWeighted(rng, encounters()).speciesId;
+export const getZone = (id: SafariZoneId | undefined): SafariZone =>
+  SAFARI_ZONES.find((z) => z.id === id) ?? SAFARI_ZONES[0];
+
+export function zoneOpen(state: GameState, zone: SafariZone): boolean {
+  return !!state.routes[zone.unlock]?.unlocked;
+}
+
+export const openZones = (state: GameState) => SAFARI_ZONES.filter((z) => zoneOpen(state, z));
+
+const idCache = new Map<string, number>();
+const sid = (slug: string) => {
+  let id = idCache.get(slug);
+  if (id === undefined) idCache.set(slug, (id = speciesId(slug)));
+  return id;
+};
+
+/** Todas as espécies de uma zona (para a Pokédex do Safari). */
+export function zoneSpecies(zone: SafariZone): number[] {
+  return [...new Set([...zone.grass, ...zone.tall, ...zone.water].map(([slug]) => sid(slug)))];
+}
+
+/** Peso da espécie na zona (o menor entre os caminhos): quanto menor, mais rara. */
+function rarityWeight(zone: SafariZone, id: number): number {
+  const ws = [...zone.grass, ...zone.tall, ...zone.water].filter(([s]) => sid(s) === id).map(([, w]) => w);
+  return ws.length ? Math.min(...ws) : 10;
+}
+
+/** Pontos de Safari por capturar: os raros valem mais. */
+export function capturePoints(zone: SafariZone, id: number, shiny: boolean): number {
+  const w = rarityWeight(zone, id);
+  const base = w >= 10 ? 5 : w >= 6 ? 10 : w >= 4 ? 20 : w >= 2 ? 35 : 50;
+  return base * (shiny ? 3 : 1);
+}
+
+// --- Surto da semana e pedidos do Guarda ------------------------------------------------------------
+
+const WEEK_MS = 7 * 86_400_000;
+export const safariWeek = (now: number) => Math.floor(now / WEEK_MS);
+
+/** A espécie em surto nesta semana (aparece 5× mais e com shiny 3×), numa das zonas abertas. */
+export function outbreakOf(state: GameState, now: number): { zone: SafariZoneId; speciesId: number } | undefined {
+  const zones = openZones(state);
+  if (!zones.length) return undefined;
+  const rng = seededRng(safariWeek(now) * 7919 + 17);
+  const zone = zones[Math.floor(rng.next() * zones.length)];
+  const pool = [...zone.grass, ...zone.tall];
+  return { zone: zone.id, speciesId: sid(pool[Math.floor(rng.next() * pool.length)][0]) };
+}
+
+/** Os 3 pedidos do Guarda desta semana (sorteados de novo quando a semana vira). */
+export function safariRequests(state: GameState, now: number): SafariRequest[] {
+  const prog = safariProgress(state);
+  const week = safariWeek(now);
+  if (prog.requests?.week === week) return prog.requests.list;
+  const zones = openZones(state);
+  const rng = seededRng(week * 104729 + 3);
+  const list: SafariRequest[] = [];
+  if (zones.length) {
+    const z1 = zones[Math.floor(rng.next() * zones.length)];
+    const [catchSlug] = z1.grass[Math.floor(rng.next() * z1.grass.length)];
+    list.push({ id: `${week}-c`, kind: 'catch', speciesId: sid(catchSlug), target: 2, progress: 0, reward: 80, claimed: false });
+    const z2 = zones[Math.floor(rng.next() * zones.length)];
+    const [photoSlug] = z2.tall[Math.floor(rng.next() * z2.tall.length)];
+    list.push({ id: `${week}-p`, kind: 'photo', speciesId: sid(photoSlug), target: 1, progress: 0, reward: 100, claimed: false });
+    const z3 = zones[Math.floor(rng.next() * zones.length)];
+    list.push({ id: `${week}-z`, kind: 'zone', zone: z3.id, target: 5, progress: 0, reward: 120, claimed: false });
+  }
+  prog.requests = { week, list };
+  return list;
+}
+
+function progressRequests(state: GameState, kind: 'catch' | 'photo', id: number, zone: SafariZoneId, now: number): void {
+  for (const r of safariRequests(state, now)) {
+    if (r.claimed || r.progress >= r.target) continue;
+    if ((r.kind === kind && r.speciesId === id) || (kind === 'catch' && r.kind === 'zone' && r.zone === zone)) r.progress++;
+  }
+}
+
+export function claimSafariRequest(state: GameState, id: string, now: number): boolean {
+  const r = safariRequests(state, now).find((x) => x.id === id);
+  if (!r || r.claimed || r.progress < r.target) return false;
+  r.claimed = true;
+  safariProgress(state).points += r.reward;
+  return true;
+}
+
+// --- Loja ----------------------------------------------------------------------------------------
+
+export function safariShopBought(state: GameState, id: string): number {
+  const u = safariProgress(state).upgrades;
+  if (id === 'steps') return u.steps;
+  if (id === 'good-rod') return u.goodRod ? 1 : 0;
+  if (id === 'super-rod') return u.superRod ? 1 : 0;
+  return 0;
+}
+
+export function buySafari(state: GameState, id: string): boolean {
+  const entry = SAFARI_SHOP.find((e) => e.id === id);
+  const prog = safariProgress(state);
+  if (!entry || prog.points < entry.cost) return false;
+  if (entry.max !== undefined && safariShopBought(state, id) >= entry.max) return false;
+  prog.points -= entry.cost;
+  if (id === 'balls') prog.extraBalls += 10;
+  else if (id === 'steps') prog.upgrades.steps++;
+  else if (id === 'good-rod') prog.upgrades.goodRod = true;
+  else if (id === 'super-rod') prog.upgrades.superRod = true;
+  else if (entry.item) state.items[entry.item] = (state.items[entry.item] ?? 0) + (entry.qty ?? 1);
+  return true;
+}
+
+// --- Visita --------------------------------------------------------------------------------------
+
+/** A berry favorita de cada espécie (sempre a mesma). */
+export function favoriteBerry(id: number): string {
+  return BERRIES[(Math.imul(id, 2654435761) >>> 0) % BERRIES.length].id;
+}
+
+function spawn(state: GameState, path: SafariPath, rng: Rng, now: number): SafariEnemy {
+  const s = state.safari!;
+  const zone = getZone(s.zone);
+  const prog = safariProgress(state);
+  const outbreak = outbreakOf(state, now);
+  const rodMult = prog.upgrades.superRod ? 4 : prog.upgrades.goodRod ? 2 : 1;
+  const table = zone[path].map(([slug, w]) => {
+    const id = sid(slug);
+    let weight = w;
+    if (path === 'water' && w <= 4) weight *= rodMult;
+    if (outbreak?.zone === zone.id && outbreak.speciesId === id) weight *= 5;
+    return { speciesId: id, weight };
+  });
+  // O surto também aparece na grama baixa da zona dele, mesmo se for da grama alta.
+  if (path === 'grass' && outbreak?.zone === zone.id && !table.some((t) => t.speciesId === outbreak.speciesId))
+    table.push({ speciesId: outbreak.speciesId, weight: 25 });
+  const id = pickWeighted(rng, table).speciesId;
   dexEntry(state, id).seen = true;
+  const shinyMult = computeModifiers(state).shiny * (outbreak?.speciesId === id ? 3 : 1);
   return {
     speciesId: id,
-    level: randInt(rng, cfg.levels[0], cfg.levels[1]),
+    level: randInt(rng, zone.levels[0], zone.levels[1]) + (path === 'tall' ? 4 : 0),
     ivs: randomIvs(rng),
-    shiny: rollShiny(rng, computeModifiers(state).shiny),
+    shiny: rollShiny(rng, shinyMult),
     form: rollForm(id, rng, now),
-    bait: 0,
-    rock: 0,
+    path,
+    mood: 'watching',
+    moodTurns: 0,
   };
 }
 
-export function startSafari(state: GameState, now: number): boolean {
+export function startSafari(state: GameState, now: number, zoneId: SafariZoneId = 'plains'): boolean {
   const cfg = BALANCE.safari;
-  if (state.safari || !safariUnlocked(state) || state.coins < cfg.fee) return false;
+  const zone = getZone(zoneId);
+  if (state.safari || !safariUnlocked(state) || !zoneOpen(state, zone) || state.coins < cfg.fee) return false;
+  const prog = safariProgress(state);
   state.coins -= cfg.fee;
-  state.safari = { balls: cfg.balls, enemy: spawn(state, rngFrom(state), now), caught: [] };
+  state.safari = {
+    zone: zone.id,
+    balls: cfg.balls + prog.extraBalls,
+    steps: BASE_STEPS + prog.upgrades.steps * STEPS_PER_UPGRADE,
+    enemy: null,
+    caught: [],
+    points: 0,
+    photos: [],
+  };
+  prog.extraBalls = 0;
+  prog.visits++;
+  safariRequests(state, now);
+  void now;
   return true;
 }
+
+/** Anda pelo caminho escolhido: gasta passos e encontra um Pokémon. */
+export function safariWalk(state: GameState, path: SafariPath, now: number): GameEvent[] {
+  const s = state.safari;
+  const events: GameEvent[] = [];
+  if (!s || s.enemy) return events;
+  const cost = SAFARI_PATHS[path].steps;
+  const steps = s.steps ?? BASE_STEPS;
+  if (steps < cost) return events;
+  s.steps = steps - cost;
+  s.enemy = spawn(state, path, rngFrom(state), now);
+  events.push({ type: 'safariResult', speciesId: s.enemy.speciesId, action: 'walk', outcome: 'appeared' });
+  return events;
+}
+
+const MOOD = {
+  watching: { catch: 1, flee: 1 },
+  eating: { catch: 0.8, flee: 0.45 },
+  angry: { catch: 1.7, flee: 1.7 },
+  muddy: { catch: 1.15, flee: 0.35 },
+} as const;
 
 export function safariCatchChance(state: GameState, enemy: SafariEnemy): number {
   const cfg = BALANCE.safari;
   const base = captureChance(getSpecies(enemy.speciesId).captureRate, 1, 1, 'safari-ball');
-  const mult =
-    cfg.bait.catch ** enemy.bait *
-    cfg.rock.catch ** enemy.rock *
-    computeModifiers(state).capture *
-    researchBonus(state, enemy.speciesId).capture;
+  const mood = enemy.mood ?? 'watching';
+  const moodMult = mood === 'eating' && enemy.happy ? 1.3 : MOOD[mood].catch;
+  // Saves de antes dos humores: isca e pedra acumuladas.
+  const legacy = cfg.bait.catch ** (enemy.bait ?? 0) * cfg.rock.catch ** (enemy.rock ?? 0);
+  const mult = moodMult * legacy * computeModifiers(state).capture * researchBonus(state, enemy.speciesId).capture;
   return Math.min(1, base * mult);
 }
 
 export function safariFleeChance(enemy: SafariEnemy): number {
   const cfg = BALANCE.safari;
   const base = cfg.fleeBase + getSpecies(enemy.speciesId).baseStats.spe * cfg.fleePerSpeed;
-  return Math.min(0.9, base * cfg.bait.flee ** enemy.bait * cfg.rock.flee ** enemy.rock);
+  const legacy = cfg.bait.flee ** (enemy.bait ?? 0) * cfg.rock.flee ** (enemy.rock ?? 0);
+  return Math.min(0.9, base * MOOD[enemy.mood ?? 'watching'].flee * legacy);
 }
 
-/** Uma ação do jogador. Devolve os eventos (captura, fuga, fim da visita). */
-export function safariAct(state: GameState, action: SafariAction, now: number): GameEvent[] {
+function setMood(enemy: SafariEnemy, mood: SafariMood, turns: number, happy = false): void {
+  enemy.mood = mood;
+  enemy.moodTurns = turns;
+  enemy.happy = happy;
+  enemy.bait = 0;
+  enemy.rock = 0;
+}
+
+/** Uma ação do jogador. `item`: a berry usada como isca. Devolve os eventos (captura, fuga, fim da visita). */
+export function safariAct(state: GameState, action: SafariAction, now: number, item?: string): GameEvent[] {
   const s = state.safari;
   const events: GameEvent[] = [];
   if (!s?.enemy) return events;
   const rng = rngFrom(state);
-  const cfg = BALANCE.safari;
   const enemy = s.enemy;
+  const zone = getZone(s.zone);
   const result = (outcome: Extract<GameEvent, { type: 'safariResult' }>['outcome']) =>
-    events.push({ type: 'safariResult', speciesId: enemy.speciesId, action, outcome });
+    events.push({ type: 'safariResult', speciesId: enemy.speciesId, action, outcome, mood: enemy.mood });
 
   if (action === 'run') {
     result('left');
-    s.enemy = spawn(state, rng, now);
-    return events;
+    return next(state, events);
   }
-  if (action === 'ball') {
+  // O humor dura algumas ações.
+  if (enemy.mood && enemy.mood !== 'watching') {
+    enemy.moodTurns = (enemy.moodTurns ?? 1) - 1;
+    if (enemy.moodTurns <= 0) setMood(enemy, 'watching', 0);
+  }
+  if (action === 'photo') {
+    if (enemy.photographed) return events;
+    enemy.photographed = true;
+    const photos = (s.photos ??= []);
+    if (!photos.includes(enemy.speciesId)) {
+      photos.push(enemy.speciesId);
+      const pts = Math.max(2, Math.round(capturePoints(zone, enemy.speciesId, enemy.shiny) / 2));
+      s.points = (s.points ?? 0) + pts;
+      safariProgress(state).points += pts;
+      state.research.points += Math.max(1, Math.round(pts / 5));
+      progressRequests(state, 'photo', enemy.speciesId, zone.id, now);
+    }
+    result('photo');
+  } else if (action === 'ball') {
     s.balls--;
     if (rng.next() < safariCatchChance(state, enemy)) {
       catchIt(state, enemy, now, events);
       s.caught.push(enemy.speciesId);
       result('caught');
-      return next(state, rng, now, events);
+      return next(state, events);
     }
     result('missed');
   } else if (action === 'bait') {
-    enemy.bait = Math.min(cfg.maxStacks, enemy.bait + 1);
-    enemy.rock = 0;
+    setMood(enemy, 'eating', randInt(rng, 1, 3));
+  } else if (action === 'berry') {
+    if (!item || !((state.items[item] ?? 0) > 0)) return events;
+    state.items[item]--;
+    const fav = favoriteBerry(enemy.speciesId) === item;
+    setMood(enemy, 'eating', fav ? randInt(rng, 3, 5) : randInt(rng, 2, 3), fav);
+  } else if (action === 'block') {
+    if (!((state.items.pokeblock ?? 0) > 0)) return events;
+    state.items.pokeblock--;
+    setMood(enemy, 'eating', randInt(rng, 2, 4), true);
+  } else if (action === 'mud') {
+    if (!((state.items['safari-mud'] ?? 0) > 0)) return events;
+    state.items['safari-mud']--;
+    setMood(enemy, 'muddy', 2);
   } else {
-    enemy.rock = Math.min(cfg.maxStacks, enemy.rock + 1);
-    enemy.bait = 0;
+    setMood(enemy, 'angry', randInt(rng, 1, 3));
   }
-  if (rng.next() < safariFleeChance(enemy)) {
+  if (action !== 'photo' && rng.next() < safariFleeChance(enemy)) {
     result('fled');
-    return next(state, rng, now, events);
+    return next(state, events);
   }
-  if (action !== 'ball') result('stayed');
+  if (action !== 'ball' && action !== 'photo') result('stayed');
   if (s.balls <= 0) end(state, events);
   return events;
 }
 
-/** Próximo encontro (ou fim, se as bolas acabaram). */
-function next(state: GameState, rng: Rng, now: number, events: GameEvent[]): GameEvent[] {
+/** Fim do encontro: volta a escolher o caminho (ou acaba, sem bolas ou passos). */
+function next(state: GameState, events: GameEvent[]): GameEvent[] {
   const s = state.safari!;
-  if (s.balls <= 0) end(state, events);
-  else s.enemy = spawn(state, rng, now);
+  s.enemy = null;
+  const minStep = Math.min(...Object.values(SAFARI_PATHS).map((p) => p.steps));
+  if (s.balls <= 0 || (s.steps ?? BASE_STEPS) < minStep) end(state, events);
   return events;
 }
 
 function end(state: GameState, events: GameEvent[]): void {
-  events.push({ type: 'safariEnded', caught: state.safari?.caught.length ?? 0 });
+  const s = state.safari;
+  const prog = safariProgress(state);
+  const caught = s?.caught.length ?? 0;
+  const record = caught > prog.best;
+  if (record) prog.best = caught;
+  events.push({
+    type: 'safariEnded',
+    caught,
+    points: s?.points ?? 0,
+    record,
+    species: s?.caught ?? [],
+    zone: s?.zone ?? 'plains',
+  });
   state.safari = null;
 }
 
-/** Desiste da visita (as bolas que sobraram se perdem). */
+/** Desiste da visita (as bolas e os passos que sobraram se perdem). */
 export function leaveSafari(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   if (state.safari) end(state, events);
@@ -145,12 +435,30 @@ export function leaveSafari(state: GameState): GameEvent[] {
 }
 
 function catchIt(state: GameState, enemy: SafariEnemy, now: number, events: GameEvent[]): void {
+  const s = state.safari!;
+  const zone = getZone(s.zone);
+  const prog = safariProgress(state);
   const isNew = !dexEntry(state, enemy.speciesId).caught;
-  const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, 'Zona Safari');
+  const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, `Safari · ${zone.name}`);
   if (enemy.form) p.form = enemy.form;
+  p.ball = 'safari-ball';
   recordForm(state, enemy.speciesId, enemy.form);
   state.stats.totalCaptures++;
   state.stats.safariCaptures++;
+  if (enemy.shiny) prog.shinies++;
+  const pts = capturePoints(zone, enemy.speciesId, enemy.shiny);
+  s.points = (s.points ?? 0) + pts;
+  prog.points += pts;
+  // Pokédex da zona.
+  const list = (prog.zoneCaught[zone.id] ??= []);
+  if (!list.includes(enemy.speciesId)) list.push(enemy.speciesId);
+  if (!prog.zonesDone.includes(zone.id) && zoneSpecies(zone).every((id) => list.includes(id))) {
+    prog.zonesDone.push(zone.id);
+    prog.points += SAFARI_ZONE_REWARD.points;
+    state.coins += SAFARI_ZONE_REWARD.coins;
+    events.push({ type: 'safariZoneComplete', zone: zone.id });
+  }
+  progressRequests(state, 'catch', enemy.speciesId, zone.id, now);
   progressMission(state, 'captures', 1, events);
   progressMission(state, 'capture-type', 1, events, getSpecies(enemy.speciesId).types);
   addResearch(state, enemy.speciesId, { night: state.env.period === 'night' ? 1 : 0 }, events);

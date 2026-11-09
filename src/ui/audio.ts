@@ -395,6 +395,8 @@ class AudioManager {
         case 'safariResult':
           if (e.outcome === 'caught') this.sfx('capture');
           else if (e.outcome === 'missed' || e.outcome === 'fled') this.sfx('escape');
+          else if (e.outcome === 'photo') this.sfx('click');
+          else if (e.outcome === 'appeared') this.sfx('cursor');
           else if (e.action !== 'run') this.sfx('throw');
           break;
         case 'tournamentMatch':
