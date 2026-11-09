@@ -29,6 +29,8 @@ import { Toasts } from './components/Toasts';
 import { TouchTips } from './components/TouchTips';
 import { UpdateNotice } from './components/UpdateNotice';
 import { NewsPopup } from './components/Changelog';
+import { StoryHost, storyCtx } from './components/StoryScene';
+import { pendingChapter } from '../core/story';
 import { useHotkeys } from './hotkeys';
 import { MonSheet, PartyScreen, TeamDetails } from './screens/PartyScreen';
 import { seenFlag, tipFlag, unseenTabs, type Tab } from './screens/activities/tabs';
@@ -134,10 +136,15 @@ export function App() {
       <UpdateNotice />
       <TouchTips />
       {inGame ? <GameScreen state={state} /> : <Intro save={state} onEnter={() => setAtTitle(false)} />}
-      {inGame && !engine.offlineReport && <ProfessorCall state={state} />}
-      {inGame && !engine.offlineReport && <NewsPopup state={state} />}
+      {inGame && !engine.offlineReport && <StoryHost state={state} />}
+      {inGame && !engine.offlineReport && !pendingChapter(state) && <ProfessorCall state={state} />}
+      {inGame && !engine.offlineReport && !pendingChapter(state) && <NewsPopup state={state} />}
       {inGame && engine.offlineReport && (
-        <OfflineReport report={engine.offlineReport} onClose={() => engine.dismissOfflineReport()} />
+        <OfflineReport
+          report={engine.offlineReport}
+          partner={storyCtx(state).p}
+          onClose={() => engine.dismissOfflineReport()}
+        />
       )}
       {inGame && <Toasts />}
       {inGame && <SafetyNotice />}

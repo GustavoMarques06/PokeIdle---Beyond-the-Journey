@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-09-historia',
+    date: '09/11/2026',
+    title: 'Uma história nova: Além da Jornada',
+    items: [
+      { tag: 'novo', text: 'O clima do mundo enlouqueceu, a Equipe Eclipse quer domar os lendários e um Viajante de capuz parece conhecer você bem demais.' },
+      { tag: 'novo', text: '15 capítulos que acontecem conforme você avança: no meio e no Campeão de cada região, no final em Kalos e a cada nova jornada.' },
+      { tag: 'novo', text: 'Seu inicial narra tudo num diário, inclusive o que fez enquanto você estava fora.' },
+      { tag: 'novo', text: 'Um final com escolha (e um título para o cartão de treinador).' },
+      { tag: 'novo', text: 'Diário da Jornada em TREINADOR › JORNADA: o próximo capítulo e os já vistos para rever.' },
+      { tag: 'melhoria', text: 'Quem já jogava começa do capítulo em que está, sem receber todos os anteriores de uma vez.' },
+    ],
+  },
+  {
     id: '2026-11-09-lendas',
     date: '09/11/2026',
     title: 'Lendas vivas e uma Creche de verdade',

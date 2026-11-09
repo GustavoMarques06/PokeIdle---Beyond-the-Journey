@@ -25,11 +25,16 @@ const LEGENDS_SEEN = 'professor-legends';
 const legendCall = (speciesId: number) => `legend:${speciesId}`;
 
 function pendingCalls(state: GameState): string[] {
-  const ids = REGIONS.slice(1)
-    .filter((r) => state.routes[r.routes[0]]?.unlocked)
-    .map((r) => r.id);
+  // A chegada a cada região e o final agora são capítulos da história (core/story.ts): o Professor fala neles.
+  // As falas antigas só valem para quem ainda não tem a história (antes da migração dela).
+  const story = state.flags.includes('story-v1');
+  const ids = story
+    ? []
+    : REGIONS.slice(1)
+        .filter((r) => state.routes[r.routes[0]]?.unlocked)
+        .map((r) => r.id);
   const last = REGIONS[REGIONS.length - 1].id;
-  if (state.hallOfFame.some((h) => h.regionId === last)) ids.push(FINALE);
+  if (!story && state.hallOfFame.some((h) => h.regionId === last)) ids.push(FINALE);
   // Primeira captura de cada lendário (os quase lendários não ganham ligação).
   for (const id of state.legends.caught) if (legendaryDef(id)?.tier !== 'pseudo') ids.push(legendCall(id));
   return ids.filter((id) => !state.flags.includes(callFlag(id)));

@@ -58,6 +58,8 @@ import { preloadEverything, usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
 import { legendTitle } from '../i18n/legends';
 import { ChangelogList } from '../components/Changelog';
+import { Journey } from './trainer/Journey';
+import { finaleTitle } from '../components/StoryScene';
 
 type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode' | 'graphics'>;
 
@@ -104,6 +106,7 @@ function formatBytes(n: number): string {
 /** A tela é longa demais para uma rolagem só: cada assunto na sua aba. */
 const TRAINER_TABS = [
   { id: 'card', label: 'CARTÃO' },
+  { id: 'story', label: 'JORNADA' },
   { id: 'records', label: 'CONQUISTAS' },
   { id: 'automation', label: 'AUTOMAÇÃO' },
   { id: 'options', label: 'OPÇÕES' },
@@ -114,7 +117,9 @@ const TRAINER_TABS = [
 /** Título pela coleção de lendários (ver i18n/legends.ts). */
 function legendCardTitle(state: GameState): string | undefined {
   const all = LEGENDARIES.filter((l) => l.tier !== 'pseudo');
-  return legendTitle(all.filter((l) => state.legends.caught.includes(l.speciesId)).length, all.length);
+  const legend = legendTitle(all.filter((l) => state.legends.caught.includes(l.speciesId)).length, all.length);
+  const story = finaleTitle(state);
+  return [story, legend].filter(Boolean).join(' · ') || undefined;
 }
 
 export function TrainerScreen({ state }: { state: GameState }) {
@@ -408,6 +413,8 @@ export function TrainerScreen({ state }: { state: GameState }) {
       )}
 
       {tab === 'automation' && <Automation state={state} />}
+
+      {tab === 'story' && <Journey state={state} />}
 
       {tab === 'news' && (
         <Window title="NOVIDADES · LOG DE ATUALIZAÇÕES">

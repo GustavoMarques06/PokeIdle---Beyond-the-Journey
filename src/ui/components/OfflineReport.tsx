@@ -2,8 +2,18 @@ import { BALANCE, getRoute } from '../../game-data';
 import type { OfflineReport as Report } from '../../core/offline';
 import { STAT_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { ItemIcon, Money, PokemonSprite } from './common';
+import { diaryLine } from '../i18n/story';
 
-export function OfflineReport({ report, onClose }: { report: Report; onClose: () => void }) {
+export function OfflineReport({
+  report,
+  onClose,
+  partner,
+}: {
+  report: Report;
+  onClose: () => void;
+  /** Nome do parceiro: o diário dele resume o que aconteceu. */
+  partner?: string;
+}) {
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="offline-title">
       <div className="modal frame frame-menu">
@@ -20,6 +30,9 @@ export function OfflineReport({ report, onClose }: { report: Report; onClose: ()
                 {T.offline.away(formatDuration(report.elapsedMs))} Seu Pokémon continuou treinando em{' '}
                 {getRoute(report.routeId).name}.
               </p>
+              {partner && (
+                <p className="offline-diary">{diaryLine(partner, report.kills, report.countedMs / 3_600_000)}</p>
+              )}
               <p className="hint">
                 {T.offline.counted(formatDuration(report.countedMs))}{' '}
                 {report.capped && T.offline.capped(BALANCE.offline.maxHours)}

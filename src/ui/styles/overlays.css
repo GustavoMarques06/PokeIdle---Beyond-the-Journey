@@ -594,3 +594,261 @@ html.reduced-motion .save-indicator .item-icon {
 .change-tag.tag-fix {
   background: var(--red);
 }
+
+/* --- História: cenas, retratos e Diário da Jornada ---------------------------------------------- */
+.story-backdrop {
+  z-index: 190;
+  background: rgb(10 8 30 / 0.72);
+}
+
+.story-scene {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(760px, 96vw);
+  padding: 12px 14px;
+  cursor: pointer;
+  animation: iv-pop 0.3s steps(3, end);
+}
+
+.story-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 4px;
+  border-bottom: 2px dashed var(--menu-blue-light);
+}
+
+.story-head small {
+  font: 700 10px var(--font-label);
+  color: var(--ink-muted);
+  letter-spacing: 2px;
+}
+
+.story-head strong {
+  font: 700 16px var(--font-label);
+  color: var(--gold-dark);
+}
+
+.story-body {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 150px;
+}
+
+.story-portrait {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  height: 150px;
+  animation: iv-pop 0.35s steps(3, end);
+}
+
+.story-portrait::before {
+  content: '';
+  position: absolute;
+  inset: 20% 8% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--glow, #f8d870) 45%, transparent), transparent 70%);
+}
+
+/* Retratos em escala inteira (os sprites são pequenos): nítidos e do tamanho da fala. */
+.story-portrait .sprite,
+.story-trainer {
+  position: relative;
+  width: auto;
+  height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* O Viajante: o seu próprio avatar, em silhueta azulada e meio transparente. */
+.story-ghost {
+  filter: brightness(0.25) sepia(1) hue-rotate(180deg) saturate(3) drop-shadow(0 0 8px #78a8f8);
+  opacity: 0.8;
+  animation: ghost-flicker 3s ease-in-out infinite;
+}
+
+/* Vesper, da Equipe Eclipse: roxo e dourado. */
+.story-eclipse {
+  filter: hue-rotate(250deg) saturate(1.4) drop-shadow(0 0 6px #b070f0);
+}
+
+@keyframes ghost-flicker {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  45% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.story-speech .speaker {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 0 6px;
+  background: var(--menu-blue-dark);
+  font: 700 11px var(--font-label);
+  color: #fff;
+}
+
+.speaker-ghost .story-speech .speaker {
+  background: #3a4a80;
+}
+
+.speaker-vesper .story-speech .speaker {
+  background: #5a2880;
+}
+
+.speaker-diary .story-speech .speaker {
+  background: var(--dirt-dark);
+}
+
+.story-speech p {
+  margin: 0;
+  min-height: 4.5em;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.story-speech p.diary {
+  padding: 4px 8px;
+  border-left: 3px solid var(--dirt-dark);
+  background: repeating-linear-gradient(transparent 0 21px, rgb(160 130 80 / 0.25) 21px 22px), #fbf4e0;
+  font-style: italic;
+}
+
+.story-speech p.narration {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.story-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.story-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.story-dots i {
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--ink-muted);
+}
+
+.story-dots i.on {
+  border-color: var(--gold-dark);
+  background: var(--gold);
+}
+
+.story-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (max-width: 560px) {
+  .story-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .story-portrait {
+    height: 110px;
+  }
+
+  .story-portrait .sprite,
+  .story-trainer {
+    height: 104px;
+  }
+
+  .story-speech p {
+    font-size: 15px;
+  }
+}
+
+.offline-diary {
+  padding: 4px 8px;
+  border-left: 3px solid var(--dirt-dark);
+  background: #fbf4e0;
+  font-style: italic;
+}
+
+.journey-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.journey-head .sprite {
+  max-height: 64px;
+}
+
+.journey-head p,
+.journey-next {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.journey-next strong {
+  color: var(--gold-dark);
+}
+
+.journey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journey-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 2px solid var(--menu-blue-light);
+  background: #fff;
+}
+
+.journey-list li.locked {
+  opacity: 0.6;
+}
+
+.journey-no {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  background: var(--menu-blue);
+  font: 700 11px var(--font-label);
+  color: #fff;
+}
+
+.journey-title {
+  flex: 1;
+  font: 700 13px var(--font-label);
+}
+
+.journey-list small {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.reduced-motion :is(.story-scene, .story-portrait, .story-ghost) {
+  animation: none !important;
+}

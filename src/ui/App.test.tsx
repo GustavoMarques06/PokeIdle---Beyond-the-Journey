@@ -238,21 +238,25 @@ describe('interface', () => {
     expect(document.querySelector('.pkcenter')!.textContent).toContain('Centro Pokémon');
   });
 
-  it('o Professor fala uma vez ao liberar uma região nova', () => {
+  it('a história abre o capítulo uma vez, fala a fala, e fica marcado como visto', () => {
     const engine = new GameEngine(memoryStorage());
     engine.newGame(1, 'Bia');
     mount(engine);
     pressStart();
     fireEvent.click(screen.getByText('CONTINUAR'));
-    expect(document.querySelector('.professor-call')).toBeNull();
+    expect(document.querySelector('.story-scene')).toBeNull();
+    // Primeiras vitórias: o capítulo 1 começa, com o diário do parceiro.
+    act(() => engine.dispatch((s) => void (s.stats.totalKills = 3)));
+    const scene = () => document.querySelector('.story-scene');
+    expect(scene()!.textContent).toContain('O primeiro dia');
+    expect(scene()!.textContent).toContain('DIÁRIO DE');
+    // Cada clique completa a fala (máquina de escrever) e o seguinte avança, até o fim do capítulo.
+    for (let i = 0; i < 20 && scene(); i++) fireEvent.click(scene()!);
+    expect(scene()).toBeNull();
+    expect(engine.state!.flags).toContain('story:start');
+    // A chegada a Johto agora é da história: o Professor não liga mais sozinho.
     act(() => engine.dispatch((s) => void (s.routes['johto-rotas-29-31'].unlocked = true)));
-    // Um clique completa a fala (máquina de escrever); o botão aparece no fim.
-    fireEvent.click(document.querySelector('.professor-call')!);
-    expect(document.querySelector('.professor-call')!.textContent).toContain('Johto');
-    expect(document.querySelector('.professor-call-legend')).not.toBeNull();
-    fireEvent.click(screen.getByText('Vamos lá!'));
     expect(document.querySelector('.professor-call')).toBeNull();
-    expect(engine.state!.flags).toContain('professor:johto');
   });
 
   it('atalhos de batalha: Q lança a Poké Ball quando há um selvagem', async () => {
