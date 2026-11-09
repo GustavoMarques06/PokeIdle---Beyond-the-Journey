@@ -22,8 +22,18 @@ export interface MegaDef {
 
 export const MEGAS = megasJson as MegaDef[];
 
-/** Preço de cada Mega Stone na Loja de Departamentos. */
-export const MEGA_STONE_PRICE = 120000;
+/**
+ * Preço da Mega Stone na Loja de Departamentos, pela força da Mega (soma dos atributos base). Sem bônus de moedas, o
+ * jogador junta ~15 mil por hora no fim de Kanto e ~43 mil em Kalos: as Megas fracas (Beedrill, Sableye) saem em
+ * algumas horas logo cedo, e as lendárias (Primais, Mewtwo, Rayquaza) ficam para o fim do jogo.
+ */
+export function megaStonePrice(mega: Pick<MegaDef, 'baseStats'>): number {
+  const total = Object.values(mega.baseStats).reduce((a, b) => a + b, 0);
+  if (total >= 770) return 300000;
+  if (total >= 700) return 200000;
+  if (total >= 600) return 120000;
+  return 80000;
+}
 
 const byStone = new Map(MEGAS.map((m) => [m.stone, m]));
 

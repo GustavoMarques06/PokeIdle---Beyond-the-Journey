@@ -119,7 +119,12 @@ function effectiveness(
   defender: Combatant,
   type: TypeName,
 ): { type: number; total: number } {
-  const byType = typeEffectiveness(type, defender.types);
+  // Destemido: Normal e Lutador ignoram a imunidade do tipo Fantasma.
+  const scrappy = attacker.ability?.scrappy && (type === 'normal' || type === 'fighting');
+  const byType = typeEffectiveness(
+    type,
+    scrappy ? defender.types.filter((t) => t !== 'ghost') : defender.types,
+  );
   const ability = defensiveAbility(attacker, defender);
   let total = byType;
   if (ability?.wonderGuard && byType <= 1) total = 0;
@@ -185,6 +190,8 @@ function baseDamage(
   if (ab?.lowHp && ab.lowHp.type === type && (attacker.hpRatio ?? 1) <= 1 / 3) mods *= ab.lowHp.mult;
   if (ab?.typeBoost?.type === type) mods *= ab.typeBoost.mult;
   if (ab?.technician && move.power <= 60) mods *= ab.technician;
+  if (ab?.boostMoves?.moves.includes(moveId)) mods *= ab.boostMoves.mult;
+  if (ab?.sheerForce && move.ailment && move.ailmentChance) mods *= ab.sheerForce;
   if (ab?.tintedLens && byType < 1) mods *= 2;
   if (held) {
     mods *= (held.damage ?? 1) * (physical ? (held.physical ?? 1) : (held.special ?? 1));
@@ -201,6 +208,7 @@ function baseDamage(
 
 /** Chance de acertar (0–100): precisão do golpe, habilidades e itens. */
 function hitChance(attacker: Combatant, defender: Combatant, moveId: string): number {
+  if (attacker.ability?.noGuard || defender.ability?.noGuard) return 100;
   const evasion = defensiveAbility(attacker, defender)?.evasion ?? 1;
   return (
     getMove(moveId).accuracy * (attacker.ability?.accuracy ?? 1) * (attacker.held?.accuracy ?? 1) * evasion
@@ -371,18 +379,19 @@ export function estimateDuel(
   const effectiveHp = playerHp + berry + survive;
 
   const simple = healPerMs === 0 && reflectPerMs === 0;
+  // Os dois lados dão o 1º golpe com meio intervalo (o cronômetro começa pela metade quando o inimigo aparece).
   const killMs = simple
     ? pDmg > 0
-      ? Math.ceil(enemyHp / pDmg) * pInterval
+      ? (Math.ceil(enemyHp / pDmg) - 0.5) * pInterval
       : Infinity
     : pDmg + reflectPerMs * pInterval > 0
-      ? enemyHp / (pDmg / pInterval + reflectPerMs)
+      ? Math.max(pInterval / 2, enemyHp / (pDmg / pInterval + reflectPerMs) - pInterval / 2)
       : Infinity;
   const lossPerMs = eDmg / eInterval - healPerMs;
   const dieMs = simple
-    ? Math.ceil(effectiveHp / eDmg) * eInterval
+    ? (Math.ceil(effectiveHp / eDmg) - 0.5) * eInterval
     : lossPerMs > 0
-      ? effectiveHp / lossPerMs
+      ? Math.max(eInterval / 2, effectiveHp / lossPerMs - eInterval / 2)
       : Infinity;
   if (killMs <= dieMs) {
     const lost = simple ? Math.floor(killMs / eInterval) * eDmg : Math.max(0, killMs * lossPerMs);

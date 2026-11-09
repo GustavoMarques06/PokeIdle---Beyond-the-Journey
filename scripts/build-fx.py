@@ -11,7 +11,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 PVFX = zipfile.ZipFile(ROOT / 'art' / 'fx-packs' / 'PVFX-Foundry-1.0.0.zip')
@@ -39,6 +39,16 @@ IMPACTS = {
     'psychic': dict(src='pvfx:explosions/arcane-burst', at='body', k=0.9),
     'ice': dict(src='pvfx:ice/frost-nova', at='floor', k=0.9),
     'fairy': dict(src='pvfx:holy/angel-feathers', at='body', k=1.2, pivot=False),
+    # Sem efeito próprio no pacote: um parecido, recolorido na cor do tipo (`tint`: sombra, meio-tom e brilho) e com
+    # nome próprio (`as`). `once`: o original é em loop, aqui toca uma vez só.
+    'poison': dict(src='pvfx:nature/acid-splash', as_='poison-splash', at='floor', k=0.9,
+                   tint=((40, 0, 56), (160, 64, 168), (244, 208, 255))),
+    'bug': dict(src='pvfx:melee/axe-smear', as_='bug-slash', at='body', k=1.1,
+                tint=((24, 40, 0), (152, 184, 24), (248, 255, 208))),
+    'steel': dict(src='pvfx:impacts/parry', as_='steel-clang', at='body', k=1.0,
+                  tint=((48, 56, 80), (184, 188, 212), (255, 255, 255))),
+    'dragon': dict(src='pvfx:fire/fire-tornado', as_='dragon-twister', at='floor', k=0.9, once=True,
+                   tint=((24, 8, 72), (112, 56, 248), (208, 232, 255))),
 }
 # Efeitos que ficam em volta do Pokémon enquanto ele está com o status (em loop).
 STATUS = {
@@ -69,8 +79,20 @@ def load(spec):
     return frames, len(frames) * FOOZLE_FRAME_MS, None, False
 
 
-def build(name, spec, at, k, loop_wanted=False, use_pivot=True):
+def recolor(frame, tint):
+    """Pinta o quadro com a cor do tipo, mantendo a luz e a sombra do desenho (e a transparência)."""
+    dark, mid, light = tint
+    rgb = ImageOps.colorize(frame.convert('L'), black=dark, white=light, mid=mid).convert('RGBA')
+    rgb.putalpha(frame.getchannel('A'))
+    return rgb
+
+
+def build(name, spec, at, k, loop_wanted=False, use_pivot=True, tint=None, once=False):
     frames, total, pivot, is_loop = load(spec)
+    if tint:
+        frames = [recolor(f, tint) for f in frames]
+    if once:
+        is_loop = False
     # Recorta no retângulo que une todos os quadros.
     box = None
     for f in frames:
@@ -106,10 +128,10 @@ for t, d in IMPACTS.items():
     for role, key in (('src', 'src'), ('big', 'big')):
         if key not in d:
             continue
-        name = re.sub(r'[^a-z0-9]+', '-', d[key].split(':', 1)[1].lower()).strip('-')
+        name = d.get('as_') if role == 'src' and d.get('as_') else re.sub(r'[^a-z0-9]+', '-', d[key].split(':', 1)[1].lower()).strip('-')
         if name not in sheets:
             at = d.get('big_at', d['at']) if role == 'big' else d['at']
-            sheets[name] = build(name, d[key], at, d['k'], use_pivot=d.get('pivot', True))
+            sheets[name] = build(name, d[key], at, d['k'], use_pivot=d.get('pivot', True), tint=d.get('tint'), once=d.get('once', False))
         entry[role] = name
     types[t] = entry
 status = {}

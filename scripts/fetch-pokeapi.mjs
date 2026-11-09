@@ -42,6 +42,9 @@ const LEARNSET_VERSION_GROUPS = [
 /** Máquinas e tutores: Black 2/White 2; quem não existia lá (Geração VI) usa X/Y. */
 const TM_VERSION_GROUPS = ['black-2-white-2', 'x-y'];
 const FALLBACK_MOVE = 'tackle';
+// Golpes de tutor que marcam a espécie e não vêm por nível na PokéAPI: entram no aprendizado por nível aqui.
+// Dragon Ascent: em ORAS a Zinnia ensina ao Rayquaza (é o golpe da Mega Rayquaza).
+const TUTOR_LEVEL_MOVES = { 384: [{ level: 70, move: 'dragon-ascent' }] };
 // Golpes que o combate simples não modela (autodestruição, recarga, dois turnos, poder variável…).
 const MOVE_BLACKLIST = new Set([
   'self-destruct',
@@ -502,7 +505,7 @@ async function main() {
           .map((v) => ({ level: Math.max(1, v.level_learned_at), move: m.move.name })),
       );
     const group = LEARNSET_VERSION_GROUPS.find((g) => levelUp(g).length > 0);
-    const list = group ? levelUp(group) : [];
+    const list = [...(group ? levelUp(group) : []), ...(TUTOR_LEVEL_MOVES[id] ?? [])];
     for (const l of list) moveNames.add(l.move);
     learnsets.set(id, list);
     const taught = (group) =>

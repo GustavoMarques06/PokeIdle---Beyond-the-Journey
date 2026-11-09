@@ -562,7 +562,8 @@ function takeTurn(
   const result = calcDamage(self, foe, moveId, rng, damageScale);
   if (!result.missed && result.damage > 0) {
     result.damage = survive(other, result.damage, side);
-    const inflicted = rollAilment(moveId, foe.types, getStatus(other), rng);
+    // Força Bruta: o golpe bate mais forte e perde o efeito extra.
+    const inflicted = self.ability?.sheerForce ? null : rollAilment(moveId, foe.types, getStatus(other), rng);
     if (inflicted && canGetStatus(inflicted.kind, other, side)) {
       inflict(other, inflicted, side);
       result.status = inflicted.kind;

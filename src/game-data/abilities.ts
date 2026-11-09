@@ -27,6 +27,14 @@ export interface AbilityDef {
   stab?: number;
   /** Golpes de poder ≤ 60 causam mais dano. */
   technician?: number;
+  /** Estes golpes causam mais dano (Mandíbula Forte: mordidas ×1,5). */
+  boostMoves?: { moves: string[]; mult: number };
+  /** Golpes com efeito extra (chance de status) causam mais dano e perdem o efeito (Força Bruta: ×1,3). */
+  sheerForce?: number;
+  /** Golpes Normais e Lutador acertam Fantasma (Destemido). */
+  scrappy?: boolean;
+  /** Ninguém erra: nem este Pokémon nem quem luta contra ele (Sem Guarda). */
+  noGuard?: boolean;
   accuracy?: number;
   /** Multiplica a precisão de quem ataca este Pokémon (< 1 = esquiva). */
   evasion?: number;
@@ -578,8 +586,8 @@ export const ABILITIES: AbilityDef[] = [
   A({
     id: 'no-guard',
     name: 'Sem Guarda',
-    description: 'Precisão ×1,3.',
-    accuracy: 1.3,
+    description: 'Nenhum golpe erra, nem os seus nem os do adversário.',
+    noGuard: true,
     passive: { kind: 'damage', value: 0.03 },
   }),
   A({
@@ -676,15 +684,18 @@ export const ABILITIES: AbilityDef[] = [
   A({
     id: 'strong-jaw',
     name: 'Mandíbula Forte',
-    description: 'Ataque ×1,3.',
-    stat: { atk: 1.3 },
+    description: 'Mordidas (Bite, Crunch e as presas) causam 50% a mais.',
+    boostMoves: {
+      moves: ['bite', 'crunch', 'fire-fang', 'ice-fang', 'thunder-fang', 'poison-fang', 'hyper-fang'],
+      mult: 1.5,
+    },
     passive: { kind: 'damage', value: 0.04 },
   }),
   A({
     id: 'sheer-force',
     name: 'Força Bruta',
-    description: 'Ataque ×1,3.',
-    stat: { atk: 1.3 },
+    description: 'Golpes com chance de causar status causam 30% a mais, mas perdem o efeito.',
+    sheerForce: 1.3,
     passive: { kind: 'damage', value: 0.04 },
   }),
   A({
@@ -697,8 +708,8 @@ export const ABILITIES: AbilityDef[] = [
   A({
     id: 'scrappy',
     name: 'Destemido',
-    description: 'Ataque ×1,2.',
-    stat: { atk: 1.2 },
+    description: 'Golpes Normais e Lutador acertam Pokémon Fantasma.',
+    scrappy: true,
     passive: { kind: 'damage', value: 0.03 },
   }),
   A({

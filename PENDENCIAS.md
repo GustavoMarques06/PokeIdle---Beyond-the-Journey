@@ -30,11 +30,18 @@ lotes 5…10. Cortados em `art/maps/novos/cortes/` e comparados com os atuais nu
 
 ## Outros
 
-- **Ícone e logo em baixa resolução:** gerar de novo o ícone C-1 (1024 × 1024) e o logo 4 (2000 × 800) como
-  arquivos individuais e trocar em `public/icons/`, `public/brand/logo.png` e `src-tauri/icons/`.
+- **Ícone e logo em baixa resolução:** prompts prontos em `art/maps/PROMPTS-cenarios-v2.md` (logo 2000 × 800 e
+  ícone 1024 × 1024). Depois de gerar, trocar em `public/icons/`, `public/brand/logo.png` e `src-tauri/icons/`.
+- **16 cenários da 2ª rodada:** prompts em `art/maps/PROMPTS-cenarios-v2.md` (lotes A–D, salvar em `art/maps/novos2/`).
 - **Build do Windows (Tauri):** os ícones novos entraram, mas o build ainda não foi rodado para conferir.
-- **Combate:** golpes de apoio (status, atributos e cura) entraram como um 5º golpe, uma vez por luta (`supportMoves.ts`). Não são 4 golpes escolhíveis como nos jogos e ficam de fora do progresso offline, que é uma estimativa. Em 7.200 lutas simuladas, as vitórias mudaram até 1,4 ponto e cada luta durou ~1 s a mais.
+- **Combate:** golpes de apoio (status, atributos e cura) entraram como um 5º golpe, uma vez por luta (`supportMoves.ts`). Não são 4 golpes escolhíveis como nos jogos. O progresso offline conta com eles (`duelWithSupport`).
+- **Progresso offline corrigido (9/11):** a estimativa contava a espera de entrada (1,6 s) em toda luta e o 1º golpe com o
+  intervalo inteiro, e dava ~35% menos vitórias que a batalha real. Agora fica a menos de 15% (teste em `offline.test.ts`),
+  então o offline rende de fato os 70% da eficiência pensada (antes rendia ~45%). Em 7.200 lutas simuladas, as vitórias mudaram até 1,4 ponto e cada luta durou ~1 s a mais.
 - **Modo Desempenho:** sprites parados (primeiro quadro do GIF num canvas), sem efeitos, animações e números de dano, batalha redesenhada ~3x por segundo. Com CPU simulada 8x mais lenta: de 16 para 49 FPS. Falta testar em um PC fraco de verdade (a simulação não inclui a placa de vídeo).
+- **Formas fora de batalha (9/11):** Unown da expedição das ruínas, ovos e prêmios do Game Corner vinham sem forma, e a
+  conquista das 28 formas de Unown era impossível. Agora ganham forma (`giveForm`), e saves antigos são corrigidos ao
+  carregar. Ainda pesa: na média são 44 expedições de 8 h (só uma de ruínas por vez), umas 3 semanas.
 - **Pokédex completa:** as 721 espécies das Gerações I–VI estão no jogo e todas têm caminho (teste em
   `obtainable.test.ts`). Algumas evoluções especiais viraram regras simples do motor: Shedinja e Mothim pela Shiny Stone,
   Ambipom, Sudowoodo e Mantine no nível 30, Wormadam e Mothim sem exigir gênero.
@@ -66,9 +73,18 @@ baixa sprites (frente, costas, shiny, ícone) e as pedras. Cada Mega Stone custa
 - **Regressões Primais:** Kyogre (Blue Orb) e Groudon (Red Orb), mesma mecânica da Mega, com as habilidades Mar
   Primordial e Terra Desolada (aproximadas: +30% do tipo e imunidade ao tipo oposto). Total: 49 formas.
 
+**Feito em 9/11:**
+- Mega Rayquaza já existia (Meteorito). O Rayquaza agora aprende Dragon Ascent no Nv. 70 (`TUTOR_LEVEL_MOVES` em
+  `fetch-pokeapi.mjs`; a queda de defesa de quem usa não entra, como no Close Combat).
+- Preço por força da Mega (`megaStonePrice`): 80 mil (< 600), 120 mil (600–699), 200 mil (700), 300 mil (Primais,
+  Mewtwo, Rayquaza). Sem bônus, o jogador junta ~15 mil moedas/h no fim de Kanto e ~43 mil em Kalos.
+- Fiéis aos jogos: Mandíbula Forte (mordidas ×1,5), Força Bruta (golpes com status ×1,3, sem o status), Destemido
+  (Normal e Lutador acertam Fantasma), Sem Guarda (ninguém erra). Mega Lançador, Elo de Habilidade e Garras Duras seguem
+  aproximadas: o Blastoise não aprende golpes de pulso nos dados, os de vários acertos do Heracross são fracos e o jogo
+  não sabe quais golpes são de contato.
+
 **Falta (opcional):**
-- Mega Rayquaza (aprende Dragon Ascent, sem pedra): o golpe não existe nos dados do jogo.
-- Equilibrar preço e força (120.000 por pedra foi um palpite; jogar um pouco e ajustar `MEGA_STONE_PRICE`).
+- Ensinar golpes de pulso ao Blastoise (ORAS) para o Mega Lançador poder ser fiel.
 - Se rodar `npm run data:fetch --fresh`, rode `node scripts/fetch-megas.mjs` e `python scripts/sprite-feet.py` depois.
 - Se rodar `npm run data:fetch`, os times de chefe com Mega já saem certos (o script lê o terceiro item).
 
@@ -84,7 +100,7 @@ com raiz quadrada e teto/piso, então Rattata e Magikarp aparecem pequenos e Oni
 **Efeitos em pixel art (5/11):** 14 tipos de golpe (todos menos aço, veneno, inseto e dragão, que seguem com as partículas
 de CSS) e 5 status em loop (sono, paralisia, queimadura, congelamento, veneno) usam folhas de PVFX Foundry e Foozle (CC0).
 `scripts/build-fx.py` monta tudo de `art/fx-packs`; ajuste `k` (tamanho) e `at` (ancoragem) em `IMPACTS`/`STATUS` se algum
-ficar torto. Falta achar efeitos bons para aço, veneno, inseto e dragão (PVFX tem mais de 100, só escolhi os melhores).
+ficar torto. Aço, veneno, inseto e dragão (9/11) usam efeitos parecidos do PVFX recoloridos na cor do tipo (`tint` em `IMPACTS`).
 
 **Climas novos (5/11):** chuva, neve (para o granizo) e tempestade (chuva à noite) são WebP animados do pixelfx
 (`scripts/build-weather.py`); areia, névoa e sol são desenhados em CSS (`WeatherLayer` em `effects.tsx`). Os antigos saíram.

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../game-data';
-import { activePokemon, newGame } from './game';
-import { applyOffline, offlineWindow } from './offline';
+import { activePokemon, advance, freshBattle, newGame } from './game';
+import { statsOf } from './pokemon';
+import { applyOffline, estimateRoute, offlineWindow } from './offline';
 
 const HOUR = 3_600_000;
 const T0 = 1_700_000_000_000;
@@ -80,5 +81,29 @@ describe('applyOffline', () => {
   it('rende menos que o jogo ativo', () => {
     // Eficiência offline < 1 por definição.
     expect(BALANCE.offline.efficiency).toBeLessThan(1);
+  });
+});
+
+describe('a estimativa offline acompanha a batalha de verdade', () => {
+  it.each([6, 65, 94])('espécie %i: vitórias por hora a menos de 15% do real', (speciesId) => {
+    const s = newGame(4, 0, 11);
+    const me = activePokemon(s);
+    me.speciesId = speciesId;
+    me.level = 55;
+    me.moveset = undefined;
+    me.currentHp = statsOf(me).hp;
+    const route = 'estrada-vitoria';
+    s.currentRouteId = route;
+    s.battle = freshBattle(route);
+    const est = estimateRoute(s, route);
+    const k0 = s.stats.totalKills;
+    let t = 0;
+    for (let i = 0; i < 1200; i++) {
+      advance(s, 500, t);
+      t += 500;
+    }
+    const real = (s.stats.totalKills - k0) * 6;
+    const estimated = (3_600_000 / est.cycleMs) * est.winRate;
+    expect(Math.abs(estimated - real) / real).toBeLessThan(0.15);
   });
 });

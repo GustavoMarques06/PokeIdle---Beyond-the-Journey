@@ -19,6 +19,10 @@ const TYPES = [
   'psychic',
   'ice',
   'fairy',
+  'steel',
+  'poison',
+  'bug',
+  'dragon',
 ];
 
 describe('efeitos desenhados (PVFX Foundry e Foozle, CC0)', () => {
@@ -34,8 +38,8 @@ describe('efeitos desenhados (PVFX Foundry e Foozle, CC0)', () => {
     }
   });
 
-  it('os tipos sem efeito desenhado seguem com as partículas', () => {
-    for (const type of ['steel', 'poison', 'bug', 'dragon']) expect(impactArt(type, false)).toBeUndefined();
+  it('os 18 tipos têm efeito desenhado', () => {
+    expect(new Set(TYPES).size).toBe(18);
   });
 
   it('o golpe forte usa a versão própria ou toca ampliado', () => {

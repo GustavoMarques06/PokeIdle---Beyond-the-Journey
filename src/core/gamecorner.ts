@@ -3,6 +3,7 @@
 import { BALANCE, PRIZES, SLOT_BET, SLOT_SINGLE_CHERRY, SLOT_SYMBOLS } from '../game-data';
 import { activityUnlocked, addToCollection, giveItems, unlockTm } from './collection';
 import type { GameEvent, GameState } from './game';
+import { giveForm } from './forms';
 import { progressMission } from './missions';
 import { randomIvs, rollShiny } from './pokemon';
 import { pickWeighted, rngFrom } from './rng';
@@ -60,7 +61,16 @@ export function buyPrize(state: GameState, index: number, now: number): boolean 
   state.tokens -= prize.tokens;
   if (prize.kind === 'pokemon') {
     const rng = rngFrom(state);
-    addToCollection(state, prize.speciesId, prize.level, randomIvs(rng), rollShiny(rng), now, 'Game Corner');
+    const p = addToCollection(
+      state,
+      prize.speciesId,
+      prize.level,
+      randomIvs(rng),
+      rollShiny(rng),
+      now,
+      'Game Corner',
+    );
+    giveForm(state, p, rng, now);
   } else if (prize.kind === 'tm') unlockTm(state, prize.move);
   else giveItems(state, { [prize.item]: prize.qty });
   return true;

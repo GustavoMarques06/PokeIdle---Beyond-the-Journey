@@ -1,7 +1,7 @@
 // Itens seguráveis (um por Pokémon) e itens de treino, com o sprite oficial da PokéAPI. O `icon`
 // (forma + cor em pixel art) só aparece se o sprite faltar.
 
-import { MEGAS, MEGA_STONE_PRICE } from './megas';
+import { MEGAS, megaStonePrice } from './megas';
 import type { Ailment, ItemData, StatKey, TypeName } from './types';
 
 export interface HeldItemDef {
@@ -319,7 +319,7 @@ HELD_ITEMS.push(
       name: m.stoneName,
       description: `${m.name}: em batalha, ${m.name.replace(/^Mega /, '').replace(/ [XY]$/, '')} muda de forma até o fim do encontro (tipos e atributos da Mega). No manual, aperte MEGA; no automático, ocorre sozinho.`,
       sprite: `sprites/items/${m.stone}.png`,
-      price: MEGA_STONE_PRICE,
+      price: megaStonePrice(m),
       megaStone: true,
     }),
   ),

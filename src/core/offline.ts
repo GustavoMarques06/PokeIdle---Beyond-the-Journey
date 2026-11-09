@@ -1,8 +1,19 @@
 // Progresso offline: cálculo puro e determinístico, separado do loop visual.
 
-import { BALANCE, megaFor } from '../game-data';
+import { BALANCE, getMove, megaFor } from '../game-data';
+import { SUPPORT_RULES, blockedBy, supportMoveOf, type SupportMove } from '../game-data/supportMoves';
 import { combatScales, computeModifiers } from './bonuses';
-import { combatantOf, estimateDuel } from './combat';
+import {
+  attackInterval,
+  chooseMove,
+  combatantOf,
+  estimateDuel,
+  expectedDamage,
+  type Combatant,
+  type DuelEstimate,
+  type DuelScales,
+} from './combat';
+import { canInflict } from './status';
 import { markCaught } from './collection';
 import {
   activePokemon,
@@ -71,6 +82,73 @@ interface RouteEstimate {
   coinsPerWin: number;
 }
 
+/**
+ * O duelo com o golpe de apoio, como o automático o usa (uma vez por luta): cura abaixo da metade do HP; aumento de
+ * atributo e status só em luta longa. Custa uma vez de agir. O status pode errar: o resultado mistura os dois casos.
+ */
+export function duelWithSupport(
+  pc: Combatant,
+  ec: Combatant,
+  scales: DuelScales,
+  support: SupportMove | undefined,
+): DuelEstimate {
+  const base = estimateDuel(pc, pc.stats.hp, ec, scales);
+  if (!support) return base;
+  const e = support.effect;
+  const turn = attackInterval(pc.stats.spe, ec.stats.spe) * scales.playerInterval;
+  if (e.kind === 'heal') {
+    // Não chegou à metade do HP: a cura nem é usada.
+    if (base.win && base.hpLostFraction < SUPPORT_RULES.healBelow) return base;
+    const healed = estimateDuel(pc, pc.stats.hp * (1 + e.fraction), ec, scales);
+    return {
+      ...healed,
+      durationMs: healed.durationMs + turn,
+      hpLostFraction: Math.min(1, healed.hpLostFraction),
+    };
+  }
+  const longFight =
+    expectedDamage(pc, ec, chooseMove(pc, ec), scales.playerDamage) * SUPPORT_RULES.minHitsToKo < ec.stats.hp;
+  if (!longFight) return base;
+  if (e.kind === 'boost') {
+    const stats = { ...pc.stats };
+    for (const [k, mult] of Object.entries(e.stats) as [keyof typeof stats, number][])
+      stats[k] = Math.round(stats[k] * mult);
+    const boosted = estimateDuel({ ...pc, stats }, pc.stats.hp, ec, scales);
+    return { ...boosted, durationMs: boosted.durationMs + turn };
+  }
+  if (
+    blockedBy(e, ec.types) ||
+    !canInflict(e.ailment, ec.types) ||
+    ec.ability?.statusImmune?.includes(e.ailment)
+  )
+    return base;
+  const s = BALANCE.status;
+  const pDmg = expectedDamage(pc, ec, chooseMove(pc, ec), scales.playerDamage);
+  const eMove = chooseMove(ec, pc);
+  const eDmg = expectedDamage(ec, pc, eMove, scales.enemyDamage);
+  const pInterval = turn;
+  const eInterval = attackInterval(ec.stats.spe, pc.stats.spe);
+  let enemyDamage = scales.enemyDamage;
+  let playerDamage = scales.playerDamage;
+  let playerHp = pc.stats.hp;
+  // Dano por vez do status, somado ao ritmo de dano do jogador.
+  const dot = (frac: number) => 1 + (frac * ec.stats.hp) / eInterval / Math.max(0.01, pDmg / pInterval);
+  if (e.ailment === 'paralysis') enemyDamage *= (1 - s.paralysisSkipChance) / s.paralysisIntervalMultiplier;
+  else if (e.ailment === 'burn') {
+    if (getMove(eMove).category === 'physical') enemyDamage *= s.burnAttackMultiplier;
+    playerDamage *= dot(s.burnDamage);
+  } else if (e.ailment === 'poison') playerDamage *= dot(s.poisonDamage);
+  // Dormindo, o inimigo perde as vezes de agir: é como ter o HP desses golpes a mais.
+  else if (e.ailment === 'sleep') playerHp += eDmg * ((s.sleepTurns[0] + s.sleepTurns[1]) / 2);
+  const hit = estimateDuel(pc, playerHp, ec, { ...scales, enemyDamage, playerDamage });
+  const p = e.accuracy / 100;
+  return {
+    win: p * Number(hit.win) + (1 - p) * Number(base.win) >= 0.5,
+    durationMs: p * hit.durationMs + (1 - p) * base.durationMs + turn,
+    hpLostFraction: Math.min(1, p * hit.hpLostFraction + (1 - p) * base.hpLostFraction),
+  };
+}
+
 /** Eficiência média do Pokémon ativo na rota, ponderada pela tabela de encontros. */
 export function estimateRoute(state: GameState, routeId: string): RouteEstimate {
   const c = BALANCE.combat;
@@ -80,6 +158,7 @@ export function estimateRoute(state: GameState, routeId: string): RouteEstimate 
   const mega = megaFor(player);
   const pc = combatantOf(mega ? { ...player, megaForm: mega.form } : player, mods.playerMoveBoost);
   const avgIvs = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
+  const support = supportMoveOf(player.speciesId, player.level);
   let totalW = 0;
   let cycle = 0;
   let winW = 0;
@@ -88,10 +167,10 @@ export function estimateRoute(state: GameState, routeId: string): RouteEstimate 
   for (const e of currentEncounters(state, routeId)) {
     const level = Math.round((e.minLevel + e.maxLevel) / 2);
     const ec = combatantOf({ speciesId: e.speciesId, level, ivs: avgIvs }, mods.enemyMoveBoost);
-    const duel = estimateDuel(pc, pc.stats.hp, ec, combatScales(mods, ec.types));
+    const duel = duelWithSupport(pc, ec, combatScales(mods, ec.types), support);
     totalW += e.weight;
-    cycle +=
-      e.weight * (duel.durationMs + c.spawnDelayMs + (duel.win ? c.victoryDelayMs : c.defeatRecoveryMs));
+    // Depois da vitória, o próximo inimigo entra direto ao fim da pausa (a espera de entrada é só a da 1ª luta).
+    cycle += e.weight * (duel.durationMs + (duel.win ? c.victoryDelayMs : c.defeatRecoveryMs));
     if (duel.win) {
       winW += e.weight;
       exp += e.weight * expYield(e.speciesId, level, false, player.level) * mods.exp;

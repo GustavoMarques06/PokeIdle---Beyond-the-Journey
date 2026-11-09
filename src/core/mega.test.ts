@@ -156,3 +156,15 @@ describe('habilidades das Megas com efeito próprio', () => {
     expect(a / b).toBeLessThan(1.3);
   });
 });
+
+describe('preço das Mega Stones', () => {
+  it('cresce com a força da Mega: as fracas saem cedo, as lendárias ficam para o fim', async () => {
+    const { MEGAS, megaStonePrice } = await import('../game-data/megas');
+    const price = (name: string) => megaStonePrice(MEGAS.find((m) => m.name === name)!);
+    expect(price('Mega Beedrill')).toBe(80000);
+    expect(price('Mega Charizard X')).toBe(120000);
+    expect(price('Mega Garchomp')).toBe(200000);
+    expect(price('Mega Rayquaza')).toBe(300000);
+    expect(price('Primal Kyogre')).toBe(300000);
+  });
+});

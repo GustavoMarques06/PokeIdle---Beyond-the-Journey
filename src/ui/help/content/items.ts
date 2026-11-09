@@ -113,7 +113,7 @@ export const ITEMS: Section = {
         { p: 'Para usar:' },
         {
           ol: [
-            '**Compre a Mega Stone** da espécie na Loja de Departamentos (aba LOJA, seção "ITENS SEGURÁVEIS", **120.000 moedas** cada). Por exemplo, a **Charizardite X** é do Charizard.',
+            '**Compre a Mega Stone** da espécie na Loja de Departamentos (aba LOJA, seção "ITENS SEGURÁVEIS", **de 80.000 a 300.000 moedas**, conforme a força da Mega). Por exemplo, a **Charizardite X** é do Charizard.',
             '**Faça o Pokémon segurar** a pedra (veja "Como faço um Pokémon segurar um item?"). Tem que ser a **espécie certa** e já evoluída: um Charmander não usa Charizardite, só o Charizard.',
             '**Lute!** No modo **AUTO** ele se transforma **sozinho** no começo de cada encontro. No modo **MANUAL** aparece um botão dourado **MEGA** (ou tecla [[key:M]]) na caixa de mensagens. Ele **não gasta a vez** do Pokémon.',
           ],

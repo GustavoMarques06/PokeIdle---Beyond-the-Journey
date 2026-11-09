@@ -24,7 +24,8 @@ import { natureFor } from './pokemon';
 import type { Ivs } from './stats';
 import { emptyTower } from './tower';
 import { addResearch } from './dexresearch';
-import { recordForm } from './forms';
+import { giveForm, recordForm } from './forms';
+import { seededRng } from './rng';
 import { emptyTournament } from './tournament';
 import { setAutomation } from './automation';
 import { PRESET_USES, type TeamSnapshot } from './presets';
@@ -302,6 +303,10 @@ function normalize(state: GameState): void {
     for (const p of state.collection) addResearch(state, p.speciesId, { caught: 1 });
   }
   state.forms ??= {};
+  // Unown, Deerling e Spinda que chegaram por expedição, ovo ou prêmio antes da correção vieram sem forma: ganham uma
+  // (a estação de quando chegaram, no caso do Deerling).
+  const formRng = seededRng(state.rngSeed ^ 0x5f0f);
+  for (const p of state.collection) giveForm(state, p, formRng, p.caughtAt || Date.now());
   for (const p of state.collection) if (p.form) recordForm(state, p.speciesId, p.form);
   state.mvp ??= { week: 0, wins: {} };
   state.tagNames ??= {};

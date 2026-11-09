@@ -116,6 +116,24 @@ describe('expedições', () => {
   });
 });
 
+describe('formas fora de batalha', () => {
+  it('o Unown das ruínas chega com letra, e as 28 aparecem com o tempo', () => {
+    const s = newGame(1, 0, 3);
+    clearUpTo(s, 'torre-queimada');
+    const party = [give(s, 'abra', 50), give(s, 'gastly', 50), give(s, 'murkrow', 50)].map((p) => p.uid);
+    let t = 0;
+    for (let i = 0; i < 400 && (s.forms[201]?.length ?? 0) < 28; i++) {
+      expect(startExpedition(s, 'ruinas', party, 8, t)).toBe(true);
+      t += 8 * HOUR;
+      claimExpedition(s, 'ruinas', t);
+    }
+    const unowns = s.collection.filter((p) => p.speciesId === 201);
+    expect(unowns.length).toBeGreaterThan(0);
+    expect(unowns.every((p) => !!p.form)).toBe(true);
+    expect(s.forms[201]).toHaveLength(28);
+  });
+});
+
 describe('jardim e berries', () => {
   it('planta, colhe e come para ganhar bônus temporário', () => {
     const s = newGame(1, 0, 4);

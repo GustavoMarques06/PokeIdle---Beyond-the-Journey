@@ -5,6 +5,7 @@ import { BALANCE, getSpecies, hasMove, lineRoot, speciesId } from '../game-data'
 import { computeModifiers } from './bonuses';
 import { activityUnlocked, addToCollection, busyUids, findPokemon } from './collection';
 import type { GameEvent, GameState } from './game';
+import { giveForm } from './forms';
 import { genderOf } from './gender';
 import { progressMission } from './missions';
 import { isPerfect, movesOf, randomIvs, rollShiny, type PokemonInstance } from './pokemon';
@@ -163,6 +164,7 @@ export function hatchReadyEggs(state: GameState, now: number, events: GameEvent[
       'Creche',
     );
     p.friendship = BALANCE.friendship.hatch;
+    giveForm(state, p, rngFrom(state), now);
     // Nasce sabendo os golpes de ovo (o resto da lista vem dos golpes de nível).
     if (egg.eggMoves?.length) {
       p.eggMoves = egg.eggMoves;

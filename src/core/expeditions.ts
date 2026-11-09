@@ -5,6 +5,7 @@
 import { BALANCE, EXPEDITIONS, TM_POOL, getSpecies, type ExpeditionDef } from '../game-data';
 import { activityUnlocked, addToCollection, busyUids, findPokemon, routeDone, unlockTm } from './collection';
 import type { GameEvent, GameState } from './game';
+import { giveForm } from './forms';
 import { progressMission } from './missions';
 import { randomIvs, rollShiny } from './pokemon';
 import { setLevel } from './progression';
@@ -112,6 +113,7 @@ export function claimExpedition(
     } else if ('speciesId' in r) {
       const level = randInt(rng, r.level[0], r.level[1]);
       const p = addToCollection(state, r.speciesId, level, randomIvs(rng), rollShiny(rng), now, def.name);
+      giveForm(state, p, rng, now);
       loot.pokemon.push({ uid: p.uid, speciesId: p.speciesId, shiny: p.shiny });
     }
   }

@@ -1,6 +1,6 @@
 // Efeitos de golpe (um por tipo) e de status (em loop) em pixel art, de dois pacotes CC0: PVFX Foundry (nerijs) e Pixel
 // Magic Effects (Foozle). As folhas ficam em public/sprites/fx e os dados em generated/fx-art.json
-// (scripts/build-fx.py). Os tipos sem efeito aqui (aço, veneno, inseto, dragão) seguem com as partículas de CSS.
+// (scripts/build-fx.py). Aço, veneno, inseto e dragão não têm efeito próprio nos pacotes: usam um parecido, recolorido.
 
 import fxJson from '../../game-data/generated/fx-art.json';
 

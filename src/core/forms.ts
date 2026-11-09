@@ -39,6 +39,23 @@ export function battleForm(
   return formSet(speciesId)?.rule === 'weather' ? castformForm(weather) : form;
 }
 
+/**
+ * Pokémon que chegou fora de batalha (expedição, ovo, prêmio): sorteia a forma e a registra na coleção. Sem isso o
+ * Unown das ruínas vinha sem letra e a conquista das 28 formas não tinha como ser feita.
+ */
+export function giveForm(
+  state: GameState,
+  p: { speciesId: number; form?: string },
+  rng: Rng,
+  now: number,
+): void {
+  if (p.form || formSet(p.speciesId)?.rule === 'weather') return;
+  const form = rollForm(p.speciesId, rng, now);
+  if (!form) return;
+  p.form = form;
+  recordForm(state, p.speciesId, form);
+}
+
 /** Registra a forma na coleção. Devolve true se era nova. */
 export function recordForm(state: GameState, speciesId: number, form: string | undefined): boolean {
   if (!form || !formSet(speciesId)) return false;
