@@ -1,8 +1,10 @@
 // Salvamento local versionado, com backup e migrações explícitas.
 
 import {
+  NO_SUPPORT,
   PLAYER_AVATARS,
   ROUTES,
+  SUPPORT_MOVES,
   TEAM_SIZE,
   cleanOutfit,
   getLure,
@@ -320,6 +322,7 @@ function normalize(state: GameState): void {
   for (const p of state.collection) {
     if (p.gender !== undefined && p.gender !== 'm' && p.gender !== 'f') delete p.gender;
     if (p.ball !== undefined && typeof p.ball !== 'string') delete p.ball;
+    if (p.support !== undefined && p.support !== NO_SUPPORT && !SUPPORT_MOVES[p.support]) delete p.support;
     for (const key of ['eggMoves', 'relearned'] as const) {
       const list = p[key];
       if (list === undefined) continue;

@@ -18,7 +18,7 @@ import {
   megaFor,
   blockedBy,
   routeIndex,
-  supportMoveOf,
+  supportMoveFor,
   type Ailment,
   type BuffKind,
   type Route,
@@ -254,9 +254,9 @@ export function playerMoveMatchup(state: GameState, moveId: string) {
 }
 
 /** O golpe de apoio do Pokémon nesta batalha (não vale nas raides nem no duelo fantasma, que são de força pura). */
-export function supportOf(state: GameState, p: { speciesId: number; level: number }) {
+export function supportOf(state: GameState, p: { speciesId: number; level: number; support?: string }) {
   const kind = state.battle.kind;
-  return kind === 'raid' || kind === 'ghost' ? undefined : supportMoveOf(p.speciesId, p.level);
+  return kind === 'raid' || kind === 'ghost' ? undefined : supportMoveFor(p);
 }
 
 /** O golpe de apoio, se dá para usar agora: uma vez por luta, e curar com o HP cheio só gastaria a vez. */
@@ -488,7 +488,8 @@ function takeTurn(
   if (isPlayer) b.pendingMove = undefined;
 
   // Golpe de apoio: uma vez por luta, por escolha no modo manual; no automático e nos inimigos, só em lutas longas.
-  const support = supportOf(state, self);
+  // O do jogador segue a escolha da ficha; o inimigo usa o automático.
+  const support = supportOf(state, isPlayer ? player : self);
   const supportSpent = isPlayer ? b.supportUsed?.includes(player.uid) : enemy.supportUsed;
   if (support && !supportSpent) {
     const pickedIt = picked === support.id;

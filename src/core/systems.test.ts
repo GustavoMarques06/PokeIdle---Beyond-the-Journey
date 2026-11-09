@@ -6,7 +6,7 @@ import { BALANCE, FORM_SETS, ROUTES, SAFARI_ENCOUNTERS, formSprite, speciesId } 
 import { addToCollection } from './collection';
 import { companionTick, setCompanion } from './companion';
 import { addResearch, researchBonus, researchComplete, tasksDone } from './dexresearch';
-import { environmentMoveBoost, weatherAt } from './env';
+import { environmentMoveBoost, routeWeather, weatherAt, type Weather } from './env';
 import { castformForm, rollForm, seasonAt } from './forms';
 import { activePokemon, freshBattle, newGame, step, throwBall, type GameEvent, type GameState } from './game';
 import { checkAchievements } from './meta';
@@ -36,6 +36,17 @@ describe('climas novos', () => {
     expect(seen).toEqual(new Set(['clear', 'sun', 'rain', 'sand', 'fog', 'hail']));
     expect(environmentMoveBoost('hail', 'day').ice).toBe(BALANCE.weather.hailBoost);
     expect(environmentMoveBoost('fog', 'day').ghost).toBe(BALANCE.weather.fogBoost);
+  });
+
+  it('nos campos de neve neva, salvo com sol, névoa ou noite limpa', () => {
+    const snow = ROUTES.find((r) => r.scene === 'snowfield')!;
+    const meadow = ROUTES.find((r) => r.scene === 'meadow')!;
+    const at = (weather: Weather) => routeWeather(snow, { period: 'day', weather });
+    expect([at('clear'), at('rain'), at('sand'), at('hail')]).toEqual(['hail', 'hail', 'hail', 'hail']);
+    expect([at('sun'), at('fog')]).toEqual(['sun', 'fog']);
+    expect(routeWeather(snow, { period: 'night', weather: 'clear' })).toBe('clear'); // a aurora aparece
+    expect(routeWeather(snow, { period: 'night', weather: 'rain' })).toBe('hail');
+    expect(routeWeather(meadow, { period: 'day', weather: 'clear' })).toBe('clear');
   });
 });
 

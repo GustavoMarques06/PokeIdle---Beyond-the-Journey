@@ -3,16 +3,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   BALANCE,
+  NO_SUPPORT,
   SUPPORT_MOVES,
   blockedBy,
   describeSupport,
+  supportMoveFor,
   supportMoveOf,
   type TypeName,
 } from '../game-data';
 import { moveName } from '../ui/i18n/pt-BR';
 import type { GameEvent } from './game';
 import { advance, newGame, selectMove, supportOf, supportReady } from './game';
+import { setSupport, supportOptions } from './moveset';
 import { randomIvs, statsOf } from './pokemon';
+import { parseSave, serialize } from './save';
 import { seededRng } from './rng';
 import type { GameState } from './state';
 
@@ -83,6 +87,55 @@ describe('golpes de apoio', () => {
     s.battle.enemy!.maxHp = 1;
     const used = collect(s, 3_000).filter((e) => e.type === 'supportMove' && e.side === 'player');
     expect(used.length).toBe(0);
+  });
+});
+
+describe('escolha do golpe de apoio', () => {
+  it('lista os que já aprendeu e troca o usado na batalha; nenhum desliga; sem escolha é o automático', () => {
+    // Scyther (123): Agility no 17, Swords Dance no 25.
+    const s = fight(1, 123, 100);
+    const p = s.collection[0];
+    expect(supportOptions(p)).toEqual(['agility', 'swords-dance']);
+    expect(supportOf(s, p)?.id).toBe('swords-dance');
+
+    expect(setSupport(s, p.uid, 'agility')).toBe(true);
+    expect(supportOf(s, p)?.id).toBe('agility');
+    const used = collect(s, 40_000).filter((e) => e.type === 'supportMove' && e.side === 'player');
+    expect(used.map((e) => e.type === 'supportMove' && e.move)).toEqual(['agility']);
+
+    expect(setSupport(s, p.uid, NO_SUPPORT)).toBe(true);
+    expect(supportOf(s, p)).toBeUndefined();
+    expect(setSupport(s, p.uid, undefined)).toBe(true);
+    expect(p.support).toBeUndefined();
+    expect(supportOf(s, p)?.id).toBe('swords-dance');
+  });
+
+  it('não aceita um golpe que ainda não aprendeu nem um de outra espécie', () => {
+    const s = fight(1, 123, 20);
+    const p = s.collection[0];
+    expect(setSupport(s, p.uid, 'swords-dance')).toBe(false); // só no nível 25
+    expect(setSupport(s, p.uid, 'spore')).toBe(false);
+    expect(p.support).toBeUndefined();
+  });
+
+  it('o escolhido continua depois de evoluir e sobrevive ao save; lixo no save some', () => {
+    const s = fight(1, 64, 30); // Kadabra: Hypnosis, Calm Mind, Recover
+    const p = s.collection[0];
+    expect(setSupport(s, p.uid, 'hypnosis')).toBe(true);
+    p.speciesId = 65;
+    expect(supportMoveFor(p)?.id).toBe('hypnosis');
+    const back = parseSave(serialize(s, 0));
+    expect(back.ok && back.file.state.collection[0].support).toBe('hypnosis');
+    s.collection[0].support = 'nao-existe';
+    const bad = parseSave(serialize(s, 0));
+    expect(bad.ok && bad.file.state.collection[0].support).toBeUndefined();
+  });
+
+  it('o progresso offline usa o golpe escolhido (ou nenhum)', () => {
+    const s = fight(1, 123, 100);
+    const p = s.collection[0];
+    setSupport(s, p.uid, NO_SUPPORT);
+    expect(supportMoveFor(p)).toBeUndefined();
   });
 });
 

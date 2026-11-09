@@ -1,7 +1,7 @@
 // Dreno, recuo, golpes de vários acertos e crítico fácil.
 
 import { describe, expect, it } from 'vitest';
-import { getAbility, getMove } from '../game-data';
+import { getAbility, getMove, getSpecies } from '../game-data';
 import { calcDamage, combatantOf, expectedDamage } from './combat';
 import { seededRng } from './rng';
 
@@ -62,6 +62,18 @@ describe('habilidades das Megas fiéis aos jogos', () => {
     const none = { ...base, ability: undefined };
     expect(expectedDamage(jaw, def, 'crunch') / expectedDamage(none, def, 'crunch')).toBeCloseTo(1.5, 1);
     expect(expectedDamage(jaw, def, 'surf')).toBeCloseTo(expectedDamage(none, def, 'surf'), 3);
+  });
+
+  it('Mega Lançador: golpes de pulso +50%, Surf igual, e o Blastoise aprende os pulsos', () => {
+    const base = combatantOf({ speciesId: 9, level: 50, ivs });
+    const launcher = { ...base, ability: getAbility('mega-launcher') };
+    const none = { ...base, ability: undefined };
+    for (const move of ['water-pulse', 'dark-pulse', 'dragon-pulse'])
+      expect(expectedDamage(launcher, def, move) / expectedDamage(none, def, move)).toBeCloseTo(1.5, 1);
+    expect(expectedDamage(launcher, def, 'surf')).toBeCloseTo(expectedDamage(none, def, 'surf'), 3);
+    const blastoise = getSpecies(9);
+    expect(blastoise.learnset).toContainEqual({ level: 28, move: 'water-pulse' });
+    expect(blastoise.tmMoves).toEqual(expect.arrayContaining(['dark-pulse', 'dragon-pulse']));
   });
 
   it('Força Bruta: Flamethrower +30% e nunca queima', () => {

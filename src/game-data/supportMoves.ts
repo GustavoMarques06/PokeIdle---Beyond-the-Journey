@@ -1,5 +1,6 @@
-// Golpes de apoio: sem dano, causam status, aumentam atributos ou curam. Cada Pokémon tem no máximo um (o mais recente
-// que aprendeu por nível, de scripts/fetch-support-moves.mjs), fora dos 4 golpes de ataque, e usa uma vez por luta.
+// Golpes de apoio: sem dano, causam status, aumentam atributos ou curam. Cada Pokémon leva no máximo um, fora dos 4
+// golpes de ataque, e usa uma vez por luta: o mais recente que aprendeu por nível (de scripts/fetch-support-moves.mjs),
+// ou outro que já aprendeu, escolhido pelo jogador na ficha (ou nenhum).
 
 import supportJson from './generated/support-moves.json';
 import type { Ailment, StatKey, TypeName } from './types';
@@ -92,11 +93,32 @@ const LEARNED = supportJson as unknown as Record<string, [string, number][]>;
 
 /** O golpe de apoio de uma espécie neste nível (o último que aprendeu), se tiver. */
 export function supportMoveOf(speciesId: number, level: number): SupportMove | undefined {
-  let found: SupportMove | undefined;
+  return learnedSupportMoves(speciesId, level).at(-1);
+}
+
+/** Todos os golpes de apoio que a espécie já aprendeu neste nível, do mais antigo ao mais recente. */
+export function learnedSupportMoves(speciesId: number, level: number): SupportMove[] {
+  const out: SupportMove[] = [];
   for (const [id, at] of LEARNED[speciesId] ?? []) {
-    if (at <= level && SUPPORT_MOVES[id]) found = SUPPORT_MOVES[id];
+    const move = SUPPORT_MOVES[id];
+    if (at > level || !move) continue;
+    const i = out.indexOf(move);
+    if (i >= 0) out.splice(i, 1);
+    out.push(move);
   }
-  return found;
+  return out;
+}
+
+/** Escolha do jogador para o golpe de apoio: ausente = automático (o mais recente), 'none' = nenhum. */
+export const NO_SUPPORT = 'none';
+
+/**
+ * O golpe de apoio de um Pokémon: o escolhido pelo jogador (continua valendo depois de evoluir, como os golpes de
+ * ataque escolhidos), nenhum, ou o automático. Inimigos não escolhem: sempre o automático.
+ */
+export function supportMoveFor(p: { speciesId: number; level: number; support?: string }): SupportMove | undefined {
+  if (p.support === NO_SUPPORT) return undefined;
+  return (p.support && SUPPORT_MOVES[p.support]) || supportMoveOf(p.speciesId, p.level);
 }
 
 const STAT_LABEL: Record<StatKey, string> = {

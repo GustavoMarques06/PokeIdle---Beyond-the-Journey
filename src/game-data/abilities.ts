@@ -579,8 +579,11 @@ export const ABILITIES: AbilityDef[] = [
   A({
     id: 'mega-launcher',
     name: 'Mega Lançador',
-    description: 'Ataque Esp. ×1,3.',
-    stat: { spAtk: 1.3 },
+    description: 'Golpes de pulso (Water Pulse, Dark Pulse, Dragon Pulse, Aura Sphere e Origin Pulse) causam 50% a mais.',
+    boostMoves: {
+      moves: ['water-pulse', 'dark-pulse', 'dragon-pulse', 'aura-sphere', 'origin-pulse'],
+      mult: 1.5,
+    },
     passive: { kind: 'damage', value: 0.04 },
   }),
   A({

@@ -44,7 +44,17 @@ const TM_VERSION_GROUPS = ['black-2-white-2', 'x-y'];
 const FALLBACK_MOVE = 'tackle';
 // Golpes de tutor que marcam a espécie e não vêm por nível na PokéAPI: entram no aprendizado por nível aqui.
 // Dragon Ascent: em ORAS a Zinnia ensina ao Rayquaza (é o golpe da Mega Rayquaza).
-const TUTOR_LEVEL_MOVES = { 384: [{ level: 70, move: 'dragon-ascent' }] };
+// Water Pulse: a linha do Squirtle aprende por nível a partir da Geração VI (Squirtle 25, Wartortle e Blastoise 28),
+// e é o golpe que o Mega Lançador do Mega Blastoise reforça.
+const TUTOR_LEVEL_MOVES = {
+  384: [{ level: 70, move: 'dragon-ascent' }],
+  7: [{ level: 25, move: 'water-pulse' }],
+  8: [{ level: 28, move: 'water-pulse' }],
+  9: [{ level: 28, move: 'water-pulse' }],
+};
+// TMs que a espécie aprende nas gerações seguintes e que ela precisa aqui: Dark Pulse e Dragon Pulse dão ao Mega
+// Blastoise golpes de pulso de outros tipos, como nos jogos.
+const EXTRA_TM_MOVES = { 9: ['dark-pulse', 'dragon-pulse'] };
 // Golpes que o combate simples não modela (autodestruição, recarga, dois turnos, poder variável…).
 const MOVE_BLACKLIST = new Set([
   'self-destruct',
@@ -516,7 +526,7 @@ async function main() {
           ),
         )
         .map((m) => m.move.name);
-    const tm = TM_VERSION_GROUPS.map(taught).find((list) => list.length > 0) ?? [];
+    const tm = [...(TM_VERSION_GROUPS.map(taught).find((list) => list.length > 0) ?? []), ...(EXTRA_TM_MOVES[id] ?? [])];
     for (const m of tm) moveNames.add(m);
     machines.set(id, tm);
     // Golpes de ovo: herdados na Creche quando um dos pais conhece o golpe.

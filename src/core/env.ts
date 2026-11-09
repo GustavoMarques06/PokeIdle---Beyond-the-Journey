@@ -75,6 +75,12 @@ export function routeWeather(route: Route, env: Environment): Weather {
   if (route.scene === 'desert') return env.weather === 'rain' ? 'clear' : 'sand';
   // Granizo só onde faz frio ou em áreas abertas altas; na praia e no deserto vira chuva/areia.
   if (env.weather === 'hail' && route.scene === 'beach') return 'rain';
+  // Nos campos de neve neva quase sempre (como na Rota 217): só o sol, a névoa e a noite limpa (com a aurora)
+  // abrem uma brecha.
+  if (route.scene === 'snowfield') {
+    const opening = env.weather === 'sun' || env.weather === 'fog' || (env.weather === 'clear' && env.period === 'night');
+    if (!opening) return 'hail';
+  }
   return env.weather;
 }
 

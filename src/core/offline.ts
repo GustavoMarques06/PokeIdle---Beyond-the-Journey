@@ -1,7 +1,7 @@
 // Progresso offline: cálculo puro e determinístico, separado do loop visual.
 
 import { BALANCE, getMove, megaFor } from '../game-data';
-import { SUPPORT_RULES, blockedBy, supportMoveOf, type SupportMove } from '../game-data/supportMoves';
+import { SUPPORT_RULES, blockedBy, supportMoveFor, type SupportMove } from '../game-data/supportMoves';
 import { combatScales, computeModifiers } from './bonuses';
 import {
   attackInterval,
@@ -158,7 +158,7 @@ export function estimateRoute(state: GameState, routeId: string): RouteEstimate 
   const mega = megaFor(player);
   const pc = combatantOf(mega ? { ...player, megaForm: mega.form } : player, mods.playerMoveBoost);
   const avgIvs = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
-  const support = supportMoveOf(player.speciesId, player.level);
+  const support = supportMoveFor(player);
   let totalW = 0;
   let cycle = 0;
   let winW = 0;

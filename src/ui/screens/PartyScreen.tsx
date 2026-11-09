@@ -15,8 +15,10 @@ import {
   formName,
   getRoute,
   getSpecies,
+  NO_SUPPORT,
+  SUPPORT_MOVES,
   describeSupport,
-  supportMoveOf,
+  supportMoveFor,
 } from '../../game-data';
 import {
   BONUS_KINDS,
@@ -43,7 +45,14 @@ import { rngFrom } from '../../core/rng';
 import { TAG_IDS, setTag, tagName, toggleFavorite, type TagId } from '../../core/boxes';
 import { busyUids } from '../../core/collection';
 import { canTransfer, transferPokemon, transferValue } from '../../core/meta';
-import { learnableMoves, relearnMove, relearnableMoves, setMoveset } from '../../core/moveset';
+import {
+  learnableMoves,
+  relearnMove,
+  relearnableMoves,
+  setMoveset,
+  setSupport,
+  supportOptions,
+} from '../../core/moveset';
 import { genderOf } from '../../core/gender';
 import {
   NICKNAME_MAX,
@@ -502,7 +511,7 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
   const species = getSpecies(p.speciesId);
   const stats = statsOf(p);
   const moves = movesOf(p);
-  const support = supportMoveOf(p.speciesId, p.level);
+  const support = supportMoveFor(p);
   const [editing, setEditing] = useState(false);
   const away = busyLabel(state, p.uid);
   const isActive = p.uid === state.activeUid;
@@ -648,7 +657,8 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
             <li className={`move type-bg-${support.type}`}>
               <span className="move-name">{support.name.toUpperCase()}</span>
               <span className="move-meta">
-                <TypeBadge type={support.type} /> APOIO · 1 vez por luta · {describeSupport(support)}
+                <TypeBadge type={support.type} /> APOIO{p.support ? '' : ' (AUTOMÁTICO)'} · 1 vez por luta ·{' '}
+                {describeSupport(support)}
               </span>
             </li>
           )}
@@ -838,7 +848,54 @@ function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
       <button className="pbtn small" onClick={() => engine.dispatch((s) => setMoveset(s, p.uid, []))}>
         Voltar ao automático
       </button>
+      <SupportPicker p={p} />
       <Relearner state={state} p={p} />
+    </div>
+  );
+}
+
+/** Golpe de apoio: qualquer um que o Pokémon já aprendeu, o automático (o mais recente) ou nenhum. */
+function SupportPicker({ p }: { p: PokemonInstance }) {
+  const engine = useEngine();
+  const options = supportOptions(p);
+  if (!options.length) return null;
+  const pick = (move: string | undefined) => engine.dispatch((s) => void setSupport(s, p.uid, move));
+  const current = p.support;
+  return (
+    <div className="support-picker">
+      <h4>
+        GOLPE DE APOIO <small>1 vez por luta, além dos 4 golpes</small>
+      </h4>
+      <ul className="move-options">
+        {options.map((id) => {
+          const mv = SUPPORT_MOVES[id];
+          const on = current === id;
+          return (
+            <li key={id}>
+              <button className={`move-option type-bg-${mv.type} ${on ? 'on' : ''}`} onClick={() => pick(id)}>
+                <span className="move-name">
+                  {on && <PixelIcon name="check" scale={1} />} {mv.name.toUpperCase()}
+                </span>
+                <span className="move-meta">
+                  <TypeBadge type={mv.type} /> {describeSupport(mv)}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="support-picker-actions">
+        <button className={`pbtn small ${current === undefined ? 'primary' : ''}`} onClick={() => pick(undefined)}>
+          Automático
+        </button>
+        <button
+          className={`pbtn small ${current === NO_SUPPORT ? 'primary' : ''}`}
+          title="Luta só com os 4 golpes de ataque"
+          onClick={() => pick(NO_SUPPORT)}
+        >
+          Nenhum
+        </button>
+      </div>
     </div>
   );
 }

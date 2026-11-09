@@ -1,6 +1,37 @@
-/* Celulares e janelas estreitas ou baixas (um celular deitado passa de 900 px de largura, mas tem pouca altura): uma
-   coluna só (HUD, batalha, ficha e tela aberta) e o menu fixo embaixo, como uma barra de abas que rola para o lado. */
+/* =============================================================================
+   CELULARES E JANELAS ESTREITAS OU BAIXAS
+   Um celular deitado passa de 900 px de largura, mas tem pouca altura: por isso o layout de celular vale para
+   (max-width: 900px) ou (max-height: 520px). Uma coluna só (HUD, batalha, ficha e tela aberta) e o menu fixo
+   embaixo, pensado para o polegar, não um PC encolhido.
+
+   A ordem das seções é a da cascata: do mais geral para o mais específico. Uma regra mais abaixo vence a de
+   cima quando as duas valem, então ajustes de um caso particular entram na seção dele, não no layout base.
+     1. Sempre
+     2. Layout de celular (base)
+     3. Toque
+     4. Cena pequena (em pé estreito ou deitado)
+     5. Em pé
+     6. Os menores aparelhos
+     7. Deitado
+     8. Janela estreita (@container)
+   ============================================================================= */
+
+/* --- 1. Sempre ---------------------------------------------------------------------------------- */
+
+/* O fim da página não fica atrás do menu quando algo rola até lá. */
+html {
+  scroll-padding-bottom: calc(var(--menu-h) + 8px);
+}
+
+/* O objetivo no topo nunca quebra a linha. */
+.hud-goal {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* --- 2. Layout de celular (base) ---------------------------------------------------------------- */
 @media (max-width: 900px), (max-height: 520px) {
+  /* Página: uma coluna, com espaço embaixo para o menu fixo e respeitando o recorte da câmera. */
   .game {
     display: flex;
     flex-direction: column;
@@ -8,13 +39,26 @@
     height: auto;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right))
-      calc(68px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) calc(var(--menu-h) + 8px)
+      max(6px, env(safe-area-inset-left));
+    /* Altura da cena fixa no alto enquanto uma janela está aberta: em celulares baixos, ela cede espaço. */
+    /* svh, não dvh: a barra do Safari some ao rolar, e a cena não pode mudar de tamanho junto. */
+    --mini-h: min(56.25vw, 28svh);
     --gap: 6px;
     gap: 6px;
   }
 
+  /* A janela rola sozinha: a página de trás não acompanha nem puxa a barra do navegador. */
+  html:has(.game.window-open),
+  body:has(.game.window-open) {
+    overflow: hidden;
+  }
+
+  /* HUD: a rota ganha a linha de cima inteira; treinador, insígnias e carteira dividem a de baixo,
+     sempre numa linha só (o treinador encolhe). */
   .hud {
+    flex-wrap: wrap;
+    align-items: center;
     padding: 2px;
   }
 
@@ -23,32 +67,11 @@
     padding: 0 6px;
   }
 
-  /* Segunda linha: treinador (encolhe), insígnias e carteira, sempre numa linha só. */
-  .hud {
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
   .hud > .hud-seg:not(.hud-route) {
     flex: none;
     white-space: nowrap;
   }
 
-  .hud > .hud-trainer {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .hud-trainer-exp {
-    display: none;
-  }
-
-  .hud-portrait {
-    width: 28px;
-    height: 28px;
-  }
-
-  /* A rota ganha a linha de cima inteira; treinador, insígnias e carteira dividem a de baixo. */
   .hud > .hud-route {
     order: -1;
     flex: 1 1 100%;
@@ -57,8 +80,12 @@
     border-left: none;
   }
 
+  .hud > .hud-trainer {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .hud-trainer {
-    flex: 1 1 auto;
     min-width: 0;
   }
 
@@ -67,9 +94,15 @@
     text-overflow: ellipsis;
   }
 
+  .hud-trainer-exp,
   .hud-trainer small,
   .hud-env small {
     display: none;
+  }
+
+  .hud-portrait {
+    width: 28px;
+    height: 28px;
   }
 
   .hud-panel {
@@ -81,6 +114,7 @@
     overflow-x: auto;
   }
 
+  /* Batalha: cena na largura toda e os comandos embaixo dela. */
   .battle-column {
     --scene-w: 100%;
     container-type: normal;
@@ -93,34 +127,21 @@
     height: auto;
   }
 
+  .battle-cmds {
+    min-height: 0;
+  }
+
   /* Lista de bolas e reservas: rola em vez de empurrar a tela. */
   .bc-list {
     max-height: 196px;
   }
 
-  .dialog {
-    min-height: 64px;
+  .bc-big {
+    min-height: 58px;
   }
 
-  /* Toque: AUTO/MANUAL, desafio e registro com altura confortável. */
-  .dialog-foot {
-    gap: 6px;
-  }
-
-  .battle-mode button,
-  .log-toggle,
-  .dialog-mega,
-  .dialog-challenge {
-    min-height: 36px;
-    padding-top: 0;
-    padding-bottom: 0;
-    font-size: 14px;
-  }
-
-  /* AUTO/MANUAL e REGISTRO dividem a primeira linha; o desafio da rota ocupa a de baixo. */
-  .dialog-challenge,
-  .dialog-goal {
-    justify-content: center;
+  .bc-big small {
+    white-space: normal;
   }
 
   /* Botões sobre a cena (grama/pesca, foto): maiores, sem a dica de tecla. */
@@ -143,7 +164,11 @@
     display: none;
   }
 
-  /* No celular só a mensagem anterior aparece acima da atual. */
+  /* Diálogo: só a mensagem anterior aparece acima da atual. */
+  .dialog {
+    min-height: 64px;
+  }
+
   .dialog-history li:not(:last-child) {
     display: none;
   }
@@ -152,8 +177,58 @@
     font-size: 15px;
   }
 
+  .dialog-speech p {
+    font-size: 16px;
+  }
+
+  /* Comandos: uma linha só de controles (AUTO/MANUAL, desafio e registro), com altura confortável para o
+     toque e nada de texto cortado. */
+  .dialog-foot {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .battle-mode button,
+  .log-toggle,
+  .dialog-mega,
+  .dialog-challenge {
+    min-height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 14px;
+  }
+
+  .dialog-challenge,
+  .dialog-goal {
+    order: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .battle-mode button {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .log-toggle {
+    flex: none;
+    margin-left: 0;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+
+  /* A equipe vem antes das sugestões: é o que mais se usa aqui. */
   .side-column {
     min-height: auto;
+  }
+
+  .side-column > .screen-area {
+    order: 1;
+  }
+
+  .side-column > :not(.screen-area, .game-menu) {
+    order: 2;
   }
 
   .screen-area {
@@ -164,11 +239,16 @@
     contain: paint;
   }
 
-  /* Batalha fixa no alto (só a cena) e a janela entre ela e a barra de abas, em vez de a página crescer sem fim. */
+  /* Janela aberta: a batalha fica fixa no alto (só a cena) e a janela usa o espaço entre ela e o menu,
+     em vez de a página crescer sem fim. O menu continua à vista: trocar de tela é um toque. */
   .game.window-open .battle-column {
     position: fixed;
     z-index: 45;
     inset: env(safe-area-inset-top) 0 auto;
+    --scene-w: min(100%, calc(var(--mini-h) * 16 / 9));
+    padding: 4px;
+    padding-left: max(4px, env(safe-area-inset-left));
+    padding-right: max(4px, env(safe-area-inset-right));
     background: var(--ink);
   }
 
@@ -179,17 +259,37 @@
   .screen-window {
     position: fixed;
     z-index: 50;
+    inset: calc(var(--mini-h) + 10px + env(safe-area-inset-top)) 0 var(--menu-h);
     min-width: 0;
     min-height: 0;
+    padding-right: env(safe-area-inset-right);
     resize: none;
+    /* A posição arrastada no PC não vale no layout de celular (girar o tablet, encolher a janela). */
+    translate: none !important;
   }
 
+  .screen-window-bar {
+    padding: 2px 8px;
+  }
+
+  .screen-window-bar h2 {
+    font-size: 14px;
+  }
+
+  .screen-window-bar .pbtn.small {
+    min-height: 34px;
+  }
+
+  /* Molduras dentro de molduras gastam a largura que falta. */
   .screen-window-body {
     flex: 1;
     overflow: hidden auto;
+    overscroll-behavior: contain;
+    padding: 4px;
     contain: none;
   }
 
+  /* Menu: barra de abas fixa embaixo, tudo à vista, e todas mostram o nome (não há hover). */
   .game-menu {
     position: fixed;
     z-index: 60;
@@ -197,17 +297,21 @@
     right: 0;
     bottom: 0;
     display: flex;
-    overflow-x: auto;
+    overflow: visible;
     padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     scrollbar-width: none;
   }
 
-  /* No celular a barra de abas fica embaixo e todas mostram o nome (não há hover). */
   .game-menu .menu-item,
   .game-menu .menu-item.active {
+    flex: 1 1 0;
     flex-direction: column;
     justify-content: center;
     gap: 1px;
+    min-width: 0;
+    min-height: 50px;
     padding: 3px 2px;
     font-size: 10px;
   }
@@ -220,119 +324,55 @@
   .toasts {
     left: 8px;
     right: 8px;
+    bottom: calc(var(--menu-h) + 8px);
     max-width: none;
   }
 
-  .lab-dialog {
-    order: 1;
+  /* Loja: a compra vai para baixo da descrição, que ganha a largura toda. */
+  .mart-row {
+    flex-wrap: wrap;
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .dialog-speech p {
-    font-size: 16px;
-  }
-  .game-menu {
-    overflow: visible;
+  .mart-info {
+    flex: 1 1 calc(100% - 60px);
+    min-width: 0;
   }
 
-  .bc-big small {
-    white-space: normal;
-  }
-  html:has(.game.window-open),
-  body:has(.game.window-open) {
-    overflow: hidden;
-  }
-
-  .screen-window-body {
-    overscroll-behavior: contain;
-  }
-  .screen-window {
-    translate: none !important;
-  }
-}
-
-/* Telas de celular em pé: textos e grades um pouco mais compactos. */
-@media (max-width: 520px) {
-  .summary-top {
-    grid-template-columns: 96px minmax(0, 1fr);
-  }
-
-  .summary-cols {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .pc-box {
-    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
-  }
-}
-
-/* Toque: alvos de pelo menos ~40 px (a recomendação é 44 px; os botões pequenos ficam perto). */
-@media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
-  .pbtn.tiny {
-    min-height: 36px;
-    min-width: 40px;
-  }
-
-  /* Subir e descer lado a lado, remover embaixo: alvos grandes sem esticar a linha. */
-  .team-row-tools {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-content: center;
-  }
-
-  .team-row-tools .pbtn.tiny {
-    min-width: 36px;
-    min-height: 34px;
-  }
-
-  .team-row-tools .pbtn.tiny:nth-child(3) {
+  .mart-buy {
     grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-left: auto;
   }
 
-  .next-steps li {
-    align-items: center;
-  }
-
-  .next-steps .step-text {
+  .trainer-tabs {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 40px;
-    text-align: left;
-  }
-}
-
-@media (pointer: coarse) {
-  .pbtn.small {
-    min-height: 40px;
-    padding: 0 10px;
+    flex-wrap: nowrap;
   }
 
-  .pc-cell {
-    min-height: 52px;
+  .trainer-tabs .activity-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 11px;
   }
 
-  button.tag-dot {
-    width: 30px;
-    height: 30px;
-  }
-
-  .box-check input {
-    width: 22px;
-    height: 22px;
-  }
-}
-
-/* Abertura no celular: cena, diálogo e (quando aberta) a ficha do inicial empilhados. */
-@media (max-width: 900px), (max-height: 520px) {
+  /* Abertura: cena, diálogo (com SIM / NÃO) e, quando aberta, a ficha do inicial empilhados. */
   .lab-screen {
     --lab-w: 100%;
     --gap: 6px;
     justify-content: flex-start;
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right))
+      max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
   }
 
-  /* Diálogo (com SIM / NÃO) logo abaixo da cena; a ficha do inicial vem depois. */
   .lab-stage {
     display: contents;
+  }
+
+  .lab-dialog {
+    order: 1;
   }
 
   .lab-card {
@@ -367,276 +407,84 @@
   }
 }
 
-/* Celular deitado: a cena à esquerda e mensagens e comandos à direita, tudo numa tela só; o resto
-   (menu de abas, telas abertas) fica logo abaixo. */
-@media (orientation: landscape) and (max-height: 520px) {
-  .game {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+/* --- 3. Toque ----------------------------------------------------------------------------------- */
+
+/* Alvos de pelo menos ~40 px (a recomendação é 44 px; os botões pequenos ficam perto). */
+@media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
+  .pbtn.tiny {
+    min-height: 36px;
+    min-width: 40px;
   }
 
-  /* HUD numa linha só: rota, treinador, insígnias e carteira. */
-  .hud {
-    flex-wrap: nowrap;
-  }
-
-  .hud > .hud-route {
-    order: 0;
-    flex: 1 1 0;
-    min-width: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  .hud > .hud-trainer {
-    flex: 0 1 140px;
-  }
-
-  /* Abertura: cena à esquerda e diálogo à direita, para a fala não ficar abaixo da tela. */
-  .prologue {
-    flex-direction: row;
-    gap: 8px;
-  }
-
-  .prologue-stage {
-    flex: none;
-    width: min(58%, calc((100dvh - 16px) * 16 / 10));
-  }
-
-  .prologue-dialog {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-  }
-
-  .lab-screen {
-    --lab-w: min(58%, calc((100dvh - 12px) * 16 / 10));
-    flex-flow: row wrap;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .lab-scene {
-    flex: none;
-    width: var(--lab-w);
-  }
-
-  .lab-dialog {
-    flex: 1 1 0;
-    width: auto;
-    min-width: 0;
-  }
-
-  .lab-card {
-    flex: 0 0 100%;
-  }
-
-  .battle-column {
+  /* Subir e descer lado a lado, remover embaixo: alvos grandes sem esticar a linha. */
+  .team-row-tools {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    align-items: start;
-    justify-content: stretch;
-    gap: 8px;
-    container-type: normal;
+    grid-template-columns: 1fr 1fr;
+    align-content: center;
   }
 
-  .battle-ui {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .battle-cmds {
-    min-height: 0;
-  }
-
-  .game-menu .menu-item,
-  .game-menu .menu-item.active {
-    min-height: 50px;
-  }
-
-  .toasts {
-    bottom: calc(60px + env(safe-area-inset-bottom));
-  }
-}
-
-/* Celular deitado com janela aberta: batalha à esquerda, janela à direita. */
-@media (orientation: landscape) and (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
-  .game.window-open .battle-column {
-    right: 50%;
-    display: block;
-  }
-}
-
-/* =============================================================================
-   CELULAR: pensado para o polegar, não um PC encolhido.
-   ============================================================================= */
-@media (max-width: 900px), (max-height: 520px) {
-  .game {
-    /* Altura da cena fixa no alto enquanto uma janela está aberta: em celulares baixos, ela cede espaço. */
-    /* svh, não dvh: a barra do Safari some ao rolar, e a cena não pode mudar de tamanho junto. */
-    --mini-h: min(56.25vw, 28svh);
-    padding-bottom: calc(var(--menu-h) + 8px);
-  }
-
-  /* Menu: tudo à vista, nada escondido numa rolagem lateral. */
-
-  .game-menu .menu-item,
-  .game-menu .menu-item.active {
-    flex: 1 1 0;
-    min-width: 0;
-    min-height: 50px;
-  }
-
-  /* A equipe vem antes das sugestões: é o que mais se usa aqui. */
-  .side-column > .screen-area {
-    order: 1;
-  }
-
-  .side-column > :not(.screen-area, .game-menu) {
-    order: 2;
-  }
-
-  /* Comandos e mensagens: uma linha só de controles e nada de texto cortado. */
-  .dialog-foot {
-    flex-wrap: nowrap;
-  }
-
-  .dialog-challenge,
-  .dialog-goal {
-    order: 0;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .battle-mode button {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .log-toggle {
-    flex: none;
-    margin-left: 0;
-    padding: 0 4px;
-    font-size: 12px;
-  }
-
-  .battle-cmds {
-    min-height: 0;
-  }
-
-  .bc-big {
-    min-height: 58px;
-  }
-
-  /* Janela aberta: a cena fica no alto e a janela usa todo o resto. O menu sai (o Fechar traz de volta). */
-  /* O menu fica igual, com os nomes: trocar de tela é um toque, sem passar pelo Fechar. */
-
-  .game.window-open .battle-column {
-    --scene-w: min(100%, calc(var(--mini-h) * 16 / 9));
-    padding: 4px;
-  }
-
-  .screen-window {
-    inset: calc(var(--mini-h) + 10px + env(safe-area-inset-top)) 0 var(--menu-h);
-  }
-
-  .screen-window-bar {
-    padding: 2px 8px;
-  }
-
-  .screen-window-bar h2 {
-    font-size: 14px;
-  }
-
-  .screen-window-bar .pbtn.small {
+  .team-row-tools .pbtn.tiny {
+    min-width: 36px;
     min-height: 34px;
   }
 
-  /* Molduras dentro de molduras gastam a largura que falta. */
-  .screen-window-body {
-    padding: 4px;
-  }
-
-  .toasts {
-    bottom: calc(var(--menu-h) + 8px);
-  }
-
-  /* Telas estreitas: a compra vai para baixo da descrição, que ganha a largura toda. */
-  .mart-row {
-    flex-wrap: wrap;
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .mart-info {
-    flex: 1 1 calc(100% - 60px);
-    min-width: 0;
-  }
-
-  .mart-buy {
+  .team-row-tools .pbtn.tiny:nth-child(3) {
     grid-column: 1 / -1;
-    justify-content: flex-end;
-    margin-left: auto;
   }
 
-  .trainer-tabs {
+  .next-steps li {
+    align-items: center;
+  }
+
+  .next-steps .step-text {
     display: flex;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 40px;
+    text-align: left;
   }
 
-  .trainer-tabs .activity-tab {
-    flex: 1 1 0;
-    min-width: 0;
-    padding-left: 2px;
-    padding-right: 2px;
-    font-size: 11px;
-  }
-}
-
-/* Em pé: 11 abas não cabem numa linha. Duas linhas, com tudo à vista. */
-@media (max-width: 700px) and (orientation: portrait) {
-  /* Com janela aberta, o menu fica mais baixo: sobra mais tela, sem perder os nomes. */
-  .game.window-open .game-menu {
-    grid-auto-rows: 36px;
-  }
-
-  .game.window-open .game-menu .item-icon,
-  .game.window-open .game-menu .pixel-icon {
-    max-width: 20px;
-    max-height: 20px;
-  }
-
-  .game-menu {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-auto-rows: 42px;
-  }
-
-  .game-menu .menu-item,
-  .game-menu .menu-item.active {
-    min-height: 0;
-    padding: 1px;
-    font-size: 9px;
-  }
-
-  /* Com largura sobrando, os nomes ficam mais fáceis de ler. */
-  @media (min-width: 380px) {
-    .game-menu .menu-item,
-    .game-menu .menu-item.active {
-      font-size: 10px;
-    }
-  }
-
-  .game-menu .item-icon,
-  .game-menu .pixel-icon {
-    max-width: 24px;
-    max-height: 24px;
-  }
-}
-
-/* Deitado e estreito: só os ícones (e o nome da aba aberta). */
-@media (max-height: 520px) and (max-width: 720px) and (orientation: landscape) {
-  .game-menu .menu-item:not(.active) .menu-label {
+  /* No toque o Mover já está nas ações do Pokémon: um só. */
+  .pcs-box-foot > .pbtn {
     display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .pbtn.small {
+    min-height: 40px;
+    padding: 0 10px;
+  }
+
+  .pc-cell {
+    min-height: 52px;
+  }
+
+  button.tag-dot {
+    width: 30px;
+    height: 30px;
+  }
+
+  .box-check input {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* --- 4. Cena pequena ---------------------------------------------------------------------------- */
+
+/* Celular em pé: textos e grades um pouco mais compactos. */
+@media (max-width: 520px) {
+  .summary-top {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .summary-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pc-box {
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
   }
 }
 
@@ -684,82 +532,60 @@
   }
 }
 
-/* Cena deitada: fica à esquerda, em tamanho cheio, e a janela vai até o fim da tela. */
-@media (orientation: landscape) and (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
+/* --- 5. Em pé ----------------------------------------------------------------------------------- */
+
+/* A faixa da cena cobre o topo inteiro, inclusive o recorte da câmera (nada aparece atrás dela). */
+@media (max-width: 900px) and (orientation: portrait) {
   .game.window-open .battle-column {
-    --scene-w: 100%;
-    /* Até o fim da tela: o que está atrás (a equipe) não pode aparecer embaixo da cena. */
-    bottom: 0;
+    inset: 0 0 auto;
+    height: calc(var(--mini-h) + env(safe-area-inset-top) + 8px);
+    padding-top: calc(env(safe-area-inset-top) + 4px);
+    padding-bottom: 0;
   }
 
   .screen-window {
-    inset: env(safe-area-inset-top) 0 var(--menu-h) 50%;
+    top: calc(var(--mini-h) + env(safe-area-inset-top) + 8px);
   }
 }
 
-/* Deitado: a cena inteira cabe entre o HUD e o menu, sem precisar rolar. */
-@media (orientation: landscape) and (max-height: 520px) {
-  /* A coluna da cena tem o tamanho dela; o resto da largura fica para mensagens e comandos. */
-  .game:not(.window-open) .battle-column {
-    --scene-w: 100%;
-    grid-template-columns: min(60%, calc((100svh - 156px - env(safe-area-inset-bottom)) * 16 / 9)) minmax(
-        0,
-        1fr
-      );
-  }
-}
-
-/* Celular baixo (ou com a barra do navegador à mostra): comandos à vista sem rolar. */
-@media (max-height: 640px) and (orientation: portrait) {
-  .dialog-history {
-    display: none;
+/* 11 abas não cabem numa linha: duas linhas, com tudo à vista. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .game-menu {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-rows: 42px;
   }
 
-  .bc-big {
-    min-height: 48px;
+  /* Com janela aberta, o menu fica mais baixo: sobra mais tela, sem perder os nomes. */
+  .game.window-open .game-menu {
+    grid-auto-rows: 36px;
   }
 
-  .bc-big small {
-    display: none;
-  }
-}
-
-/* Os menores celulares. */
-@media (max-width: 350px) {
   .game-menu .menu-item,
   .game-menu .menu-item.active {
-    font-size: 8px;
-  }
-}
-
-/* --- Áreas seguras: recorte da câmera, barra de início e cantos arredondados ---------------- */
-@media (max-width: 900px), (max-height: 520px) {
-  /* A janela rola sozinha: a página de trás não acompanha nem puxa a barra do navegador. */
-
-  .game-menu {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    min-height: 0;
+    padding: 1px;
+    font-size: 9px;
   }
 
-  .game.window-open .battle-column {
-    padding-left: max(4px, env(safe-area-inset-left));
-    padding-right: max(4px, env(safe-area-inset-right));
+  /* Com largura sobrando, os nomes ficam mais fáceis de ler. */
+  @media (min-width: 380px) {
+    .game-menu .menu-item,
+    .game-menu .menu-item.active {
+      font-size: 10px;
+    }
   }
 
-  .screen-window {
-    padding-right: env(safe-area-inset-right);
+  .game.window-open .game-menu .item-icon,
+  .game.window-open .game-menu .pixel-icon {
+    max-width: 20px;
+    max-height: 20px;
   }
 
-  .lab-screen {
-    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right))
-      max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
-  }
-}
-
-@media (orientation: landscape) and (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
-  /* Deitado, a cena fica do lado do recorte e a janela do outro: cada uma cuida só do seu lado. */
-  .game.window-open .battle-column {
-    padding-right: 4px;
+  .game-menu .item-icon,
+  .game-menu .pixel-icon {
+    max-width: 24px;
+    max-height: 24px;
   }
 }
 
@@ -787,128 +613,27 @@
   }
 }
 
-/* Janela estreita (dobrável fechado, celular pequeno deitado): depende da largura dela, não da do aparelho. */
-@container (max-width: 340px) {
-  .dex-top,
-  .window-actions,
-  .badges,
-  .look-avatars,
-  :has(> .showcase-slot) {
-    flex-wrap: wrap;
+/* Celular baixo (ou com a barra do navegador à mostra): comandos à vista sem rolar. */
+@media (max-height: 640px) and (orientation: portrait) {
+  .dialog-history {
+    display: none;
   }
 
-  .look-avatars {
-    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  .bc-big {
+    min-height: 48px;
   }
 
-  .dex-top {
-    gap: 4px;
-  }
-
-  .dex-title {
-    font-size: 13px;
-  }
-
-  .dex-totals,
-  .dex-state,
-  .window-actions {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  .dex-totals {
-    flex-wrap: wrap;
-    overflow: hidden;
-  }
-
-  .pcs-box-foot {
-    flex-wrap: wrap;
-  }
-
-  .pbar {
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  .summary-top {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .summary dd {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .nature-mods {
-    display: block;
-    white-space: normal;
-  }
-
-  .trainer-tabs {
-    flex-wrap: wrap;
-  }
-
-  .trainer-tabs .activity-tab {
-    flex: 1 1 30%;
-  }
-
-  .trainer-card .trainer-sprite {
+  .bc-big small {
     display: none;
   }
 }
 
-@media (max-width: 300px) {
-  /* Seis ícones por linha, sem nomes: não há largura para eles. */
-  .game-menu .menu-label {
-    display: none;
-  }
-
-  .hud-seg {
-    padding: 0 3px;
-  }
-
-  .bc-big strong {
-    font-size: 14px;
-  }
-
-  .battle-mode button {
-    padding-left: 5px;
-    padding-right: 5px;
-    font-size: 12px;
-  }
-}
-
-/* Celular pequeno deitado: a janela leva um pouco mais da metade. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
-  .game.window-open .battle-column {
-    right: 58%;
-  }
-
-  .screen-window {
-    left: 42%;
-  }
-}
-
-/* Em pé, a faixa da cena cobre o topo inteiro, inclusive o recorte da câmera (nada aparece atrás dela). */
-@media (max-width: 900px) and (orientation: portrait) {
-  .game.window-open .battle-column {
-    inset: 0 0 auto;
-    height: calc(var(--mini-h) + env(safe-area-inset-top) + 8px);
-    padding-top: calc(env(safe-area-inset-top) + 4px);
-    padding-bottom: 0;
-  }
-
-  .screen-window {
-    top: calc(var(--mini-h) + env(safe-area-inset-top) + 8px);
-  }
-}
-
-/* Celular baixo com janela aberta: a cena cede um pouco, para a janela não ficar apertada. */
+/* Ainda mais baixo: a cena da janela aberta cede um pouco, e menu e comandos encolhem. */
 @media (max-height: 600px) and (orientation: portrait) {
   .game {
     --mini-h: min(56.25vw, 24svh);
   }
+
   .game-menu {
     grid-auto-rows: 36px;
   }
@@ -939,12 +664,15 @@
   }
 }
 
-/* A posição arrastada no PC não vale no layout de celular (girar o tablet, encolher a janela). */
+/* --- 6. Os menores aparelhos -------------------------------------------------------------------- */
 
-/* --- Celulares baixos: comandos à vista sem rolar --------------------------------------- */
-
-/* Telas estreitas: desafio e modo dividem a mesma linha (o nome longo termina em reticências). */
+/* Desafio e modo dividem a mesma linha (o nome longo termina em reticências). */
 @media (max-width: 350px) {
+  .game-menu .menu-item,
+  .game-menu .menu-item.active {
+    font-size: 8px;
+  }
+
   .dialog-foot {
     flex-wrap: nowrap;
   }
@@ -962,7 +690,145 @@
   }
 }
 
-/* Celular pequeno deitado: só o essencial, para mensagens e comandos caberem acima do menu. */
+@media (max-width: 360px) and (max-height: 660px) {
+  .hud-route-bar .hud-goal {
+    display: none;
+  }
+}
+
+@media (max-width: 300px) {
+  /* Seis ícones por linha, sem nomes: não há largura para eles. */
+  .game-menu .menu-label {
+    display: none;
+  }
+
+  .hud-seg {
+    padding: 0 3px;
+  }
+
+  .bc-big strong {
+    font-size: 14px;
+  }
+}
+
+/* --- 7. Deitado --------------------------------------------------------------------------------- */
+
+/* Janela aberta: a cena fica à esquerda, em tamanho cheio, e a janela à direita, até o fim da tela. */
+@media (orientation: landscape) and (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
+  .game.window-open .battle-column {
+    right: 50%;
+    /* Até o fim da tela: o que está atrás (a equipe) não pode aparecer embaixo da cena. */
+    bottom: 0;
+    display: block;
+    --scene-w: 100%;
+    /* A cena fica do lado do recorte da câmera e a janela do outro: cada uma cuida só do seu lado. */
+    padding-right: 4px;
+  }
+
+  .screen-window {
+    inset: env(safe-area-inset-top) 0 var(--menu-h) 50%;
+  }
+}
+
+/* Celular deitado: a cena à esquerda e mensagens e comandos à direita, tudo numa tela só, entre o HUD e o
+   menu, sem precisar rolar. O resto (menu de abas, telas abertas) fica logo abaixo. */
+@media (orientation: landscape) and (max-height: 520px) {
+  /* HUD numa linha só: rota, treinador, insígnias e carteira. */
+  .hud {
+    flex-wrap: nowrap;
+  }
+
+  .hud > .hud-route {
+    order: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .hud > .hud-trainer {
+    flex: 0 1 140px;
+  }
+
+  .battle-column {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: start;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  /* A coluna da cena tem o tamanho dela; o resto da largura fica para mensagens e comandos. */
+  .game:not(.window-open) .battle-column {
+    --scene-w: 100%;
+    grid-template-columns: min(60%, calc((100svh - 156px - env(safe-area-inset-bottom)) * 16 / 9)) minmax(0, 1fr);
+  }
+
+  .battle-ui {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Abertura: cena à esquerda e diálogo à direita, para a fala não ficar abaixo da tela. */
+  .prologue {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .prologue-stage {
+    flex: none;
+    width: min(58%, calc((100dvh - 16px) * 16 / 10));
+  }
+
+  .prologue-dialog {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .lab-screen {
+    --lab-w: min(58%, calc((100dvh - 12px) * 16 / 10));
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lab-scene {
+    flex: none;
+    width: var(--lab-w);
+  }
+
+  .lab-dialog {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .lab-card {
+    flex: 0 0 100%;
+  }
+}
+
+/* Deitado e estreito: só os ícones (e o nome da aba aberta). */
+@media (max-height: 520px) and (max-width: 720px) and (orientation: landscape) {
+  .game-menu .menu-item:not(.active) .menu-label {
+    display: none;
+  }
+}
+
+/* Celular pequeno deitado: a janela leva um pouco mais da metade. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+  .game.window-open .battle-column {
+    right: 58%;
+  }
+
+  .screen-window {
+    left: 42%;
+  }
+}
+
+/* Celular baixo deitado: só o essencial, para mensagens e comandos caberem acima do menu. */
 @media (orientation: landscape) and (max-height: 400px) {
   .hud {
     min-height: 0;
@@ -1026,24 +892,25 @@
   }
 }
 
-/* O fim da página não fica atrás do menu quando algo rola até lá. */
-html {
-  scroll-padding-bottom: calc(var(--menu-h) + 8px);
-}
+/* Os menores celulares deitados: o menu cede mais um pouco. */
+@media (orientation: landscape) and (max-height: 340px) {
+  .game-menu .menu-item,
+  .game-menu .menu-item.active {
+    min-height: 32px;
+    padding: 0 1px;
+  }
 
-/* O objetivo no topo nunca quebra a linha. */
-.hud-goal {
-  flex: none;
-  white-space: nowrap;
-}
-
-@media (max-width: 360px) and (max-height: 660px) {
-  .hud-route-bar .hud-goal {
-    display: none;
+  .game-menu .item-icon,
+  .game-menu .pixel-icon {
+    max-width: 18px;
+    max-height: 18px;
   }
 }
 
-/* Tipo e BST: sempre a mesma altura em janelas estreitas, para o visor não pular ao trocar de espécie. */
+/* --- 8. Janela estreita -------------------------------------------------------------------------
+   Dependem da largura da janela, não da do aparelho (dobrável fechado, celular pequeno deitado). */
+
+/* Tipo e BST: sempre a mesma altura, para o visor não pular ao trocar de espécie. */
 @container (max-width: 420px) {
   .dex-green {
     flex-direction: column;
@@ -1059,6 +926,26 @@ html {
 }
 
 @container (max-width: 340px) {
+  .dex-top,
+  .window-actions,
+  .badges,
+  .look-avatars,
+  :has(> .showcase-slot) {
+    flex-wrap: wrap;
+  }
+
+  .look-avatars {
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  }
+
+  .dex-top {
+    gap: 4px;
+  }
+
+  .dex-title {
+    font-size: 13px;
+  }
+
   .dex-device,
   .pcs,
   .pcs-terminal {
@@ -1066,26 +953,52 @@ html {
     max-width: 100%;
     overflow: hidden;
   }
-}
 
-/* No toque o Mover já está nas ações do Pokémon: um só. */
-@media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
-  .pcs-box-foot > .pbtn {
+  .dex-totals,
+  .dex-state,
+  .window-actions {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .dex-totals {
+    flex-wrap: wrap;
+    overflow: hidden;
+  }
+
+  .pcs-box-foot {
+    flex-wrap: wrap;
+  }
+
+  .pbar {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .summary-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary dd {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .nature-mods {
+    display: block;
+    white-space: normal;
+  }
+
+  .trainer-tabs {
+    flex-wrap: wrap;
+  }
+
+  .trainer-tabs .activity-tab {
+    flex: 1 1 30%;
+  }
+
+  .trainer-card .trainer-sprite {
     display: none;
-  }
-}
-
-/* Os menores celulares deitados: o menu cede mais um pouco. */
-@media (orientation: landscape) and (max-height: 340px) {
-  .game-menu .menu-item,
-  .game-menu .menu-item.active {
-    min-height: 32px;
-    padding: 0 1px;
-  }
-
-  .game-menu .item-icon,
-  .game-menu .pixel-icon {
-    max-width: 18px;
-    max-height: 18px;
   }
 }

@@ -31,6 +31,8 @@ export interface PokemonInstance {
   pendingEvolution?: number;
   /** Golpes escolhidos pelo jogador (até 4). Vazio/ausente = automático pelo nível. */
   moveset?: string[];
+  /** Golpe de apoio escolhido (id), ou 'none' para nenhum. Ausente = automático (o mais recente aprendido). */
+  support?: string;
   /** Pedra Eterna: não evolui por nível. */
   evolutionLocked?: boolean;
   /** Natureza (id). Ausente = neutra. */
