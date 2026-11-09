@@ -15,6 +15,8 @@ export interface AbilityDef {
   stat?: Partial<Record<StatKey, number>>;
   /** Com HP ≤ 1/3, golpes desse tipo causam mais dano. */
   lowHp?: { type: TypeName; mult: number };
+  /** Sem dano de recuo dos próprios golpes (Cabeça de Pedra). */
+  rockHead?: boolean;
   /** Golpes Normais viram deste tipo (e ganham o bônus de mesmo tipo) com +20% de dano (Aerilar, Pixilar...). */
   convertNormal?: TypeName;
   /** Cada golpe é seguido de um segundo, com esta fração do dano (Elo Parental: 0,25). */
@@ -600,6 +602,13 @@ export const ABILITIES: AbilityDef[] = [
     description: 'Cada golpe é seguido de um segundo, com 25% do dano.',
     secondHit: 0.25,
     passive: { kind: 'damage', value: 0.04 },
+  }),
+  A({
+    id: 'rock-head',
+    name: 'Cabeça de Pedra',
+    description: 'Não sofre dano de recuo dos próprios golpes.',
+    rockHead: true,
+    passive: { kind: 'damage', value: 0.02 },
   }),
   A({
     id: 'delta-stream',

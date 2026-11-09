@@ -1,7 +1,7 @@
 // TREINADOR: cartão de treinador (com moldura e vitrine de medalhas), medalhas, automação,
 // opções e salvamento.
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ACHIEVEMENTS,
   CARD_FRAMES,
@@ -44,6 +44,14 @@ import { HOTKEY_HELP } from '../hotkeys';
 import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
 import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
 import { downloadBackup } from '../backup';
+import {
+  autoBackupStatus,
+  autoBackupSupported,
+  resumeAutoBackup,
+  startAutoBackup,
+  stopAutoBackup,
+  type AutoBackupStatus,
+} from '../autoBackup';
 import { openHelp } from '../help/open';
 import { preloadEverything, usePreloadStatus } from '../preload';
 import { useEngine } from '../useGame';
@@ -250,7 +258,11 @@ export function TrainerScreen({ state }: { state: GameState }) {
             </div>
           </div>
 
-          <LookEditor state={state} />
+          {/* O visual muda pouco: fica recolhido, e o cartão aparece inteiro de cara. */}
+          <details className="fold">
+            <summary>Mudar o visual do treinador</summary>
+            <LookEditor state={state} />
+          </details>
         </>
       )}
 
@@ -558,71 +570,79 @@ O jogo atual neste aparelho será substituído.`)
   };
 
   return (
-    <Window title="SALVAR E TRANSFERIR" icon={<ItemIcon id="fame-checker" size={24} />}>
-      <div className="save-tools">
-        <p className="hint">
-          O jogo salva sozinho a cada 15 s e após eventos importantes
-          {engine.saveBytes > 0 && ` · tamanho do save: ${formatBytes(engine.saveBytes)}`}. Para jogar em
-          outro navegador ou computador, gere o código de transferência (ou baixe o arquivo) e carregue-o lá.
-        </p>
-        <div className="save-row">
-          <button className="pbtn small" onClick={() => void generate()}>
-            {T.settings.export}
-          </button>
-          <button className="pbtn small" onClick={() => void download()}>
-            Baixar arquivo {TRANSFER_EXTENSION}
-          </button>
-        </div>
-        {code && (
-          <textarea
-            readOnly
-            value={code}
-            rows={3}
-            aria-label="Código de transferência"
-            onFocus={(e) => e.target.select()}
-          />
-        )}
-        <textarea
-          value={importText}
-          onChange={(e) => setImportText(e.target.value)}
-          rows={3}
-          aria-label="Código para carregar"
-          placeholder={T.settings.importPlaceholder}
-        />
-        <div className="save-row">
-          <button className="pbtn small" disabled={!importText.trim()} onClick={() => void load(importText)}>
-            {T.settings.import}
-          </button>
-          <button className="pbtn small" onClick={() => fileInput.current?.click()}>
-            Abrir arquivo…
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept={`${TRANSFER_EXTENSION},.txt,.json`}
-            hidden
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              if (file) await load(await file.text());
-            }}
-          />
-        </div>
-        {message && (
-          <p className="hint" role="status">
-            {message}
+    <>
+      <AutoBackup state={state} />
+      <Window title="SALVAR E TRANSFERIR" icon={<ItemIcon id="fame-checker" size={24} />}>
+        <div className="save-tools">
+          <p className="hint">
+            O jogo salva sozinho a cada 15 s e após eventos importantes
+            {engine.saveBytes > 0 && ` · tamanho do save: ${formatBytes(engine.saveBytes)}`}. Para jogar em
+            outro navegador ou computador, gere o código de transferência (ou baixe o arquivo) e carregue-o
+            lá.
           </p>
-        )}
-        <button
-          className="pbtn small danger"
-          onClick={() => {
-            if (window.confirm(T.settings.resetConfirm)) engine.resetSave();
-          }}
-        >
-          {T.settings.reset}
-        </button>
-      </div>
-    </Window>
+          <div className="save-row">
+            <button className="pbtn small" onClick={() => void generate()}>
+              {T.settings.export}
+            </button>
+            <button className="pbtn small" onClick={() => void download()}>
+              Baixar arquivo {TRANSFER_EXTENSION}
+            </button>
+          </div>
+          {code && (
+            <textarea
+              readOnly
+              value={code}
+              rows={3}
+              aria-label="Código de transferência"
+              onFocus={(e) => e.target.select()}
+            />
+          )}
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            rows={3}
+            aria-label="Código para carregar"
+            placeholder={T.settings.importPlaceholder}
+          />
+          <div className="save-row">
+            <button
+              className="pbtn small"
+              disabled={!importText.trim()}
+              onClick={() => void load(importText)}
+            >
+              {T.settings.import}
+            </button>
+            <button className="pbtn small" onClick={() => fileInput.current?.click()}>
+              Abrir arquivo…
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept={`${TRANSFER_EXTENSION},.txt,.json`}
+              hidden
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) await load(await file.text());
+              }}
+            />
+          </div>
+          {message && (
+            <p className="hint" role="status">
+              {message}
+            </p>
+          )}
+          <button
+            className="pbtn small danger"
+            onClick={() => {
+              if (window.confirm(T.settings.resetConfirm)) engine.resetSave();
+            }}
+          >
+            {T.settings.reset}
+          </button>
+        </div>
+      </Window>
+    </>
   );
 }
 
@@ -731,6 +751,67 @@ function GameFiles() {
           </button>
         )}
       </div>
+    </Window>
+  );
+}
+
+/** Cópia automática num arquivo do computador (Chrome e Edge). */
+function AutoBackup({ state }: { state: GameState }) {
+  const [status, setStatus] = useState<{ status: AutoBackupStatus; file?: string }>({ status: 'off' });
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    void autoBackupStatus().then(setStatus);
+  }, []);
+  if (!autoBackupSupported()) return null;
+  const refresh = () => void autoBackupStatus().then(setStatus);
+  return (
+    <Window title="CÓPIA AUTOMÁTICA" icon={<ItemIcon id="fame-checker" size={24} />}>
+      <p className="hint">
+        {status.status === 'on'
+          ? `Ligada: o jogo grava uma cópia em “${status.file}” a cada 10 minutos e ao sair. Se o navegador apagar os dados, é só carregar esse arquivo.`
+          : status.status === 'paused'
+            ? `Pausada: depois de reabrir o navegador, ele pede um clique para voltar a gravar em “${status.file}”.`
+            : 'Guarde seu save num arquivo do computador, atualizado sozinho. Se o navegador apagar os dados do site, o arquivo continua lá.'}
+      </p>
+      <div className="save-actions">
+        {status.status === 'off' && (
+          <button
+            className="pbtn small primary"
+            onClick={() =>
+              void startAutoBackup(state)
+                .then(() => setMessage('Pronto: a primeira cópia já foi gravada.'))
+                .catch(
+                  (e: Error) => e.name !== 'AbortError' && setMessage('Não foi possível usar este arquivo.'),
+                )
+                .finally(refresh)
+            }
+          >
+            Escolher arquivo
+          </button>
+        )}
+        {status.status === 'paused' && (
+          <button
+            className="pbtn small primary"
+            onClick={() =>
+              void resumeAutoBackup(state)
+                .then((ok) => setMessage(ok ? 'Retomada.' : 'O navegador não liberou o arquivo.'))
+                .finally(refresh)
+            }
+          >
+            Retomar
+          </button>
+        )}
+        {status.status !== 'off' && (
+          <button className="pbtn small" onClick={() => void stopAutoBackup().then(refresh)}>
+            Parar
+          </button>
+        )}
+      </div>
+      {message && (
+        <p className="hint" role="status">
+          {message}
+        </p>
+      )}
     </Window>
   );
 }

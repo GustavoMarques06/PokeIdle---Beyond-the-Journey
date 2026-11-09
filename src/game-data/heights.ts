@@ -1,5 +1,5 @@
-// Altura real de cada espécie (PokéAPI, em decímetros; scripts/fetch-heights.mjs). A cena de batalha usa para o
-// tamanho relativo: um Rattata (0,3 m) aparece bem menor que um Charizard (1,7 m) e um Onix (8,8 m).
+// Altura real de cada espécie (PokéAPI, em decímetros; scripts/fetch-heights.mjs). A batalha voltou a mostrar os sprites
+// no tamanho normal (os pequenos ficavam pequenos demais); o dado continua aqui para a Pokédex e usos futuros.
 
 import heightsJson from './generated/heights.json';
 

@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 prints/
 art/**/_backup*/
 .wrangler/
+art/maps/novos/cortes/

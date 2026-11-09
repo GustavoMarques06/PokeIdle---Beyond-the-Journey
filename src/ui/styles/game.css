@@ -1718,7 +1718,6 @@ html.reduced-motion .status-box .expbar-fill::after {
   list-style: none;
   font-size: 14px;
   line-height: 1.35;
-  color: var(--ink-muted);
 }
 
 .dialog-history li {
@@ -1857,7 +1856,6 @@ html.reduced-motion .status-box .expbar-fill::after {
   font: 400 12px var(--font-text);
   white-space: nowrap;
   text-overflow: ellipsis;
-  opacity: 0.95;
 }
 
 .bc-fight {

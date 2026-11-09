@@ -68,6 +68,7 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
       else if (r.effectiveness === 0)
         text += ` Não afeta ${e.side === 'player' ? speciesName(e.target) : mine(e.target, ctx)}…`;
       else {
+        if (r.hits) text += ` Acertou ${r.hits} vezes!`;
         if (r.crit) text += ' Um golpe crítico!';
         if (r.effectiveness > 1) text += ' É super efetivo!';
         else if (r.effectiveness < 1) text += ' Não é muito efetivo…';

@@ -577,6 +577,19 @@ function takeTurn(
     effect(other, 'absorb', undefined, hp(other) - before);
   }
 
+  // Dreno cura quem atacou; recuo o fere (sem desmaiar por isso: a vitória ou derrota fica com o golpe).
+  if (result.damage > 0 && move.drain) {
+    const amount = Math.max(1, Math.floor((result.damage * Math.abs(move.drain)) / 100));
+    if (move.drain > 0) {
+      const before = hp(side);
+      setHp(side, before + amount);
+      if (hp(side) > before) effect(side, 'drain', undefined, hp(side) - before);
+    } else if (!self.ability?.rockHead) {
+      const before = hp(side);
+      setHp(side, Math.max(1, before - amount));
+      if (hp(side) < before) effect(side, 'recoil', undefined, before - hp(side));
+    }
+  }
   if (result.damage > 0) {
     if (self.held?.shellBell) setHp(side, hp(side) + Math.max(1, result.damage * self.held.shellBell));
     if (self.held?.recoil) setHp(side, Math.max(1, hp(side) - Math.max(1, maxHp(side) * self.held.recoil)));

@@ -68,6 +68,19 @@ export const SYSTEM: Section = {
       ],
     },
     {
+      id: 'copia-automatica',
+      q: 'Dá para o jogo salvar uma cópia sozinho no meu computador?',
+      keywords: 'backup automatico arquivo copia computador chrome edge proteger save',
+      a: [
+        {
+          p: 'No **Chrome** e no **Edge** do computador, sim: **TREINADOR** → **DADOS** → **CÓPIA AUTOMÁTICA** → **Escolher arquivo**. A partir daí, o jogo grava o save nesse arquivo a cada 10 minutos e ao sair. Se o navegador apagar os dados do site, use **CARREGAR JOGO** com esse arquivo.',
+        },
+        {
+          tip: 'Depois de fechar e abrir o navegador, ele pode pedir um clique em **Retomar** para voltar a gravar no arquivo.',
+        },
+      ],
+    },
+    {
       id: 'desempenho',
       q: 'O jogo está pesado. O que eu faço?',
       keywords: 'lento travando travado desempenho fps pc fraco graficos bateria otimizar',
@@ -89,7 +102,7 @@ export const SYSTEM: Section = {
         {
           ol: [
             '**Instale o jogo:** no Safari, toque em **Compartilhar** e depois em **Adicionar à Tela de Início**. Jogue sempre pelo ícone: os dados do app instalado não têm esse limite de 7 dias.',
-            '**Faça uma cópia de vez em quando:** **TREINADOR** → **DADOS** → **Baixar arquivo** (o jogo também lembra você disso). Guarde o arquivo em Arquivos ou no iCloud Drive.',
+            '**Faça uma cópia de vez em quando:** **TREINADOR** → **DADOS** → **Baixar arquivo** abre o menu de compartilhar: escolha **Salvar em Arquivos** (ou o iCloud Drive). O jogo também lembra você disso.',
           ],
         },
         {

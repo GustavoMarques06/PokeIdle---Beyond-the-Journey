@@ -23,6 +23,7 @@ import { SaveIndicator } from './components/SaveIndicator';
 import { Intro } from './intro/Intro';
 import { SafetyNotice } from './components/SafetyNotice';
 import { PerfSuggest } from './components/PerfSuggest';
+import { autoBackupTick } from './autoBackup';
 import { setPerfMode, usePerfMode } from './perfMode';
 import { Toasts } from './components/Toasts';
 import { TouchTips } from './components/TouchTips';
@@ -191,6 +192,17 @@ function GameScreen({ state }: { state: GameState }) {
     return () => window.clearTimeout(id);
   }, []);
   const engine = useEngine();
+  // Cópia automática no arquivo do computador (quando ligada): a cada 10 minutos e ao sair do jogo.
+  useEffect(() => {
+    const tick = () => engine.state && void autoBackupTick(engine.state);
+    const timer = setInterval(tick, 10 * 60_000);
+    const onHide = () => document.visibilityState === 'hidden' && tick();
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, [engine]);
   const open = useCallback(
     (id: ScreenId, viaKeyboard = false, tab?: Tab) => {
       // Abrir uma aba (pelo menu, por atalho ou por outra tela) a deixa de vez no menu, sem o NOVO.

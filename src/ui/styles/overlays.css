@@ -4,7 +4,6 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
   display: grid;
   place-items: center;
   padding: 16px;
@@ -60,7 +59,6 @@
 
 .notice {
   position: fixed;
-  z-index: 50;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
@@ -227,7 +225,6 @@
    balão de fala ao lado. Não há fundo escurecido, e só o balão recebe cliques. */
 .coach {
   position: fixed;
-  z-index: 45;
   left: 0;
   bottom: 0;
   display: flex;
@@ -342,9 +339,6 @@
 .save-indicator {
   position: fixed;
   z-index: 25;
-  top: 10px;
-  left: 50%;
-  translate: -50% 0;
   display: flex;
   align-items: center;
   gap: 6px;

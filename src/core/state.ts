@@ -418,7 +418,7 @@ export const EMPTY_STATS: GameStats = {
   ghostWins: 0,
 };
 
-export type EffectKind = 'sturdy' | 'sash' | 'berry' | 'cure' | 'absorb' | 'synchronize';
+export type EffectKind = 'sturdy' | 'sash' | 'berry' | 'cure' | 'absorb' | 'synchronize' | 'drain' | 'recoil';
 
 export type GameEvent =
   | {

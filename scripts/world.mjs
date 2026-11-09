@@ -717,6 +717,8 @@ const johto = {
       'meadow',
       [58.1, 63.8],
       [
+        ['aipom', 8, 56, 60],
+        ['sunkern', 10, 56, 60, 'day'],
         ['togepi', 8, 56, 60],
         ['sentret', 25, 56, 59, 'day'],
         ['hoothoot', 25, 56, 59, 'night'],
@@ -789,6 +791,8 @@ const johto = {
       'city',
       [36.7, 60],
       [
+        ['stantler', 8, 60, 63],
+        ['sudowoodo', 5, 60, 63],
         ['snubbull', 15, 60, 63],
         ['drowzee', 15, 60, 63],
         ['abra', 10, 60, 63],
@@ -894,6 +898,9 @@ const johto = {
       'beach',
       [23.4, 31],
       [
+        ['mantine', 5, 66, 69],
+        ['remoraid', 10, 66, 69],
+        ['qwilfish', 8, 66, 69],
         ['magnemite', 20, 66, 69],
         ['magneton', 5, 67, 69],
         ['mareep', 15, 66, 69],
@@ -1000,6 +1007,8 @@ const johto = {
       'cave',
       [92, 55.2],
       [
+        ['dunsparce', 8, 72, 76],
+        ['wobbuffet', 6, 72, 76],
         ['tyrogue', 10, 72, 76],
         ['ponyta', 15, 72, 76],
         ['rapidash', 10, 73, 76],
@@ -1145,6 +1154,10 @@ const hoenn = {
       'forest',
       [12, 58.8],
       [
+        ['illumise', 6, 66, 69, 'night'],
+        ['volbeat', 6, 66, 69, 'night'],
+        ['skitty', 8, 66, 69],
+        ['nincada', 10, 66, 69],
         ['surskit', 10, 66, 69],
         ['zigzagoon', 20, 66, 69],
         ['wurmple', 15, 66, 69, 'day'],
@@ -1183,6 +1196,7 @@ const hoenn = {
       'cave',
       [6.4, 86],
       [
+        ['shedinja', 3, 68, 71, 'night'],
         ['zubat', 20, 68, 71],
         ['makuhita', 20, 68, 71],
         ['geodude', 15, 68, 71],
@@ -1252,6 +1266,7 @@ const hoenn = {
       'volcano',
       [24, 10.7],
       [
+        ['spoink', 8, 72, 75],
         ['numel', 20, 72, 75],
         ['slugma', 20, 72, 75],
         ['spinda', 15, 72, 75],
@@ -1286,6 +1301,8 @@ const hoenn = {
       'desert',
       [35.2, 22.6],
       [
+        ['seviper', 6, 74, 77],
+        ['zangoose', 6, 74, 77],
         ['sandshrew', 20, 74, 77],
         ['trapinch', 20, 74, 77],
         ['cacnea', 15, 74, 77],
@@ -1358,6 +1375,8 @@ const hoenn = {
       'beach',
       [88, 24.9],
       [
+        ['luvdisc', 8, 78, 81],
+        ['clamperl', 8, 78, 81],
         ['wingull', 20, 78, 81],
         ['pelipper', 10, 78, 81],
         ['tentacool', 15, 78, 81],
@@ -1574,6 +1593,8 @@ const sinnoh = {
       'meadow',
       [23.4, 69.1],
       [
+        ['pachirisu', 6, 74, 77],
+        ['burmy', 8, 74, 77],
         ['starly', 20, 74, 77],
         ['bidoof', 20, 74, 77],
         ['kricketot', 15, 74, 77, 'night'],
@@ -1609,6 +1630,7 @@ const sinnoh = {
       'forest',
       [27.3, 52.5],
       [
+        ['rotom', 3, 76, 79, 'night'],
         ['combee', 10, 76, 79],
         ['buneary', 10, 76, 79],
         ['wurmple', 10, 76, 79],
@@ -1647,6 +1669,7 @@ const sinnoh = {
       'meadow',
       [53.7, 63.5],
       [
+        ['drifloon', 8, 78, 81, 'night'],
         ['spiritomb', 4, 78, 81, 'night'],
         ['ponyta', 15, 78, 81],
         ['staravia', 15, 78, 81],
@@ -1683,6 +1706,7 @@ const sinnoh = {
       'route',
       [74.2, 51.1],
       [
+        ['stunky', 8, 80, 83],
         ['kadabra', 10, 80, 83],
         ['ponyta', 15, 80, 83],
         ['rapidash', 5, 81, 83],
@@ -1824,6 +1848,8 @@ const sinnoh = {
       'beach',
       [85.9, 71.8],
       [
+        ['finneon', 8, 88, 91],
+        ['shellos', 10, 88, 91],
         ['luxio', 15, 88, 91],
         ['electabuzz', 10, 88, 91],
         ['chatot', 15, 88, 91],
@@ -2038,6 +2064,7 @@ const unova = {
       'desert',
       [77, 66.3],
       [
+        ['maractus', 6, 84, 87],
         ['larvesta', 5, 84, 87],
         ['litwick', 10, 84, 87, 'night'],
         ['sandile', 20, 84, 87],
@@ -2073,6 +2100,7 @@ const unova = {
       'forest',
       [50.8, 82.4],
       [
+        ['basculin', 8, 86, 89],
         ['sewaddle', 15, 86, 89],
         ['swadloon', 10, 86, 89],
         ['venipede', 15, 86, 89],
@@ -2146,6 +2174,7 @@ const unova = {
       'route',
       [28.1, 56.2],
       [
+        ['alomomola', 4, 90, 93],
         ['pawniard', 8, 90, 93],
         ['deerling', 15, 90, 93],
         ['karrablast', 10, 90, 93],
@@ -2182,6 +2211,7 @@ const unova = {
       'cave',
       [19.5, 45.4],
       [
+        ['elgyem', 8, 92, 95],
         ['joltik', 15, 92, 95],
         ['galvantula', 5, 93, 95],
         ['ferroseed', 15, 92, 95],
@@ -2253,6 +2283,8 @@ const unova = {
       'mountain',
       [6.2, 16.1],
       [
+        ['vullaby', 8, 96, 99],
+        ['rufflet', 8, 96, 99],
         ['druddigon', 10, 96, 99],
         ['golett', 15, 96, 99],
         ['mienfoo', 15, 96, 99],
@@ -3324,6 +3356,8 @@ export const EXTRA_ITEMS = [
 
 // Espécies que só aparecem por ovos/prêmios e precisam estar nos dados.
 export const EXTRA_SPECIES = [
+  // As 53 que faltavam para as Gerações I–VI completas (a maioria também aparece nas rotas acima).
+  'sudowoodo', 'aipom', 'ambipom', 'sunkern', 'sunflora', 'wobbuffet', 'wynaut', 'dunsparce', 'qwilfish', 'remoraid', 'octillery', 'mantine', 'mantyke', 'stantler', 'nincada', 'ninjask', 'shedinja', 'skitty', 'delcatty', 'volbeat', 'illumise', 'spoink', 'grumpig', 'zangoose', 'seviper', 'clamperl', 'huntail', 'gorebyss', 'luvdisc', 'burmy', 'wormadam', 'mothim', 'pachirisu', 'shellos', 'gastrodon', 'drifloon', 'drifblim', 'stunky', 'skuntank', 'bonsly', 'finneon', 'lumineon', 'rotom', 'regigigas', 'basculin', 'maractus', 'alomomola', 'elgyem', 'beheeyem', 'rufflet', 'braviary', 'vullaby', 'mandibuzz',
   'ditto',
   'unown',
   'larvitar',

@@ -18,7 +18,7 @@ transferência leva o jogo de um aparelho para outro.
   Campeão em cada uma. Kalos é o pós-jogo: tudo no nível 100, com selvagens e líderes reforçados.
 - **Dois modos gráficos** (Opções): Normal (pixel art) e Desempenho (sem clima nem tons de dia e noite, para aparelhos
   simples).
-- **668 espécies** das Gerações I a VI, com sprites no estilo Black/White (frente, costas e shiny): animados
+- **721 espécies**, todas as das Gerações I a VI, com sprites no estilo Black/White (frente, costas e shiny): animados
   até a Geração V e na maior parte da VI; o resto da VI usa os sprites estáticos do mesmo estilo.
 - **Batalha automática** em tempo real, com tipos, habilidades, itens segurados, status, clima e dia/noite.
 - **Progresso offline**: ao voltar, um relatório mostra o que a equipe fez enquanto você estava fora.

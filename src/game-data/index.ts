@@ -89,7 +89,7 @@ function withNaturalEvolutions(s: Species): Species {
 export const SPECIES: Species[] = (speciesJson as Species[]).map(withNaturalEvolutions);
 const speciesById = new Map(SPECIES.map((s) => [s.id, s]));
 const speciesBySlug = new Map(SPECIES.map((s) => [s.slug, s]));
-const moves = movesJson as Record<string, Move>;
+const moves = movesJson as unknown as Record<string, Move>;
 const typeChart = typeChartJson as Record<TypeName, Record<TypeName, number>>;
 const items: Record<string, ItemData> = {
   ...extraItemData(),

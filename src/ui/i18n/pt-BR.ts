@@ -579,6 +579,10 @@ export function effectText(e: Extract<GameEvent, { type: 'effect' }>): string {
       return `${who} absorveu o golpe e recuperou HP!`;
     case 'synchronize':
       return `Sincronismo! ${who} devolveu o status.`;
+    case 'drain':
+      return `${who} drenou a energia do alvo!`;
+    case 'recoil':
+      return `${who} sofreu dano de recuo!`;
   }
 }
 

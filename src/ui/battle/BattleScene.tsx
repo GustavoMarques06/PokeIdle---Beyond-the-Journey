@@ -11,7 +11,6 @@ import {
   getItem,
   getRoute,
   getSpecies,
-  heightMeters,
   isMegaForm,
   megaLabel,
   matchupOf,
@@ -162,7 +161,6 @@ const ENEMY_SCALE = 1.25;
 const ENEMY_MAX_H = 76;
 const PLAYER_SCALE = 1.65;
 const PLAYER_MAX_H = 104;
-const MIN_SPRITE_K = 0.5;
 
 /**
  * Tamanho do sprite no cenário e onde ficam os pés: `feetX` é a distância da borda esquerda ao
@@ -173,15 +171,10 @@ function spriteBox(speciesId: number, kind: 'front' | 'back', scale: number, max
   const feet = spriteFeet(speciesId, kind, formSprite(speciesId, form, kind) ? form : undefined);
   const [w, h] = feet ? [feet[5], feet[6]] : (getSpecies(speciesId).spriteSize?.[kind] ?? [64, 64]);
   const [cx, fw, bottom, top, hover] = feet ?? [w / 2, w * 0.6, h, 0, 0];
-  // Tamanho pela altura REAL da espécie (raiz quadrada, para os gigantes não engolirem a cena e os pequenos não
-  // sumirem): Rattata 0,3 m ≈ 55% de 1 m; Charizard 1,7 m ≈ 130%; Onix 8,8 m e Wailord 14,5 m batem no teto.
-  // A altura vale para o desenho, não para a margem vazia em volta dele.
-  const meters = heightMeters(speciesId, formSprite(speciesId, form, kind) ? form : undefined);
-  const targetH = Math.min(maxH, Math.max(maxH * 0.3, maxH * 0.58 * Math.sqrt(meters)));
+  // Tamanho normal do sprite (a escala da cena), limitado só pela altura máxima: a altura vale para o desenho, não para a
+  // margem vazia em volta dele.
   const drawn = Math.max(1, bottom - top);
-  // Abaixo de meio pixel virtual por pixel do sprite, o navegador começa a comer linhas do desenho: os muito pequenos
-  // (ou de sprite muito grande) param nesse mínimo, sem passar da altura máxima da cena.
-  const k = Math.min(scale * 4, Math.max(targetH / drawn, Math.min(MIN_SPRITE_K, maxH / drawn)));
+  const k = Math.min(scale, maxH / drawn);
   // Asas e caudas muito longas não podem empurrar o corpo para fora do cenário.
   const feetX = Math.min(0.72, Math.max(0.28, cx / w)) * w * k;
   const feetW = Math.min(0.85, Math.max(0.4, (fw * 1.25) / w)) * w * k;
@@ -424,7 +417,10 @@ export function BattleScene({ state }: { state: GameState }) {
             setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
           }
         } else if (motion && e.type === 'effect' && e.amount && st.settings.showDamageNumbers) {
-          const f: Floater = { id: nextId.current++, side: e.side, text: `+${e.amount}`, tone: 'heal' };
+          const f: Floater =
+            e.kind === 'recoil'
+              ? { id: nextId.current++, side: e.side, text: `-${e.amount}`, tone: 'status' }
+              : { id: nextId.current++, side: e.side, text: `+${e.amount}`, tone: 'heal' };
           setFloaters((list) => [...list.slice(-6), f]);
           setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
         } else if (e.type === 'statusDamage' && motion && st.settings.showDamageNumbers) {

@@ -105,6 +105,8 @@ export interface DamageResult {
   effectiveness: number;
   /** Status causado no alvo por este golpe. */
   status?: Ailment;
+  /** Golpe de vários acertos: quantas vezes acertou. */
+  hits?: number;
 }
 
 /** Habilidade defensiva em vigor (o Quebra-Molde do atacante a ignora). */
@@ -205,8 +207,46 @@ function hitChance(attacker: Combatant, defender: Combatant, moveId: string): nu
   );
 }
 
-const critChanceOf = (attacker: Combatant) =>
-  BALANCE.combat.critChance + (attacker.ability?.crit ?? 0) + (attacker.held?.crit ?? 0);
+/** Chance de crítico com os estágios do golpe, como nos jogos da 6ª geração: +1 dobra, +2 é metade, +3 é sempre. */
+const STAGE_CRIT = [0, BALANCE.combat.critChance, 0.5 - BALANCE.combat.critChance, 1];
+
+const critChanceOf = (attacker: Combatant, moveId?: string) => {
+  const stage = moveId ? (getMove(moveId).critStage ?? 0) : 0;
+  return Math.min(
+    1,
+    BALANCE.combat.critChance +
+      STAGE_CRIT[Math.min(3, stage)] +
+      (attacker.ability?.crit ?? 0) +
+      (attacker.held?.crit ?? 0),
+  );
+};
+
+/** Golpes de 2 a 5 acertos: 2 e 3 com 35% cada, 4 e 5 com 15% (média de 3,1). Os de número fixo acertam sempre igual. */
+const HIT_ODDS = [0.35, 0.35, 0.15, 0.15];
+
+function rollHits(moveId: string, rng: Rng): number {
+  const range = getMove(moveId).hits;
+  if (!range) return 1;
+  const [min, max] = range;
+  if (min === max) return min;
+  if (min === 2 && max === 5) {
+    let r = rng.next();
+    for (let i = 0; i < HIT_ODDS.length; i++) {
+      r -= HIT_ODDS[i];
+      if (r < 0) return 2 + i;
+    }
+    return 5;
+  }
+  return min + Math.floor(rng.next() * (max - min + 1));
+}
+
+function averageHits(moveId: string): number {
+  const range = getMove(moveId).hits;
+  if (!range) return 1;
+  const [min, max] = range;
+  if (min === 2 && max === 5) return 3.1;
+  return (min + max) / 2;
+}
 
 export function calcDamage(
   attacker: Combatant,
@@ -221,9 +261,10 @@ export function calcDamage(
     return { moveId, moveType, damage: 0, missed: true, crit: false, effectiveness: eff };
   }
   const c = BALANCE.combat;
-  const crit = rng.next() < critChanceOf(attacker);
+  const crit = rng.next() < critChanceOf(attacker, moveId);
   const variance = c.randomMin + rng.next() * (1 - c.randomMin);
-  const final = damage * variance * (crit ? c.critMultiplier : 1);
+  const hits = rollHits(moveId, rng);
+  const final = damage * variance * (crit ? c.critMultiplier : 1) * hits;
   return {
     moveId,
     moveType,
@@ -231,6 +272,7 @@ export function calcDamage(
     missed: false,
     crit,
     effectiveness: eff,
+    ...(hits > 1 ? { hits } : {}),
   };
 }
 
@@ -241,8 +283,10 @@ export function expectedDamage(attacker: Combatant, defender: Combatant, moveId:
   if (eff === 0) return 0;
   const accuracy = Math.min(1, hitChance(attacker, defender, moveId) / 100);
   const avgVariance = (c.randomMin + 1) / 2;
-  const critFactor = 1 + critChanceOf(attacker) * (c.critMultiplier - 1);
-  return Math.max(1, damage * avgVariance) * accuracy * critFactor;
+  const critFactor = 1 + critChanceOf(attacker, moveId) * (c.critMultiplier - 1);
+  // O recuo pesa na escolha: Brave Bird só vale se compensar o dano que devolve.
+  const recoil = Math.min(0, getMove(moveId).drain ?? 0) / 100;
+  return Math.max(1, damage * avgVariance) * accuracy * critFactor * averageHits(moveId) * (1 + recoil * 0.5);
 }
 
 /** Escolhe o golpe de maior dano esperado; `randomness` dá chance de um golpe aleatório. */

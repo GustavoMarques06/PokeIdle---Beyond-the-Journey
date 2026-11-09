@@ -335,6 +335,7 @@ export const LEGENDARIES: LegendaryDef[] = [
   { speciesId: 483, regionId: 'sinnoh', level: 96, boost: 1.2 }, // Dialga
   { speciesId: 484, regionId: 'sinnoh', level: 96, boost: 1.2 }, // Palkia
   { speciesId: 487, regionId: 'sinnoh', level: 97, boost: 1.2 }, // Giratina
+  { speciesId: 486, regionId: 'sinnoh', level: 95, boost: 1.15 }, // Regigigas
   { speciesId: 488, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Cresselia
   { speciesId: 489, regionId: 'sinnoh', level: 90, boost: 1.05 }, // Phione
   { speciesId: 490, regionId: 'sinnoh', level: 92, boost: 1.1 }, // Manaphy

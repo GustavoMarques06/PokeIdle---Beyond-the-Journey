@@ -11,9 +11,9 @@ export default defineConfig({
   // Caminhos relativos para funcionar empacotado (ex.: Tauri) sem servidor.
   base: './',
   build: {
-    // O maior arquivo é o de dados (espécies, golpes, mundo: ~875 kB, ~120 kB com gzip),
+    // O maior arquivo é o de dados (721 espécies, golpes, mundo: ~990 kB, ~142 kB com gzip),
     // que é só conteúdo e fica em cache; o código do jogo fica bem abaixo disso.
-    chunkSizeWarningLimit: 950,
+    chunkSizeWarningLimit: 1100,
     rolldownOptions: {
       // Duas páginas: o jogo (index.html) e o guia de ajuda (ajuda.html), que abre em outra aba.
       input: { main: 'index.html', ajuda: 'ajuda.html' },
@@ -31,5 +31,7 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.test.{ts,tsx}'],
+    // Os testes de interface montam o jogo inteiro: numa máquina ocupada, 5 s não bastam e eles falhavam à toa.
+    testTimeout: 20_000,
   },
 });

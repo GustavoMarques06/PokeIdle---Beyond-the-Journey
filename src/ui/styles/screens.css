@@ -2571,3 +2571,46 @@ button.tag-dot:disabled {
   gap: 6px;
   margin: 4px 0;
 }
+
+/* Seções recolhidas: o que se usa pouco fica atrás de um toque. */
+.fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 2px solid var(--menu-blue-light);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--menu-blue-dark);
+  font: 700 13px var(--font-label);
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary::before {
+  content: '▸';
+}
+
+.fold[open] > summary::before {
+  content: '▾';
+}
+
+.fold[open] > summary {
+  margin-bottom: var(--gap);
+}
+
+.pcs-walls-fold > summary {
+  min-height: 30px;
+  border-color: #1a2030;
+  background: #3c4562;
+  color: #e8eeff;
+}
+
+.pcs-walls-fold[open] > summary {
+  margin-bottom: 4px;
+}

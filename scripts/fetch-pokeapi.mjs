@@ -550,6 +550,11 @@ async function main() {
       moves[m.name].ailment = ailment;
       moves[m.name].ailmentChance = m.meta.ailment_chance;
     }
+    // Dreno (Giga Drain cura metade do dano) e recuo (Brave Bird fere quem ataca: valor negativo), em % do dano.
+    if (m.meta?.drain) moves[m.name].drain = m.meta.drain;
+    // Golpes de vários acertos (Double Kick, Bullet Seed) e de crítico fácil (Slash, Stone Edge).
+    if (m.meta?.min_hits && m.meta?.max_hits) moves[m.name].hits = [m.meta.min_hits, m.meta.max_hits];
+    if (m.meta?.crit_rate) moves[m.name].critStage = m.meta.crit_rate;
   }
 
   console.log('Buscando tabela de tipos...');

@@ -335,17 +335,20 @@ export function PcScreen({ state }: { state: GameState }) {
           </ul>
 
           <div className="pcs-box-foot">
-            <span className="pcs-walls" role="group" aria-label="Papel de parede">
-              {WALLPAPERS.map((w) => (
-                <button
-                  key={w}
-                  className={`pcs-wall wp-${w} ${boxWallpaper(current, box) === w ? 'on' : ''}`}
-                  title={`Papel de parede: ${WALLPAPER_NAMES[w]}`}
-                  aria-label={`Papel de parede: ${WALLPAPER_NAMES[w]}`}
-                  onClick={() => engine.dispatch((s) => setWallpaper(s, box, w))}
-                />
-              ))}
-            </span>
+            <details className="fold pcs-walls-fold">
+              <summary>Papel de parede</summary>
+              <span className="pcs-walls" role="group" aria-label="Papel de parede">
+                {WALLPAPERS.map((w) => (
+                  <button
+                    key={w}
+                    className={`pcs-wall wp-${w} ${boxWallpaper(current, box) === w ? 'on' : ''}`}
+                    title={`Papel de parede: ${WALLPAPER_NAMES[w]}`}
+                    aria-label={`Papel de parede: ${WALLPAPER_NAMES[w]}`}
+                    onClick={() => engine.dispatch((s) => setWallpaper(s, box, w))}
+                  />
+                ))}
+              </span>
+            </details>
             {selectedSpot && !multi && !holding && (
               <button
                 className="pbtn small"

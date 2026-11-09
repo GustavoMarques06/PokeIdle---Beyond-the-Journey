@@ -14,6 +14,20 @@ então foram cortadas e esticadas para 3:2. Gerar cada cenário individual em 15
 As manchas de luz não ficam exatamente nas posições dos Pokémon (inimigo à direita, o seu à esquerda).
 Backup das versões com ovais: `art/maps/_backup-com-ovais/`. `USE_OVAL_SPOTS` em `scene.ts` segue desligado.
 
+## Cenários novos (lotes de `PROMPTS-cenarios.md`, 9/11)
+
+Os lotes vieram em `art/maps/novos/` com os nomes deslocados: `lotefalntado.jpg` é o lote 4 e `lote4`…`lote9` são os
+lotes 5…10. Cortados em `art/maps/novos/cortes/` e comparados com os atuais numa batalha simulada.
+
+- **Entraram (21):** meadow, route, plains, forest, jungle, swamp, river, mountain, beach, sea, seafloor, dampcave,
+  cave, icecave, volcano, desert, snowfield, summit, ruins, tower, lab. Os Pokémon caem certinho na área livre.
+- **Ficaram os atuais (16):** as 12 salas da Liga, rocket-base, powerplant, city e street. Os novos vieram com
+  retângulos chapados no chão (até em cima da água no league-water), caixas de interface nos cantos (lotes 8 e 9) e
+  menos detalhe; no powerplant o inimigo fica em cima das máquinas.
+- Backup dos fundos de antes desta troca: `art/maps/_backup-v3-atual/`.
+- **Resolução:** cada folha veio com 1264×848 (632×424 por cenário), abaixo dos 753×500 do jogo; foram ampliadas com
+  Lanczos e reduzidas a 96 cores. Gerar de novo em 2048×1365 deixaria mais nítido.
+
 ## Outros
 
 - **Ícone e logo em baixa resolução:** gerar de novo o ícone C-1 (1024 × 1024) e o logo 4 (2000 × 800) como
@@ -21,9 +35,17 @@ Backup das versões com ovais: `art/maps/_backup-com-ovais/`. `USE_OVAL_SPOTS` e
 - **Build do Windows (Tauri):** os ícones novos entraram, mas o build ainda não foi rodado para conferir.
 - **Combate:** golpes de apoio (status, atributos e cura) entraram como um 5º golpe, uma vez por luta (`supportMoves.ts`). Não são 4 golpes escolhíveis como nos jogos e ficam de fora do progresso offline, que é uma estimativa. Em 7.200 lutas simuladas, as vitórias mudaram até 1,4 ponto e cada luta durou ~1 s a mais.
 - **Modo Desempenho:** sprites parados (primeiro quadro do GIF num canvas), sem efeitos, animações e números de dano, batalha redesenhada ~3x por segundo. Com CPU simulada 8x mais lenta: de 16 para 49 FPS. Falta testar em um PC fraco de verdade (a simulação não inclui a placa de vídeo).
+- **Pokédex completa:** as 721 espécies das Gerações I–VI estão no jogo e todas têm caminho (teste em
+  `obtainable.test.ts`). Algumas evoluções especiais viraram regras simples do motor: Shedinja e Mothim pela Shiny Stone,
+  Ambipom, Sudowoodo e Mantine no nível 30, Wormadam e Mothim sem exigir gênero.
+- **CSS:** declarações sempre sobrescritas pela mesma regra saíram e blocos repetidos foram juntados onde isso não muda
+  nada (conferido elemento por elemento em 8 tamanhos e 7 telas). O `mobile.css` ainda tem muitos blocos por ordem de
+  chegada: reorganizar o resto exige reescrever à mão.
+- **Cópia do save:** no celular, o menu de compartilhar do sistema; no Chrome/Edge do computador, cópia automática num
+  arquivo escolhido (File System Access).
 - **Save na nuvem:** não feito, por decisão. O save fica só no aparelho; há lembrete semanal de backup e aviso para instalar no iPhone.
 - **Molduras do cartão de treinador:** dependem de arte nova.
-- **Shinies e 6ª geração:** conferido em 5/11: os 668 Pokémon têm sprite shiny (frente e costas). Nada a fazer.
+- **Shinies e 6ª geração:** conferido em 5/11: os 668 Pokémon de então tinham sprite shiny (frente e costas). Nada a fazer.
 
 ## Mega Evolução (pronta)
 
@@ -56,7 +78,7 @@ Foi feito (sprites 3D do Showdown e do HOME, efeitos do pixelfx, interface de vi
 lado da pixel art. O jogo voltou ao pixel art. Ficaram só o modo **Desempenho** (Opções > Gráficos) e o tamanho real dos
 Pokémon. Quem tinha salvo em Qualidade volta para Normal (`save.ts`).
 
-**Tamanho real dos Pokémon:** a batalha usa a altura real de cada espécie (`heights.json`, `scripts/fetch-heights.mjs`)
+**Tamanho real dos Pokémon (desfeito em 9/11, a pedido: os pequenos ficavam pequenos demais; a batalha voltou ao tamanho normal):** a batalha usa a altura real de cada espécie (`heights.json`, `scripts/fetch-heights.mjs`)
 com raiz quadrada e teto/piso, então Rattata e Magikarp aparecem pequenos e Onix e Wailord, grandes.
 
 **Efeitos em pixel art (5/11):** 14 tipos de golpe (todos menos aço, veneno, inseto e dragão, que seguem com as partículas

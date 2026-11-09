@@ -58,7 +58,7 @@ const TABS: { id: Tab; label: string }[] = [
 const num = (id: number) => String(id).padStart(3, '0');
 
 /**
- * A lista desenha só as linhas à vista (mais uma folga): com 668 espécies, renderizar todas
+ * A lista desenha só as linhas à vista (mais uma folga): com 721 espécies, renderizar todas
  * criava centenas de linhas e disparava o download de centenas de ícones a cada abertura.
  * ROW_H e LIST_PAD seguem .dex-row e .dex-list (screens.css); LIST_H é o max-height da lista.
  */

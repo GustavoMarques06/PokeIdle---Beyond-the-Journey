@@ -44,17 +44,40 @@ export const shouldRemindBackup = (state: GameState, now: number) =>
 export const snoozeBackup = (now: number) => writeTime(KEYS.backupSnooze, now);
 export const markBackup = (now: number) => writeTime(KEYS.backup, now);
 
-/** Baixa o save num arquivo que o botão CARREGAR JOGO aceita de volta. */
-export async function downloadBackup(state: GameState, now: number, code?: string): Promise<void> {
+/**
+ * Baixa o save num arquivo que o botão CARREGAR JOGO aceita de volta. No celular, abre o menu de compartilhar do sistema
+ * (Salvar em Arquivos, iCloud, Drive...): é o jeito confiável no iPhone, e só ali dá para saber se o jogador salvou.
+ * Devolve 'cancelled' quando ele desiste (o lembrete continua valendo).
+ */
+export async function downloadBackup(
+  state: GameState,
+  now: number,
+  code?: string,
+): Promise<'saved' | 'downloaded' | 'cancelled'> {
   const text = code ?? (await encodeTransferCode(state, now)).code;
+  const name = transferFileName(state, now);
+  if (window.matchMedia?.('(pointer: coarse)').matches && typeof File !== 'undefined') {
+    const file = new File([text], name, { type: 'application/octet-stream' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Save do PokéIdle' });
+        markBackup(now);
+        return 'saved';
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return 'cancelled';
+        // Outro erro (sem permissão, por exemplo): tenta o download comum.
+      }
+    }
+  }
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = transferFileName(state, now);
+  a.download = name;
   a.click();
   // O iPhone pergunta antes de salvar: o arquivo precisa continuar disponível até a resposta.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
   markBackup(now);
+  return 'downloaded';
 }
 
 /** iPhone ou iPad no navegador (fora do app instalado): é onde o sistema pode apagar os dados sozinho. */

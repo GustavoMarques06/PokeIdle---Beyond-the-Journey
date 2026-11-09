@@ -96,6 +96,12 @@ export interface Move {
   /** Efeito de status secundário e sua chance (%). */
   ailment?: Ailment;
   ailmentChance?: number;
+  /** % do dano que volta como cura (Giga Drain: 50) ou como recuo, se negativo (Brave Bird: -33). */
+  drain?: number;
+  /** Golpe de vários acertos: mínimo e máximo (Double Kick: [2, 2]; Bullet Seed: [2, 5]). */
+  hits?: [number, number];
+  /** Estágios a mais de crítico (Slash: 1; Frost Breath: sempre crítico). */
+  critStage?: number;
 }
 
 export interface ItemData {

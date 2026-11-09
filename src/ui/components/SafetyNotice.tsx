@@ -86,7 +86,10 @@ export function SafetyNotice() {
             className="pbtn small primary"
             onClick={() => {
               setNotice(null);
-              if (engine.state) downloadBackup(engine.state, Date.now()).catch(() => setNotice('failed'));
+              if (engine.state)
+                downloadBackup(engine.state, Date.now())
+                  .then((r) => r === 'cancelled' && snoozeBackup(Date.now()))
+                  .catch(() => setNotice('failed'));
             }}
           >
             Baixar cópia
