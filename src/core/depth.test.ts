@@ -375,6 +375,10 @@ describe('raides e revanches', () => {
     expect(events.some((e) => e.type === 'raidAppeared')).toBe(true);
 
     const coins = s.coins;
+    // O chefe vem no nível da rota mais avançada: o inicial nível 5 não aguentaria a luta.
+    const lead = activePokemon(s);
+    lead.level = 100;
+    lead.currentHp = statsOf(lead).hp;
     expect(challengeRaid(s)).toBe(true);
     expect(s.battle.kind).toBe('raid');
     run(s, 40);
