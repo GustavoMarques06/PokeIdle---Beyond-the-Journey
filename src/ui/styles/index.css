@@ -18,6 +18,7 @@
 @import './hunt.css'; /* Caça ao shiny: aura, contador, curva da chance, Poké Radar e diário */
 @import './raids.css'; /* Raides: toca com pilar de energia, chefe gigante, estrelas e livro de raides */
 @import './training.css'; /* Campo de Treino: estações animadas por atributo, hexágono de EVs e planos */
+@import './expeditions.css'; /* Expedições: trilha com o grupo andando, diário de viagem e cartão-postal */
 @import './daycare-pc.css'; /* PC da Creche: escolher o hóspede numa janela no visual do PC */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */

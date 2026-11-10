@@ -1,7 +1,13 @@
-// Expedições: monte um grupo de até 3 Pokémon livres e mande-o por 1, 4 ou 8 horas.
+// Expedições: monte um grupo de até 3 Pokémon livres e mande-o por 1, 4 ou 8 horas. Em andamento, o grupo anda por
+// uma trilha com o cenário da expedição e um diário de viagem vai ganhando entradas; na volta chega um cartão-postal
+// com a "foto" do grupo e o que ele trouxe.
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { BALANCE, EXPEDITIONS, getSpecies, type ExpeditionDef } from '../../../game-data';
+import { seededRng } from '../../../core/rng';
+import type { ExpeditionRun } from '../../../core/expeditions';
+import { audio } from '../../audio';
 import {
   availableExpeditions,
   claimExpedition,
@@ -54,12 +60,143 @@ function LootSummary({ loot }: { loot: ExpeditionLoot }) {
   );
 }
 
+/** Cor do cenário pelo primeiro tipo favorecido da expedição. */
+const THEME: Record<string, string> = {
+  normal: '#c8c098',
+  flying: '#a8c8f0',
+  bug: '#a8c050',
+  grass: '#78c060',
+  water: '#58a0e0',
+  fire: '#e88048',
+  rock: '#b8a068',
+  ground: '#d8b868',
+  ghost: '#8070b0',
+  psychic: '#e878a8',
+  ice: '#98d8e8',
+  electric: '#e8c840',
+  dark: '#706060',
+  dragon: '#7868e0',
+  steel: '#a8a8c0',
+  poison: '#a060a8',
+  fighting: '#c05838',
+  fairy: '#e8a0c8',
+};
+
+/** Entradas do diário de viagem: sorteadas pela semente da expedição, aparecem conforme o tempo passa. */
+const DIARY = [
+  (n: string) => `${n} farejou algo interessante atrás de uma pedra.`,
+  () => 'O grupo parou para descansar à sombra de uma árvore.',
+  (n: string) => `${n} encontrou um treinador e trocaram dicas.`,
+  (n: string) => `Começou a garoar. ${n} achou ótimo!`,
+  (n: string) => `${n} espantou um bando de Spearow barulhentos.`,
+  () => 'O grupo atravessou um riacho pulando de pedra em pedra.',
+  (n: string) => `${n} cochilou um pouquinho no caminho.`,
+  (n: string) => `Lá longe apareceu um brilho estranho… ${n} foi ver.`,
+  (n: string) => `${n} dividiu uma berry com o resto do grupo.`,
+  () => 'O grupo subiu uma colina e viu a paisagem toda.',
+  (n: string) => `${n} treinou um golpe novo durante a pausa.`,
+  () => 'Um Pokémon selvagem seguiu o grupo por um tempo, curioso.',
+];
+
+function diaryOf(state: GameState, run: ExpeditionRun, now: number): string[] {
+  const names = run.uids
+    .map((uid) => state.collection.find((p) => p.uid === uid))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .map((p) => speciesName(p.speciesId));
+  if (!names.length) return [];
+  const steps = Math.min(6, Math.floor(((now - run.startedAt) / (run.endsAt - run.startedAt)) * 6));
+  const rng = seededRng(run.seed);
+  return Array.from({ length: Math.max(0, steps) }, () => {
+    const line = DIARY[Math.floor(rng.next() * DIARY.length)];
+    return line(names[Math.floor(rng.next() * names.length)]);
+  });
+}
+
+function Trail({ state, run, def }: { state: GameState; run: ExpeditionRun; def: ExpeditionDef }) {
+  const now = state.lastTimerAt;
+  const progress = Math.min(1, (now - run.startedAt) / (run.endsAt - run.startedAt));
+  return (
+    <div
+      className={`ex-trail ${progress >= 1 ? 'done' : ''}`}
+      style={{ '--theme': THEME[def.types[0]] ?? '#88c070', '--p': progress } as CSSProperties}
+    >
+      <span className="ex-scenery" aria-hidden />
+      <span className="ex-path" aria-hidden />
+      <span className="ex-flag" aria-hidden />
+      <span className="ex-party">
+        {run.uids.map((uid, i) => {
+          const p = state.collection.find((x) => x.uid === uid);
+          return p ? (
+            <span key={uid} className="ex-walker" style={{ animationDelay: `${i * 0.15}s` }}>
+              <PokemonSprite speciesId={p.speciesId} kind="icon" shiny={p.shiny} />
+            </span>
+          ) : null;
+        })}
+      </span>
+    </div>
+  );
+}
+
+function Postcard({
+  name,
+  def,
+  party,
+  loot,
+  onClose,
+}: {
+  name: string;
+  def?: ExpeditionDef;
+  party: number[];
+  loot: ExpeditionLoot;
+  onClose: () => void;
+}) {
+  return createPortal(
+    <div
+      className="modal-backdrop ex-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Cartão-postal da expedição"
+      onClick={onClose}
+    >
+      <div className="ex-postcard" onClick={(e) => e.stopPropagation()}>
+        <span className="ex-stamp" aria-hidden>
+          <ItemIcon id="explorer-kit" size={28} />
+        </span>
+        <div
+          className="ex-photo"
+          style={{ '--theme': THEME[def?.types[0] ?? 'normal'] ?? '#88c070' } as CSSProperties}
+        >
+          {party.map((id, i) => (
+            <span key={i} style={{ '--i': i } as CSSProperties}>
+              <PokemonSprite speciesId={id} kind="front" pixelScale={1} />
+            </span>
+          ))}
+        </div>
+        <div className="ex-letter">
+          <strong>Saudações de “{name}”!</strong>
+          <p>A equipe voltou cansada, mas feliz, e trouxe:</p>
+          <LootSummary loot={loot} />
+          <button className="pbtn primary" onClick={onClose} autoFocus>
+            Que viagem!
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function ExpeditionsPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [choice, setChoice] = useState<string | null>(null);
   const [party, setParty] = useState<number[]>([]);
   const [hours, setHours] = useState(BALANCE.expeditions.durations[0]);
-  const [loot, setLoot] = useState<{ name: string; loot: ExpeditionLoot } | null>(null);
+  const [loot, setLoot] = useState<{
+    name: string;
+    id: string;
+    party: number[];
+    loot: ExpeditionLoot;
+  } | null>(null);
   const slots = expeditionSlots(state);
   if (slots === 0) return <Locked routeId={BALANCE.expeditions.slots[0]} />;
   const now = state.lastTimerAt;
@@ -69,10 +206,17 @@ export function ExpeditionsPanel({ state }: { state: GameState }) {
 
   const claim = (id: string) => {
     const name = EXPEDITIONS.find((e) => e.id === id)?.name ?? id;
+    const run = state.expeditions.find((r) => r.id === id);
+    const party = (run?.uids ?? [])
+      .map((uid) => state.collection.find((p) => p.uid === uid)?.speciesId)
+      .filter((x): x is number => !!x);
     engine.dispatch((s, t) => {
       const events: never[] = [];
       const result = claimExpedition(s, id, t, events);
-      if (result) setLoot({ name, loot: result });
+      if (result) {
+        audio.sfx('itemGet');
+        setLoot({ name, id, party, loot: result });
+      }
       return events;
     });
   };
@@ -89,17 +233,21 @@ export function ExpeditionsPanel({ state }: { state: GameState }) {
             const d = EXPEDITIONS.find((e) => e.id === run.id)!;
             const done = expeditionDone(run, now);
             return (
-              <li key={run.id} className={`expedition-run ${done ? 'done' : ''}`}>
-                <div className="run-party">
-                  {run.uids.map((uid) => {
-                    const p = state.collection.find((x) => x.uid === uid);
-                    return p && <PokemonSprite key={uid} speciesId={p.speciesId} kind="icon" />;
-                  })}
-                </div>
+              <li key={run.id} className={`expedition-run ex-run ${done ? 'done' : ''}`}>
+                <Trail state={state} run={run} def={d} />
                 <div className="run-info">
                   <strong>{d.name.toUpperCase()}</strong>
                   <Bar value={now - run.startedAt} max={run.endsAt - run.startedAt} tone="grass" />
                   <Countdown until={run.endsAt} now={now} done="VOLTOU!" />
+                  {diaryOf(state, run, now).length > 0 && (
+                    <ol className="ex-diary">
+                      {diaryOf(state, run, now)
+                        .slice(-3)
+                        .map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                    </ol>
+                  )}
                 </div>
                 {done ? (
                   <button className="pbtn small primary" onClick={() => claim(run.id)}>
@@ -118,13 +266,13 @@ export function ExpeditionsPanel({ state }: { state: GameState }) {
           })}
         </ul>
         {loot && (
-          <div className="loot frame frame-dialog">
-            <strong>{loot.name}: a equipe voltou com…</strong>
-            <LootSummary loot={loot.loot} />
-            <button className="pbtn small" onClick={() => setLoot(null)}>
-              OK
-            </button>
-          </div>
+          <Postcard
+            name={loot.name}
+            def={EXPEDITIONS.find((e) => e.id === loot.id)}
+            party={loot.party}
+            loot={loot.loot}
+            onClose={() => setLoot(null)}
+          />
         )}
       </Window>
 

@@ -1,0 +1,219 @@
+/* Expedições (ExpeditionsPanel.tsx): trilha com o grupo andando, diário de viagem e o cartão-postal da volta. */
+
+.expedition-run.ex-run {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* A trilha ocupa a linha toda em cima; informações e botão embaixo. */
+.ex-run .ex-trail {
+  grid-column: 1 / -1;
+}
+
+.ex-trail {
+  position: relative;
+  height: 70px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: linear-gradient(#c8e8ff 0 45%, color-mix(in srgb, var(--theme) 70%, #fff) 45%);
+}
+
+/* Cenário passando ao fundo (montanhas e árvores na cor da expedição). */
+.ex-scenery {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 45%;
+  background:
+    radial-gradient(
+        ellipse 40px 22px at 20px 100%,
+        color-mix(in srgb, var(--theme) 80%, #000) 60%,
+        transparent 62%
+      )
+      0 0 / 90px 100% repeat-x,
+    radial-gradient(
+        ellipse 30px 16px at 60px 100%,
+        color-mix(in srgb, var(--theme) 60%, #000) 60%,
+        transparent 62%
+      )
+      0 0 / 120px 100% repeat-x;
+  animation: ex-scroll 14s linear infinite;
+}
+
+.ex-trail.done .ex-scenery {
+  animation: none;
+}
+
+@keyframes ex-scroll {
+  to {
+    background-position:
+      -180px 0,
+      -240px 0;
+  }
+}
+
+.ex-path {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
+  height: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #f8f0d8 0 8px, transparent 8px 14px);
+  opacity: 0.8;
+}
+
+.ex-flag {
+  position: absolute;
+  right: 10px;
+  bottom: 16px;
+  width: 3px;
+  height: 30px;
+  background: #555;
+}
+
+.ex-flag::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 3px;
+  width: 16px;
+  height: 11px;
+  background: var(--red);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  animation: ex-wave 0.8s steps(2, end) infinite;
+}
+
+@keyframes ex-wave {
+  50% {
+    scale: 0.85 1;
+  }
+}
+
+/* O grupo anda pela trilha conforme o progresso. */
+.ex-party {
+  position: absolute;
+  bottom: 12px;
+  left: calc(8px + var(--p) * (100% - 120px));
+  display: flex;
+  transition: left 1s;
+}
+
+.ex-walker {
+  display: block;
+  margin-right: -10px;
+  animation: garden-step 0.45s steps(2, end) infinite;
+}
+
+.ex-walker .sprite {
+  width: 40px;
+}
+
+.ex-trail.done .ex-walker {
+  animation: lab-float 1.2s ease-in-out infinite;
+}
+
+.ex-diary {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.ex-diary li {
+  animation: dpc-arrive 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+/* --- Cartão-postal --- */
+.ex-backdrop {
+  z-index: 70;
+}
+
+.ex-postcard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 12px;
+  width: min(560px, 100%);
+  padding: 14px;
+  border: 3px solid #5a4020;
+  border-radius: 6px;
+  background: repeating-linear-gradient(0deg, transparent 0 22px, rgb(90 64 32 / 0.08) 22px 23px), #fbf3dc;
+  box-shadow: 0 6px 0 rgb(0 0 0 / 0.25);
+  rotate: -1.5deg;
+  animation: ex-postcard 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+@keyframes ex-postcard {
+  from {
+    translate: 0 40px;
+    rotate: 6deg;
+    opacity: 0;
+  }
+}
+
+.ex-stamp {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 54px;
+  border: 3px dashed #c84838;
+  background: #fff;
+  rotate: 8deg;
+}
+
+.ex-photo {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 140px;
+  padding: 6px;
+  border: 6px solid #fff;
+  background: linear-gradient(#c8e8ff 0 50%, var(--theme) 50%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
+  rotate: -3deg;
+}
+
+.ex-photo > span {
+  margin: 0 -14px;
+  animation: dpc-arrive 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(0.2s + var(--i) * 0.15s);
+}
+
+.ex-photo .sprite {
+  max-height: 80px;
+}
+
+.ex-letter {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding-right: 50px;
+  font-size: 13px;
+}
+
+.ex-letter strong {
+  font: 700 14px var(--font-label);
+}
+
+.ex-letter p {
+  margin: 0;
+}
+
+@media (max-width: 520px) {
+  .ex-postcard {
+    grid-template-columns: 1fr;
+  }
+
+  .ex-letter {
+    padding-right: 0;
+  }
+}
+
+.reduced-motion :is(.ex-scenery, .ex-walker, .ex-diary li, .ex-postcard, .ex-photo > span) {
+  animation: none !important;
+}
