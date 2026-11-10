@@ -2,6 +2,31 @@
 
 Anotações para retomar mais tarde. Atualize ao resolver.
 
+## Atividades vivas (10/11)
+
+Todas as atividades ganharam cena, animação e mecânicas novas. Cada uma tem seu CSS em `src/ui/styles/` e a lógica
+nova em `src/core/`:
+- **Grade de Atividades:** estado ao vivo em cada ícone (`activities/status.ts`).
+- **Jardim:** plantas em 4 estágios (SVG em pixel art), regar (até 3; a chuva rega sozinha), insetos, ajudante de planta
+  (+10% de velocidade), mutações e caderno (`core/garden.ts`, `garden.css`).
+- **Fósseis:** máquina com tubo e cerimônia, Escavação (`core/dig.ts`: parede 12×8, picareta/martelo, 3 grátis por dia,
+  depois ₽8.000) e Museu (`state.fossilsRevived`). As classes da máquina usam o prefixo `fl-` (`lab-` já existe na
+  abertura do jogo).
+- **Game Corner:** gabinete com alavanca, aposta ×1/×2/×5 (`SLOT_MULTS`), Voltorb Flip (`core/voltorb.ts`, níveis 1–8 como
+  em HGSS, entrada de 10 fichas, teto de 5.000 por rodada), fichas no chão por dia e prêmio da semana −30%.
+- **Torneio:** chave em árvore, narrador, patrocinador da semana (`SPONSORS` em `core/tournament.ts`, dá um item extra ao
+  campeão) e sala de troféus. O outro jogo de cada lado da chave é só visual.
+- **Troca Surpresa:** `surpriseTrade` em `core/link.ts` (5 por dia, um terço das vezes uma espécie que falta, shiny 8×).
+- **Caça Shiny:** Poké Radar (`core/hunt.ts`: carrega com 25 encontros do alvo; moita forte +5 na sequência, brilhante
+  garante o próximo shiny), contador, curva da chance e diário.
+- **Raides:** estrelas pela soma dos atributos (`raidStars`), +25% de moedas por estrela e livro de raides (`state.raidLog`).
+- **Treino:** estações animadas por atributo, hexágono de EVs e planos (`TRAINING_PLANS`, troca de atributo sozinho).
+- **Expedições:** trilha, diário de viagem (só texto, sorteado pela semente) e cartão-postal.
+- **Torre e Lendários:** prédio com os andares; previsão de 12 h com os lendários de cada faixa (clima de `weatherAt`).
+
+**Ainda dá para fazer:** Duelo (histórico e ranking dos times de amigos), Creche (hóspedes andando pelo quintal,
+árvore genealógica) e ver o equilíbrio do Voltorb Flip e da Escavação com jogo de verdade.
+
 ## Safari (9/11 e 10/11)
 
 Feito em 9/11: cena viva, humores, passos e caminhos, 5 zonas, surto da semana, berries/Lama/Pokébloco, câmera,

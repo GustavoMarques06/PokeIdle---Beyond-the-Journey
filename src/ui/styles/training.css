@@ -328,10 +328,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  width: 100%;
   font-size: 12px;
 }
 
 .train-plan select {
+  flex: 1 1 160px;
+  min-width: 0;
   max-width: 100%;
   font: inherit;
 }

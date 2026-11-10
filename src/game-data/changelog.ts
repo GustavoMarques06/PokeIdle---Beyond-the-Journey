@@ -13,6 +13,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-10-atividades-vivas',
+    date: '10/11/2026',
+    title: 'Atividades vivas',
+    items: [
+      { tag: 'novo', text: 'A grade de Atividades mostra o estado de cada uma: "2 ovos prontos", "Fóssil 1h20", "RAIDE! 12 min"…' },
+      { tag: 'novo', text: 'Jardim: plantas em pixel art que crescem, regador (3 regas = +1 berry; a chuva rega sozinha), insetos para espantar, mutações e o caderno de mutações.' },
+      { tag: 'novo', text: 'Fósseis: máquina com o tubo e a silhueta tomando forma, cerimônia da cápsula, Escavação (picareta e martelo, 3 grátis por dia) e o Museu.' },
+      { tag: 'novo', text: 'Game Corner: letreiro de neon, alavanca, aposta ×1/×2/×5, JACKPOT, Voltorb Flip, fichas no chão e o prêmio da semana com desconto.' },
+      { tag: 'novo', text: 'Torneio: chave em árvore, narrador, torcida, patrocinador da semana, festa do título e sala de troféus.' },
+      { tag: 'novo', text: 'Troca Surpresa: mande um Pokémon e receba outro de um personagem do jogo (5 por dia), com animação do cabo.' },
+      { tag: 'novo', text: 'Caça Shiny: aura que esquenta com a sequência, contador de rolos, curva da chance, Poké Radar com moitas e diário de shinies.' },
+      { tag: 'novo', text: 'Raides com toca, chefe gigante e estrelas (mais estrelas, mais moedas) e o livro de raides.' },
+      { tag: 'novo', text: 'Treino com estações animadas por atributo, hexágono de EVs e planos que trocam de atributo sozinhos.' },
+      { tag: 'novo', text: 'Expedições com trilha animada, diário de viagem e cartão-postal na volta; Torre com o prédio dos andares; previsão dos lendários para as próximas 12 h.' },
+    ],
+  },
+  {
     id: '2026-11-10-creche-pc',
     date: '10/11/2026',
     title: 'Creche: escolha pelo PC',
