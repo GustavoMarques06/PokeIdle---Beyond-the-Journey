@@ -21,6 +21,9 @@ import {
   type TrainerOutfit,
 } from '../game-data';
 import { addToCollection, busyUids, findPokemon, routeDone } from './collection';
+import { localDay } from './missions';
+import { randInt, rngFrom } from './rng';
+import { randomIvs, rollShiny } from './pokemon';
 import type { GameEvent, GameState, TeamMember } from './game';
 import { applyChallengePreset } from './presets';
 import { evolutionBlocked, evolve, itemEvolution } from './progression';
@@ -136,6 +139,19 @@ export interface LinkState {
   /** Trocas enviadas: o código continua disponível para copiar de novo. */
   sent: SentTrade[];
   ghosts: GhostRecord[];
+  /** Troca Surpresa: quantas hoje e as últimas feitas. */
+  surprise?: { day: number; used: number; log: SurpriseRecord[] };
+}
+
+export interface SurpriseRecord {
+  at: number;
+  gave: number;
+  got: number;
+  shiny: boolean;
+  from: string;
+  avatar: PlayerAvatar;
+  message: string;
+  evolvedTo?: number;
 }
 
 const MAX_SENT = 10;
@@ -691,4 +707,86 @@ export function ghostLost(state: GameState, events: GameEvent[]): void {
   const g = ghostById(state, b.ghostId);
   if (g) g.losses++;
   events.push({ type: 'ghostDuelEnded', name: g?.name ?? b.trainer?.name ?? '', won: false, coins: 0 });
+}
+
+// ---------------------------------------------------------------------------
+// Troca Surpresa: manda um Pokémon e recebe outro de um treinador do mundo do jogo (sem internet).
+
+export const SURPRISE_PER_DAY = 5;
+
+const SURPRISE_NAMES = [
+  'Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Felipe', 'Gabi', 'Heitor', 'Isa', 'João', 'Kiko', 'Lara',
+  'Marcos', 'Nina', 'Otávio', 'Paula', 'Quim', 'Rafa', 'Sofia', 'Téo', 'Uli', 'Vivi', 'Wagner', 'Yuri',
+];
+const SURPRISE_MESSAGES = [
+  'Cuide bem dele, tá? Ele adora carinho atrás da orelha!',
+  'Peguei esse no caminho para a Liga. Boa sorte!',
+  'Ele é meio preguiçoso, mas é muito forte!',
+  'Troquei com você porque ele precisava de uma aventura nova.',
+  'Esse aí me ajudou a ganhar minha primeira insígnia!',
+  'Tenho dois desses! Aproveite!',
+  'Ele come muito… prepare as berries!',
+  'Achei que você ia gostar. Me conta depois como ele está!',
+  'Choquei esse de um ovo da Creche. Dei todo amor do mundo!',
+  'Ele gosta de dormir no sol. Trate bem!',
+];
+const SURPRISE_BALLS = ['poke-ball', 'great-ball', 'ultra-ball', 'luxury-ball', 'heal-ball', 'nest-ball', 'dusk-ball', 'quick-ball'];
+const SURPRISE_NICKS = ['Bolinha', 'Faísca', 'Pipoca', 'Trovão', 'Chiclete', 'Biscoito', 'Fumaça', 'Pingo'];
+
+export function surpriseLeft(state: GameState, now: number): number {
+  const s = linkState(state).surprise;
+  return s && s.day === localDay(now) ? Math.max(0, SURPRISE_PER_DAY - s.used) : SURPRISE_PER_DAY;
+}
+
+/** Faz a Troca Surpresa: o Pokémon sai e chega outro (às vezes uma espécie nova, raramente shiny). */
+export function surpriseTrade(state: GameState, uid: number, now: number, events: GameEvent[] = []): SurpriseRecord | null {
+  const p = findPokemon(state, uid);
+  if (!p || sendBlocker(state, uid) || surpriseLeft(state, now) <= 0) return null;
+  const link = linkState(state);
+  const rng = rngFrom(state);
+  const day = localDay(now);
+  if (!link.surprise || link.surprise.day !== day) link.surprise = { day, used: 0, log: link.surprise?.log ?? [] };
+  link.surprise.used++;
+  const gave = p.speciesId;
+  const level = Math.max(5, Math.min(BALANCE.maxLevel, p.level + randInt(rng, -5, 5)));
+  removeFromGame(state, uid);
+  // Um terço das vezes vem uma espécie que você ainda não tem.
+  const pool = SPECIES.filter((s) => !s.legendary && hasSpecies(s.id));
+  const missing = pool.filter((s) => !state.pokedex[s.id]?.caught);
+  const list = missing.length && rng.next() < 0.33 ? missing : pool;
+  const got = list[Math.floor(rng.next() * list.length)].id;
+  const ivs = randomIvs(rng);
+  const keys = Object.keys(ivs) as (keyof Ivs)[];
+  for (let i = 0; i < 2; i++) ivs[keys.splice(Math.floor(rng.next() * keys.length), 1)[0]] = 31;
+  const shiny = rollShiny(rng, 8);
+  const from = SURPRISE_NAMES[Math.floor(rng.next() * SURPRISE_NAMES.length)];
+  const avatar = PLAYER_AVATARS[Math.floor(rng.next() * PLAYER_AVATARS.length)];
+  const q = addToCollection(state, got, level, ivs, shiny, now, `Troca Surpresa com ${from}`);
+  q.ot = from;
+  q.ball = SURPRISE_BALLS[Math.floor(rng.next() * SURPRISE_BALLS.length)];
+  if (rng.next() < 0.25) q.nickname = SURPRISE_NICKS[Math.floor(rng.next() * SURPRISE_NICKS.length)];
+  q.currentHp = statsOf(q).hp;
+  state.stats.tradesSent++;
+  state.stats.tradesReceived++;
+  const evo = tradeEvolution(q);
+  let evolvedTo: number | undefined;
+  if (evo && state.settings.autoEvolve) {
+    if (evo.usesItem) q.held = undefined;
+    evolve(q, evo.to);
+    recordEvolution(state, evo.to, q.shiny, events);
+    evolvedTo = evo.to;
+  }
+  const record: SurpriseRecord = {
+    at: now,
+    gave,
+    got,
+    shiny,
+    from,
+    avatar,
+    message: SURPRISE_MESSAGES[Math.floor(rng.next() * SURPRISE_MESSAGES.length)],
+    ...(evolvedTo ? { evolvedTo } : {}),
+  };
+  link.surprise.log = [record, ...link.surprise.log].slice(0, 10);
+  events.push({ type: 'tradeReceived', uid: q.uid, speciesId: got, from, evolvedTo });
+  return record;
 }

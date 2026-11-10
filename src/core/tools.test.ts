@@ -25,7 +25,10 @@ import {
   importGhost,
   parsePacket,
   receiveTrade,
+  SURPRISE_PER_DAY,
   sendBlocker,
+  surpriseLeft,
+  surpriseTrade,
   tradePacket,
   type TradePacket,
 } from './link';
@@ -437,6 +440,31 @@ describe('Cabo Link: duelo fantasma', () => {
     expect(importGhost(me, ghostPacket(friend, 9000), 9500).ok).toBe(true);
     expect(me.link!.ghosts).toHaveLength(1);
     expect(me.link!.ghosts[0].team[0].level).toBe(77);
+  });
+});
+
+describe('Cabo Link: Troca Surpresa', () => {
+  it('troca por um Pokémon de um personagem, até 5 por dia, e guarda o histórico', () => {
+    const s = newGame(1, 0, 33);
+    beatBosses(s, BALANCE.link.unlock);
+    const mons = Array.from({ length: SURPRISE_PER_DAY + 1 }, () => give(s, 'rattata', 30));
+    const total = s.collection.length;
+    const r = surpriseTrade(s, mons[0].uid, 0)!;
+    expect(r).not.toBeNull();
+    expect(s.collection.length).toBe(total); // saiu um, chegou um
+    expect(s.collection.some((p) => p.uid === mons[0].uid)).toBe(false);
+    const got = s.collection.at(-1)!;
+    expect(got.ot).toBe(r.from);
+    expect(Math.abs(got.level - 30)).toBeLessThanOrEqual(5);
+    expect(getSpecies(r.got).legendary).toBeFalsy();
+    for (let i = 1; i < SURPRISE_PER_DAY; i++) surpriseTrade(s, mons[i].uid, 0);
+    expect(surpriseLeft(s, 0)).toBe(0);
+    expect(surpriseTrade(s, mons[SURPRISE_PER_DAY].uid, 0)).toBeNull();
+    expect(s.link!.surprise!.log).toHaveLength(SURPRISE_PER_DAY);
+    expect(surpriseLeft(s, 86_400_000 * 2)).toBe(SURPRISE_PER_DAY);
+    // Favorito não vai.
+    mons[SURPRISE_PER_DAY].favorite = true;
+    expect(surpriseTrade(s, mons[SURPRISE_PER_DAY].uid, 86_400_000 * 2)).toBeNull();
   });
 });
 

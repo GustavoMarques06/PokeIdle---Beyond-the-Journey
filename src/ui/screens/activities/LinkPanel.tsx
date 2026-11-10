@@ -1,7 +1,8 @@
 // CABO LINK: troca de Pokémon e duelo fantasma por código. Os códigos são texto: dá para mandar
 // por mensagem, e-mail ou qualquer lugar. Nada passa por servidor.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BALANCE } from '../../../game-data';
 import { findPokemon } from '../../../core/collection';
 import type { GameEvent, GameState } from '../../../core/game';
@@ -20,8 +21,12 @@ import {
   linkUnlocked,
   receiveTrade,
   sendBlocker,
+  surpriseLeft,
+  surpriseTrade,
   tradePacket,
+  SURPRISE_PER_DAY,
   type LinkPacket,
+  type SurpriseRecord,
 } from '../../../core/link';
 import { pokemonName, potential } from '../../../core/pokemon';
 import { ItemIcon, Money, PokemonSprite, Shiny, TrainerSprite, Window } from '../../components/common';
@@ -158,6 +163,144 @@ function Receive({ expect }: { expect: LinkPacket['kind'] }) {
   );
 }
 
+/** A animação da Troca Surpresa: a bola sobe pelo cabo, o globo procura um parceiro e a bola de volta abre. */
+function SurpriseShow({ gave, record, onClose }: { gave: number; record: SurpriseRecord; onClose: () => void }) {
+  const [stage, setStage] = useState<'send' | 'search' | 'arrive' | 'done'>('send');
+  useEffect(() => {
+    const t = [
+      window.setTimeout(() => setStage('search'), 900),
+      window.setTimeout(() => {
+        setStage('arrive');
+        audio.sfx('throw');
+      }, 2600),
+      window.setTimeout(() => {
+        setStage('done');
+        audio.sfx(record.shiny ? 'fanfare' : 'itemGet');
+      }, 3500),
+    ];
+    return () => t.forEach(clearTimeout);
+  }, [record.shiny]);
+  const shown = record.evolvedTo ?? record.got;
+  return createPortal(
+    <div className="modal-backdrop st-backdrop" role="dialog" aria-modal="true" aria-label="Troca Surpresa">
+      <div className={`st-show frame frame-dialog stage-${stage}`}>
+        <h3>TROCA SURPRESA</h3>
+        <div className="st-cable" aria-hidden>
+          <span className="st-you">
+            <PokemonSprite speciesId={gave} kind="front" pixelScale={1} />
+          </span>
+          <span className="st-wire" />
+          <span className="st-ball out">
+            <ItemIcon id="poke-ball" size={24} />
+          </span>
+          <span className="st-globe" />
+          <span className="st-ball in">
+            <ItemIcon id="luxury-ball" size={24} />
+          </span>
+        </div>
+        <p className="st-caption">
+          {stage === 'send'
+            ? `Lá vai o ${speciesName(gave)}!`
+            : stage === 'search'
+              ? 'Procurando alguém para trocar…'
+              : stage === 'arrive'
+                ? 'Encontrado! Chegando…'
+                : ''}
+        </p>
+        {stage === 'done' && (
+          <div className="st-result">
+            <span className="st-burst" aria-hidden />
+            <PokemonSprite speciesId={shown} kind="front" shiny={record.shiny} pixelScale={2} />
+            <strong>
+              {speciesName(shown).toUpperCase()} {record.shiny && <Shiny />}
+            </strong>
+            {record.evolvedTo && <small className="st-evo">Ele evoluiu ao chegar pela troca!</small>}
+            <div className="st-card">
+              <TrainerSprite id={record.avatar} size={44} head />
+              <span>
+                <b>{record.from}</b> diz: “{record.message}”
+              </span>
+            </div>
+            <button className="pbtn primary" onClick={onClose} autoFocus>
+              Obrigado, {record.from}!
+            </button>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function SurpriseTrade({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const [uid, setUid] = useState<number | null>(null);
+  const [show, setShow] = useState<{ gave: number; record: SurpriseRecord } | null>(null);
+  const now = state.lastTimerAt;
+  const left = surpriseLeft(state, now);
+  const picked = uid !== null ? findPokemon(state, uid) : undefined;
+  const blocker = uid !== null ? sendBlocker(state, uid) : null;
+  const log = state.link?.surprise?.log ?? [];
+
+  const go = () => {
+    if (!picked) return;
+    const gave = picked.speciesId;
+    let record: SurpriseRecord | null = null;
+    engine.dispatch((s, t) => {
+      const events: GameEvent[] = [];
+      record = surpriseTrade(s, picked.uid, t, events);
+      return events;
+    });
+    if (record) {
+      audio.sfx('throw');
+      setShow({ gave, record });
+      setUid(null);
+    }
+  };
+
+  return (
+    <Window title={`TROCA SURPRESA · ${left}/${SURPRISE_PER_DAY} HOJE`} icon={<ItemIcon id="luxury-ball" size={24} />} frame="dialog">
+      {show && <SurpriseShow gave={show.gave} record={show.record} onClose={() => setShow(null)} />}
+      <p className="hint">
+        Mande um Pokémon e receba outro de um treinador do mundo do jogo, sem precisar de amigo nem internet. Pode vir
+        uma espécie que você não tem, e às vezes até um shiny!
+      </p>
+      <PokemonPicker
+        state={state}
+        selected={uid !== null ? [uid] : []}
+        onPick={(p) => setUid(p.uid === uid ? null : p.uid)}
+        filter={(p) => !p.favorite}
+      />
+      {picked && (
+        <div className="link-send frame frame-dialog">
+          <PokemonSprite speciesId={picked.speciesId} kind="icon" />
+          <span>
+            {pokemonName(picked).toUpperCase()} Nv{picked.level}
+          </span>
+          <button className="pbtn small primary" disabled={!!blocker || left <= 0} title={blocker ?? undefined} onClick={go}>
+            {left > 0 ? 'Trocar de surpresa!' : 'Volte amanhã'}
+          </button>
+        </div>
+      )}
+      {log.length > 0 && (
+        <ul className="st-log">
+          {log.map((r) => (
+            <li key={r.at}>
+              <PokemonSprite speciesId={r.gave} kind="icon" />
+              <span className="st-arrow">⇄</span>
+              <PokemonSprite speciesId={r.evolvedTo ?? r.got} kind="icon" shiny={r.shiny} />
+              <small>
+                {speciesName(r.evolvedTo ?? r.got)}
+                {r.shiny ? ' ★' : ''} · de {r.from}
+              </small>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Window>
+  );
+}
+
 export function TradePanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [uid, setUid] = useState<number | null>(null);
@@ -188,7 +331,8 @@ export function TradePanel({ state }: { state: GameState }) {
 
   return (
     <div className="link-panel">
-      <Window title="ENVIAR" icon={<ItemIcon id="linking-cord" size={24} />}>
+      <SurpriseTrade state={state} />
+      <Window title="ENVIAR PARA UM AMIGO" icon={<ItemIcon id="linking-cord" size={24} />}>
         <p className="hint">
           Escolha um Pokémon livre (fora da equipe e das atividades). Ele vai com o item que segura, os
           golpes, os IVs e o apelido. Favoritos ficam protegidos.

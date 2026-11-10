@@ -1,0 +1,256 @@
+/* Cabo Link (LinkPanel.tsx): a animação da Troca Surpresa e o histórico. */
+
+.st-backdrop {
+  z-index: 70;
+}
+
+.st-show {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(420px, 100%);
+  padding: 16px;
+  overflow: hidden;
+  text-align: center;
+  animation: dpc-pop 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+.st-show h3 {
+  margin: 0;
+  font: 700 16px var(--font-label);
+  letter-spacing: 0.1em;
+}
+
+/* O cabo: seu Pokémon à esquerda, o fio, o globo no meio. */
+.st-cable {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 120%, #2a4a8a, #101830 70%);
+}
+
+.st-you {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  transition:
+    opacity 0.4s,
+    scale 0.4s;
+}
+
+.st-you .sprite {
+  max-height: 70px;
+}
+
+.stage-send .st-you {
+  animation: st-shrink 0.8s ease-in forwards;
+}
+
+.stage-search .st-you,
+.stage-arrive .st-you,
+.stage-done .st-you {
+  opacity: 0;
+}
+
+@keyframes st-shrink {
+  to {
+    scale: 0.2;
+    opacity: 0;
+    filter: brightness(4);
+  }
+}
+
+.st-wire {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  top: 50%;
+  height: 4px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg, #f8d030 0 8px, #c89818 8px 16px);
+  animation: st-wire 0.4s linear infinite;
+}
+
+@keyframes st-wire {
+  to {
+    background-position: 16px 0;
+  }
+}
+
+.st-ball {
+  position: absolute;
+  top: calc(50% - 12px);
+  opacity: 0;
+}
+
+.stage-send .st-ball.out {
+  animation: st-out 0.9s ease-in forwards;
+}
+
+@keyframes st-out {
+  0% {
+    left: 12%;
+    opacity: 1;
+  }
+  100% {
+    left: 46%;
+    opacity: 1;
+    scale: 0.6;
+  }
+}
+
+.stage-arrive .st-ball.in {
+  animation: st-in 0.9s ease-out forwards;
+}
+
+@keyframes st-in {
+  0% {
+    left: 46%;
+    opacity: 1;
+    scale: 0.6;
+  }
+  100% {
+    left: 80%;
+    opacity: 1;
+    rotate: 720deg;
+  }
+}
+
+/* O globo girando enquanto procura. */
+.st-globe {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border: 3px solid #a8e0ff;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 10px 14px at 30% 40%, #58c058 60%, transparent 62%),
+    radial-gradient(ellipse 14px 8px at 70% 60%, #58c058 60%, transparent 62%),
+    radial-gradient(circle at 35% 30%, #80c8ff, #2860c0);
+  background-size:
+    200% 100%,
+    200% 100%,
+    auto;
+  box-shadow: 0 0 16px #58a8ff;
+  scale: 0.6;
+  opacity: 0.5;
+  transition:
+    scale 0.3s,
+    opacity 0.3s;
+}
+
+.stage-search .st-globe {
+  scale: 1;
+  opacity: 1;
+  animation: st-spin 1s linear infinite;
+}
+
+@keyframes st-spin {
+  to {
+    background-position:
+      -200% 0,
+      -200% 0,
+      0 0;
+  }
+}
+
+.st-caption {
+  min-height: 1.2em;
+  margin: 0;
+  font: 700 13px var(--font-label);
+}
+
+.st-result {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.st-result > .sprite {
+  position: relative;
+  z-index: 1;
+  max-height: 130px;
+  animation: lab-born 0.8s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.st-burst {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  margin-left: -100px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgb(255 230 120 / 0.4) 0 12deg, transparent 12deg 30deg);
+  animation: lab-spin 8s linear infinite;
+}
+
+.st-result strong {
+  position: relative;
+  font: 700 15px var(--font-label);
+}
+
+.st-evo {
+  color: var(--gold-dark);
+  font-weight: 700;
+}
+
+.st-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 2px solid var(--menu-blue-light);
+  border-radius: 8px;
+  background: #f4f8ff;
+  font-size: 12px;
+  text-align: left;
+  animation: dpc-arrive 0.4s 0.3s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+.st-log {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-log li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.04);
+  font-size: 12px;
+}
+
+.st-log .sprite {
+  width: 36px;
+}
+
+.st-arrow {
+  font: 700 14px var(--font-label);
+  color: var(--menu-blue-dark);
+}
+
+.reduced-motion
+  :is(.st-show, .st-you, .st-wire, .st-ball, .st-globe, .st-result > .sprite, .st-burst, .st-card) {
+  animation: none !important;
+}
+
+.reduced-motion .st-ball {
+  opacity: 0;
+}
