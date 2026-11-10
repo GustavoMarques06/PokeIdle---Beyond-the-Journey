@@ -7,6 +7,7 @@ import { claimMilestone, dexBonuses } from './dex';
 import { environmentAt, weatherAt } from './env';
 import { updateRoamer, updateRocket } from './events';
 import { claimExpedition, expeditionSlots, startExpedition } from './expeditions';
+import { DIG_COST, DIG_H, DIG_W, FREE_DIGS, digHit, digState, finishDig, freeDigsLeft, startDig, treasureUncovered } from './dig';
 import { claimFossil, startRevive } from './fossils';
 import { buyPrize, buyTokens, slotReturnRate, spinSlots } from './gamecorner';
 import { canWater, eatBerry, harvest, mutationFlag, mutationOf, pestActive, plantBerry, shooPest, waterPlot } from './garden';
@@ -202,6 +203,47 @@ describe('jardim vivo', () => {
   });
 });
 
+describe('escavação', () => {
+  it('3 grátis por dia, depois paga; golpes cavam e a parede desaba com os tesouros descobertos', () => {
+    const s = newGame(1, 0, 9);
+    clearUpTo(s, 'mt-moon');
+    s.coins = DIG_COST;
+    expect(freeDigsLeft(s, 0)).toBe(FREE_DIGS);
+    expect(startDig(s, 0)).toBe(true);
+    expect(startDig(s, 0)).toBe(false); // uma parede por vez
+    const run = digState(s).run!;
+    expect(run.depth).toHaveLength(DIG_W * DIG_H);
+    expect(run.treasures.length).toBeGreaterThanOrEqual(2);
+    const before = run.depth.reduce((a, b) => a + b, 0);
+    digHit(s, 5, 4, 'hammer');
+    expect(run.depth.reduce((a, b) => a + b, 0)).toBeLessThan(before);
+    expect(run.stability).toBeLessThan(100);
+    // Descobre o primeiro tesouro inteiro e termina: ele vem para a mochila.
+    const t = run.treasures[0];
+    for (let y = t.y; y < t.y + t.h; y++) for (let x = t.x; x < t.x + t.w; x++) run.depth[y * DIG_W + x] = 0;
+    expect(treasureUncovered(run, t)).toBe(true);
+    const had = s.items[t.item] ?? 0;
+    const done = finishDig(s).find((e) => e.type === 'digDone');
+    expect(done && 'items' in done && done.items).toContain(t.item);
+    expect(s.items[t.item]).toBe(had + 1);
+    // Gasta as grátis do dia; a próxima custa moedas.
+    finishDig(s);
+    for (let i = 1; i < FREE_DIGS; i++) {
+      startDig(s, 0);
+      finishDig(s);
+    }
+    expect(freeDigsLeft(s, 0)).toBe(0);
+    expect(startDig(s, 0)).toBe(true);
+    expect(s.coins).toBe(0);
+    // Martelando sem parar, a parede desaba sozinha.
+    let ended = false;
+    for (let i = 0; i < 40 && !ended; i++) ended = digHit(s, i % DIG_W, i % DIG_H, 'hammer').some((e) => e.type === 'digDone');
+    expect(ended).toBe(true);
+    expect(digState(s).run).toBeNull();
+    expect(freeDigsLeft(s, 86_400_000 * 2)).toBe(FREE_DIGS); // outro dia
+  });
+});
+
 describe('fósseis', () => {
   it('revive depois das horas indicadas', () => {
     const s = newGame(1, 0, 5);
@@ -210,6 +252,7 @@ describe('fósseis', () => {
     expect(startRevive(s, 'helix-fossil', 0)).toBe(true);
     expect(claimFossil(s, 0, HOUR)).toBeNull();
     const p = claimFossil(s, 0, 3 * HOUR)!;
+    expect(s.fossilsRevived?.[p.speciesId]).toBe(1); // Museu
     expect(p.speciesId).toBe(speciesId('omanyte'));
   });
 });

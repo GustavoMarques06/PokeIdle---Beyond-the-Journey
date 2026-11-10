@@ -32,6 +32,8 @@ export function claimFossil(state: GameState, index: number, now: number): Pokem
   if (!run || now < run.readyAt) return null;
   state.fossils.splice(index, 1);
   const rng = rngFrom(state);
+  const museum = (state.fossilsRevived ??= {});
+  museum[run.speciesId] = (museum[run.speciesId] ?? 0) + 1;
   return addToCollection(
     state,
     run.speciesId,

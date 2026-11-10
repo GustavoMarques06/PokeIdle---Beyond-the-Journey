@@ -37,6 +37,7 @@ import type { NuzlockeState } from './nuzlocke';
 import type { PcState } from './pc';
 import type { LuresState } from './lures';
 import type { Gender } from './gender';
+import type { DigState } from './dig';
 import type { SafariProgress, SafariState } from './safari';
 import type { TournamentState } from './tournament';
 import type { GardenPlot } from './garden';
@@ -318,6 +319,10 @@ export interface GameState {
   safari: SafariState | null;
   /** Pontos de Safari, loja, pedidos do Guarda, Pokédex das zonas e recordes (criado na primeira visita). */
   safariProgress?: SafariProgress;
+  /** Escavação no Laboratório (parede, tesouros achados). */
+  dig?: DigState;
+  /** Fósseis revividos de cada espécie (o Museu). */
+  fossilsRevived?: Record<number, number>;
   /** Quando cada árvore de berry selvagem dá frutos de novo (por rota; ausente = pronta). */
   berryTrees: Record<string, number>;
   tournament: TournamentState;
@@ -543,6 +548,7 @@ export type GameEvent =
   | { type: 'safariEnded'; caught: number; points?: number; record?: boolean; species?: number[]; zone?: string }
   | { type: 'safariZoneComplete'; zone: string }
   | { type: 'safariGuideReady' }
+  | { type: 'digDone'; items: string[]; missed: number; collapsed: boolean }
   | { type: 'gardenMutation'; berry: string; from: [string, string]; isNew: boolean }
   | { type: 'safariGuideBack'; species: number[]; zone: string }
   | {
