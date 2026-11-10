@@ -23,7 +23,7 @@ import {
   rivalSpecies,
   type GameState,
 } from './game';
-import { setHuntTarget } from './hunt';
+import { RADAR_CHAIN, RADAR_CHARGE, huntShinyMultiplier, pickRadarBush, radarReady, recordEncounter, setHuntTarget } from './hunt';
 import { claimMission, progressMission, refreshMissions } from './missions';
 import { learnableMoves, setMoveset } from './moveset';
 import { movesOf } from './pokemon';
@@ -201,6 +201,33 @@ describe('jardim vivo', () => {
       }
     }
     expect(found).toBe(true);
+  });
+});
+
+describe('Poké Radar', () => {
+  it('carrega com os encontros do alvo; moita forte sobe a sequência, a brilhante garante o shiny', () => {
+    const s = newGame(1, 0, 5);
+    const target = 16;
+    s.pokedex[target] = { ...(s.pokedex[target] ?? {}), seen: true } as (typeof s.pokedex)[number];
+    setHuntTarget(s, target);
+    for (let i = 0; i < RADAR_CHARGE - 1; i++) recordEncounter(s, target, false, i);
+    expect(radarReady(s)).toBe(false);
+    recordEncounter(s, target, false, 99);
+    expect(radarReady(s)).toBe(true);
+    const bushes = s.hunt.radarBushes!;
+    expect(bushes).toHaveLength(4);
+    const chain = s.hunt.chain;
+    s.hunt.radarBushes = ['strong', 'weak', 'weak', 'weak'];
+    expect(pickRadarBush(s, 0)).toBe('strong');
+    expect(s.hunt.chain).toBe(chain + RADAR_CHAIN);
+    expect(radarReady(s)).toBe(false);
+    s.hunt.radarBushes = ['sparkle', 'weak', 'weak', 'weak'];
+    pickRadarBush(s, 0);
+    expect(huntShinyMultiplier(s, target)).toBeGreaterThan(1e6);
+    recordEncounter(s, target, true, 200); // o shiny veio: a garantia acaba
+    expect(huntShinyMultiplier(s, target)).toBeLessThan(10);
+    setHuntTarget(s, null);
+    expect(s.hunt.radar).toBe(0);
   });
 });
 

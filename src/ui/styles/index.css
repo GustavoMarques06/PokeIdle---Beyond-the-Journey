@@ -15,6 +15,7 @@
 @import './corner.css'; /* Game Corner: letreiro, caça-níquel com alavanca e Voltorb Flip */
 @import './tournament.css'; /* Torneio: chave em árvore, narrador, festa do título e sala de troféus */
 @import './link.css'; /* Cabo Link: animação da Troca Surpresa e histórico */
+@import './hunt.css'; /* Caça ao shiny: aura, contador, curva da chance, Poké Radar e diário */
 @import './daycare-pc.css'; /* PC da Creche: escolher o hóspede numa janela no visual do PC */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */
