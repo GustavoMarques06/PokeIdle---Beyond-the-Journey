@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE, BALL_RULES, getSpecies, speciesId } from '../game-data';
 import { ballMultiplier, type BallContext } from './capture';
 import { addToCollection } from './collection';
-import { compatible, eggSpeciesOf, hatchReadyEggs, incompatibility, inheritedEggMoves } from './daycare';
+import { compatible, eggSpeciesOf, hatchEgg, incompatibility, inheritedEggMoves } from './daycare';
 import { advance, ballContext, currentEncounters, newGame } from './game';
 import { genderOf, rollGender } from './gender';
 import { activeLure, incenseType, repelActive, applyLure } from './lures';
@@ -148,7 +148,7 @@ describe('golpes de ovo e Relembrador', () => {
       progress: 1,
       eggMoves: ['bite'],
     });
-    hatchReadyEggs(s, 0, []);
+    hatchEgg(s, 999, 0, []); // Sem "chocar sozinho", o ovo espera o jogador.
     const baby = s.collection.at(-1)!;
     expect(baby.eggMoves).toEqual(['bite']);
     expect(baby.moveset).toContain('bite');

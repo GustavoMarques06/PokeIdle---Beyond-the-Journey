@@ -30,7 +30,11 @@ export type Sfx =
   | 'heal'
   | 'itemGet'
   | 'cursor'
-  | 'click';
+  | 'click'
+  | 'shutter'
+  | 'munch'
+  | 'grumble'
+  | 'splat';
 
 type Wave = OscillatorType;
 
@@ -330,6 +334,28 @@ class AudioManager {
         // Bipe curto e baixo do cursor passando pelos menus.
         this.tone(1320, t, 0.025, 'square', 0.025);
         return;
+      case 'shutter':
+        // Câmera: estalo do obturador, uma pausa e o avanço do filme.
+        this.noise(t, 0.03, 0.2);
+        this.tone(2000, t, 0.02, 'square', 0.05);
+        this.noise(t + 0.09, 0.05, 0.1);
+        this.tone(600, t + 0.1, 0.06, 'triangle', 0.05, 900);
+        return;
+      case 'munch':
+        // Comendo: três mordidinhas.
+        for (let i = 0; i < 3; i++)
+          this.tone(hz(64 + (i % 2) * 3), t + 0.22 + i * 0.09, 0.05, 'square', 0.05);
+        return;
+      case 'grumble':
+        // Irritado: rosnado grave tremendo.
+        this.tone(140, t + 0.22, 0.3, 'sawtooth', 0.06, 90);
+        this.tone(150, t + 0.3, 0.2, 'square', 0.04, 100);
+        return;
+      case 'splat':
+        // Lama: "plop" molhado.
+        this.noise(t + 0.22, 0.12, 0.16);
+        this.tone(400, t + 0.22, 0.14, 'triangle', 0.08, 120);
+        return;
       case 'itemGet':
         // Jingle de item recebido: subida curta e acorde no fim.
         this.arpeggio([72, 76, 79], t, 0.08, 'square', 0.06);
@@ -395,9 +421,25 @@ class AudioManager {
         case 'safariResult':
           if (e.outcome === 'caught') this.sfx('capture');
           else if (e.outcome === 'missed' || e.outcome === 'fled') this.sfx('escape');
-          else if (e.outcome === 'photo') this.sfx('click');
+          else if (e.outcome === 'photo') this.sfx('shutter');
           else if (e.outcome === 'appeared') this.sfx('cursor');
-          else if (e.action !== 'run') this.sfx('throw');
+          else if (e.action !== 'run') {
+            this.sfx('throw');
+            // O som do humor novo, logo depois do arremesso.
+            if (e.outcome === 'stayed')
+              this.sfx(
+                e.mood === 'eating'
+                  ? 'munch'
+                  : e.mood === 'angry'
+                    ? 'grumble'
+                    : e.mood === 'muddy'
+                      ? 'splat'
+                      : 'cursor',
+              );
+          }
+          break;
+        case 'safariGuideReady':
+          this.sfx('itemGet');
           break;
         case 'tournamentMatch':
           this.sfx(e.won ? 'boss' : 'faint');

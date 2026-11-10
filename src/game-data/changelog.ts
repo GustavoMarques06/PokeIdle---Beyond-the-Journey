@@ -13,6 +13,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-10-safari-2',
+    date: '10/11/2026',
+    title: 'Safari: Guia, Unova, Kalos e mais',
+    items: [
+      { tag: 'novo', text: 'Guia do Safari: ele passa 4 h numa zona e volta com 1 a 3 Pokémon, mesmo com o jogo fechado.' },
+      { tag: 'novo', text: 'Duas zonas novas: Bosque Pinwheel (Unova) e Colinas de Flores (Kalos).' },
+      { tag: 'novo', text: 'Loja do Safari: Ovo raro e Mega Stone surpresa (uma que você ainda não tem).' },
+      { tag: 'novo', text: 'Recorde de maior Pokémon: cada um tem um tamanho, que aparece no encontro.' },
+      { tag: 'novo', text: 'Dica do Guarda: toda semana ele conta a berry favorita de um Pokémon.' },
+      { tag: 'melhoria', text: 'Lago com água e vara de pesca, pedra e Lama em pixel art, cadeado nas zonas fechadas e sons para cada humor e para a câmera.' },
+      { tag: 'melhoria', text: 'O saguão mostra os caminhos em cartões, e os pedidos não revelam Pokémon que você ainda não viu.' },
+      { tag: 'correção', text: 'Um shiny que foge sai correndo com as cores de shiny, e a berry jogada aparece no arremesso.' },
+    ],
+  },
+  {
     id: '2026-11-09-safari',
     date: '09/11/2026',
     title: 'Safari novo',

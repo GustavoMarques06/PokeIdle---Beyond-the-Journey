@@ -533,9 +533,17 @@ export type GameEvent =
       action: 'ball' | 'bait' | 'berry' | 'rock' | 'mud' | 'block' | 'photo' | 'run' | 'walk';
       outcome: 'caught' | 'missed' | 'fled' | 'stayed' | 'left' | 'photo' | 'appeared';
       mood?: 'watching' | 'eating' | 'angry' | 'muddy';
+      shiny?: boolean;
+      form?: string;
+      /** A berry jogada (ação `berry`). */
+      item?: string;
+      /** A captura bateu o recorde de maior Pokémon do Safari. */
+      sizeRecord?: boolean;
     }
   | { type: 'safariEnded'; caught: number; points?: number; record?: boolean; species?: number[]; zone?: string }
   | { type: 'safariZoneComplete'; zone: string }
+  | { type: 'safariGuideReady' }
+  | { type: 'safariGuideBack'; species: number[]; zone: string }
   | {
       type: 'tournamentMatch';
       round: number;

@@ -47,7 +47,7 @@ export const SAFARI_ITEMS: Record<string, ItemData> = {
 
 // --- Zonas do Safari -----------------------------------------------------------------------------
 
-export type SafariZoneId = 'plains' | 'forest' | 'mountain' | 'marsh' | 'lake';
+export type SafariZoneId = 'plains' | 'forest' | 'mountain' | 'marsh' | 'lake' | 'pinwheel' | 'flowers';
 export type SafariPath = 'grass' | 'tall' | 'water';
 
 export interface SafariZone {
@@ -223,6 +223,76 @@ export const SAFARI_ZONES: SafariZone[] = [
       ['feebas', 2],
     ],
   },
+  {
+    id: 'pinwheel',
+    name: 'Bosque Pinwheel (Unova)',
+    unlock: 'unova-rotas-1-3',
+    scene: 'jungle',
+    levels: [44, 56],
+    grass: [
+      ['sewaddle', 12],
+      ['venipede', 12],
+      ['cottonee', 12],
+      ['petilil', 12],
+      ['deerling', 10],
+      ['karrablast', 10],
+      ['shelmet', 10],
+      ['minccino', 8],
+    ],
+    tall: [
+      ['sawsbuck', 6],
+      ['throh', 5],
+      ['sawk', 5],
+      ['leavanny', 4],
+      ['emolga', 7],
+      ['audino', 7],
+      ['axew', 2],
+      ['larvesta', 2],
+    ],
+    water: [
+      ['basculin', 16],
+      ['tympole', 14],
+      ['ducklett', 10],
+      ['frillish', 8],
+      ['alomomola', 4],
+      ['stunfisk', 3],
+    ],
+  },
+  {
+    id: 'flowers',
+    name: 'Colinas de Flores (Kalos)',
+    unlock: 'kalos-rotas-1-4',
+    scene: 'plains',
+    levels: [48, 60],
+    grass: [
+      ['fletchling', 12],
+      ['scatterbug', 12],
+      ['flabebe', 12],
+      ['bunnelby', 12],
+      ['skiddo', 10],
+      ['pancham', 10],
+      ['espurr', 10],
+      ['litleo', 10],
+    ],
+    tall: [
+      ['helioptile', 10],
+      ['spritzee', 10],
+      ['swirlix', 10],
+      ['hawlucha', 4],
+      ['honedge', 6],
+      ['dedenne', 8],
+      ['noibat', 3],
+      ['goomy', 2],
+    ],
+    water: [
+      ['skrelp', 12],
+      ['clauncher', 12],
+      ['binacle', 12],
+      ['magikarp', 12],
+      ['clawitzer', 3],
+      ['dragalge', 2],
+    ],
+  },
 ];
 
 /** Custo em passos de cada caminho e o que ele muda. */
@@ -248,7 +318,12 @@ export const SAFARI_SHOP: {
   { id: 'super-rod', name: 'Super Vara', description: 'No lago, os raros aparecem 4× mais.', cost: 800, max: 1 },
   { id: 'mud', name: 'Lama ×5', description: 'Ele demora para se limpar: foge bem menos por 2 vezes.', cost: 40, item: 'safari-mud', qty: 5 },
   { id: 'block', name: 'Pokébloco ×3', description: 'Ele come feliz: fica calmo e mais fácil de pegar.', cost: 70, item: 'pokeblock', qty: 3 },
+  { id: 'egg', name: 'Ovo raro', description: 'Vai para o ninho da Creche: espécie rara, 3 IVs perfeitos.', cost: 500 },
+  { id: 'mega', name: 'Mega Stone surpresa', description: 'Uma Mega Stone que você ainda não tem.', cost: 2500 },
 ];
+
+/** Guia do Safari: entra numa zona sozinho e volta com 1 a 3 capturas (funciona com o jogo fechado). */
+export const SAFARI_GUIDE = { fee: 3000, hours: 4 };
 
 /** Prêmio por completar a Pokédex de uma zona do Safari. */
 export const SAFARI_ZONE_REWARD = { points: 800, coins: 50_000 };

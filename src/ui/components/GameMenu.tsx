@@ -7,6 +7,7 @@ import { RESEARCH } from '../../game-data';
 import { audio } from '../audio';
 import { claimableMilestones } from '../../core/dex';
 import { expeditionDone } from '../../core/expeditions';
+import { guideDone } from '../../core/safari';
 import type { GameState } from '../../core/game';
 import { plotReady } from '../../core/garden';
 import { claimableMissions } from '../../core/missions';
@@ -100,6 +101,7 @@ export function GameMenu({
       unseenTabs(state).length > 0 ||
       state.garden.some((p) => plotReady(p, now)) ||
       state.expeditions.some((r) => expeditionDone(r, now)) ||
+      (!!state.safariProgress?.guide && guideDone(state.safariProgress.guide, now)) ||
       state.fossils.some((f) => now >= f.readyAt) ||
       state.eggs.some((e) => e.progress >= e.cycles),
     missions: claimableMissions(state) > 0,

@@ -2,38 +2,38 @@
 
 Anotações para retomar mais tarde. Atualize ao resolver.
 
-## Safari: o que ainda dá para melhorar (anotado em 9/11, depois do Safari novo)
+## Safari (9/11 e 10/11)
 
 Feito em 9/11: cena viva, humores, passos e caminhos, 5 zonas, surto da semana, berries/Lama/Pokébloco, câmera,
 pedidos do Guarda, Pontos e loja, Pokédex das zonas, recordes e resumo da visita (`core/safari.ts`,
 `SafariPanel.tsx`, `styles/safari.css`, zonas em `game-data/safari.ts`).
 
-**Conferir (sem print ainda):**
-- Berry e Pokébloco em uso (Pokémon comendo, balão ♪, ♥ na berry favorita): o print não saiu porque o Pokémon fugiu.
-- Layout no celular: a cena muda para 4:3 e os botões para 2 colunas abaixo de 420 px de janela, mas não foi visto.
-- Resumo do fim da visita e o aviso de Pokédex de zona completa.
+**Feito em 10/11 (toda a lista anterior):**
+- Fuga com shiny e forma certos; a berry jogada aparece no arremesso (o evento `safariResult` traz `shiny`, `form` e
+  `item`).
+- Pedra e Lama em pixel art (`PixelArt` no `SafariPanel.tsx`), cadeado sobre as zonas fechadas, lago com água
+  animada, vara e boia.
+- Sons: obturador da câmera, mordidas (comendo), rosnado (irritado) e "plop" (Lama) em `audio.ts`.
+- Pedidos sem spoiler (espécie não vista vira "Pokémon misteriosos"), dica semanal do Guarda com a berry favorita
+  (`guardTip`; o ♥ aparece também para essa espécie) e cartões dos caminhos no saguão.
+- Guia do Safari (`SAFARI_GUIDE`: 3.000 moedas, 4 h, 1 a 3 capturas, metade dos pontos), aviso nos Próximos Passos e
+  no menu.
+- Loja: Ovo raro (500 pts, precisa de vaga no ninho) e Mega Stone surpresa (2.500 pts, só as que faltam).
+- Recorde de maior Pokémon: o tamanho sai dos IVs (0,8× a 1,2× da altura da espécie) e aparece no encontro.
+- Zonas novas: Bosque Pinwheel (Unova, libera em `unova-rotas-1-3`) e Colinas de Flores (Kalos, `kalos-rotas-1-4`).
+- Conferido no navegador: saguão (PC e 390 px), Guia, pedidos, recordes, lago, Lama e pedra.
 
-**Detalhes visuais:**
-- O sprite que foge sai sempre na cor normal, mesmo se era shiny (o evento de fuga não diz se era shiny).
-- A pedra e a Lama são desenhadas em CSS (bolinhas cinza e marrom); ficariam melhores como sprites em pixel art.
-- A isca usa o ícone da Oran Berry, mesmo quando a berry jogada é outra; mostrar a berry certa.
-- As zonas bloqueadas mostram o cenário só acinzentado; poderiam ter cadeado por cima e o nome da área que libera.
-- O lago não tem água animada nem a vara aparecendo na pesca (hoje só esconde o mato).
-- Não há som próprio para cada humor nem para a câmera além do clique.
+**Equilíbrio medido (200 visitas simuladas por caso, só jogando bola):**
+- As bolas sempre acabam antes dos passos: a visita usa ~130–220 dos 600 passos na grama baixa e ~275 na alta. Os
+  passos (e as Botas de Caminhada) quase não pesam hoje.
+- Capturas por visita: grama baixa 9–13, lago 7–12, grama alta 3–6 (Kanto 3, Pântano 6). Pontos por visita: 60–100
+  em quase tudo; a grama alta vale pelos raros, não pelos pontos.
+- As Colinas de Flores davam 214 pontos na grama alta (Kalos tem raros fáceis de pegar); os pesos foram ajustados e
+  agora dão ~98, como a Montanha.
 
-**Texto e clareza:**
-- Os pedidos do Guarda mostram o nome da espécie mesmo antes de você vê-la (o de foto já esconde); padronizar.
-- A berry favorita só aparece (♥) para espécies já capturadas; talvez uma dica do Guarda ("o Doduo adora Pecha").
-- Explicar no saguão quanto vale cada caminho (raros na grama alta, nível +4) de um jeito mais visual.
-
-**Jogo:**
-- O Safari não roda com o jogo fechado; um "Guia do Safari" (expedição curta que traz 1 a 3 capturas) combinaria com o
-  idle.
-- Os Pontos de Safari só compram itens do próprio Safari; poderiam comprar também algo raro (Mega Stone, ovo raro).
-- Recorde de "maior Pokémon" (altura/peso, como nos jogos) ainda não existe.
-- Equilíbrio: 600 passos e 30 bolas por 3.000 moedas não foram medidos com jogo de verdade (quantas capturas por
-  visita, se a grama alta vale os 25 passos).
-- Zonas de Unova e Kalos não existem (as 5 atuais vão até Sinnoh).
+**Ainda vale decidir:**
+- Se os passos devem limitar a visita: com ~350 passos a grama alta passaria a gastar os passos antes das bolas.
+- Não conferido em print: Pokébloco em uso, resumo do fim da visita e o aviso de Pokédex de zona completa.
 
 ## Cenários de batalha (resolvido em 5/11)
 

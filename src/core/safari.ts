@@ -3,16 +3,20 @@
 // encontro se resolve com bola, isca (ou uma berry do Jardim: a favorita da espécie funciona melhor), pedra, Lama ou
 // Pokébloco, que mudam o humor dele (comendo, irritado, enlameado). Também dá para fotografar. A visita acaba quando
 // as bolas ou os passos acabam. Fora das visitas: Pontos de Safari (loja), pedidos semanais do Guarda, surto da
-// semana, Pokédex de cada zona e recordes.
+// semana, dica do Guarda (a berry favorita de uma espécie), Pokédex de cada zona, recordes (inclusive o maior Pokémon)
+// e o Guia do Safari, que entra sozinho por algumas horas e traz capturas mesmo com o jogo fechado.
 
 import {
   BALANCE,
   BERRIES,
+  MEGAS,
+  SAFARI_GUIDE,
   SAFARI_PATHS,
   SAFARI_SHOP,
   SAFARI_ZONES,
   SAFARI_ZONE_REWARD,
   getSpecies,
+  heightMeters,
   speciesId,
   type SafariPath,
   type SafariZone,
@@ -20,7 +24,8 @@ import {
 } from '../game-data';
 import { computeModifiers } from './bonuses';
 import { captureChance } from './capture';
-import { addToCollection, dexEntry } from './collection';
+import { activityUnlocked, addToCollection, dexEntry } from './collection';
+import { giveGiftEgg, nestSize } from './daycare';
 import { addResearch, researchBonus } from './dexresearch';
 import { recordForm, rollForm } from './forms';
 import { progressMission } from './missions';
@@ -91,6 +96,18 @@ export interface SafariProgress {
   /** Bolas extras compradas para a próxima visita. */
   extraBalls: number;
   requests?: { week: number; list: SafariRequest[] };
+  /** O maior Pokémon já capturado no Safari (em relação ao tamanho normal da espécie). */
+  biggest?: { speciesId: number; meters: number; mult: number; shiny: boolean };
+  /** Guia do Safari: entra numa zona sozinho e volta com capturas. */
+  guide?: SafariGuideRun;
+}
+
+export interface SafariGuideRun {
+  zone: SafariZoneId;
+  startedAt: number;
+  endsAt: number;
+  seed: number;
+  notified?: boolean;
 }
 
 export type SafariAction = 'ball' | 'bait' | 'berry' | 'rock' | 'mud' | 'block' | 'photo' | 'run';
@@ -193,6 +210,22 @@ function progressRequests(state: GameState, kind: 'catch' | 'photo', id: number,
   }
 }
 
+/** Dica do Guarda desta semana: a berry favorita de uma espécie das zonas abertas. */
+export function guardTip(state: GameState, now: number): { speciesId: number; berry: string; zone: SafariZoneId } | undefined {
+  const zones = openZones(state);
+  if (!zones.length) return undefined;
+  const rng = seededRng(safariWeek(now) * 6151 + 29);
+  const zone = zones[Math.floor(rng.next() * zones.length)];
+  const pool = zoneSpecies(zone);
+  const id = pool[Math.floor(rng.next() * pool.length)];
+  return { speciesId: id, berry: favoriteBerry(id), zone: zone.id };
+}
+
+/** O jogador sabe qual é a berry favorita desta espécie (já a capturou, ou o Guarda contou nesta semana). */
+export function knowsFavorite(state: GameState, id: number, now: number): boolean {
+  return !!state.pokedex[id]?.caught || guardTip(state, now)?.speciesId === id;
+}
+
 export function claimSafariRequest(state: GameState, id: string, now: number): boolean {
   const r = safariRequests(state, now).find((x) => x.id === id);
   if (!r || r.claimed || r.progress < r.target) return false;
@@ -211,13 +244,36 @@ export function safariShopBought(state: GameState, id: string): number {
   return 0;
 }
 
+/** Mega Stones que o jogador ainda não tem (nem na mochila, nem segurada por um Pokémon). */
+export function missingMegaStones(state: GameState): string[] {
+  const held = new Set(state.collection.map((p) => p.held));
+  return MEGAS.map((m) => m.stone).filter((id) => !(state.items[id] > 0) && !held.has(id));
+}
+
+/** Por que um item da loja não pode ser comprado agora (fora o preço), ou undefined. */
+export function safariShopBlocked(state: GameState, id: string): string | undefined {
+  if (id === 'egg') {
+    if (!activityUnlocked(state, 'daycare')) return 'Libere a Creche primeiro.';
+    if (state.eggs.length >= nestSize(state)) return 'O ninho da Creche está cheio.';
+  }
+  if (id === 'mega' && !missingMegaStones(state).length) return 'Você já tem todas as Mega Stones.';
+  return undefined;
+}
+
 export function buySafari(state: GameState, id: string): boolean {
   const entry = SAFARI_SHOP.find((e) => e.id === id);
   const prog = safariProgress(state);
   if (!entry || prog.points < entry.cost) return false;
   if (entry.max !== undefined && safariShopBought(state, id) >= entry.max) return false;
+  if (safariShopBlocked(state, id)) return false;
   prog.points -= entry.cost;
   if (id === 'balls') prog.extraBalls += 10;
+  else if (id === 'egg') giveGiftEgg(state, rngFrom(state), 'Loja do Safari');
+  else if (id === 'mega') {
+    const options = missingMegaStones(state);
+    const stone = options[Math.floor(rngFrom(state).next() * options.length)];
+    state.items[stone] = (state.items[stone] ?? 0) + 1;
+  }
   else if (id === 'steps') prog.upgrades.steps++;
   else if (id === 'good-rod') prog.upgrades.goodRod = true;
   else if (id === 'super-rod') prog.upgrades.superRod = true;
@@ -281,7 +337,6 @@ export function startSafari(state: GameState, now: number, zoneId: SafariZoneId 
   prog.extraBalls = 0;
   prog.visits++;
   safariRequests(state, now);
-  void now;
   return true;
 }
 
@@ -340,8 +395,19 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   const rng = rngFrom(state);
   const enemy = s.enemy;
   const zone = getZone(s.zone);
+  let sizeRecord = false;
   const result = (outcome: Extract<GameEvent, { type: 'safariResult' }>['outcome']) =>
-    events.push({ type: 'safariResult', speciesId: enemy.speciesId, action, outcome, mood: enemy.mood });
+    events.push({
+      type: 'safariResult',
+      speciesId: enemy.speciesId,
+      action,
+      outcome,
+      mood: enemy.mood,
+      shiny: enemy.shiny,
+      form: enemy.form,
+      ...(action === 'berry' && item ? { item } : {}),
+      ...(sizeRecord ? { sizeRecord } : {}),
+    });
 
   if (action === 'run') {
     result('left');
@@ -368,7 +434,7 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   } else if (action === 'ball') {
     s.balls--;
     if (rng.next() < safariCatchChance(state, enemy)) {
-      catchIt(state, enemy, now, events);
+      sizeRecord = catchIt(state, zone, enemy, now, events, `Safari · ${zone.name}`);
       s.caught.push(enemy.speciesId);
       result('caught');
       return next(state, events);
@@ -434,21 +500,49 @@ export function leaveSafari(state: GameState): GameEvent[] {
   return events;
 }
 
-function catchIt(state: GameState, enemy: SafariEnemy, now: number, events: GameEvent[]): void {
-  const s = state.safari!;
-  const zone = getZone(s.zone);
+/** Tamanho de um Pokémon em relação ao normal da espécie (0,8× a 1,2×, quase sempre perto de 1), tirado dos IVs. */
+export function sizeMultiplier(ivs: Ivs): number {
+  const a = ((ivs.hp ^ ivs.def) & 31) / 31;
+  const b = ((ivs.atk ^ ivs.spe) & 31) / 31;
+  return 0.8 + 0.2 * (a + b);
+}
+
+/** Altura deste Pokémon em metros. */
+export const pokemonMeters = (id: number, ivs: Ivs, form?: string) => heightMeters(id, form) * sizeMultiplier(ivs);
+
+/** Registra a captura (Pokédex da zona, pontos, pedidos, recorde de tamanho). Devolve se bateu o recorde de tamanho. */
+function catchIt(
+  state: GameState,
+  zone: SafariZone,
+  enemy: SafariEnemy,
+  now: number,
+  events: GameEvent[],
+  origin: string,
+  pointsMult = 1,
+): boolean {
+  const s = state.safari;
   const prog = safariProgress(state);
   const isNew = !dexEntry(state, enemy.speciesId).caught;
-  const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, `Safari · ${zone.name}`);
+  const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, origin);
   if (enemy.form) p.form = enemy.form;
   p.ball = 'safari-ball';
   recordForm(state, enemy.speciesId, enemy.form);
   state.stats.totalCaptures++;
   state.stats.safariCaptures++;
   if (enemy.shiny) prog.shinies++;
-  const pts = capturePoints(zone, enemy.speciesId, enemy.shiny);
-  s.points = (s.points ?? 0) + pts;
+  const pts = Math.round(capturePoints(zone, enemy.speciesId, enemy.shiny) * pointsMult);
+  if (s) s.points = (s.points ?? 0) + pts;
   prog.points += pts;
+  // Recorde de tamanho: o mais avantajado em relação à própria espécie.
+  const mult = sizeMultiplier(enemy.ivs);
+  const record = !prog.biggest || mult > prog.biggest.mult;
+  if (record)
+    prog.biggest = {
+      speciesId: enemy.speciesId,
+      meters: pokemonMeters(enemy.speciesId, enemy.ivs, enemy.form),
+      mult,
+      shiny: enemy.shiny,
+    };
   // Pokédex da zona.
   const list = (prog.zoneCaught[zone.id] ??= []);
   if (!list.includes(enemy.speciesId)) list.push(enemy.speciesId);
@@ -463,4 +557,57 @@ function catchIt(state: GameState, enemy: SafariEnemy, now: number, events: Game
   progressMission(state, 'capture-type', 1, events, getSpecies(enemy.speciesId).types);
   addResearch(state, enemy.speciesId, { night: state.env.period === 'night' ? 1 : 0 }, events);
   events.push({ type: 'captured', uid: p.uid, speciesId: p.speciesId, shiny: p.shiny, isNew });
+  return record;
+}
+
+// --- Guia do Safari ------------------------------------------------------------------------------
+
+export const guideDone = (run: SafariGuideRun, now: number) => now >= run.endsAt;
+
+/** Manda o Guia para uma zona: paga a entrada e ele volta em algumas horas (vale com o jogo fechado). */
+export function startSafariGuide(state: GameState, zoneId: SafariZoneId, now: number): boolean {
+  const prog = safariProgress(state);
+  const zone = getZone(zoneId);
+  if (prog.guide || !safariUnlocked(state) || !zoneOpen(state, zone) || state.coins < SAFARI_GUIDE.fee) return false;
+  state.coins -= SAFARI_GUIDE.fee;
+  const seed = (rngFrom(state).next() * 2 ** 32) | 0;
+  prog.guide = { zone: zone.id, startedAt: now, endsAt: now + SAFARI_GUIDE.hours * 3_600_000, seed };
+  return true;
+}
+
+/** Recebe o que o Guia trouxe: de 1 a 3 Pokémon da zona (metade dos Pontos de Safari de uma captura sua). */
+export function claimSafariGuide(state: GameState, now: number, events: GameEvent[] = []): number[] {
+  const prog = safariProgress(state);
+  const run = prog.guide;
+  if (!run || !guideDone(run, now)) return [];
+  prog.guide = undefined;
+  const zone = getZone(run.zone);
+  const rng = seededRng(run.seed);
+  const count = 1 + (rng.next() < 0.55 ? 1 : 0) + (rng.next() < 0.2 ? 1 : 0);
+  const caught: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const path: SafariPath = rng.next() < 0.7 ? 'grass' : 'tall';
+    const id = pickWeighted(rng, zone[path].map(([slug, weight]) => ({ id: sid(slug), weight }))).id;
+    dexEntry(state, id).seen = true;
+    const enemy: SafariEnemy = {
+      speciesId: id,
+      level: randInt(rng, zone.levels[0], zone.levels[1]) + (path === 'tall' ? 4 : 0),
+      ivs: randomIvs(rng),
+      shiny: rollShiny(rng, computeModifiers(state).shiny),
+      form: rollForm(id, rng, now),
+    };
+    catchIt(state, zone, enemy, now, events, `Guia do Safari · ${zone.name}`, 0.5);
+    caught.push(id);
+  }
+  events.push({ type: 'safariGuideBack', species: caught, zone: zone.id });
+  return caught;
+}
+
+/** Avisa uma vez quando o Guia volta (chamado pelos cronômetros). */
+export function safariGuideTimer(state: GameState, now: number, events: GameEvent[]): void {
+  const run = state.safariProgress?.guide;
+  if (run && !run.notified && guideDone(run, now)) {
+    run.notified = true;
+    events.push({ type: 'safariGuideReady' });
+  }
 }

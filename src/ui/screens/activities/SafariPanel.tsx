@@ -1,12 +1,14 @@
 // Safari: o saguão (zonas, surto da semana, pedidos do Guarda, loja de Pontos de Safari, Pokédex das zonas e
 // recordes), a escolha do caminho a cada passo e o encontro numa cena viva: o Pokémon sai do mato, a isca cai, a
-// pedra faz "tum", a bola sacode, o humor dele aparece num balão e, se fugir, ele sai correndo da tela.
+// pedra faz "tum", a bola sacode, o humor dele aparece num balão e, se fugir, ele sai correndo da tela. No lago a água
+// se mexe e a vara aparece. O saguão também tem o Guia do Safari (capturas com o jogo fechado) e a dica do Guarda.
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   BALANCE,
   BERRIES,
+  SAFARI_GUIDE,
   SAFARI_PATHS,
   SAFARI_SHOP,
   SAFARI_ZONES,
@@ -19,19 +21,26 @@ import { activityUnlocked } from '../../../core/collection';
 import {
   buySafari,
   capturePoints,
+  claimSafariGuide,
   claimSafariRequest,
   favoriteBerry,
   getZone,
+  guardTip,
+  guideDone,
+  knowsFavorite,
   leaveSafari,
   outbreakOf,
+  pokemonMeters,
   safariAct,
   safariCatchChance,
   safariFleeChance,
   safariProgress,
   safariRequests,
+  safariShopBlocked,
   safariShopBought,
   safariWalk,
   startSafari,
+  startSafariGuide,
   zoneOpen,
   zoneSpecies,
   type SafariAction,
@@ -39,7 +48,7 @@ import {
 } from '../../../core/safari';
 import type { GameEvent, GameState } from '../../../core/game';
 import { ItemIcon, Money, PixelIcon, PokemonSprite, Shiny, Window } from '../../components/common';
-import { SAFARI_TEXT, formatNumber, formatPercent, itemName, speciesName } from '../../i18n/pt-BR';
+import { SAFARI_TEXT, formatDuration, formatNumber, formatPercent, itemName, speciesName } from '../../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../../useGame';
 import { Locked } from './shared';
 
@@ -50,9 +59,49 @@ const MOOD_TEXT = {
   muddy: { icon: '~', text: 'está se limpando da lama' },
 } as const;
 
-type Fx = { id: number; kind: 'throw' | 'caught' | 'fled' | 'missed' | 'photo'; action?: string; speciesId?: number; shiny?: boolean };
+type Fx = {
+  id: number;
+  kind: 'throw' | 'caught' | 'fled' | 'missed' | 'photo';
+  action?: string;
+  speciesId?: number;
+  shiny?: boolean;
+  form?: string;
+  item?: string;
+};
 
 const PATH_ICON: Record<SafariPath, string> = { grass: 'tree', tall: 'tree', water: 'rain' };
+
+/** Detalhes de cada caminho para os cartões do saguão. */
+const PATH_INFO: Record<SafariPath, { what: string; level: string }> = {
+  grass: { what: 'Comuns da zona', level: 'Nível normal' },
+  tall: { what: 'Os raros da zona', level: 'Nível +4' },
+  water: { what: 'Pokémon de água', level: 'Vara: mais raros' },
+};
+
+// Pedra e Lama em pixel art: cada linha é uma fileira de pixels, cada letra uma cor da paleta (ponto = vazio).
+const ROCK = {
+  rows: ['..oooo..', '.ohhffo.', 'ohfffffo', 'offffsfo', 'offfsso.', '.osssso.', '..oooo..'],
+  pal: { o: '#2e2e36', h: '#d8d8d0', f: '#9a9a96', s: '#68686a' },
+};
+const MUD = {
+  rows: ['...oooo...', '.oommmmoo.', 'omhmmmmdmo', 'ommmmdmmmo', '.ommdmmmo.', '..oooooo..'],
+  pal: { o: '#3a2410', m: '#8a6030', h: '#b88850', d: '#6a4420' },
+};
+const SPLAT = {
+  rows: ['.oo..oooo..oo...', 'ommoommmmoommoo.', 'omhmmmmdmmmmmhmo', '.ommdmmmmmdmmmo.', '..om..omm..mo...', '...o...o....o...'],
+  pal: MUD.pal,
+};
+
+function PixelArt({ art, className }: { art: { rows: string[]; pal: Record<string, string> }; className?: string }) {
+  const w = art.rows[0].length;
+  return (
+    <svg className={className} viewBox={`0 0 ${w} ${art.rows.length}`} shapeRendering="crispEdges" aria-hidden>
+      {art.rows.flatMap((row, y) =>
+        [...row].map((c, x) => (c === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={art.pal[c]} />)),
+      )}
+    </svg>
+  );
+}
 
 /** A cena: fundo da zona, mato balançando, o Pokémon (com humor) e os efeitos da última ação. */
 function SafariScene({ zone, enemy, fx }: { zone: SafariZone; enemy: SafariEnemy | null; fx: Fx | null }) {
@@ -60,6 +109,14 @@ function SafariScene({ zone, enemy, fx }: { zone: SafariZone; enemy: SafariEnemy
     <div className={`safari-scene zone-${zone.id} ${enemy?.path === 'water' ? 'at-water' : ''}`}>
       <img className="safari-bg" src={assetUrl(`sprites/backgrounds/${zone.scene}.png`)} alt="" draggable={false} />
       <span className="safari-grass back" aria-hidden />
+      {enemy?.path === 'water' && (
+        <>
+          <span className="safari-water" aria-hidden />
+          <span className="safari-rod" aria-hidden>
+            <i />
+          </span>
+        </>
+      )}
       {enemy && (
         <div
           key={`${enemy.speciesId}-${enemy.ivs.hp}-${enemy.ivs.spe}`}
@@ -69,12 +126,12 @@ function SafariScene({ zone, enemy, fx }: { zone: SafariZone; enemy: SafariEnemy
             {MOOD_TEXT[enemy.mood ?? 'watching'].icon}
           </span>
           <PokemonSprite speciesId={enemy.speciesId} kind="front" shiny={enemy.shiny} form={enemy.form} pixelScale={2} />
-          {enemy.mood === 'muddy' && <span className="safari-mud-splat" aria-hidden />}
+          {enemy.mood === 'muddy' && <PixelArt art={SPLAT} className="safari-mud-splat" />}
         </div>
       )}
       {fx?.kind === 'fled' && fx.speciesId && (
         <div key={fx.id} className="safari-mon fleeing">
-          <PokemonSprite speciesId={fx.speciesId} kind="front" shiny={fx.shiny} pixelScale={2} />
+          <PokemonSprite speciesId={fx.speciesId} kind="front" shiny={fx.shiny} form={fx.form} pixelScale={2} />
         </div>
       )}
       {fx?.kind === 'throw' && (
@@ -82,11 +139,11 @@ function SafariScene({ zone, enemy, fx }: { zone: SafariZone; enemy: SafariEnemy
           {fx.action === 'ball' ? (
             <ItemIcon id="safari-ball" size={24} />
           ) : fx.action === 'berry' || fx.action === 'bait' ? (
-            <ItemIcon id="oran-berry" size={22} />
+            <ItemIcon id={fx.item ?? 'oran-berry'} size={22} />
           ) : fx.action === 'block' ? (
             <ItemIcon id="pokeblock" size={22} />
           ) : (
-            <i />
+            <PixelArt art={fx.action === 'mud' ? MUD : ROCK} />
           )}
         </span>
       )}
@@ -156,7 +213,12 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
   const prog = safariProgress(state);
   const outbreak = outbreakOf(state, now);
   const requests = safariRequests(state, now);
+  const tip = guardTip(state, now);
+  const guide = prog.guide;
   const [dex, setDex] = useState<string | null>(null);
+  const [guideZone, setGuideZone] = useState<SafariZone['id']>('plains');
+  const seen = (id: number) => !!state.pokedex[id]?.seen;
+  const openList = SAFARI_ZONES.filter((z) => zoneOpen(state, z));
   return (
     <>
       {summary}
@@ -174,10 +236,21 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
       )}
       <Window title="ZONA SAFARI" icon={<ItemIcon id="safari-ball" size={24} />} frame="dialog">
         <p className="hint">
-          Sem batalhas: você recebe {cfg.balls + prog.extraBalls} Safari Balls e passos para andar. Escolha o caminho a
-          cada passo (grama baixa, grama alta com os raros, ou o lago). Em cada encontro: bola, isca, berry, pedra, Lama,
-          Pokébloco ou foto. O humor dele muda tudo. A entrada custa <Money value={cfg.fee} />.
+          Sem batalhas: você recebe {cfg.balls + prog.extraBalls} Safari Balls e {600 + prog.upgrades.steps * 200} passos.
+          Em cada encontro: bola, isca, berry, pedra, Lama, Pokébloco ou foto. O humor dele muda tudo. A entrada custa{' '}
+          <Money value={cfg.fee} />. A cada passo, escolha o caminho:
         </p>
+        <ul className="safari-path-cards">
+          {(Object.keys(SAFARI_PATHS) as SafariPath[]).map((p) => (
+            <li key={p} className={`path-${p}`}>
+              <PixelIcon name={PATH_ICON[p] as 'tree'} scale={2} />
+              <strong>{SAFARI_PATHS[p].label}</strong>
+              <span className="safari-path-cost">👣 {SAFARI_PATHS[p].steps}</span>
+              <small>{PATH_INFO[p].what}</small>
+              <small>{PATH_INFO[p].level}</small>
+            </li>
+          ))}
+        </ul>
         <ul className="safari-zones">
           {SAFARI_ZONES.map((z) => {
             const open = zoneOpen(state, z);
@@ -185,7 +258,14 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
             const total = zoneSpecies(z).length;
             return (
               <li key={z.id} className={`safari-zone frame frame-slot ${open ? '' : 'locked'} ${prog.zonesDone.includes(z.id) ? 'done' : ''}`}>
-                <img src={assetUrl(`sprites/backgrounds/${z.scene}.png`)} alt="" draggable={false} />
+                <span className="safari-zone-pic">
+                  <img src={assetUrl(`sprites/backgrounds/${z.scene}.png`)} alt="" draggable={false} />
+                  {!open && (
+                    <span className="safari-zone-lock">
+                      <PixelIcon name="lock" scale={3} />
+                    </span>
+                  )}
+                </span>
                 <strong>{z.name}</strong>
                 <small>
                   {open ? `Pokédex ${caught}/${total}${prog.zonesDone.includes(z.id) ? ' ★' : ''}` : `Libere: ${getRoute(z.unlock).name}`}
@@ -203,9 +283,7 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
                       Pokédex
                     </button>
                   </span>
-                ) : (
-                  <PixelIcon name="lock" scale={2} />
-                )}
+                ) : null}
               </li>
             );
           })}
@@ -213,17 +291,60 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
         {dex && <ZoneDex state={state} zone={getZone(dex as SafariZone['id'])} />}
       </Window>
 
+      <Window title="GUIA DO SAFARI">
+        {guide ? (
+          guideDone(guide, now) ? (
+            <div className="safari-guide">
+              <p>O Guia voltou da {getZone(guide.zone).name}!</p>
+              <button className="pbtn primary" onClick={() => engine.dispatch((st, t) => void claimSafariGuide(st, t))}>
+                Receber as capturas
+              </button>
+            </div>
+          ) : (
+            <p className="safari-guide">
+              O Guia está na {getZone(guide.zone).name}. Volta em {formatDuration(guide.endsAt - now)}.
+            </p>
+          )
+        ) : (
+          <div className="safari-guide">
+            <p className="hint">
+              Sem tempo para entrar? O Guia passa {SAFARI_GUIDE.hours} h numa zona e traz de 1 a 3 Pokémon (a maioria
+              da grama baixa), mesmo com o jogo fechado. Custa <Money value={SAFARI_GUIDE.fee} /> e rende metade dos
+              Pontos de Safari.
+            </p>
+            <span className="safari-guide-row">
+              <select value={guideZone} onChange={(ev) => setGuideZone(ev.target.value as SafariZone['id'])}>
+                {openList.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="pbtn primary"
+                disabled={state.coins < SAFARI_GUIDE.fee || !openList.some((z) => z.id === guideZone)}
+                onClick={() => engine.dispatch((st, t) => void startSafariGuide(st, guideZone, t))}
+              >
+                Mandar o Guia
+              </button>
+            </span>
+          </div>
+        )}
+      </Window>
+
       <Window title={`PEDIDOS DO GUARDA · ${formatNumber(prog.points)} PONTOS`}>
         <ul className="safari-requests">
           {requests.map((r) => {
             const done = r.progress >= r.target;
+            // Espécie ainda não vista: o pedido não estraga a surpresa, só diz a zona.
+            const where = r.speciesId
+              ? getZone(SAFARI_ZONES.find((z) => zoneSpecies(z).includes(r.speciesId!))?.id).name
+              : '';
             const label =
               r.kind === 'catch'
-                ? `Capture ${r.target} ${speciesName(r.speciesId!)}`
+                ? `Capture ${r.target} ${seen(r.speciesId!) ? speciesName(r.speciesId!) : 'Pokémon misteriosos'} · ${where}`
                 : r.kind === 'photo'
-                  ? `Fotografe ${state.pokedex[r.speciesId!]?.seen ? speciesName(r.speciesId!) : 'um Pokémon raro'} (${getZone(
-                      SAFARI_ZONES.find((z) => zoneSpecies(z).includes(r.speciesId!))?.id,
-                    ).name})`
+                  ? `Fotografe ${seen(r.speciesId!) ? speciesName(r.speciesId!) : 'um Pokémon raro'} · ${where}`
                   : `Capture ${r.target} Pokémon na ${getZone(r.zone).name}`;
             return (
               <li key={r.id} className={r.claimed ? 'claimed' : done ? 'done' : ''}>
@@ -250,6 +371,16 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
           })}
         </ul>
         <p className="hint">Novos pedidos toda semana.</p>
+        {tip && (
+          <p className="safari-tip">
+            <ItemIcon id={tip.berry} size={20} />
+            <span>
+              <strong>Dica do Guarda:</strong>{' '}
+              {seen(tip.speciesId) ? `o ${speciesName(tip.speciesId)}` : `um Pokémon da ${getZone(tip.zone).name}`} adora{' '}
+              {itemName(tip.berry)}. Jogue a favorita: ele fica calmo por mais tempo e sem ficar mais difícil de pegar.
+            </span>
+          </p>
+        )}
       </Window>
 
       <Window title="LOJA DO SAFARI">
@@ -257,6 +388,7 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
           {SAFARI_SHOP.map((e) => {
             const bought = safariShopBought(state, e.id);
             const maxed = e.max !== undefined && bought >= e.max;
+            const blocked = safariShopBlocked(state, e.id);
             return (
               <li key={e.id}>
                 <span>
@@ -268,11 +400,12 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
                     {e.description}
                     {e.item ? ` Você tem ${state.items[e.item] ?? 0}.` : ''}
                     {e.id === 'balls' && prog.extraBalls ? ` Comprado: +${prog.extraBalls}.` : ''}
+                    {blocked ? ` ${blocked}` : ''}
                   </small>
                 </span>
                 <button
                   className="pbtn small"
-                  disabled={maxed || prog.points < e.cost}
+                  disabled={maxed || !!blocked || prog.points < e.cost}
                   onClick={() => engine.dispatch((st) => void buySafari(st, e.id))}
                 >
                   {maxed ? 'Comprado' : `${e.cost} pts`}
@@ -297,6 +430,14 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
           <dd>
             {prog.zonesDone.length}/{SAFARI_ZONES.length}
           </dd>
+          <dt>Maior Pokémon</dt>
+          <dd>
+            {prog.biggest
+              ? `${speciesName(prog.biggest.speciesId)}${prog.biggest.shiny ? ' ★' : ''} · ${prog.biggest.meters.toFixed(2).replace('.', ',')} m (${
+                  prog.biggest.mult >= 1 ? '+' : ''
+                }${Math.round((prog.biggest.mult - 1) * 100)}% do normal)`
+              : '—'}
+          </dd>
         </dl>
       </Window>
     </>
@@ -310,8 +451,6 @@ export function SafariPanel({ state }: { state: GameState }) {
   const [ended, setEnded] = useState<Extract<GameEvent, { type: 'safariEnded' }> | null>(null);
   const [berryOpen, setBerryOpen] = useState(false);
   const nextId = useRef(1);
-  const stateRef = useRef(state);
-  stateRef.current = state;
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
   const show = (f: Omit<Fx, 'id'>, ms: number) => {
@@ -327,9 +466,10 @@ export function SafariPanel({ state }: { state: GameState }) {
         lines.push(SAFARI_TEXT[e.outcome](speciesName(e.speciesId)));
         if (e.outcome === 'caught') show({ kind: 'caught' }, 1400);
         else if (e.outcome === 'missed') show({ kind: 'missed' }, 900);
-        else if (e.outcome === 'fled') show({ kind: 'fled', speciesId: e.speciesId }, 900);
+        else if (e.outcome === 'fled') show({ kind: 'fled', speciesId: e.speciesId, shiny: e.shiny, form: e.form }, 900);
         else if (e.outcome === 'photo') show({ kind: 'photo' }, 500);
-        else if (e.outcome === 'stayed') show({ kind: 'throw', action: e.action }, 700);
+        else if (e.outcome === 'stayed') show({ kind: 'throw', action: e.action, item: e.item }, 700);
+        if (e.sizeRecord) lines.push(`Recorde! O maior ${speciesName(e.speciesId)} que você já pegou no Safari.`);
       } else if (e.type === 'safariEnded') {
         lines.push(`Fim do Safari! ${e.caught} capturado(s).`);
         setEnded(e);
@@ -338,8 +478,6 @@ export function SafariPanel({ state }: { state: GameState }) {
       }
     }
     if (lines.length) setLog((l) => [...lines.reverse(), ...l].slice(0, 6));
-    // Os eventos não trazem o shiny: a fuga mostra o sprite normal.
-    void stateRef;
   }, []);
   useGameEvents(onEvents);
 
@@ -397,7 +535,7 @@ export function SafariPanel({ state }: { state: GameState }) {
               {speciesName(e.speciesId).toUpperCase()} Nv{e.level} {e.shiny && <Shiny />}
             </strong>{' '}
             {MOOD_TEXT[e.mood ?? 'watching'].text}
-            {e.mood && e.mood !== 'watching' ? ` (${e.moodTurns})` : ''}. Captura {formatPercent(safariCatchChance(state, e))} ·
+            {e.mood && e.mood !== 'watching' ? ` (${e.moodTurns})` : ''}. {pokemonMeters(e.speciesId, e.ivs, e.form).toFixed(2).replace('.', ',')} m · Captura {formatPercent(safariCatchChance(state, e))} ·
             fuga {formatPercent(safariFleeChance(e))} · vale {capturePoints(zone, e.speciesId, e.shiny)} pontos
           </p>
           <div className="safari-actions">
@@ -452,7 +590,7 @@ export function SafariPanel({ state }: { state: GameState }) {
                 <li key={b.id}>
                   <button className="pbtn small" onClick={() => act('berry', b.id)}>
                     <ItemIcon id={b.id} size={18} /> {itemName(b.id)} ×{state.items[b.id]}
-                    {state.pokedex[e.speciesId]?.caught && favoriteBerry(e.speciesId) === b.id ? ' ♥' : ''}
+                    {knowsFavorite(state, e.speciesId, state.lastTimerAt) && favoriteBerry(e.speciesId) === b.id ? ' ♥' : ''}
                   </button>
                 </li>
               ))}

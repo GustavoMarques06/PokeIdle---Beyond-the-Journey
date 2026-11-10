@@ -8,6 +8,7 @@ import { activityUnlocked, busyUids } from './collection';
 import { attackInterval, chooseMove, combatantOf, expectedDamage, type Combatant } from './combat';
 import { claimableMilestones } from './dex';
 import { expeditionDone, expeditionSlots } from './expeditions';
+import { guideDone } from './safari';
 import { plotReady, gardenPlots } from './garden';
 import { legendaryStatus } from './legendary';
 import { linkUnlocked } from './link';
@@ -143,6 +144,17 @@ export function nextSteps(state: GameState, now: number): NextStep[] {
       detail: 'Resgate o que trouxeram',
       target: { screen: 'activities', tab: 'expeditions' },
       icon: { item: 'explorer-kit' },
+    });
+  }
+  const guide = state.safariProgress?.guide;
+  if (guide && guideDone(guide, now)) {
+    add({
+      id: 'safari-guide',
+      priority: 88,
+      text: 'O Guia do Safari voltou',
+      detail: 'Receba as capturas dele',
+      target: { screen: 'activities', tab: 'safari' },
+      icon: { item: 'safari-ball' },
     });
   }
   if (state.fossils.some((f) => now >= f.readyAt)) {

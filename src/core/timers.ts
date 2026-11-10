@@ -19,6 +19,7 @@ import { refreshMissions } from './missions';
 import { restoreAfterChallenge } from './presets';
 import { updateRaid } from './raids';
 import { rngFrom } from './rng';
+import { safariGuideTimer } from './safari';
 import { trainingTick } from './training';
 
 export function updateTimers(state: GameState, now: number): GameEvent[] {
@@ -41,6 +42,7 @@ export function updateTimers(state: GameState, now: number): GameEvent[] {
       events.push({ type: 'expeditionDone', id: run.id });
     }
   }
+  safariGuideTimer(state, now, events);
   const rng = rngFrom(state);
   updateRoamer(state, now, rng, events);
   updateRocket(state, now, rng, events);

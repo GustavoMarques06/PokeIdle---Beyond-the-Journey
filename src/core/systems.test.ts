@@ -2,7 +2,18 @@
 // histórico por Pokémon/MVP e os climas novos.
 
 import { describe, expect, it } from 'vitest';
-import { BALANCE, FORM_SETS, ROUTES, SAFARI_ENCOUNTERS, SAFARI_PATHS, formSprite, speciesId } from '../game-data';
+import {
+  BALANCE,
+  FORM_SETS,
+  ROUTES,
+  SAFARI_ENCOUNTERS,
+  SAFARI_GUIDE,
+  SAFARI_PATHS,
+  SAFARI_ZONES,
+  formSprite,
+  getRoute,
+  speciesId,
+} from '../game-data';
 import { addToCollection } from './collection';
 import { companionTick, setCompanion } from './companion';
 import { addResearch, researchBonus, researchComplete, tasksDone } from './dexresearch';
@@ -14,16 +25,25 @@ import { recordOf, weekOf, weeklyMvp } from './records';
 import { rngFrom, type Rng } from './rng';
 import {
   buySafari,
+  claimSafariGuide,
+  guardTip,
+  knowsFavorite,
   leaveSafari,
+  missingMegaStones,
   outbreakOf,
   safariAct,
   safariCatchChance,
   safariFleeChance,
   safariProgress,
   safariRequests,
+  safariShopBlocked,
   safariWalk,
+  sizeMultiplier,
   startSafari,
+  startSafariGuide,
+  zoneSpecies,
 } from './safari';
+import { updateTimers } from './timers';
 import { parseSave, serialize } from './save';
 import { harvestTree, treeBerry, treeReady } from './berrytrees';
 import { canPlayTournament, playTournament, tournamentLost, tournamentWon } from './tournament';
@@ -167,6 +187,79 @@ describe('jogo do Safari', () => {
     expect(s.items['safari-mud']).toBe(5);
     expect(outbreakOf(s, 0)).toBeDefined();
     expect(safariRequests(s, 0)).toHaveLength(3);
+  });
+
+  it('as zonas de Unova e Kalos existem, com espécies e áreas de verdade', () => {
+    for (const z of SAFARI_ZONES) {
+      expect(getRoute(z.unlock)).toBeDefined();
+      expect(zoneSpecies(z).every((id) => id > 0)).toBe(true);
+    }
+    expect(SAFARI_ZONES.map((z) => z.id)).toEqual(expect.arrayContaining(['pinwheel', 'flowers']));
+  });
+
+  it('o Guia do Safari volta com 1 a 3 capturas, mesmo com o jogo fechado', () => {
+    const s = newGame(1, 0, 5);
+    clearAll(s, 'zona-safari');
+    s.coins = SAFARI_GUIDE.fee;
+    expect(startSafariGuide(s, 'marsh', 0)).toBe(false); // zona fechada
+    expect(startSafariGuide(s, 'plains', 0)).toBe(true);
+    expect(s.coins).toBe(0);
+    expect(startSafariGuide(s, 'plains', 0)).toBe(false); // um por vez
+    const done = SAFARI_GUIDE.hours * 3_600_000;
+    expect(claimSafariGuide(s, done - 1)).toEqual([]);
+    // O aviso sai uma vez só, pelos cronômetros.
+    expect(updateTimers(s, done).some((e) => e.type === 'safariGuideReady')).toBe(true);
+    expect(updateTimers(s, done + 1000).some((e) => e.type === 'safariGuideReady')).toBe(false);
+    const before = s.collection.length;
+    const caught = claimSafariGuide(s, done);
+    expect(caught.length).toBeGreaterThanOrEqual(1);
+    expect(caught.length).toBeLessThanOrEqual(3);
+    expect(s.collection.length).toBe(before + caught.length);
+    expect(safariProgress(s).guide).toBeUndefined();
+    expect(safariProgress(s).points).toBeGreaterThan(0);
+    expect(safariProgress(s).biggest).toBeDefined();
+  });
+
+  it('loja rara: Mega Stone que falta e ovo só com ninho livre', () => {
+    const s = newGame(1, 0, 5);
+    clearAll(s, 'zona-safari');
+    safariProgress(s).points = 10_000;
+    const missing = missingMegaStones(s).length;
+    expect(buySafari(s, 'mega')).toBe(true);
+    expect(missingMegaStones(s).length).toBe(missing - 1);
+    // Sem a Creche liberada, o ovo não sai (e os pontos ficam).
+    if (safariShopBlocked(s, 'egg')) {
+      const pts = safariProgress(s).points;
+      expect(buySafari(s, 'egg')).toBe(false);
+      expect(safariProgress(s).points).toBe(pts);
+    }
+    clearAll(s);
+    const eggs = s.eggs.length;
+    expect(buySafari(s, 'egg')).toBe(true);
+    expect(s.eggs.length).toBe(eggs + 1);
+  });
+
+  it('tamanho vem dos IVs (0,8× a 1,2×) e a dica do Guarda revela a berry favorita', () => {
+    const ivs = { hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 };
+    expect(sizeMultiplier(ivs)).toBeCloseTo(0.8);
+    expect(sizeMultiplier({ ...ivs, hp: 31, atk: 31 })).toBeCloseTo(1.2);
+    const s = newGame(1, 0, 5);
+    clearAll(s, 'zona-safari');
+    const tip = guardTip(s, 0)!;
+    expect(tip).toBeDefined();
+    expect(knowsFavorite(s, tip.speciesId, 0)).toBe(true);
+  });
+
+  it('a fuga e a berry jogada vêm no evento (shiny, forma e qual berry)', () => {
+    const s = newGame(1, 0, 5);
+    clearAll(s, 'zona-safari');
+    s.coins = BALANCE.safari.fee;
+    startSafari(s, 0);
+    safariWalk(s, 'grass', 0);
+    s.safari!.enemy!.shiny = true;
+    s.items['pecha-berry'] = 1;
+    const ev = safariAct(s, 'berry', 0, 'pecha-berry').find((e) => e.type === 'safariResult');
+    expect(ev).toMatchObject({ shiny: true, item: 'pecha-berry' });
   });
 
   it('sair da visita encerra na hora', () => {
