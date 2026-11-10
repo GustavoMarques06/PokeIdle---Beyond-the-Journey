@@ -1,18 +1,70 @@
 // Jardim de berries: plantar uma berry, esperar o tempo real e colher várias. Comer
-// uma berry dá um bônus temporário, contado em tempo de jogo.
+// uma berry dá um bônus temporário, contado em tempo de jogo. Para dar vida ao canteiro: regar (até 3 vezes, cada
+// uma adianta o crescimento e 3 regas rendem +1 berry; a chuva rega sozinha), um Pokémon de planta na equipe faz
+// crescer mais rápido, às vezes um inseto vem beliscar (espantar rende pesquisa; deixar custa 1 berry) e duas
+// berries diferentes lado a lado podem gerar uma mutação: uma berry mais rara na colheita.
 
-import { BALANCE, BERRIES, type BuffKind } from '../game-data';
+import { BALANCE, BERRIES, getSpecies, speciesId, type BuffKind } from '../game-data';
 import { routeDone } from './collection';
 import type { GameEvent, GameState } from './game';
 import { progressMission } from './missions';
 import { randInt, rngFrom } from './rng';
+import { teamPokemon } from './team';
 
 export interface GardenPlot {
   berry: string;
   plantedAt: number;
   readyAt: number;
   notified?: boolean;
+  /** Tempo total de crescimento quando foi plantada (as regas tiram uma parte). */
+  growMs?: number;
+  /** Regas (até MAX_WATER) e quando foi a última. */
+  waters?: number;
+  wateredAt?: number;
+  /** Inseto que vem beliscar: quando chega, quem é e se já foi espantado. */
+  pestAt?: number;
+  pest?: number;
+  shooed?: boolean;
 }
+
+export const MAX_WATER = 3;
+/** Intervalo mínimo entre duas regas do mesmo canteiro. */
+export const WATER_COOLDOWN = 15 * 60_000;
+/** Cada rega adianta esta fração do crescimento total. */
+const WATER_CUT = 0.12;
+/** Com um Pokémon de planta na equipe, cresce 10% mais rápido. */
+const HELPER_SPEED = 0.9;
+const PEST_CHANCE = 0.4;
+const MUTATION_CHANCE = 0.2;
+const PESTS = ['caterpie', 'weedle', 'wurmple', 'combee', 'ledyba', 'sewaddle', 'scatterbug'];
+
+/** O Pokémon de planta da equipe que ajuda no jardim (o primeiro), se houver. */
+export function gardenHelper(state: GameState) {
+  return teamPokemon(state).find((p) => getSpecies(p.speciesId).types.includes('grass'));
+}
+
+/** O inseto está no canteiro agora (chegou, não foi espantado e a planta ainda não amadureceu). */
+export function pestActive(plot: GardenPlot | null | undefined, now: number): boolean {
+  return !!plot?.pest && !plot.shooed && now >= (plot.pestAt ?? Infinity);
+}
+
+/** Pode regar agora? */
+export function canWater(plot: GardenPlot | null | undefined, now: number): boolean {
+  return !!plot && !plotReady(plot, now) && (plot.waters ?? 0) < MAX_WATER &&
+    (plot.wateredAt === undefined || now - plot.wateredAt >= WATER_COOLDOWN);
+}
+
+/** A berry que a mutação de duas berries gera: uma acima da mais rara das duas (a lista vai da comum à rara). */
+export function mutationOf(a: string, b: string): string | undefined {
+  if (a === b) return undefined;
+  const i = Math.max(
+    BERRIES.findIndex((x) => x.id === a),
+    BERRIES.findIndex((x) => x.id === b),
+  );
+  return BERRIES[Math.min(BERRIES.length - 1, i + 1)]?.id;
+}
+
+export const mutationFlag = (berry: string) => `mutation:${berry}`;
 
 export function berryDef(id: string) {
   return BERRIES.find((b) => b.id === id);
@@ -27,7 +79,38 @@ export function plantBerry(state: GameState, plot: number, berry: string, now: n
   if (!def || plot < 0 || plot >= gardenPlots(state) || state.garden[plot]) return false;
   if ((state.items[berry] ?? 0) <= 0) return false;
   state.items[berry]--;
-  state.garden[plot] = { berry, plantedAt: now, readyAt: now + def.growMinutes * 60_000 };
+  const rng = rngFrom(state);
+  const growMs = def.growMinutes * 60_000 * (gardenHelper(state) ? HELPER_SPEED : 1);
+  const pest = rng.next() < PEST_CHANCE;
+  state.garden[plot] = {
+    berry,
+    plantedAt: now,
+    readyAt: now + growMs,
+    growMs,
+    ...(pest
+      ? { pest: speciesId(PESTS[Math.floor(rng.next() * PESTS.length)]), pestAt: now + growMs * (0.2 + rng.next() * 0.5) }
+      : {}),
+  };
+  return true;
+}
+
+/** Rega o canteiro: adianta o crescimento (e 3 regas rendem +1 berry na colheita). */
+export function waterPlot(state: GameState, plot: number, now: number): boolean {
+  const p = state.garden[plot];
+  if (!p || !canWater(p, now)) return false;
+  const grow = p.growMs ?? p.readyAt - p.plantedAt;
+  p.waters = (p.waters ?? 0) + 1;
+  p.wateredAt = now;
+  p.readyAt = Math.max(now, p.readyAt - grow * WATER_CUT);
+  return true;
+}
+
+/** Espanta o inseto: ele vai embora e deixa um pouco de pesquisa. */
+export function shooPest(state: GameState, plot: number, now: number): boolean {
+  const p = state.garden[plot];
+  if (!p || !pestActive(p, now)) return false;
+  p.shooed = true;
+  state.research.points += 1;
   return true;
 }
 
@@ -40,8 +123,23 @@ export function harvest(state: GameState, plot: number, now: number, events: Gam
   const p = state.garden[plot];
   if (!p || !plotReady(p, now)) return 0;
   const def = berryDef(p.berry)!;
-  const qty = randInt(rngFrom(state), def.yield[0], def.yield[1]);
+  const rng = rngFrom(state);
+  const watered = (p.waters ?? 0) >= MAX_WATER ? 1 : 0;
+  const nibbled = pestActive(p, now) ? 1 : 0;
+  const qty = Math.max(1, randInt(rng, def.yield[0], def.yield[1]) + watered - nibbled);
   state.items[p.berry] = (state.items[p.berry] ?? 0) + qty;
+  // Mutação: uma berry diferente plantada ao lado pode gerar uma mais rara.
+  const neighbors = [state.garden[plot - 1], state.garden[plot + 1]].filter((n): n is GardenPlot => !!n && n.berry !== p.berry);
+  if (neighbors.length && rng.next() < MUTATION_CHANCE) {
+    const other = neighbors[Math.floor(rng.next() * neighbors.length)];
+    const mutated = mutationOf(p.berry, other.berry);
+    if (mutated) {
+      state.items[mutated] = (state.items[mutated] ?? 0) + 1;
+      const isNew = !state.flags.includes(mutationFlag(mutated));
+      if (isNew) state.flags.push(mutationFlag(mutated));
+      events.push({ type: 'gardenMutation', berry: mutated, from: [p.berry, other.berry], isNew });
+    }
+  }
   state.garden[plot] = null;
   state.stats.harvests += qty;
   progressMission(state, 'harvest', qty, events);
@@ -92,6 +190,8 @@ export function gardenGift(state: GameState): void {
 export function gardenTimers(state: GameState, now: number, events: GameEvent[]): void {
   gardenGift(state);
   while (state.garden.length < BALANCE.garden.plots.length) state.garden.push(null);
+  // Chuva: o jardim se rega sozinho.
+  if (state.env.weather === 'rain') state.garden.forEach((p, i) => canWater(p, now) && waterPlot(state, i, now));
   for (const p of state.garden) {
     if (p && !p.notified && plotReady(p, now)) {
       p.notified = true;

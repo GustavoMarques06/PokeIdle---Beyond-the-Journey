@@ -539,6 +539,8 @@ export function describeEvent(e: GameEvent): string | null {
       return `Fim do Safari! Você capturou ${e.caught} Pokémon.`;
     case 'safariZoneComplete':
       return 'Safari: você completou a Pokédex de uma zona! O Guarda deixou um prêmio.';
+    case 'gardenMutation':
+      return `Mutação no Jardim! ${itemName(e.from[0])} + ${itemName(e.from[1])} deram uma ${itemName(e.berry)}${e.isNew ? ' (nova!)' : ''}.`;
     case 'safariGuideReady':
       return 'O Guia do Safari voltou! Veja o que ele pegou.';
     case 'safariGuideBack':
@@ -697,6 +699,7 @@ export const TOAST_EVENTS = new Set<GameEvent['type']>([
   'researchComplete',
   'safariEnded',
   'safariGuideReady',
+  'gardenMutation',
   'tournamentMatch',
   'tournamentEnded',
 ]);

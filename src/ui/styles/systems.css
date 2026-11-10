@@ -544,6 +544,64 @@ html.reduced-motion .scene-sun::after {
   right: 3px;
 }
 
+/* Estado ao vivo embaixo do nome: pronta (verde, pulsando), acontecendo agora (vermelha, piscando), em andamento
+   (azul) ou parada (cinza). */
+.activity-status {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.06);
+  color: var(--ink-muted);
+  font: 700 10px var(--font-label);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.activity-status.busy {
+  background: #dfe8ff;
+  color: var(--menu-blue-dark);
+}
+
+.activity-status.ready {
+  background: #58c058;
+  color: #fff;
+  animation: status-pulse 1.2s ease-in-out infinite;
+}
+
+.activity-status.live {
+  background: var(--red);
+  color: #fff;
+  animation: status-blink 0.9s steps(2, end) infinite;
+}
+
+.activity-tab.tone-ready > :first-child,
+.activity-tab.tone-live > :first-child {
+  animation: status-hop 1.2s steps(2, end) infinite;
+}
+
+@keyframes status-pulse {
+  50% {
+    box-shadow: 0 0 0 3px rgb(88 192 88 / 0.35);
+  }
+}
+
+@keyframes status-blink {
+  50% {
+    filter: brightness(1.25);
+  }
+}
+
+@keyframes status-hop {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.reduced-motion :is(.activity-status, .activity-tab > :first-child) {
+  animation: none !important;
+}
+
 .activity-locked {
   display: flex;
   flex-direction: column;
@@ -1991,67 +2049,6 @@ html.reduced-motion .scene-sun::after {
 }
 
 /* Jardim */
-.garden-plots {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 8px;
-  list-style: none;
-  background: linear-gradient(#98d070, #78b858);
-  border: 2px solid var(--grass-dark);
-}
-
-.garden-plot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font: 700 12px var(--font-label);
-  text-align: center;
-}
-
-.garden-plot.locked {
-  justify-content: center;
-  min-height: 70px;
-  opacity: 0.6;
-}
-
-.plot-soil {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 48px;
-  background: repeating-linear-gradient(0deg, #8a6838 0 4px, #a07848 4px 8px);
-  border: 3px solid #604020;
-  color: #f8e8c8;
-  font: 700 12px var(--font-label);
-  cursor: pointer;
-}
-
-.plot-soil:disabled {
-  cursor: default;
-}
-
-.garden-plot.ready .plot-soil {
-  outline: 3px solid var(--gold);
-  animation: blink-soft 0.8s steps(2, end) infinite;
-}
-
-.sprout {
-  width: 8px;
-  height: 14px;
-  background:
-    linear-gradient(90deg, transparent 3px, #48a040 3px 5px, transparent 5px),
-    radial-gradient(circle at 30% 30%, #78d058 3px, transparent 4px);
-}
-
-.garden-plot.stage-1 .sprout {
-  height: 20px;
-  width: 14px;
-}
-
 .berry-row {
   grid-template-columns: auto minmax(0, 1fr) auto auto;
 }

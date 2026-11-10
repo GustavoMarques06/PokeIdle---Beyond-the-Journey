@@ -1,30 +1,262 @@
-// Jardim de berries: canteiros que crescem em tempo real, colheita e bônus ao comer.
+// Jardim de berries: uma cena viva (céu do dia ou da noite, chuva quando chove, o Pokémon de planta da equipe andando
+// entre os canteiros), plantas em pixel art que crescem em 4 estágios, regador com gotas, insetos que vêm beliscar
+// (toque para espantar), berries pulando na colheita e o caderno de mutações descobertas.
 
-import { useState } from 'react';
+import { useCallback, useRef, useState, type CSSProperties } from 'react';
 import { BALANCE, BERRIES } from '../../../game-data';
 import {
+  MAX_WATER,
   buffValue,
+  canWater,
   eatBerry,
+  gardenHelper,
   gardenPlots,
   harvest,
-  harvestAll,
+  mutationFlag,
+  mutationOf,
+  pestActive,
   plantBerry,
   plotReady,
+  shooPest,
+  waterPlot,
+  type GardenPlot,
 } from '../../../core/garden';
-import type { GameState } from '../../../core/game';
-import { Bar, ItemIcon, PixelIcon, Window } from '../../components/common';
-import { BUFF_NAMES, formatDuration, formatPercent, itemName } from '../../i18n/pt-BR';
-import { useEngine } from '../../useGame';
+import type { GameEvent, GameState } from '../../../core/game';
+import { audio } from '../../audio';
+import { Bar, ItemIcon, PixelIcon, PokemonSprite, Window } from '../../components/common';
+import { BUFF_NAMES, formatDuration, formatPercent, itemName, speciesName } from '../../i18n/pt-BR';
+import { useEngine, useGameEvents } from '../../useGame';
 import { Countdown, Locked } from './shared';
+
+/** Cor da flor e do fruto de cada berry. */
+const BERRY_COLOR: Record<string, string> = {
+  'oran-berry': '#4878e0',
+  'pecha-berry': '#f088b0',
+  'cheri-berry': '#e04040',
+  'leppa-berry': '#e87030',
+  'razz-berry': '#c02858',
+  'persim-berry': '#f0a0c8',
+  'sitrus-berry': '#f0d040',
+  'lum-berry': '#58c058',
+};
+
+/** A planta em pixel art: monte de terra com semente, broto, planta com folhas e planta florida (cor da berry). */
+function Plant({ stage, color }: { stage: number; color: string }) {
+  const leaf = '#48a838';
+  const dark = '#2a6a20';
+  return (
+    <svg className={`plant plant-${stage}`} viewBox="0 0 16 16" shapeRendering="crispEdges" aria-hidden>
+      {stage === 0 && (
+        <>
+          <path fill="#5a3a18" d="M4 13h8v2H4z" />
+          <path fill="#8a6030" d="M5 12h6v1H5z" />
+          <path fill="#e8d8a0" d="M7 11h2v1H7z" />
+        </>
+      )}
+      {stage >= 1 && <path fill={dark} d={stage === 1 ? 'M7 10h1v5H7z' : 'M7 5h2v10H7z'} />}
+      {stage === 1 && <path fill={leaf} d="M4 9h3v1H4zM5 8h2v1H5zM8 9h3v1H8zM8 8h2v1H8z" />}
+      {stage >= 2 && (
+        <path fill={leaf} d="M3 11h4v1H3zM4 10h3v1H4zM9 9h4v1H9zM9 8h3v1H9zM3 7h4v1H3zM4 6h3v1H4z" />
+      )}
+      {stage >= 2 && <path fill={dark} d="M3 12h4v1H3zM9 10h4v1H9zM3 8h4v1H3z" />}
+      {stage === 2 && <path fill={color} d="M6 2h4v1H6zM5 3h6v2H5zM6 5h4v1H6z" />}
+      {stage === 2 && <path fill="#f8f0a0" d="M7 3h2v2H7z" />}
+    </svg>
+  );
+}
+
+type Fx = {
+  id: number;
+  plot: number;
+  kind: 'harvest' | 'water' | 'shoo' | 'mutation';
+  berry?: string;
+  qty?: number;
+};
+
+function PlotView({
+  state,
+  i,
+  p,
+  seed,
+  fx,
+  onPlant,
+  onHarvest,
+  onWater,
+  onShoo,
+}: {
+  state: GameState;
+  i: number;
+  p: GardenPlot | null;
+  seed: string | null;
+  fx: Fx[];
+  onPlant: () => void;
+  onHarvest: () => void;
+  onWater: () => void;
+  onShoo: () => void;
+}) {
+  const now = state.lastTimerAt;
+  const mine = fx.filter((f) => f.plot === i);
+  if (!p) {
+    return (
+      <li className={`garden-bed empty ${seed ? 'can-plant' : ''}`}>
+        <button
+          className="bed-soil"
+          disabled={!seed}
+          onClick={onPlant}
+          title={seed ? `Plantar ${itemName(seed)}` : 'Escolha uma berry abaixo'}
+        >
+          {seed ? (
+            <span className="bed-seed">
+              <ItemIcon id={seed} size={18} /> PLANTAR
+            </span>
+          ) : (
+            <span className="bed-hint">vazio</span>
+          )}
+        </button>
+        {mine.map((f) =>
+          f.kind === 'harvest' ? (
+            <span key={f.id} className="bed-pop" aria-hidden>
+              {Array.from({ length: Math.min(5, f.qty ?? 1) }, (_, k) => (
+                <i key={k} style={{ '--k': k } as CSSProperties}>
+                  <ItemIcon id={f.berry!} size={18} />
+                </i>
+              ))}
+              <b>+{f.qty}</b>
+            </span>
+          ) : f.kind === 'mutation' ? (
+            <span key={f.id} className="bed-mutation" aria-hidden>
+              <ItemIcon id={f.berry!} size={26} />
+              <b>MUTAÇÃO!</b>
+            </span>
+          ) : null,
+        )}
+        <small className="bed-name">&nbsp;</small>
+      </li>
+    );
+  }
+  const ready = plotReady(p, now);
+  const grow = Math.min(1, (now - p.plantedAt) / Math.max(1, p.readyAt - p.plantedAt));
+  const stage = ready ? 3 : grow > 0.66 ? 2 : grow > 0.25 ? 1 : 0;
+  const color = BERRY_COLOR[p.berry] ?? '#e04040';
+  const pest = pestActive(p, now);
+  const waters = p.waters ?? 0;
+  const wet = !!p.wateredAt && now - p.wateredAt < 10 * 60_000;
+  return (
+    <li className={`garden-bed stage-${stage} ${ready ? 'ready' : ''} ${wet ? 'wet' : ''}`}>
+      <button
+        className="bed-soil"
+        onClick={ready ? onHarvest : undefined}
+        disabled={!ready}
+        title={ready ? 'Colher!' : `${itemName(p.berry)} crescendo`}
+      >
+        <span className="bed-plant">
+          {stage < 3 ? (
+            <Plant stage={stage} color={color} />
+          ) : (
+            <>
+              <Plant stage={2} color={color} />
+              <span className="bed-fruits">
+                <ItemIcon id={p.berry} size={18} />
+                <ItemIcon id={p.berry} size={18} />
+                <ItemIcon id={p.berry} size={18} />
+              </span>
+            </>
+          )}
+        </span>
+        {ready && <span className="bed-sparkle" aria-hidden />}
+      </button>
+      {pest && (
+        <button
+          className="bed-pest"
+          onClick={onShoo}
+          title={`Um ${speciesName(p.pest!)} está beliscando! Toque para espantar`}
+        >
+          <span className="bed-pest-alert">!</span>
+          <PokemonSprite speciesId={p.pest!} kind="icon" />
+        </button>
+      )}
+      {mine.map((f) =>
+        f.kind === 'water' ? (
+          <span key={f.id} className="bed-rain" aria-hidden>
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        ) : f.kind === 'shoo' ? (
+          <span key={f.id} className="bed-shoo" aria-hidden>
+            xô!
+          </span>
+        ) : null,
+      )}
+      <small className="bed-name">{itemName(p.berry)}</small>
+      <span className="bed-info">
+        <Countdown until={p.readyAt} now={now} done="COLHER!" />
+        {!ready && (
+          <button
+            className="bed-water"
+            disabled={!canWater(p, now)}
+            onClick={onWater}
+            title={`Regar (${waters}/${MAX_WATER}): cresce mais rápido; 3 regas = +1 berry`}
+          >
+            <span className="bed-drops">
+              {Array.from({ length: MAX_WATER }, (_, k) => (
+                <i key={k} className={k < waters ? 'on' : ''} />
+              ))}
+            </span>
+          </button>
+        )}
+      </span>
+    </li>
+  );
+}
 
 export function GardenPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [seed, setSeed] = useState<string | null>(null);
+  const [fx, setFx] = useState<Fx[]>([]);
+  const nextId = useRef(1);
+  const push = (f: Omit<Fx, 'id'>, ms: number) => {
+    const id = nextId.current++;
+    setFx((list) => [...list, { ...f, id }]);
+    window.setTimeout(() => setFx((list) => list.filter((x) => x.id !== id)), ms);
+  };
+  useGameEvents(
+    useCallback((events: GameEvent[]) => {
+      for (const e of events) if (e.type === 'gardenMutation') audio.sfx('achievement');
+    }, []),
+  );
   const plots = gardenPlots(state);
   if (plots === 0) return <Locked routeId={BALANCE.garden.plots[0]} />;
   const now = state.lastTimerAt;
   const owned = BERRIES.filter((b) => (state.items[b.id] ?? 0) > 0);
   const anyReady = state.garden.some((p) => plotReady(p, now));
+  const helper = gardenHelper(state);
+  const raining = state.env.weather === 'rain';
+  const night = state.env.period === 'night';
+  const found = BERRIES.filter((b) => state.flags.includes(mutationFlag(b.id)));
+
+  const doHarvest = (i: number) => {
+    const berry = state.garden[i]?.berry;
+    let qty = 0;
+    let mutated: string | undefined;
+    engine.dispatch((s, t) => {
+      const events: GameEvent[] = [];
+      qty = harvest(s, i, t, events);
+      mutated = events.find(
+        (e): e is Extract<GameEvent, { type: 'gardenMutation' }> => e.type === 'gardenMutation',
+      )?.berry;
+      return events;
+    });
+    if (qty && berry) {
+      audio.sfx('itemGet');
+      push({ plot: i, kind: 'harvest', berry, qty }, 1300);
+      if (mutated) push({ plot: i, kind: 'mutation', berry: mutated }, 1800);
+    }
+  };
+  const doHarvestAll = () => {
+    state.garden.forEach((p, i) => plotReady(p, now) && doHarvest(i));
+  };
 
   return (
     <>
@@ -34,62 +266,71 @@ export function GardenPanel({ state }: { state: GameState }) {
         frame="dialog"
         actions={
           anyReady && (
-            <button
-              className="pbtn small primary"
-              onClick={() => engine.dispatch((s, t) => void harvestAll(s, t))}
-            >
+            <button className="pbtn small primary" onClick={doHarvestAll}>
               Colher tudo
             </button>
           )
         }
       >
-        <ul className="garden-plots">
-          {BALANCE.garden.plots.map((_, i) => {
-            if (i >= plots) {
-              return (
-                <li key={i} className="garden-plot locked">
-                  <PixelIcon name="lock" scale={2} />
+        <div className={`garden-scene ${night ? 'night' : ''} ${raining ? 'raining' : ''}`}>
+          <span className="garden-sky" aria-hidden />
+          {raining && <span className="garden-raindrops" aria-hidden />}
+          {helper && (
+            <span
+              className="garden-helper"
+              title={`${speciesName(helper.speciesId)} ajuda no jardim: cresce 10% mais rápido`}
+            >
+              <PokemonSprite speciesId={helper.speciesId} kind="front" shiny={helper.shiny} pixelScale={1} />
+            </span>
+          )}
+          <ul className="garden-beds">
+            {BALANCE.garden.plots.map((_, i) =>
+              i >= plots ? (
+                <li key={i} className="garden-bed locked">
+                  <span className="bed-soil">
+                    <PixelIcon name="lock" scale={2} />
+                  </span>
+                  <small className="bed-name">fechado</small>
                 </li>
-              );
-            }
-            const p = state.garden[i];
-            if (!p) {
-              return (
-                <li key={i} className="garden-plot empty">
-                  <button
-                    className="plot-soil"
-                    disabled={!seed}
-                    onClick={() => seed && engine.dispatch((s, t) => plantBerry(s, i, seed, t))}
-                    title={seed ? `Plantar ${itemName(seed)}` : 'Escolha uma berry abaixo'}
-                  >
-                    {seed ? 'PLANTAR' : 'VAZIO'}
-                  </button>
-                </li>
-              );
-            }
-            const ready = plotReady(p, now);
-            const grow = Math.min(1, (now - p.plantedAt) / (p.readyAt - p.plantedAt));
-            const stage = ready ? 3 : grow > 0.6 ? 2 : grow > 0.25 ? 1 : 0;
-            return (
-              <li key={i} className={`garden-plot stage-${stage} ${ready ? 'ready' : ''}`}>
-                <button
-                  className="plot-soil"
-                  disabled={!ready}
-                  onClick={() => engine.dispatch((s, t) => void harvest(s, i, t))}
-                  title={ready ? 'Colher' : 'Crescendo…'}
-                >
-                  {stage >= 2 ? (
-                    <ItemIcon id={p.berry} size={stage === 3 ? 30 : 20} />
-                  ) : (
-                    <span className="sprout" />
-                  )}
-                </button>
-                <small>{itemName(p.berry)}</small>
-                <Countdown until={p.readyAt} now={now} done="COLHER!" />
-              </li>
-            );
-          })}
-        </ul>
+              ) : (
+                <PlotView
+                  key={i}
+                  state={state}
+                  i={i}
+                  p={state.garden[i] ?? null}
+                  seed={seed}
+                  fx={fx}
+                  onPlant={() => {
+                    if (!seed) return;
+                    audio.sfx('click');
+                    engine.dispatch((s, t) => plantBerry(s, i, seed, t));
+                    if ((state.items[seed] ?? 0) <= 1) setSeed(null);
+                  }}
+                  onHarvest={() => doHarvest(i)}
+                  onWater={() => {
+                    audio.sfx('splash');
+                    engine.dispatch((s, t) => waterPlot(s, i, t));
+                    push({ plot: i, kind: 'water' }, 900);
+                  }}
+                  onShoo={() => {
+                    audio.sfx('escape');
+                    engine.dispatch((s, t) => shooPest(s, i, t));
+                    push({ plot: i, kind: 'shoo' }, 800);
+                  }}
+                />
+              ),
+            )}
+          </ul>
+        </div>
+        <p className="hint">
+          {raining ? '🌧 Está chovendo: o jardim se rega sozinho. ' : ''}
+          Regue até {MAX_WATER}× (cresce mais rápido; 3 regas = +1 berry). Insetos beliscam: toque para
+          espantar.
+          {helper
+            ? ` ${speciesName(helper.speciesId)} ajuda: cresce 10% mais rápido.`
+            : ' Um Pokémon de planta na equipe faz crescer mais rápido.'}{' '}
+          Berries diferentes lado a lado podem gerar uma mutação.
+        </p>
       </Window>
 
       <Window title="BERRIES" icon={<ItemIcon id="oran-berry" size={24} />}>
@@ -111,7 +352,10 @@ export function GardenPanel({ state }: { state: GameState }) {
                   min
                 </small>
               </div>
-              <button className="pbtn small" onClick={() => setSeed(seed === b.id ? null : b.id)}>
+              <button
+                className={`pbtn small ${seed === b.id ? 'primary' : ''}`}
+                onClick={() => setSeed(seed === b.id ? null : b.id)}
+              >
                 {seed === b.id ? 'Cancelar' : 'Plantar'}
               </button>
               <button className="pbtn small" onClick={() => engine.dispatch((s) => eatBerry(s, b.id))}>
@@ -120,6 +364,35 @@ export function GardenPanel({ state }: { state: GameState }) {
             </li>
           ))}
         </ul>
+      </Window>
+
+      <Window
+        title={`CADERNO DE MUTAÇÕES · ${found.length}/${BERRIES.length - 1}`}
+        icon={<ItemIcon id="lum-berry" size={24} />}
+      >
+        <ul className="mutation-book">
+          {BERRIES.slice(1).map((b, k) => {
+            const known = found.some((f) => f.id === b.id);
+            const from = BERRIES[k];
+            return (
+              <li key={b.id} className={known ? 'known' : ''}>
+                <span className="mut-recipe">
+                  <ItemIcon id={from.id} size={16} /> + <span className="mut-any">?</span>
+                </span>
+                <span className="mut-arrow">→</span>
+                <span className={`mut-result ${known ? '' : 'unknown'}`}>
+                  <ItemIcon id={b.id} size={22} />
+                </span>
+                <small>{known ? itemName(b.id) : '???'}</small>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="hint">
+          A mutação dá uma berry acima da mais rara das duas vizinhas (ex.: {itemName('oran-berry')} ao lado
+          de {itemName('pecha-berry')} pode dar{' '}
+          {itemName(mutationOf('oran-berry', 'pecha-berry') ?? 'cheri-berry')}).
+        </p>
       </Window>
 
       <ActiveBuffs state={state} />

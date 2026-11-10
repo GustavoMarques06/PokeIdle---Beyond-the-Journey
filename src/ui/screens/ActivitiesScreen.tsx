@@ -2,9 +2,7 @@
 // fósseis, Torre de Batalha, torneio, Safari, Game Corner, caça ao shiny e o Cabo Link.
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { expeditionDone } from '../../core/expeditions';
 import type { GameState } from '../../core/game';
-import { plotReady } from '../../core/garden';
 import { ItemIcon, PixelIcon } from '../components/common';
 import { DaycarePanel } from './activities/DaycarePanel';
 import { ExpeditionsPanel } from './activities/ExpeditionsPanel';
@@ -19,6 +17,7 @@ import { SafariPanel } from './activities/SafariPanel';
 import { TournamentPanel } from './activities/TournamentPanel';
 import { TowerPanel } from './activities/TowerPanel';
 import { TrainingPanel } from './activities/TrainingPanel';
+import { activityStatus } from './activities/status';
 import { TAB_TIPS, seenFlag, tabOpen, tipFlag, unseenTabs, type Tab } from './activities/tabs';
 import { useEngine } from '../useGame';
 
@@ -61,14 +60,6 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
   useEffect(() => {
     if (isNew) engine.dispatch((s) => void s.flags.push(seenFlag(tab)));
   }, [engine, isNew, tab]);
-  const ready: Partial<Record<Tab, boolean>> = {
-    daycare: state.eggs.some((e) => e.progress / e.cycles > 0.9),
-    expeditions: state.expeditions.some((r) => expeditionDone(r, now)),
-    garden: state.garden.some((p) => plotReady(p, now)),
-    fossils: state.fossils.some((f) => now >= f.readyAt),
-    raids: !!state.raid,
-    safari: !!state.safari,
-  };
 
   return (
     <div className="activities-screen">
@@ -79,20 +70,22 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
             {g.tabs.map((id) => {
               const t = TABS.find((x) => x.id === id)!;
               const isOpen = tabOpen(state, t.id);
+              const status = activityStatus(state, t.id, now);
               return (
                 <button
                   key={t.id}
                   role="tab"
                   aria-selected={tab === t.id}
                   aria-label={`${t.label}${isOpen ? '' : ' (bloqueada)'}${unseen.has(t.id) ? ' (nova)' : ''}`}
-                  className={`activity-tab ${tab === t.id ? 'active' : ''} ${isOpen ? '' : 'locked'}`}
+                  className={`activity-tab ${tab === t.id ? 'active' : ''} ${isOpen ? '' : 'locked'} ${status ? `tone-${status.tone}` : ''}`}
                   onClick={() => setTab(t.id)}
                 >
                   {isOpen ? t.icon : <PixelIcon name="lock" scale={2} />}
                   <span>{t.label}</span>
                   {/* Um selo por vez: quando tudo é novo, nada se destaca. */}
                   {t.id === firstUnseen && <span className="new-badge">NOVO</span>}
-                  {ready[t.id] && <span className="menu-alert" />}
+                  {status && <small className={`activity-status ${status.tone}`}>{status.text}</small>}
+                  {(status?.tone === 'ready' || status?.tone === 'live') && <span className="menu-alert" />}
                 </button>
               );
             })}

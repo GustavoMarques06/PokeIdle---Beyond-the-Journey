@@ -543,6 +543,7 @@ export type GameEvent =
   | { type: 'safariEnded'; caught: number; points?: number; record?: boolean; species?: number[]; zone?: string }
   | { type: 'safariZoneComplete'; zone: string }
   | { type: 'safariGuideReady' }
+  | { type: 'gardenMutation'; berry: string; from: [string, string]; isNew: boolean }
   | { type: 'safariGuideBack'; species: number[]; zone: string }
   | {
       type: 'tournamentMatch';

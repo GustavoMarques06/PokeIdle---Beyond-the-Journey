@@ -9,7 +9,7 @@ import { updateRoamer, updateRocket } from './events';
 import { claimExpedition, expeditionSlots, startExpedition } from './expeditions';
 import { claimFossil, startRevive } from './fossils';
 import { buyPrize, buyTokens, slotReturnRate, spinSlots } from './gamecorner';
-import { eatBerry, harvest, plantBerry } from './garden';
+import { canWater, eatBerry, harvest, mutationFlag, mutationOf, pestActive, plantBerry, shooPest, waterPlot } from './garden';
 import {
   advance,
   challengeBoss,
@@ -143,14 +143,62 @@ describe('jardim e berries', () => {
     updateTimers(s, 0); // presente de berries
     expect(s.items['oran-berry']).toBe(3);
     expect(plantBerry(s, 0, 'oran-berry', 0)).toBe(true);
-    expect(harvest(s, 0, 29 * 60_000)).toBe(0);
-    expect(harvest(s, 0, 30 * 60_000)).toBeGreaterThanOrEqual(2);
+    expect(harvest(s, 0, 26 * 60_000)).toBe(0); // Bulbasaur na equipe: cresce 10% mais rápido (27 min)
+    expect(harvest(s, 0, 30 * 60_000)).toBeGreaterThanOrEqual(1); // um inseto pode ter beliscado 1
     const damage = computeModifiers(s).damage;
     expect(eatBerry(s, 'pecha-berry')).toBe(true);
     expect(computeModifiers(s).coins).toBeGreaterThan(1);
     expect(computeModifiers(s).damage).toBe(damage);
     advance(s, 31 * 60_000, 0);
     expect(s.buffs.coins).toBeUndefined();
+  });
+});
+
+describe('jardim vivo', () => {
+  it('regar adianta e 3 regas rendem +1; o inseto sai ao espantar', () => {
+    const s = newGame(1, 0, 4);
+    clearUpTo(s, 'floresta-viridian');
+    s.items['sitrus-berry'] = 2;
+    expect(plantBerry(s, 0, 'sitrus-berry', 0)).toBe(true);
+    const plot = s.garden[0]!;
+    const ready = plot.readyAt;
+    expect(waterPlot(s, 0, 0)).toBe(true);
+    expect(waterPlot(s, 0, 1000)).toBe(false); // espera entre regas
+    expect(plot.readyAt).toBeLessThan(ready);
+    waterPlot(s, 0, 20 * 60_000);
+    waterPlot(s, 0, 40 * 60_000);
+    expect(plot.waters).toBe(3);
+    expect(canWater(plot, 60 * 60_000)).toBe(false);
+    plot.pest = speciesId('caterpie');
+    plot.pestAt = 0;
+    expect(pestActive(plot, 1)).toBe(true);
+    const research = s.research.points;
+    expect(shooPest(s, 0, 1)).toBe(true);
+    expect(s.research.points).toBe(research + 1);
+    expect(pestActive(plot, 2)).toBe(false);
+    expect(harvest(s, 0, plot.readyAt)).toBeGreaterThanOrEqual(2); // 1–3 + 1 da rega
+  });
+
+  it('mutação: berries vizinhas diferentes podem gerar uma mais rara', () => {
+    expect(mutationOf('oran-berry', 'oran-berry')).toBeUndefined();
+    expect(mutationOf('oran-berry', 'pecha-berry')).toBe('cheri-berry');
+    expect(mutationOf('sitrus-berry', 'lum-berry')).toBe('lum-berry');
+    let found = false;
+    for (let seed = 1; seed < 60 && !found; seed++) {
+      const s = newGame(1, 0, seed);
+      clearUpTo(s, 'floresta-viridian');
+      s.items['oran-berry'] = 5;
+      s.items['pecha-berry'] = 5;
+      plantBerry(s, 0, 'oran-berry', 0);
+      plantBerry(s, 1, 'pecha-berry', 0);
+      const events: import('./game').GameEvent[] = [];
+      harvest(s, 0, 10 * 3_600_000, events);
+      if (events.some((e) => e.type === 'gardenMutation')) {
+        found = true;
+        expect(s.flags).toContain(mutationFlag('cheri-berry'));
+      }
+    }
+    expect(found).toBe(true);
   });
 });
 
