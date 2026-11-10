@@ -20,9 +20,46 @@ nova em `src/core/`:
 - **Caça Shiny:** Poké Radar (`core/hunt.ts`: carrega com 25 encontros do alvo; moita forte +5 na sequência, brilhante
   garante o próximo shiny), contador, curva da chance e diário.
 - **Raides:** estrelas pela soma dos atributos (`raidStars`), +25% de moedas por estrela e livro de raides (`state.raidLog`).
+  Em 10/11: HP (3× a 6×), tempo (150 a 220 s), sorteios de item (2 a 4) e IVs perfeitos (3 a 6) pelas estrelas
+  (`hpByStars` etc. em `balance.ts`), melhor tempo por chefe (`state.raidBest`) e animações: toca com runas, brasas,
+  raios, cor por estrela, entrada e rugido do chefe; na batalha chefe gigante, aura, vinheta, fúria com tremor, tique
+  nos últimos 10 s e cartão de vitória (`RaidVictory.tsx`). Compila; não conferido no navegador.
 - **Treino:** estações animadas por atributo, hexágono de EVs e planos (`TRAINING_PLANS`, troca de atributo sozinho).
 - **Expedições:** trilha, diário de viagem (só texto, sorteado pela semente) e cartão-postal.
 - **Torre e Lendários:** prédio com os andares; previsão de 12 h com os lendários de cada faixa (clima de `weatherAt`).
+  Em 10/11, aba de Lendários: boato fixo no dia (`legends.rumorId`) e fora de quem está em espera longa, previsão
+  certa na virada dia/noite e sem os em espera (`legendaryWindowOpen`), "aparece em ~X" nos cartões
+  (`legendaryNextWindow`), anel da espera, boato em manchete, Santuário como templo com barra do próximo título
+  (`nextLegendTitle`), história com números e bola favorita, céu animado na previsão, progresso e portão por região,
+  regras recolhidas e filtro dos cartões. Compila; não conferido no navegador.
+
+**Mecânicas novas (10/11):** tudo compila (`tsc`) e os testes de `src/core` passam, mas nada foi visto no navegador
+nem medido com jogo de verdade.
+- **Raides:** escudo (`BALANCE.raid.shield`: os tipos super efetivos de `raidBreakers` quebram em 2 acertos e batem
+  cheio; os outros batem 40% e levam 6), atordoamento ao quebrar, golpe gigante carregado a cada fúria (`charging`,
+  2,5×, cancelado se o escudo cair) e regra da semana (`RAID_MODS`: Tempestade, Frenesi, Tesouro, Relâmpago; fica
+  guardada em `raid.mod`).
+- **Safari:** camadas da zona (`SAFARI_DEPTHS`: borda, mata, coração; entrar custa 60 e 100 passos e as caminhadas
+  ficam mais caras, com mais raros, shiny e pontos) e rastros (`safariFollow`: 35% de chance depois de cada encontro,
+  30 passos, de preferência uma espécie que falta na Pokédex da zona).
+- **Unown (`core/unown.ts`):** tabuleta na Escavação (30% das paredes, vira um Unown de letra que falta) e palavra da
+  semana nas Ruínas de Alph (aba Fósseis; 30 mil moedas e um Unown que falta, uma vez por semana).
+- **Clima (`core/env.ts`):** frentes que cruzam cada região (bloco de 3 h, uma rota a cada 20 min, shiny 1,5× na rota;
+  aparecem no mapa) e eventos do céu: aurora nos campos de neve e arco-íris depois da chuva (shiny 2×) e chuva de
+  meteoros (10% dos selvagens com Star Piece).
+- **Nível das raides:** o chefe vem no nível da rota mais avançada liberada + 3 (`raidLevel`), mesmo numa rota do
+  começo. Antes valia o da própria rota e, no fim do jogo, saía chefe nível 10 na Rota 1.
+- **Medido em 10/11** (simulação de 12 lutas por caso, time de 3; script fora do projeto):
+  - 3★: qualquer time de nível parecido vence 92–100%; quem quebra o escudo vence mais rápido (~20 s contra ~26 s).
+  - 5★: só vence quem tem vantagem de tipo (100%); time neutro perde 12/12 mesmo 2 níveis acima, **e já perdia sem o
+    escudo**: é o dano do chefe 5★ (HP 6×), não as mecânicas novas. O escudo até ajuda quem tem os tipos certos (de
+    2/12 para 10/12, pelo atordoamento). Se 5★ parecer cruel demais, baixar `hpByStars[4]` ou o dano do chefe.
+  - Escudo ajustado para 5 pontos e 60% de dano fora dos tipos que quebram.
+  - Safari (60 visitas, só bola): borda 61 pontos, mata 76, coração 84; no coração a visita acaba pelos passos em
+    1 de 4 vezes (antes, 3 de 60). Entrada do coração em 120 passos e caminhadas 1,6×; a 150 e 1,75× o coração rendia
+    menos que a borda.
+- **Shiny:** frente (1,5×) e céu (2×) somam até 3× nas rotas; o coração do Safari dá 2,5× à parte. Somam com a Caça
+  Shiny. Não medido em jogo.
 
 **Ainda dá para fazer:** Duelo (histórico e ranking dos times de amigos), Creche (hóspedes andando pelo quintal,
 árvore genealógica) e ver o equilíbrio do Voltorb Flip e da Escavação com jogo de verdade.
@@ -108,7 +145,7 @@ lotes 5…10. Cortados em `art/maps/novos/cortes/` e comparados com os atuais nu
   chegada: reorganizar o resto exige reescrever à mão.
 - **Cópia do save:** no celular, o menu de compartilhar do sistema; no Chrome/Edge do computador, cópia automática num
   arquivo escolhido (File System Access).
-- **Save na nuvem:** não feito, por decisão. O save fica só no aparelho; há lembrete semanal de backup e aviso para instalar no iPhone.
+- **Save na nuvem:** não vai ser feito. O jogo não terá servidor de nenhum tipo (decisão confirmada em 10/11). O save fica só no aparelho; há lembrete semanal de backup e aviso para instalar no iPhone.
 - **Molduras do cartão de treinador:** dependem de arte nova.
 - **Shinies e 6ª geração:** conferido em 5/11: os 668 Pokémon de então tinham sprite shiny (frente e costas). Nada a fazer.
 
