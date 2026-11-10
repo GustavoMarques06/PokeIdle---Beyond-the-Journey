@@ -17,12 +17,13 @@ import {
   matchupOf,
   spriteFeet,
 } from '../../game-data';
-import { INDOOR_NEW, routeWeather } from '../../core/env';
+import { INDOOR_NEW, routeWeather, skyEvent } from '../../core/env';
 import { legendaryDef, legendaryRules } from '../../core/legendary';
 import {
   activePokemon,
   battleForm,
   bestRod,
+  encounterRoute,
   harvestTree,
   megaActive,
   treeBerry,
@@ -47,7 +48,9 @@ import {
   PokemonSprite,
   Shiny,
   TrainerImage,
+  TypeBadge,
 } from '../components/common';
+import { raidBreakers } from '../../core/raids';
 import { genderOf } from '../../core/gender';
 import { activeLure } from '../../core/lures';
 import { STATUS_TEXT, TYPE_NAMES, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
@@ -60,6 +63,7 @@ import { setEvolving, useShownPokemon } from '../evolutionView';
 import { EncounterModeSwitch } from './BattleDialog';
 import { EncounterFlash, LevelUpWindow, PokemonCenter, TrainerIntro } from './BattleFx';
 import { RareBanner } from './RareBanner';
+import { RaidVictory } from './RaidVictory';
 import { battleSpritePath, useWarmBattleSprites } from './warmSprites';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
@@ -162,6 +166,7 @@ const keyOf = (e: { speciesId: number; level: number; maxHp: number } | null) =>
 /** Escala dos sprites (pixels virtuais por pixel do sprite) e altura máxima no cenário. */
 const ENEMY_SCALE = 1.25;
 const ENEMY_MAX_H = 76;
+const RAID_MAX_H = 80;
 const PLAYER_SCALE = 1.65;
 const PLAYER_MAX_H = 104;
 
@@ -319,6 +324,10 @@ export function BattleScene({ state }: { state: GameState }) {
   useEffect(() => () => setEvolving(null), []);
   const [shake, setShake] = useState(0);
   const [shinyFx, setShinyFx] = useState<number | null>(null);
+  // Raide vencida: o chefe se desfaz, chovem estrelas e moedas e aparece o cartão do resultado.
+  const [raidWin, setRaidWin] = useState<(Extract<GameEvent, { type: 'raidDefeated' }> & { id: number }) | null>(
+    null,
+  );
 
   const animSpeed = state.settings.animSpeed || 1;
   const b = state.battle;
@@ -330,6 +339,9 @@ export function BattleScene({ state }: { state: GameState }) {
   const { enemy: ENEMY_BASE, player: PLAYER_BASE } = sceneBases(sceneKey);
   const gfx = state.settings.graphics;
   const weather = b.kind === 'tower' ? 'clear' : (b.weather ?? routeWeather(route, state.env));
+  // Evento raro do céu (aurora, arco-íris, chuva de meteoros): só nas batalhas ao ar livre da própria rota.
+  const sky =
+    b.kind === 'tower' || b.weather ? undefined : skyEvent(route.kind === 'trial' ? encounterRoute(route) : route, state.env);
   const night =
     state.env.period === 'night' &&
     b.kind !== 'tower' &&
@@ -443,6 +455,19 @@ export function BattleScene({ state }: { state: GameState }) {
             setLegendFx({ id, kind: 'rage' });
             setTimeout(() => setLegendFx((cur) => (cur?.id === id ? null : cur)), 1200);
           }
+        } else if (e.type === 'raidRage') {
+          audio.cry(e.speciesId);
+          if (motion) setShake((n) => n + 1);
+        } else if (e.type === 'raidShieldBroken') {
+          audio.sfx('crit');
+          if (motion) setShake((n) => n + 1);
+        } else if (e.type === 'raidBlast') {
+          audio.sfx('boss');
+          if (motion) setShake((n) => n + 1);
+        } else if (e.type === 'raidDefeated') {
+          const id = nextId.current++;
+          setRaidWin({ ...e, id });
+          setTimeout(() => setRaidWin((cur) => (cur?.id === id ? null : cur)), 5200);
         } else if (e.type === 'captureAttempt') {
           const enemy = st.battle.enemy;
           if (legendaryDef(e.speciesId)) {
@@ -542,6 +567,12 @@ export function BattleScene({ state }: { state: GameState }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shake]);
 
+  // Raide: tique a cada segundo nos últimos 10 s.
+  const raidSecs = b.kind === 'raid' && b.phase === 'fighting' ? Math.ceil((b.raidMs ?? 0) / 1000) : 0;
+  useEffect(() => {
+    if (raidSecs > 0 && raidSecs <= 10) audio.sfx('tick');
+  }, [raidSecs]);
+
   const [treeMsg, setTreeMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(() => {
     if (!treeMsg) return;
@@ -607,8 +638,12 @@ export function BattleScene({ state }: { state: GameState }) {
   const playerForm = mega?.form ?? battleForm(player.speciesId, player.form, weather);
   const enemyForm = enemy ? battleForm(enemy.speciesId, enemy.form, weather) : undefined;
   const playerBox = spriteBox(player.speciesId, 'back', PLAYER_SCALE, PLAYER_MAX_H, playerForm);
+  // Chefe de raide: gigante (maior que o normal, com teto mais alto).
+  const raidHere = b.kind === 'raid';
+  const enemyScale = raidHere ? ENEMY_SCALE * 1.1 : ENEMY_SCALE;
+  const enemyMaxH = raidHere ? RAID_MAX_H : ENEMY_MAX_H;
   const enemyBox = enemy
-    ? spriteBox(enemy.speciesId, 'front', ENEMY_SCALE, ENEMY_MAX_H, enemyForm)
+    ? spriteBox(enemy.speciesId, 'front', enemyScale, enemyMaxH, enemyForm)
     : { w: 40, h: 40, bodyH: 40 };
 
   // Árvore de berry da rota e foto da cena.
@@ -647,7 +682,7 @@ export function BattleScene({ state }: { state: GameState }) {
 
   return (
     <div
-      className={`scene theme-${theme} ${enemy?.water ? `mode-${enemy.water}` : ''} ${legendHere ? 'legend-battle' : ''} ${legendHere && enemy?.rage ? 'legend-enraged' : ''} ${legendFx ? `legend-fx-${legendFx.kind}` : ''}`}
+      className={`scene theme-${theme} ${enemy?.water ? `mode-${enemy.water}` : ''} ${legendHere ? 'legend-battle' : ''} ${legendHere && enemy?.rage ? 'legend-enraged' : ''} ${legendFx ? `legend-fx-${legendFx.kind}` : ''} ${b.kind === 'raid' ? `raid-battle raid-rage-${enemy?.rage ?? 0}` : ''}`}
       style={legendHere && enemy ? ({ ['--glow' as string]: legendGlow(enemy.speciesId) } as CSSProperties) : undefined}
       ref={wrapRef}
       aria-label="Campo de batalha"
@@ -681,6 +716,12 @@ export function BattleScene({ state }: { state: GameState }) {
       )}
       {!state.settings.reducedMotion && gfx !== 'performance' && (
         <WeatherLayer weather={weather} night={state.env.period === 'night'} scene={sceneKey} />
+      )}
+      {sky && motionOn && (
+        <span className={`scene-sky sky-${sky}`} aria-hidden>
+          {sky === 'meteors' &&
+            Array.from({ length: 5 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}
+        </span>
       )}
 
       <div className="scene-hud">
@@ -740,10 +781,10 @@ export function BattleScene({ state }: { state: GameState }) {
           kind="front"
           shiny={enemy.shiny}
           base={ENEMY_BASE}
-          scale={ENEMY_SCALE}
-          maxH={ENEMY_MAX_H}
+          scale={enemyScale}
+          maxH={enemyMaxH}
           innerRef={enemyRef}
-          className={`idle-a ${enemy.rage ? `rage-${enemy.rage}` : ''} ${enemy.status ? `st-${enemy.status.kind}` : ''} ${trainerFoe ? 'sending-out' : ''}`}
+          className={`idle-a ${raidHere ? 'raid-giant' : ''} ${enemy.shield ? 'raid-shielded' : ''} ${enemy.charging ? 'raid-charging' : ''} ${enemy.stunMs ? 'raid-stunned' : ''} ${enemy.rage ? `rage-${enemy.rage}` : ''} ${enemy.status ? `st-${enemy.status.kind}` : ''} ${trainerFoe ? 'sending-out' : ''}`}
         />
       )}
       {capture && !staleEscape && <CaptureGhost anim={capture} base={ENEMY_BASE} />}
@@ -985,13 +1026,50 @@ export function BattleScene({ state }: { state: GameState }) {
         </>
       )}
       {b.kind === 'raid' && (
-        <div className="boss-banner raid-banner">
-          RAIDE
-          <small>
-            {Math.ceil((b.raidMs ?? 0) / 1000)} S · FÚRIA {enemy?.rage ?? 0}/{BALANCE.raid.rageAt.length}
-          </small>
+        <>
+          <div className="raid-aura" aria-hidden>
+            {Array.from({ length: 10 }, (_, i) => (
+              <i key={i} style={{ '--i': i } as CSSProperties} />
+            ))}
+          </div>
+          <div className="raid-vignette" aria-hidden />
+          {!!enemy?.rage && <div key={enemy.rage} className="raid-flash" aria-hidden />}
+          <div
+            className={`boss-banner raid-banner ${(b.raidMs ?? 0) < 30_000 ? 'urgent' : ''} ${(b.raidMs ?? 0) < 10_000 ? 'final' : ''} rage-${enemy?.rage ?? 0}`}
+          >
+            RAIDE
+            <small>
+              <b key={raidSecs <= 10 ? raidSecs : 'n'} className="raid-secs">
+                {Math.ceil((b.raidMs ?? 0) / 1000)} S
+              </b>{' '}
+              · FÚRIA {enemy?.rage ?? 0}/{BALANCE.raid.rageAt.length}
+            </small>
+          </div>
+        </>
+      )}
+      {b.kind === 'raid' && enemy && (!!enemy.shield || enemy.charging || !!enemy.stunMs) && (
+        <div className="raid-hud">
+          {!!enemy.shield && (
+            <div className="raid-shield" title="Golpes destes tipos atravessam o escudo e o quebram rápido">
+              <span className="raid-shield-bar">
+                <i style={{ width: `${(enemy.shield / BALANCE.raid.shield) * 100}%` }} />
+              </span>
+              <small>ESCUDO · QUEBRA COM</small>
+              {raidBreakers(enemy.speciesId).map((t) => (
+                <TypeBadge key={t} type={t} />
+              ))}
+            </div>
+          )}
+          {enemy.charging && (
+            <div className="raid-charge">
+              GOLPE GIGANTE EM {Math.ceil((enemy.chargeMs ?? 0) / 1000)} S
+              <small>Quebre o escudo ou troque para quem resiste!</small>
+            </div>
+          )}
+          {!!enemy.stunMs && <div className="raid-stun">ATORDOADO!</div>}
         </div>
       )}
+      {raidWin && <RaidVictory win={raidWin} />}
       {b.kind === 'legendary' && (
         <div className="boss-banner">
           {enemy && legendaryDef(enemy.speciesId)?.tier === 'pseudo' ? 'QUASE LENDÁRIO' : 'LENDÁRIO'}

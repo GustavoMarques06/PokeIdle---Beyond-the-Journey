@@ -15,6 +15,7 @@ import {
   type LegendaryDef,
 } from '../game-data';
 import { routeDone } from './collection';
+import { periodAt, weatherAt } from './env';
 import type { GameEvent, GameState } from './game';
 import { teamPokemon } from './team';
 
@@ -27,6 +28,8 @@ export interface LegendState {
   encounters?: Record<number, number>;
   /** Último dia em que o boato foi anunciado. */
   rumorDay?: number;
+  /** O lendário do boato desse dia (fixo até o dia virar, mesmo que a equipe ou as capturas mudem). */
+  rumorId?: number;
 }
 
 export const emptyLegends = (): LegendState => ({ caught: [], cooldowns: {} });
@@ -93,16 +96,74 @@ const localDay = (now: number) => Math.floor((now - new Date(now).getTimezoneOff
  * Hoje ele aparece a qualquer hora e fica mais fácil de capturar.
  */
 export function rumorOf(state: GameState, now: number): number | undefined {
-  const pool = LEGENDARIES.filter(
+  // Depois de sorteado, o boato do dia não troca (ver updateLegends).
+  if (state.legends.rumorId !== undefined && state.legends.rumorDay === localDay(now)) return state.legends.rumorId;
+  return pickRumor(state, now);
+}
+
+/** Espera longa demais para o boato valer a pena (o lendário passaria o dia quase todo fora). */
+const RUMOR_MAX_WAIT_MS = 6 * 3_600_000;
+
+function pickRumor(state: GameState, now: number): number | undefined {
+  const open = LEGENDARIES.filter(
     (l) =>
       l.tier !== 'pseudo' &&
       legendaryRegionOpen(state, l.regionId) &&
       !missingAny(legendaryMissing(state, l.speciesId)),
   );
+  // Quem acabou de ser capturado (volta só amanhã) fica fora do sorteio, se houver outro.
+  const free = open.filter((l) => (state.legends.cooldowns[l.speciesId] ?? 0) <= now + RUMOR_MAX_WAIT_MS);
+  const pool = free.length ? free : open;
   if (!pool.length) return undefined;
   let h = Math.imul(localDay(now) ^ 0x9e3779b9, 0x85ebca6b);
   h ^= h >>> 13;
   return pool[(h >>> 0) % pool.length].speciesId;
+}
+
+/** Quando o boato de hoje acaba (meia-noite local). */
+export function rumorEndsAt(now: number): number {
+  const d = new Date(now);
+  d.setHours(24, 0, 0, 0);
+  return d.getTime();
+}
+
+// --- Janelas de aparição (previsão) --------------------------------------------------------------
+
+const SLOT_MS = BALANCE.weather.slotHours * 3_600_000;
+
+/** A próxima virada de dia para noite (ou o contrário) depois de `t`. */
+function nextPeriodTurn(t: number): number {
+  const d = new Date(t);
+  const hour = d.getHours();
+  d.setMinutes(0, 0, 0);
+  d.setHours(hour < 6 ? 6 : hour < 18 ? 18 : 30);
+  return d.getTime();
+}
+
+/**
+ * O lendário é avistado em algum momento entre `from` e `to`? Vale para um intervalo dentro de um mesmo bloco de
+ * clima: conta o clima do bloco e o período nas duas pontas (o dia pode virar noite no meio do bloco).
+ */
+export function legendaryWindowOpen(speciesId: number, from: number, to: number): boolean {
+  const when = LEGEND_WHEN[speciesId];
+  if (!when) return true;
+  if (when.weather?.includes(weatherAt(from))) return true;
+  return !!when.period && (when.period.includes(periodAt(from)) || when.period.includes(periodAt(to - 1)));
+}
+
+/** Quando o lendário volta a ser avistado (procura até uma semana à frente; `now` se já está por aí). */
+export function legendaryNextWindow(speciesId: number, now: number): number | undefined {
+  const when = LEGEND_WHEN[speciesId];
+  if (!when) return now;
+  const start = Math.floor(now / SLOT_MS) * SLOT_MS;
+  for (let i = 0; i < 84; i++) {
+    const from = i === 0 ? now : start + i * SLOT_MS;
+    const to = start + (i + 1) * SLOT_MS;
+    if (!legendaryWindowOpen(speciesId, from, to)) continue;
+    if (when.weather?.includes(weatherAt(from)) || when.period?.includes(periodAt(from))) return from;
+    return nextPeriodTurn(from);
+  }
+  return undefined;
 }
 
 /** Multiplicador de shiny pela caça: +10% por encontro, até 5×. */
@@ -159,11 +220,14 @@ export function updateLegends(state: GameState, now: number, events: GameEvent[]
     if (now - until < 10 * 60_000) events.push({ type: 'legendaryReturned', speciesId: Number(id) });
   }
   const day = localDay(now);
-  if (state.legends.rumorDay !== day) {
-    const rumor = rumorOf(state, now);
+  const newDay = state.legends.rumorDay !== day;
+  // Sorteia uma vez por dia e guarda. Sem boato ainda (nenhuma região aberta), tenta de novo até haver um.
+  if (newDay || state.legends.rumorId === undefined) {
+    const rumor = pickRumor(state, now);
     // Quem acabou de abrir o save não recebe o aviso do dia de uma vez com o resto.
     const first = state.legends.rumorDay === undefined;
     state.legends.rumorDay = day;
-    if (rumor !== undefined && !first) events.push({ type: 'legendRumor', speciesId: rumor });
+    state.legends.rumorId = rumor;
+    if (rumor !== undefined && newDay && !first) events.push({ type: 'legendRumor', speciesId: rumor });
   }
 }

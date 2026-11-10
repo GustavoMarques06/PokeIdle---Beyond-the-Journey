@@ -61,13 +61,31 @@ export const LEGEND_LORE: Record<number, string> = {
   721: 'Volcanion solta vapor dos braços com tanta força que derruba montanhas.',
 };
 
+/** Degraus dos títulos: quantos lendários cada um pede (o último pede todos). */
+const TITLE_STEPS: [number, string][] = [
+  [1, 'Viu uma Lenda'],
+  [10, 'Caçador de Lendas'],
+  [25, 'Domador de Lendas'],
+];
+
+const titleSteps = (total: number): [number, string][] => [
+  ...TITLE_STEPS.filter(([n]) => n < total),
+  [total, 'Mestre Lendário'],
+];
+
 /** Título do treinador pelo número de lendários capturados. */
 export function legendTitle(count: number, total: number): string | undefined {
-  if (count >= total) return 'Mestre Lendário';
-  if (count >= 25) return 'Domador de Lendas';
-  if (count >= 10) return 'Caçador de Lendas';
-  if (count >= 1) return 'Viu uma Lenda';
-  return undefined;
+  return titleSteps(total)
+    .filter(([n]) => count >= n)
+    .pop()?.[1];
+}
+
+/** O próximo título e quantos lendários ele pede (nada depois do último). */
+export function nextLegendTitle(count: number, total: number): { name: string; at: number; from: number } | undefined {
+  const steps = titleSteps(total);
+  const i = steps.findIndex(([n]) => count < n);
+  if (i < 0) return undefined;
+  return { name: steps[i][1], at: steps[i][0], from: i > 0 ? steps[i - 1][0] : 0 };
 }
 
 const WEATHER_TEXT: Record<string, string> = {

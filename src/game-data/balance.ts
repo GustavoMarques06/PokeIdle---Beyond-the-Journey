@@ -354,6 +354,23 @@ export const BALANCE = {
     activeMinutes: 40,
     timeLimitMs: 180_000,
     hpMultiplier: 4,
+    /** HP e tempo por estrela (1★ a 5★): quanto mais estrelas, mais HP e mais tempo. 3★ = valores base. */
+    hpByStars: [3, 3.5, 4, 5, 6],
+    timeByStars: [150_000, 165_000, 180_000, 200_000, 220_000],
+    /** Sorteios de item por estrela (1★ a 5★). */
+    lootRollsByStars: [2, 2, 3, 3, 4],
+    /**
+     * Escudo: o chefe entra com ele e o ergue de novo a cada fúria. Golpes dos tipos que o quebram (os super
+     * efetivos) tiram `shieldBreak` pontos e batem cheio; os outros tiram 1 e batem `shieldDamage` do normal.
+     */
+    shield: 5,
+    shieldBreak: 3,
+    shieldDamage: 0.6,
+    /** Escudo quebrado: o chefe fica atordoado (sem agir) por este tempo. */
+    stunMs: 4_000,
+    /** A cada fúria ele carrega um golpe gigante: demora `chargeMs` e bate `chargeDamage` vezes mais forte. */
+    chargeMs: 5_000,
+    chargeDamage: 2.5,
     boost: 1,
     levelBonus: 3,
     /** Frações de HP em que o chefe fica furioso (mais dano e mais rápido). */

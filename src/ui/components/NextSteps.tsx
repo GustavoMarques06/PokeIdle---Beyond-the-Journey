@@ -43,8 +43,7 @@ function runAction(state: GameState, action: StepAction, now: number): GameEvent
     case 'rocket':
       return challengeRocket(state);
     case 'route':
-      selectRoute(state, action.routeId, now);
-      return true;
+      return selectRoute(state, action.routeId, now);
     case 'harvest': {
       const events: GameEvent[] = [];
       harvestAll(state, now, events);

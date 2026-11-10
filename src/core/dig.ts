@@ -9,12 +9,15 @@ import { activityUnlocked } from './collection';
 import type { GameEvent, GameState } from './game';
 import { localDay } from './missions';
 import { pickWeighted, rngFrom, seededRng, type Rng } from './rng';
+import { UNOWN_TABLET, giveUnown } from './unown';
 
 export const DIG_W = 12;
 export const DIG_H = 8;
 export const FREE_DIGS = 3;
 export const DIG_COST = 8000;
 const MAX_DEPTH = 3;
+/** Chance de a parede esconder uma tabuleta das Ruínas de Alph. */
+const TABLET_CHANCE = 0.3;
 
 export type DigTool = 'pick' | 'hammer';
 
@@ -116,6 +119,18 @@ function makeRun(seed: number): DigRun {
     treasures.push({ item: t.item, x, y, w: t.w, h: t.h });
     k++;
   }
+  // Às vezes a parede esconde uma tabuleta das Ruínas de Alph (vira um Unown). Entra por último na lista, depois
+  // de todos os outros sorteios, para as paredes antigas saírem iguais.
+  if (rng.next() < TABLET_CHANCE) {
+    for (let tries = 0; tries < 30; tries++) {
+      const x = Math.floor(rng.next() * (DIG_W - 1));
+      const y = Math.floor(rng.next() * (DIG_H - 1));
+      const cells = [y * DIG_W + x, y * DIG_W + x + 1, (y + 1) * DIG_W + x, (y + 1) * DIG_W + x + 1];
+      if (cells.some((c) => taken.has(c))) continue;
+      treasures.push({ item: UNOWN_TABLET, x, y, w: 2, h: 2 });
+      break;
+    }
+  }
   return { seed, depth, treasures, stability: 100, hits: 0 };
 }
 
@@ -181,12 +196,26 @@ export function finishDig(state: GameState, collapsed = false): GameEvent[] {
   const d = digState(state);
   const run = d.run;
   if (!run) return [];
-  const items = run.treasures.filter((t) => treasureUncovered(run, t)).map((t) => t.item);
+  const uncovered = run.treasures.filter((t) => treasureUncovered(run, t));
+  const items = uncovered.filter((t) => t.item !== UNOWN_TABLET).map((t) => t.item);
   for (const item of items) {
     state.items[item] = (state.items[item] ?? 0) + 1;
     d.found[item] = (d.found[item] ?? 0) + 1;
   }
+  // Cada tabuleta inteira vira um Unown de uma letra que ainda falta.
+  const unown: string[] = [];
+  for (let i = items.length; i < uncovered.length; i++) {
+    unown.push(giveUnown(state, state.lastTimerAt, 'Tabuleta da Escavação').form ?? 'a');
+  }
   d.digs++;
   d.run = null;
-  return [{ type: 'digDone', items, missed: run.treasures.length - items.length, collapsed }];
+  return [
+    {
+      type: 'digDone',
+      items,
+      missed: run.treasures.length - uncovered.length,
+      collapsed,
+      ...(unown.length ? { unown } : {}),
+    },
+  ];
 }

@@ -201,3 +201,124 @@
 .reduced-motion :is(.tw-floors li.here .tw-windows i, .tw-you, .lg-sky) {
   animation: none !important;
 }
+
+/* --- Previsão: céu animado em cada faixa, progresso da faixa atual e o lendário do boato ------ */
+.lg-sky {
+  position: relative;
+  overflow: hidden;
+}
+
+.lg-sky > :not(.lg-fx) {
+  position: relative;
+  z-index: 1;
+}
+
+.lg-sky.night {
+  background: rgb(20 24 60 / 0.55);
+}
+
+.lg-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Chuva: gotas caindo. */
+.lg-sky.w-rain .lg-fx {
+  background: linear-gradient(transparent 55%, rgb(90 150 255 / 0.8) 55%) 0 0 / 5px 10px;
+  animation: lg-fall 0.45s linear infinite;
+}
+
+/* Granizo: pedrinhas brancas, mais devagar. */
+.lg-sky.w-hail .lg-fx {
+  background: radial-gradient(circle, #fff 1.2px, rgb(160 200 230 / 0.9) 1.3px, transparent 1.8px) 0 0 / 8px 10px;
+  animation: lg-fall 0.8s linear infinite;
+}
+
+@keyframes lg-fall {
+  to {
+    background-position: 0 10px;
+  }
+}
+
+/* Areia: riscos soprando de lado. */
+.lg-sky.w-sand .lg-fx {
+  background: linear-gradient(90deg, transparent 50%, rgb(210 170 90 / 0.75) 50%) 0 0 / 12px 5px;
+  animation: lg-blow 0.5s linear infinite;
+}
+
+@keyframes lg-blow {
+  to {
+    background-position: 12px 0;
+  }
+}
+
+/* Névoa: uma faixa clara passando. */
+.lg-sky.w-fog .lg-fx {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.85), transparent) 0 0 / 200% 100%;
+  animation: lg-drift 4s linear infinite;
+}
+
+@keyframes lg-drift {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Sol forte: raios girando atrás do ícone. */
+.lg-sky.w-sun .lg-fx {
+  inset: -50%;
+  background: repeating-conic-gradient(rgb(255 200 50 / 0.6) 0 12deg, transparent 12deg 30deg);
+  animation: lg-rays 10s linear infinite;
+}
+
+@keyframes lg-rays {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* Noite limpa: estrelas piscando. */
+.lg-sky.night.w-clear .lg-fx {
+  background-image:
+    radial-gradient(1px 1px at 18% 22%, #fff, transparent), radial-gradient(1px 1px at 72% 16%, #fff, transparent),
+    radial-gradient(1px 1px at 44% 70%, #fff8c0, transparent), radial-gradient(1px 1px at 86% 62%, #fff, transparent),
+    radial-gradient(1px 1px at 10% 80%, #fff, transparent);
+  animation: lg-twinkle 1.8s steps(2, end) infinite;
+}
+
+@keyframes lg-twinkle {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Quanto da faixa atual já passou. */
+.lg-progress {
+  width: 90%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(0 0 0 / 0.18);
+}
+
+.lg-progress i {
+  display: block;
+  height: 100%;
+  background: var(--gold-dark);
+}
+
+/* Os lendários da faixa atual pulam; o do boato tem contorno dourado. */
+.lg-forecast li.now .lg-mons .sprite {
+  animation: alert-bounce 1.2s steps(2, end) infinite;
+}
+
+/* O contorno vai no invólucro: no sprite ele apagaria a silhueta de quem ainda não foi capturado. */
+.lg-mons .rumor {
+  filter: drop-shadow(1px 0 0 var(--gold)) drop-shadow(-1px 0 0 var(--gold)) drop-shadow(0 1px 0 var(--gold))
+    drop-shadow(0 -1px 0 var(--gold));
+}
+
+.reduced-motion :is(.lg-fx, .lg-forecast li.now .lg-mons .sprite) {
+  animation: none !important;
+}

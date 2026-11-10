@@ -17,7 +17,7 @@ import { breakChain } from './hunt';
 import { eliteItemOf } from './loadout';
 import { countEncounter, endLegendary, legendaryDef, legendaryStatus } from './legendary';
 import { evolve, itemEvolution, setLevel } from './progression';
-import { raidTeam } from './raids';
+import { raidTeam, raidTimeLimit } from './raids';
 import { canRematch } from './rematch';
 import { bossLook } from './rival';
 import { rngFrom } from './rng';
@@ -45,15 +45,18 @@ import { pushExpEvents, recordEvolution, towerBattle } from './battle';
 // ---------------------------------------------------------------------------
 // Ações do jogador
 
-export function selectRoute(state: GameState, routeId: string, now = Date.now()): void {
-  if (!state.routes[routeId]?.unlocked) return;
+export function selectRoute(state: GameState, routeId: string, now = Date.now()): GameEvent[] {
+  const events: GameEvent[] = [];
+  if (!state.routes[routeId]?.unlocked) return events;
   if (state.battle.kind === 'tower') endTowerRun(state, now, activePokemon(state).speciesId);
+  // Sair no meio da batalha com um lendário avisa que ele foi embora (o aviso sai pelos eventos devolvidos).
   if (state.battle.kind === 'legendary' && state.battle.enemy) {
-    endLegendary(state, state.battle.enemy.speciesId, now, 'retreat', []);
+    endLegendary(state, state.battle.enemy.speciesId, now, 'retreat', events);
   }
   if (routeId !== state.currentRouteId) breakChain(state);
   state.currentRouteId = routeId;
   state.battle = freshBattle(routeId);
+  return events;
 }
 
 function startTrainerBattle(
@@ -109,7 +112,7 @@ export function challengeRaid(state: GameState): boolean {
     ...freshBattle(raid.routeId),
     kind: 'raid',
     team: raidTeam(raid, rngFrom(state)),
-    raidMs: BALANCE.raid.timeLimitMs,
+    raidMs: raidTimeLimit(raid.speciesId, raid.mod),
   };
   return true;
 }

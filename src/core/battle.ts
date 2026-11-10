@@ -50,11 +50,20 @@ import {
   type Combatant,
 } from './combat';
 import { daycareKills } from './daycare';
-import { routeWeather } from './env';
+import { FRONT_SHINY, METEOR_ITEM_CHANCE, SKY_SHINY, frontOn, routeWeather, skyEvent } from './env';
 import { relocateRoamer, roamerCaught } from './events';
 import { addFriendship, friendshipSteps } from './friendship';
 import { breakChain, huntShinyMultiplier, huntWeight, recordEncounter } from './hunt';
-import { raidStarBonus, raidStars } from './raids';
+import {
+  RAID_MODS,
+  raidBreakers,
+  raidHpMultiplier,
+  raidLootRolls,
+  raidPerfectIvs,
+  raidStarBonus,
+  raidStars,
+  raidTimeLimit,
+} from './raids';
 import {
   endLegendary,
   legendaryCaptureBonus,
@@ -188,7 +197,10 @@ export function step(
   }
 
   if (b.kind === 'raid') {
-    b.raidMs = (b.raidMs ?? BALANCE.raid.timeLimitMs) - dt;
+    b.raidMs = (b.raidMs ?? raidTimeLimit(enemy.speciesId, state.raid?.mod)) - dt;
+    // Contadores só para a tela: a carga do golpe gigante e o atordoamento (o que vale é o cronômetro do chefe).
+    if (enemy.chargeMs) enemy.chargeMs = Math.max(0, enemy.chargeMs - dt);
+    if (enemy.stunMs) enemy.stunMs = Math.max(0, enemy.stunMs - dt) || undefined;
     if (b.raidMs <= 0) {
       events.push({ type: 'raidFailed', speciesId: enemy.speciesId });
       healTeam(state);
@@ -446,13 +458,16 @@ function takeTurn(
   const status = getStatus(side);
 
   const rage = isPlayer ? 0 : (enemy.rage ?? 0);
+  // Raide: o modificador da semana em que ela surgiu.
+  const raidMod = b.kind === 'raid' && state.raid?.mod ? RAID_MODS[state.raid.mod] : undefined;
   let interval =
     attackInterval(self.stats.spe, foe.stats.spe) *
     (isPlayer ? scales.playerInterval : 1) *
     statusInterval(status) *
     (self.ability?.intervalMult ?? 1) *
     (foe.ability?.foeInterval ?? 1) *
-    BALANCE.raid.rageSpeed ** rage;
+    BALANCE.raid.rageSpeed ** rage *
+    (isPlayer ? 1 : (raidMod?.bossInterval ?? 1));
   if (self.ability?.weatherSpeed && self.ability.weatherSpeed === mods.weather) interval *= 0.7;
   if (self.held?.quickClaw && rng.next() < self.held.quickClaw) interval *= 0.5;
   if (isPlayer) {
@@ -568,8 +583,35 @@ function takeTurn(
                 : BALANCE.combat.trainerMoveRandomness,
           );
   const move = getMove(moveId);
-  const damageScale = isPlayer ? scales.playerDamage : scales.enemyDamage * BALANCE.raid.rageDamage ** rage;
+  // Raide: o golpe gigante que o chefe vinha carregando sai agora.
+  const blast = !isPlayer && b.kind === 'raid' && !!enemy.charging;
+  if (blast) {
+    enemy.charging = false;
+    enemy.chargeMs = undefined;
+    events.push({ type: 'raidBlast', speciesId: enemy.speciesId });
+  }
+  const damageScale = isPlayer
+    ? scales.playerDamage
+    : scales.enemyDamage * BALANCE.raid.rageDamage ** rage * (blast ? BALANCE.raid.chargeDamage : 1);
   const result = calcDamage(self, foe, moveId, rng, damageScale);
+  if (!result.missed && result.damage > 0 && raidMod?.boostTypes?.includes(result.moveType)) {
+    result.damage = Math.round(result.damage * (raidMod.typeBoost ?? 1));
+  }
+  // Raide: o escudo. Os tipos que o quebram atravessam e o derrubam rápido; os outros batem fraco e tiram 1 ponto.
+  if (isPlayer && b.kind === 'raid' && enemy.shield && !result.missed && result.damage > 0) {
+    const cfg = BALANCE.raid;
+    const breaker = raidBreakers(enemy.speciesId).includes(result.moveType);
+    if (!breaker) result.damage = Math.max(1, Math.round(result.damage * cfg.shieldDamage));
+    enemy.shield = Math.max(0, enemy.shield - (breaker ? cfg.shieldBreak : 1));
+    if (!enemy.shield) {
+      // Quebrou: o chefe perde a carga do golpe gigante e fica atordoado.
+      enemy.charging = false;
+      enemy.chargeMs = undefined;
+      enemy.stunMs = cfg.stunMs;
+      b.enemyTimerMs = Math.max(b.enemyTimerMs, cfg.stunMs);
+      events.push({ type: 'raidShieldBroken', speciesId: enemy.speciesId });
+    }
+  }
   if (!result.missed && result.damage > 0) {
     result.damage = survive(other, result.damage, side);
     // Força Bruta: o golpe bate mais forte e perde o efeito extra.
@@ -620,7 +662,7 @@ function takeTurn(
       inflict(side, makeStatus(contact.ailment, rng), other);
     }
   }
-  if (isPlayer && b.kind === 'raid' && result.damage > 0) raidRage(enemy, events);
+  if (isPlayer && b.kind === 'raid' && result.damage > 0) raidRage(state, enemy, events);
   if (isPlayer && b.kind === 'legendary' && result.damage > 0) legendRage(state, enemy, events);
 
   return endOfAction();
@@ -636,11 +678,19 @@ function applyBoost(c: Combatant, stats?: Partial<Record<StatKey, number>>): voi
 }
 
 /** Raide: o chefe fica furioso ao passar de 2/3 e de 1/3 do HP. */
-function raidRage(enemy: EnemyState, events: GameEvent[]): void {
-  const stage = BALANCE.raid.rageAt.filter((t) => enemy.hp / enemy.maxHp <= t).length;
+function raidRage(state: GameState, enemy: EnemyState, events: GameEvent[]): void {
+  const cfg = BALANCE.raid;
+  const stage = cfg.rageAt.filter((t) => enemy.hp / enemy.maxHp <= t).length;
   if (stage <= (enemy.rage ?? 0) || enemy.hp <= 0) return;
   enemy.rage = stage;
   enemy.status = undefined;
+  // A cada fúria ele ergue o escudo de novo e começa a carregar o golpe gigante: até lá não ataca. Quebrar o
+  // escudo a tempo cancela o golpe; se não der, é hora de pôr em campo alguém que resista.
+  enemy.shield = cfg.shield;
+  enemy.stunMs = undefined;
+  enemy.charging = true;
+  enemy.chargeMs = cfg.chargeMs;
+  state.battle.enemyTimerMs = cfg.chargeMs;
   events.push({ type: 'raidRage', speciesId: enemy.speciesId, stage });
 }
 
@@ -772,7 +822,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     boost = member.boost;
     held = member.held;
     abilitySlot = member.abilitySlot ?? 0;
-    ivs = legendaryIvs(rng, BALANCE.raid.perfectIvs);
+    ivs = legendaryIvs(rng, raidPerfectIvs(speciesId));
     shiny = rollShiny(rng, mods.shiny);
   } else if (b.kind !== 'wild') {
     foe = b.team[b.bossIndex];
@@ -803,10 +853,17 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     form = rollForm(speciesId, rng, now);
     level = repelActive(state) ? enc.maxLevel : randInt(rng, enc.minLevel, enc.maxLevel);
     ivs = randomIvs(rng);
-    shiny = rollShiny(rng, mods.shiny * huntShinyMultiplier(state, speciesId));
+    // Uma frente sobre a rota, a aurora e o arco-íris deixam o shiny mais provável.
+    const wildRoute = encounterRoute(route);
+    const sky = skyEvent(wildRoute, state.env);
+    const skyShiny =
+      (frontOn(state.env, wildRoute.id) ? FRONT_SHINY : 1) * (sky === 'aurora' || sky === 'rainbow' ? SKY_SHINY : 1);
+    shiny = rollShiny(rng, mods.shiny * huntShinyMultiplier(state, speciesId) * skyShiny);
     recordEncounter(state, speciesId, shiny, now);
     if (abilitiesOf(speciesId)[1] && rng.next() < 0.25) abilitySlot = 1;
     if (rng.next() < BALANCE.heldDropChance) held = pickWeighted(rng, FOUND_ITEMS).id;
+    // Chuva de meteoros: alguns selvagens aparecem segurando um Star Piece.
+    if (sky === 'meteors' && rng.next() < METEOR_ITEM_CHANCE) held = 'star-piece';
   }
   const base = statsOf({ speciesId, level, ivs, nature: foe?.nature, evs: foe?.evs }).hp;
   const hpScale = roamer
@@ -814,7 +871,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     : b.kind === 'legendary'
       ? legendaryRules(speciesId).hpMultiplier
       : b.kind === 'raid'
-        ? BALANCE.raid.hpMultiplier
+        ? raidHpMultiplier(speciesId, state.raid?.mod)
         : 1;
   const maxHp = Math.round(base * (boost ?? 1) * hpScale);
   b.enemy = {
@@ -831,6 +888,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     water,
     form,
     gender: foe?.gender ?? rollGender(speciesId, rng),
+    ...(b.kind === 'raid' ? { shield: BALANCE.raid.shield } : {}),
   };
   if (foe?.moveset) {
     Object.assign(b.enemy, {
@@ -1037,9 +1095,13 @@ function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[]
   const b = state.battle;
   const rng = rngFrom(state);
   const cfg = BALANCE.raid;
-  const coins = Math.round(enemy.level * cfg.coinsPerLevel * raidStarBonus(raidStars(enemy.speciesId)));
+  const modId = state.raid?.mod;
+  const mod = modId ? RAID_MODS[modId] : undefined;
+  const coins = Math.round(
+    enemy.level * cfg.coinsPerLevel * raidStarBonus(raidStars(enemy.speciesId)) * (mod?.coins ?? 1),
+  );
   const loot: Record<string, number> = {};
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < raidLootRolls(enemy.speciesId, modId); i++) {
     for (const [id, n] of Object.entries(pickWeighted(rng, RAID_LOOT).items)) loot[id] = (loot[id] ?? 0) + n;
   }
   // Às vezes a raide deixa um ovo raro (vai para o ninho da Creche).
@@ -1051,7 +1113,7 @@ function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[]
   state.stats.coinsEarned += coins;
   giveItems(state, loot);
   let caught: { uid: number; shiny: boolean; isNew: boolean } | undefined;
-  if (rng.next() < cfg.catchChance) {
+  if (mod?.sureCatch || rng.next() < cfg.catchChance) {
     const isNew = !dexEntry(state, enemy.speciesId).caught;
     const p = addToCollection(
       state,
@@ -1071,7 +1133,21 @@ function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[]
   state.stats.raidWins++;
   const book = (state.raidLog ??= {});
   book[enemy.speciesId] = (book[enemy.speciesId] ?? 0) + 1;
-  events.push({ type: 'raidDefeated', speciesId: enemy.speciesId, coins, items: loot, caught });
+  const elapsed = raidTimeLimit(enemy.speciesId, modId) - (b.raidMs ?? 0);
+  const best = (state.raidBest ??= {});
+  const record = elapsed > 0 && (!best[enemy.speciesId] || elapsed < best[enemy.speciesId]);
+  if (record) best[enemy.speciesId] = elapsed;
+  events.push({
+    type: 'raidDefeated',
+    speciesId: enemy.speciesId,
+    coins,
+    items: loot,
+    caught,
+    timeMs: Math.max(0, elapsed),
+    stars: raidStars(enemy.speciesId),
+    record,
+    shiny: enemy.shiny,
+  });
   if (state.raid) state.raid = null;
   healTeam(state);
   state.battle = { ...freshBattle(b.routeId), phase: 'victory', phaseMs: BALANCE.combat.victoryDelayMs };

@@ -51,6 +51,10 @@ export interface SafariEnemy {
   happy?: boolean;
   /** Já foi fotografado neste encontro. */
   photographed?: boolean;
+  /** Camada da zona em que apareceu (0 borda, 1 mata, 2 coração): muda a fuga e os pontos. */
+  depth?: number;
+  /** Veio de um rastro seguido. */
+  tracked?: boolean;
   /** Saves antigos (isca e pedra acumuladas). */
   bait?: number;
   rock?: number;
@@ -69,7 +73,35 @@ export interface SafariState {
   points?: number;
   /** Espécies fotografadas nesta visita (cada uma vale pontos uma vez). */
   photos?: number[];
+  /** Camada da zona em que você está (0 borda, 1 mata, 2 coração). */
+  depth?: number;
+  /** Rastro achado no chão: seguir leva direto a essa espécie. */
+  track?: { speciesId: number; path: SafariPath };
 }
+
+/**
+ * Camadas da zona. Entrar mais fundo custa passos (`enter`) e cada caminhada fica mais cara (`walk`), mas os raros
+ * aparecem mais (`rare`), os comuns menos (`common`), os níveis sobem, o shiny fica mais provável e cada captura vale
+ * mais pontos. Lá no fundo os Pokémon também são mais ariscos (`flee`).
+ */
+export const SAFARI_DEPTHS = [
+  { name: 'Borda', enter: 0, walk: 1, rare: 1, common: 1, level: 0, shiny: 1, points: 1, flee: 1 },
+  { name: 'Mata', enter: 80, walk: 1.25, rare: 2, common: 0.8, level: 3, shiny: 1.5, points: 1.25, flee: 1.05 },
+  { name: 'Coração', enter: 120, walk: 1.6, rare: 4, common: 0.5, level: 6, shiny: 2.5, points: 1.5, flee: 1.15 },
+] as const;
+
+/** Passos para seguir um rastro e a chance de achar um depois de cada encontro. */
+export const TRACK_STEPS = 30;
+const TRACK_CHANCE = 0.35;
+
+const depthOf = (depth: number | undefined) => SAFARI_DEPTHS[Math.max(0, Math.min(SAFARI_DEPTHS.length - 1, depth ?? 0))];
+
+/** Passos que uma caminhada custa na camada em que você está. */
+export const walkCost = (s: SafariState, path: SafariPath) =>
+  Math.ceil(SAFARI_PATHS[path].steps * depthOf(s.depth).walk);
+
+/** Multiplicador dos pontos de uma captura feita nessa camada. */
+export const depthPoints = (depth: number | undefined) => depthOf(depth).points;
 
 export interface SafariRequest {
   id: string;
@@ -288,15 +320,17 @@ export function favoriteBerry(id: number): string {
   return BERRIES[(Math.imul(id, 2654435761) >>> 0) % BERRIES.length].id;
 }
 
-function spawn(state: GameState, path: SafariPath, rng: Rng, now: number): SafariEnemy {
+function spawn(state: GameState, path: SafariPath, rng: Rng, now: number, forced?: number): SafariEnemy {
   const s = state.safari!;
   const zone = getZone(s.zone);
   const prog = safariProgress(state);
   const outbreak = outbreakOf(state, now);
+  const depth = depthOf(s.depth);
   const rodMult = prog.upgrades.superRod ? 4 : prog.upgrades.goodRod ? 2 : 1;
   const table = zone[path].map(([slug, w]) => {
     const id = sid(slug);
-    let weight = w;
+    // Mais fundo, os raros aparecem mais e os comuns menos.
+    let weight = w * (w <= 4 ? depth.rare : w >= 10 ? depth.common : 1);
     if (path === 'water' && w <= 4) weight *= rodMult;
     if (outbreak?.zone === zone.id && outbreak.speciesId === id) weight *= 5;
     return { speciesId: id, weight };
@@ -304,19 +338,39 @@ function spawn(state: GameState, path: SafariPath, rng: Rng, now: number): Safar
   // O surto também aparece na grama baixa da zona dele, mesmo se for da grama alta.
   if (path === 'grass' && outbreak?.zone === zone.id && !table.some((t) => t.speciesId === outbreak.speciesId))
     table.push({ speciesId: outbreak.speciesId, weight: 25 });
-  const id = pickWeighted(rng, table).speciesId;
+  // Um rastro seguido leva direto à espécie que o deixou.
+  const id = forced ?? pickWeighted(rng, table).speciesId;
   dexEntry(state, id).seen = true;
-  const shinyMult = computeModifiers(state).shiny * (outbreak?.speciesId === id ? 3 : 1);
+  const shinyMult = computeModifiers(state).shiny * (outbreak?.speciesId === id ? 3 : 1) * depth.shiny;
   return {
     speciesId: id,
-    level: randInt(rng, zone.levels[0], zone.levels[1]) + (path === 'tall' ? 4 : 0),
+    level: Math.min(
+      BALANCE.maxLevel,
+      randInt(rng, zone.levels[0], zone.levels[1]) + (path === 'tall' ? 4 : 0) + depth.level,
+    ),
     ivs: randomIvs(rng),
     shiny: rollShiny(rng, shinyMult),
     form: rollForm(id, rng, now),
     path,
     mood: 'watching',
     moodTurns: 0,
+    depth: s.depth ?? 0,
+    ...(forced !== undefined ? { tracked: true } : {}),
   };
+}
+
+/** Um rastro no chão: de preferência de uma espécie que ainda falta na Pokédex da zona (senão, um raro da grama alta). */
+function rollTrack(state: GameState, rng: Rng): SafariState['track'] {
+  const zone = getZone(state.safari!.zone);
+  const have = safariProgress(state).zoneCaught[zone.id] ?? [];
+  const land = (['grass', 'tall'] as SafariPath[]).flatMap((path) =>
+    zone[path].map(([slug, weight]) => ({ speciesId: sid(slug), path, weight })),
+  );
+  const missing = land.filter((t) => !have.includes(t.speciesId));
+  const pool = missing.length ? missing : land.filter((t) => t.path === 'tall');
+  if (!pool.length) return undefined;
+  const pick = pickWeighted(rng, pool);
+  return { speciesId: pick.speciesId, path: pick.path };
 }
 
 export function startSafari(state: GameState, now: number, zoneId: SafariZoneId = 'plains'): boolean {
@@ -345,13 +399,53 @@ export function safariWalk(state: GameState, path: SafariPath, now: number): Gam
   const s = state.safari;
   const events: GameEvent[] = [];
   if (!s || s.enemy) return events;
-  const cost = SAFARI_PATHS[path].steps;
+  const cost = walkCost(s, path);
   const steps = s.steps ?? BASE_STEPS;
   if (steps < cost) return events;
   s.steps = steps - cost;
+  // Quem vai por outro caminho deixa o rastro para trás.
+  s.track = undefined;
   s.enemy = spawn(state, path, rngFrom(state), now);
   events.push({ type: 'safariResult', speciesId: s.enemy.speciesId, action: 'walk', outcome: 'appeared' });
   return events;
+}
+
+/** Segue o rastro achado no chão: gasta passos e encontra a espécie que o deixou. */
+export function safariFollow(state: GameState, now: number): GameEvent[] {
+  const s = state.safari;
+  const events: GameEvent[] = [];
+  if (!s || s.enemy || !s.track) return events;
+  const steps = s.steps ?? BASE_STEPS;
+  if (steps < TRACK_STEPS) return events;
+  s.steps = steps - TRACK_STEPS;
+  const { speciesId, path } = s.track;
+  s.track = undefined;
+  s.enemy = spawn(state, path, rngFrom(state), now, speciesId);
+  events.push({ type: 'safariResult', speciesId, action: 'walk', outcome: 'appeared' });
+  return events;
+}
+
+/** Entra uma camada mais fundo na zona (gasta passos). Devolve se entrou. */
+export function safariDeeper(state: GameState): boolean {
+  const s = state.safari;
+  const depth = s?.depth ?? 0;
+  if (!s || s.enemy || depth >= SAFARI_DEPTHS.length - 1) return false;
+  const cost = SAFARI_DEPTHS[depth + 1].enter;
+  const steps = s.steps ?? BASE_STEPS;
+  if (steps < cost) return false;
+  s.steps = steps - cost;
+  s.depth = depth + 1;
+  s.track = undefined;
+  return true;
+}
+
+/** Volta para a borda da zona (de graça; para entrar de novo, paga outra vez). */
+export function safariRetreat(state: GameState): boolean {
+  const s = state.safari;
+  if (!s || s.enemy || !s.depth) return false;
+  s.depth = 0;
+  s.track = undefined;
+  return true;
 }
 
 const MOOD = {
@@ -376,7 +470,7 @@ export function safariFleeChance(enemy: SafariEnemy): number {
   const cfg = BALANCE.safari;
   const base = cfg.fleeBase + getSpecies(enemy.speciesId).baseStats.spe * cfg.fleePerSpeed;
   const legacy = cfg.bait.flee ** (enemy.bait ?? 0) * cfg.rock.flee ** (enemy.rock ?? 0);
-  return Math.min(0.9, base * MOOD[enemy.mood ?? 'watching'].flee * legacy);
+  return Math.min(0.9, base * MOOD[enemy.mood ?? 'watching'].flee * legacy * depthOf(enemy.depth).flee);
 }
 
 function setMood(enemy: SafariEnemy, mood: SafariMood, turns: number, happy = false): void {
@@ -442,7 +536,7 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   } else if (action === 'ball') {
     s.balls--;
     if (rng.next() < safariCatchChance(state, enemy)) {
-      sizeRecord = catchIt(state, zone, enemy, now, events, `Safari · ${zone.name}`, true);
+      sizeRecord = catchIt(state, zone, enemy, now, events, `Safari · ${zone.name}`, true, depthPoints(enemy.depth));
       s.caught.push(enemy.speciesId);
       result('caught');
       return next(state, events);
@@ -476,8 +570,15 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
 function next(state: GameState, events: GameEvent[]): GameEvent[] {
   const s = state.safari!;
   s.enemy = null;
+  // Voltar à borda é de graça, então a visita só acaba quando nem a caminhada mais barata de lá cabe.
   const minStep = Math.min(...Object.values(SAFARI_PATHS).map((p) => p.steps));
-  if (s.balls <= 0 || (s.steps ?? BASE_STEPS) < minStep) end(state, events);
+  if (s.balls <= 0 || (s.steps ?? BASE_STEPS) < minStep) {
+    end(state, events);
+    return events;
+  }
+  // De vez em quando o Pokémon que saiu (ou outro) deixa um rastro no chão.
+  const rng = rngFrom(state);
+  s.track = rng.next() < TRACK_CHANCE ? rollTrack(state, rng) : undefined;
   return events;
 }
 

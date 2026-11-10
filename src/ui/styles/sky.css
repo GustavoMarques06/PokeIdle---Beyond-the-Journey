@@ -1,0 +1,231 @@
+/* Frentes de clima (mapa) e eventos raros do céu na batalha: aurora, arco-íris e chuva de meteoros. */
+
+/* --- Mapa: a frente sobre uma rota, a rota para onde ela vai e o aviso da região -------------------- */
+.node-front {
+  position: absolute;
+  top: -22px;
+  right: -14px;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 2px solid #283878;
+  border-radius: 50%;
+  background: #dcecff;
+  pointer-events: none;
+  animation: front-drift 2.4s ease-in-out infinite;
+}
+
+.node-front.w-sun {
+  border-color: #a06a10;
+  background: #fff0b0;
+}
+
+.node-front.w-sand {
+  border-color: #80602a;
+  background: #f0dca8;
+}
+
+.node-front.w-fog {
+  border-color: #686878;
+  background: #ececf4;
+}
+
+.node-front.w-hail {
+  border-color: #3878a0;
+  background: #e0f6ff;
+}
+
+@keyframes front-drift {
+  50% {
+    translate: 3px -2px;
+  }
+}
+
+/* A próxima rota da frente: um anel pontilhado piscando. */
+.node-front-next {
+  position: absolute;
+  inset: -6px;
+  border: 2px dashed #283878;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: status-blink 1s steps(2, end) infinite;
+}
+
+.map-front {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 6px 0;
+  padding: 4px 8px;
+  border: 2px solid #283878;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #dcecff, #fff);
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-front.w-sun {
+  border-color: #a06a10;
+  background: linear-gradient(90deg, #fff0b0, #fff);
+}
+
+.map-front.w-sand {
+  border-color: #80602a;
+  background: linear-gradient(90deg, #f0dca8, #fff);
+}
+
+.map-front > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-front strong {
+  font: 700 12px var(--font-label);
+}
+
+.map-front small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* --- HUD: selo do evento raro ou da frente na rota ------------------------------------------------- */
+.hud-event {
+  padding: 1px 5px;
+  border: 1px solid #283878;
+  border-radius: 4px;
+  background: #dcecff;
+  color: #182050;
+  font: 700 9px var(--font-label);
+  white-space: nowrap;
+  animation: status-blink 1.6s steps(2, end) infinite;
+}
+
+.hud-event.ev-meteors {
+  border-color: #806000;
+  background: #fff4b0;
+  color: #403000;
+}
+
+.hud-event.ev-aurora {
+  border-color: #207850;
+  background: #d0ffe8;
+  color: #104028;
+}
+
+.hud-event.ev-rainbow {
+  border-color: #a03070;
+  background: linear-gradient(90deg, #ffd8d8, #fff4c0, #d8f8d8, #d8e8ff);
+  color: #401030;
+}
+
+.reduced-motion .hud-event {
+  animation: none !important;
+}
+
+/* --- Batalha: o céu ---------------------------------------------------------------------------------- */
+.scene-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Aurora: cortinas de luz verde e roxa ondulando no alto. */
+.scene-sky.sky-aurora {
+  bottom: 55%;
+  background:
+    linear-gradient(100deg, transparent 10%, rgb(80 255 170 / 0.5) 30%, transparent 50%) 0 0 / 200% 100%,
+    linear-gradient(80deg, transparent 30%, rgb(160 110 255 / 0.45) 55%, transparent 75%) 0 0 / 220% 100%,
+    linear-gradient(95deg, transparent 50%, rgb(90 220 255 / 0.4) 70%, transparent 90%) 0 0 / 180% 100%;
+  -webkit-mask: linear-gradient(#000, transparent);
+  mask: linear-gradient(#000, transparent);
+  animation: sky-aurora 9s ease-in-out infinite alternate;
+}
+
+@keyframes sky-aurora {
+  to {
+    background-position:
+      100% 0,
+      -80% 0,
+      60% 0;
+  }
+}
+
+/* Arco-íris: um arco de faixas no alto, aparecendo e sumindo devagar. */
+.scene-sky.sky-rainbow::before {
+  content: '';
+  position: absolute;
+  top: -55%;
+  left: 12%;
+  width: 76%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 56%,
+    rgb(150 90 220 / 0.55) 57% 59%,
+    rgb(80 130 240 / 0.55) 59% 61%,
+    rgb(90 200 110 / 0.55) 61% 63%,
+    rgb(250 220 80 / 0.55) 63% 65%,
+    rgb(250 150 60 / 0.55) 65% 67%,
+    rgb(240 80 80 / 0.55) 67% 69%,
+    transparent 70%
+  );
+  animation: sky-rainbow 6s ease-in-out infinite alternate;
+}
+
+@keyframes sky-rainbow {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Chuva de meteoros: riscos de luz cruzando o céu em diagonal. */
+.scene-sky.sky-meteors {
+  bottom: 45%;
+}
+
+.scene-sky.sky-meteors i {
+  position: absolute;
+  top: calc(var(--i) * 12% - 10%);
+  left: calc(20% + var(--i) * 17%);
+  width: calc(var(--u, 3px) * 18);
+  height: calc(var(--u, 3px) * 1);
+  background: linear-gradient(90deg, transparent, #fff8c0);
+  box-shadow: 0 0 calc(var(--u, 3px) * 2) #fff0a0;
+  opacity: 0;
+  rotate: 145deg;
+  animation: sky-meteor 3.6s linear infinite;
+  animation-delay: calc(var(--i) * 0.7s);
+}
+
+@keyframes sky-meteor {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  22% {
+    opacity: 0;
+    translate: calc(var(--u, 3px) * -70) calc(var(--u, 3px) * 50);
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--u, 3px) * -70) calc(var(--u, 3px) * 50);
+  }
+}
+
+.reduced-motion :is(.node-front, .node-front-next, .scene-sky, .scene-sky::before, .scene-sky i) {
+  animation: none !important;
+}
+
+.reduced-motion .scene-sky.sky-meteors {
+  display: none;
+}

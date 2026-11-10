@@ -217,9 +217,13 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
       return { text: `Ele deixou cair ${itemName(e.item)}! Guardado na Mochila.`, important: true };
     case 'raidRage':
       return {
-        text: `${speciesName(e.speciesId)} ficou FURIOSO! ${e.stage === 2 ? 'Está em desespero!' : 'Os golpes dele ficaram mais fortes!'}`,
+        text: `${speciesName(e.speciesId)} ficou FURIOSO, ergueu o escudo e está carregando um golpe gigante!`,
         important: true,
       };
+    case 'raidShieldBroken':
+      return { text: `O escudo quebrou! ${speciesName(e.speciesId)} ficou atordoado!`, important: true };
+    case 'raidBlast':
+      return { text: `${speciesName(e.speciesId)} soltou o golpe gigante!`, important: true };
     case 'raidFailed':
       return { text: `O tempo acabou! ${speciesName(e.speciesId)} escapou da raide.`, important: true };
     case 'raidDefeated': {

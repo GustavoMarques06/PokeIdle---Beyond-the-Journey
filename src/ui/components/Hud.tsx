@@ -3,10 +3,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BADGES, ROUTES, getRoute } from '../../game-data';
-import { routeWeather } from '../../core/env';
+import { frontOn, routeWeather, skyEvent } from '../../core/env';
 import { routeCleared, type GameState } from '../../core/game';
 import { trainerLevel } from '../../core/meta';
-import { REGION_NAMES, WEATHER_EFFECTS, WEATHER_NAMES, formatNumber, speciesName } from '../i18n/pt-BR';
+import {
+  REGION_NAMES,
+  SKY_TEXT,
+  WEATHER_EFFECTS,
+  WEATHER_NAMES,
+  formatNumber,
+  speciesName,
+} from '../i18n/pt-BR';
 import { BadgeIcon, Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite } from './common';
 
 /** Estojo de insígnias de uma região: obtidas em cor, as demais em silhueta. */
@@ -96,7 +103,10 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
   const routeDone = trial ? prog.bossDefeated : prog.kills >= route.killsRequired;
   const journey = Math.round((cleared / ROUTES.length) * 100);
   const money = useCountUp(state.coins);
-  const envText = `${dayPhase(state.lastTimerAt, night)} · ${WEATHER_NAMES[weather]}. ${WEATHER_EFFECTS[weather]}${night ? ' À noite: Fantasma/Sombrio +15% e outros Pokémon aparecem.' : ''}`;
+  // Frente sobre a rota e evento raro do céu (aurora, arco-íris, meteoros).
+  const front = frontOn(state.env, route.id);
+  const sky = skyEvent(route, state.env);
+  const envText = `${dayPhase(state.lastTimerAt, night)} · ${WEATHER_NAMES[weather]}. ${WEATHER_EFFECTS[weather]}${night ? ' À noite: Fantasma/Sombrio +15% e outros Pokémon aparecem.' : ''}${front ? ' Uma frente passa por aqui: shiny 1,5× mais provável enquanto ela durar.' : ''}${sky ? ` ${SKY_TEXT[sky][1]}` : ''}`;
 
   return (
     <header className="hud frame frame-menu">
@@ -126,6 +136,12 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
               name={weather === 'clear' ? (night ? 'moon' : 'sun') : WEATHER_ICON[weather]}
               scale={2}
             />
+            {/* Evento raro ou frente: selo sempre visível (o texto ao lado some nas telas estreitas). */}
+            {(sky || front) && (
+              <b className={`hud-event ${sky ? `ev-${sky}` : 'ev-front'}`}>
+                {sky ? SKY_TEXT[sky][0].toUpperCase() : 'FRENTE'}
+              </b>
+            )}
             <small>
               {weather === 'clear' ? '' : `${WEATHER_NAMES[weather].toUpperCase()} · `}
               {dayPhase(state.lastTimerAt, night).toUpperCase()}

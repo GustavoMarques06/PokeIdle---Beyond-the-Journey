@@ -1,13 +1,30 @@
 // Dia/noite e clima. Calculados a partir do relógio real, mas guardados no estado
 // (`state.env`) para a simulação continuar determinística e testável.
 
-import { BALANCE, type Route, type TimeOfDay, type TypeName } from '../game-data';
+import { BALANCE, REGIONS, getRoute, type Route, type TimeOfDay, type TypeName } from '../game-data';
 
 export type Weather = 'clear' | 'sun' | 'rain' | 'sand' | 'fog' | 'hail';
+
+/** Uma frente: um clima que cruza a região rota a rota (o mapa mostra onde ela está e para onde vai). */
+export interface WeatherFront {
+  routeId: string;
+  weather: Weather;
+  /** Quando ela sai desta rota. */
+  until: number;
+  /** A próxima rota (vazio quando a frente se desfaz ao sair). */
+  next?: string;
+}
+
+/** Eventos raros do céu: aurora nos campos de neve, arco-íris depois da chuva, chuva de meteoros à noite. */
+export type SkyEvent = 'aurora' | 'rainbow' | 'meteors';
 
 export interface Environment {
   period: TimeOfDay;
   weather: Weather;
+  /** Frentes em movimento (no máximo uma por região). */
+  fronts?: WeatherFront[];
+  /** Evento do céu de agora (a aurora depende da rota: ver skyEvent). */
+  sky?: 'rainbow' | 'meteors';
 }
 
 /** Cenários novos que são fechados (salas da Liga, esconderijos, torres). */
@@ -66,22 +83,104 @@ export function weatherAt(now: number): Weather {
 }
 
 export function environmentAt(now: number): Environment {
-  return { period: periodAt(now), weather: weatherAt(now) };
+  return { period: periodAt(now), weather: weatherAt(now), fronts: frontsAt(now), sky: skyAt(now) };
+}
+
+// --- Frentes: um clima que cruza a região, rota a rota --------------------------------------------
+
+/** Cada frente dura um bloco de 3 h e anda uma rota a cada 20 min. */
+const FRONT_BLOCK_MS = 3 * 3_600_000;
+const FRONT_STEP_MS = 20 * 60_000;
+/** Uma em cada quatro vezes a região passa o bloco sem frente. */
+const FRONT_QUIET = 0.25;
+const FRONT_WEATHERS: Weather[] = ['rain', 'rain', 'fog', 'hail', 'sun', 'sand'];
+/** Caçar na rota onde a frente está vale a viagem: o shiny fica mais provável. */
+export const FRONT_SHINY = 1.5;
+
+let frontPaths: string[][] | undefined;
+
+/** O caminho que as frentes fazem em cada região: as rotas ao ar livre, na ordem da jornada. */
+function regionFrontPaths(): string[][] {
+  return (frontPaths ??= REGIONS.map((region) =>
+    region.routes
+      .map(getRoute)
+      // Deserto e campo de neve já têm o clima deles.
+      .filter((r) => r.kind === 'wild' && isOutdoor(r) && r.scene !== 'desert' && r.scene !== 'snowfield')
+      .map((r) => r.id),
+  ));
+}
+
+/** As frentes de agora: no máximo uma por região, cada uma parada numa rota até `until`. */
+export function frontsAt(now: number): WeatherFront[] {
+  const block = Math.floor(now / FRONT_BLOCK_MS);
+  const step = Math.floor((now - block * FRONT_BLOCK_MS) / FRONT_STEP_MS);
+  const fronts: WeatherFront[] = [];
+  regionFrontPaths().forEach((path, i) => {
+    if (!path.length || hash(block * 31 + i * 977 + 5) < FRONT_QUIET) return;
+    const weather = FRONT_WEATHERS[Math.floor(hash(block * 17 + i * 131 + 9) * FRONT_WEATHERS.length)];
+    const index = (Math.floor(hash(block * 13 + i * 71 + 3) * path.length) + step) % path.length;
+    const until = block * FRONT_BLOCK_MS + (step + 1) * FRONT_STEP_MS;
+    const last = until >= (block + 1) * FRONT_BLOCK_MS;
+    fronts.push({
+      routeId: path[index],
+      weather,
+      until,
+      ...(last ? {} : { next: path[(index + 1) % path.length] }),
+    });
+  });
+  return fronts;
+}
+
+/** A frente que está sobre a rota, se houver. */
+export function frontOn(env: Environment, routeId: string): WeatherFront | undefined {
+  return env.fronts?.find((f) => f.routeId === routeId);
+}
+
+// --- Eventos raros do céu -------------------------------------------------------------------------
+
+const SLOT_MS = BALANCE.weather.slotHours * 3_600_000;
+/** O arco-íris dura a primeira meia hora de céu aberto depois de uma chuva. */
+const RAINBOW_MS = 30 * 60_000;
+/** Chance de a hora ter chuva de meteoros (nas noites de céu limpo). */
+const METEOR_CHANCE = 0.2;
+/** Aurora e arco-íris dobram a chance de shiny; na chuva de meteoros os selvagens podem trazer um Star Piece. */
+export const SKY_SHINY = 2;
+export const METEOR_ITEM_CHANCE = 0.1;
+
+/** O evento do céu de agora (vale para todas as rotas ao ar livre com céu aberto). */
+export function skyAt(now: number): 'rainbow' | 'meteors' | undefined {
+  const weather = weatherAt(now);
+  if (weather !== 'clear' && weather !== 'sun') return undefined;
+  if (periodAt(now) === 'day') {
+    const slotStart = Math.floor(now / SLOT_MS) * SLOT_MS;
+    return now - slotStart < RAINBOW_MS && weatherAt(slotStart - 1) === 'rain' ? 'rainbow' : undefined;
+  }
+  return weather === 'clear' && hash(Math.floor(now / 3_600_000) * 7 + 3) < METEOR_CHANCE ? 'meteors' : undefined;
+}
+
+/** O evento do céu que se vê desta rota: a aurora (noite limpa nos campos de neve), o arco-íris ou os meteoros. */
+export function skyEvent(route: Route, env: Environment): SkyEvent | undefined {
+  if (!isOutdoor(route)) return undefined;
+  const weather = routeWeather(route, env);
+  if (route.scene === 'snowfield') return weather === 'clear' && env.period === 'night' ? 'aurora' : undefined;
+  return weather === 'clear' || weather === 'sun' ? env.sky : undefined;
 }
 
 /** Clima efetivo numa rota: cavernas e salas não têm clima; o deserto vive em tempestade de areia. */
 export function routeWeather(route: Route, env: Environment): Weather {
   if (INDOOR.has(route.scene)) return 'clear';
-  if (route.scene === 'desert') return env.weather === 'rain' ? 'clear' : 'sand';
+  // Uma frente sobre a rota troca o clima dela (e segue as mesmas regras de praia e afins).
+  const here = frontOn(env, route.id)?.weather ?? env.weather;
+  if (route.scene === 'desert') return here === 'rain' ? 'clear' : 'sand';
   // Granizo só onde faz frio ou em áreas abertas altas; na praia e no deserto vira chuva/areia.
-  if (env.weather === 'hail' && route.scene === 'beach') return 'rain';
+  if (here === 'hail' && route.scene === 'beach') return 'rain';
   // Nos campos de neve neva quase sempre (como na Rota 217): só o sol, a névoa e a noite limpa (com a aurora)
   // abrem uma brecha.
   if (route.scene === 'snowfield') {
-    const opening = env.weather === 'sun' || env.weather === 'fog' || (env.weather === 'clear' && env.period === 'night');
+    const opening = here === 'sun' || here === 'fog' || (here === 'clear' && env.period === 'night');
     if (!opening) return 'hail';
   }
-  return env.weather;
+  return here;
 }
 
 /** Multiplicadores de dano por tipo de golpe causados pelo ambiente. */

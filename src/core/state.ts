@@ -142,6 +142,13 @@ export interface EnemyState {
   supportBoost?: Partial<Record<StatKey, number>>;
   /** Raide: etapa de fúria (0 a 2). */
   rage?: number;
+  /** Raide: pontos de escudo que restam (0 ou vazio = sem escudo). */
+  shield?: number;
+  /** Raide: carregando o golpe gigante (o próximo golpe dele sai muito mais forte) e quanto falta. */
+  charging?: boolean;
+  chargeMs?: number;
+  /** Raide: atordoado depois de perder o escudo (tempo que falta, para a tela). */
+  stunMs?: number;
   /** Encontrado pescando ou surfando. */
   water?: WaterMode;
   /** Forma alternativa (Unown, Deerling, Spinda). */
@@ -324,6 +331,10 @@ export interface GameState {
   dig?: DigState;
   /** Chefes de raide vencidos (espécie → vezes). */
   raidLog?: Record<number, number>;
+  /** Ruínas de Alph: semana da última palavra resgatada. */
+  unown?: { week: number; claimed: boolean };
+  /** Melhor tempo (ms) de cada chefe de raide vencido (espécie → ms). */
+  raidBest?: Record<number, number>;
   /** Game Corner: Voltorb Flip e fichas do chão. */
   corner?: CornerState;
   /** Fósseis revividos de cada espécie (o Museu). */
@@ -523,6 +534,8 @@ export type GameEvent =
   | { type: 'raidAppeared'; speciesId: number }
   | { type: 'raidLeft'; speciesId: number }
   | { type: 'raidRage'; speciesId: number; stage: number }
+  | { type: 'raidShieldBroken'; speciesId: number }
+  | { type: 'raidBlast'; speciesId: number }
   | { type: 'raidFailed'; speciesId: number }
   | {
       type: 'raidDefeated';
@@ -530,6 +543,11 @@ export type GameEvent =
       coins: number;
       items: Record<string, number>;
       caught?: { uid: number; shiny: boolean; isNew: boolean };
+      /** Tempo da luta (ms), estrelas e se bateu o recorde da espécie. */
+      timeMs?: number;
+      stars?: number;
+      record?: boolean;
+      shiny?: boolean;
     }
   | { type: 'rematchDefeated'; routeId: string; coins: number; items: Record<string, number> }
   | { type: 'trainingFull'; uid: number; stat: string }
@@ -553,7 +571,15 @@ export type GameEvent =
   | { type: 'safariEnded'; caught: number; points?: number; record?: boolean; species?: number[]; zone?: string }
   | { type: 'safariZoneComplete'; zone: string }
   | { type: 'safariGuideReady' }
-  | { type: 'digDone'; items: string[]; missed: number; collapsed: boolean }
+  | {
+      type: 'digDone';
+      items: string[];
+      missed: number;
+      collapsed: boolean;
+      /** Letras dos Unown que saíram das tabuletas descobertas. */
+      unown?: string[];
+    }
+  | { type: 'unownWord'; word: string; form: string; coins: number; shiny: boolean }
   | { type: 'gardenMutation'; berry: string; from: [string, string]; isNew: boolean }
   | { type: 'safariGuideBack'; species: number[]; zone: string }
   | {

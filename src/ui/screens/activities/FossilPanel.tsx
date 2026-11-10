@@ -4,8 +4,16 @@
 
 import { useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { BALANCE, FOSSILS } from '../../../game-data';
+import { BALANCE, FOSSILS, formSet } from '../../../game-data';
 import { activityUnlocked } from '../../../core/collection';
+import { formsCaught } from '../../../core/forms';
+import {
+  UNOWN_ID,
+  UNOWN_TABLET,
+  UNOWN_WORD_COINS,
+  claimUnownWord,
+  unownWordStatus,
+} from '../../../core/unown';
 import {
   DIG_COST,
   DIG_H,
@@ -24,7 +32,7 @@ import { claimFossil, startRevive } from '../../../core/fossils';
 import type { GameEvent, GameState } from '../../../core/game';
 import { audio } from '../../audio';
 import { ItemIcon, Money, PokemonSprite, Shiny, Window } from '../../components/common';
-import { itemName, speciesName } from '../../i18n/pt-BR';
+import { itemName, speciesName, unownLetter } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Countdown, Locked } from './shared';
 
@@ -140,7 +148,7 @@ function DigSite({ state }: { state: GameState }) {
     });
     if (done) {
       setResult(done);
-      audio.sfx(done.items.length ? 'fanfare' : 'faint');
+      audio.sfx(done.items.length || done.unown?.length ? 'fanfare' : 'faint');
     }
   };
   const hit = (x: number, y: number) => {
@@ -159,7 +167,8 @@ function DigSite({ state }: { state: GameState }) {
       {!run ? (
         <div className="dig-start">
           <p>
-            Uma parede de rocha cheia de segredos: fósseis, pedras de evolução e tesouros. Cave com cuidado:
+            Uma parede de rocha cheia de segredos: fósseis, pedras de evolução, tesouros e, às vezes, uma
+            tabuleta das Ruínas de Alph, que vira um Unown de uma letra que falta. Cave com cuidado:
             cada golpe abala a parede e, se ela desabar, só vem o que estiver totalmente descoberto.
           </p>
           <button
@@ -219,7 +228,13 @@ function DigSite({ state }: { state: GameState }) {
                   className={`dig-treasure ${treasureUncovered(run, t) ? 'free' : ''}`}
                   style={{ gridColumn: `${t.x + 1} / span ${t.w}`, gridRow: `${t.y + 1} / span ${t.h}` }}
                 >
-                  <ItemIcon id={t.item} size={t.w >= 3 ? 56 : t.w === 2 ? 36 : 22} />
+                  {t.item === UNOWN_TABLET ? (
+                    <span className="dig-tablet" title="Tabuleta das Ruínas de Alph">
+                      ?
+                    </span>
+                  ) : (
+                    <ItemIcon id={t.item} size={t.w >= 3 ? 56 : t.w === 2 ? 36 : 22} />
+                  )}
                 </span>
               ))}
             </div>
@@ -288,12 +303,18 @@ function DigSite({ state }: { state: GameState }) {
           >
             <div className="dig-result frame frame-dialog">
               <h3>{result.collapsed ? 'A PAREDE DESABOU!' : 'ESCAVAÇÃO CONCLUÍDA'}</h3>
-              {result.items.length ? (
+              {result.items.length || result.unown?.length ? (
                 <ul className="dig-result-items">
                   {result.items.map((item, i) => (
                     <li key={i} style={{ '--i': i } as CSSProperties}>
                       <ItemIcon id={item} size={40} />
                       <small>{itemName(item)}</small>
+                    </li>
+                  ))}
+                  {(result.unown ?? []).map((form, i) => (
+                    <li key={`u${i}`} style={{ '--i': result.items.length + i } as CSSProperties}>
+                      <PokemonSprite speciesId={UNOWN_ID} kind="front" form={form} />
+                      <small>Unown {unownLetter(form)}</small>
                     </li>
                   ))}
                 </ul>
@@ -310,6 +331,59 @@ function DigSite({ state }: { state: GameState }) {
           </div>,
           document.body,
         )}
+    </Window>
+  );
+}
+
+/**
+ * Ruínas de Alph: a palavra da semana em pedras com os Unown (acesas as letras que você já tem) e o alfabeto da
+ * coleção. Formar a palavra rende moedas e um Unown de uma letra que falta.
+ */
+function AlphRuins({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const now = state.lastTimerAt;
+  const status = unownWordStatus(state, now);
+  const all = formSet(UNOWN_ID)?.forms ?? [];
+  const have = formsCaught(state, UNOWN_ID);
+  return (
+    <Window
+      title={`RUÍNAS DE ALPH · ${have.length}/${all.length} letras`}
+      icon={<PokemonSprite speciesId={UNOWN_ID} kind="icon" />}
+    >
+      <p className="hint">
+        Toda semana as ruínas pedem uma palavra. Tenha um Unown de cada letra dela (letra repetida pede Unown
+        repetido) para ganhar <Money value={UNOWN_WORD_COINS} /> e um Unown de uma letra que falta. Os seus Unown
+        não são gastos. As letras vêm das expedições nas ruínas e das tabuletas da Escavação.
+      </p>
+      <ol className={`alph-word ${status.ready ? 'ready' : ''}`} aria-label={`Palavra da semana: ${status.word}`}>
+        {status.letters.map((l, i) => (
+          <li key={i} className={l.have ? 'have' : ''} style={{ '--i': i } as CSSProperties}>
+            <PokemonSprite speciesId={UNOWN_ID} kind="front" form={l.letter} silhouette={!l.have} />
+            <strong>{unownLetter(l.letter)}</strong>
+          </li>
+        ))}
+      </ol>
+      <button
+        className="pbtn primary"
+        disabled={!status.ready || status.claimed}
+        onClick={() => {
+          audio.sfx('fanfare');
+          engine.dispatch((s, t) => claimUnownWord(s, t));
+        }}
+      >
+        {status.claimed
+          ? 'Palavra desta semana já resgatada'
+          : status.ready
+            ? `Formar ${status.word} e pegar o prêmio`
+            : `Faltam ${status.letters.filter((l) => !l.have).length} letra(s)`}
+      </button>
+      <ul className="alph-letters" aria-label="Letras de Unown na coleção">
+        {all.map((f) => (
+          <li key={f} className={have.includes(f) ? 'have' : ''} title={`Unown ${unownLetter(f)}`}>
+            {unownLetter(f)}
+          </li>
+        ))}
+      </ul>
     </Window>
   );
 }
@@ -342,6 +416,7 @@ export function FossilPanel({ state }: { state: GameState }) {
       </Window>
 
       <DigSite state={state} />
+      <AlphRuins state={state} />
 
       <Window title="SEUS FÓSSEIS" icon={<ItemIcon id="helix-fossil" size={24} />}>
         <ul className="fossil-list">

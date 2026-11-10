@@ -34,7 +34,8 @@ export type Sfx =
   | 'shutter'
   | 'munch'
   | 'grumble'
-  | 'splat';
+  | 'splat'
+  | 'tick';
 
 type Wave = OscillatorType;
 
@@ -329,6 +330,11 @@ class AudioManager {
         return;
       case 'click':
         this.tone(880, t, 0.03, 'square', 0.04);
+        return;
+      case 'tick':
+        // Tique do relógio nos últimos segundos da raide.
+        this.tone(1760, t, 0.04, 'square', 0.035);
+        this.tone(880, t + 0.05, 0.03, 'square', 0.02);
         return;
       case 'cursor':
         // Bipe curto e baixo do cursor passando pelos menus.

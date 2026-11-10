@@ -698,6 +698,137 @@
   background: #d8e8ff;
 }
 
+/* Camadas da zona (borda, mata, coração): a trilha mostra onde você está. */
+.safari-depth {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 2px solid #2a5a20;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e4f6d0, #c4e4a8);
+}
+
+.safari-depth.depth-1 {
+  background: linear-gradient(90deg, #c4e4a8, #88c070);
+}
+
+.safari-depth.depth-2 {
+  border-color: #103010;
+  background: linear-gradient(90deg, #88c070, #3a7a3a);
+  color: #f0ffe0;
+}
+
+.safari-depth ol {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 700 11px var(--font-label);
+}
+
+.safari-depth ol li {
+  padding: 1px 8px;
+  border: 2px solid currentColor;
+  border-radius: 10px;
+  opacity: 0.45;
+}
+
+.safari-depth ol li + li::before {
+  content: '›';
+  margin: 0 6px 0 -14px;
+  opacity: 0.8;
+}
+
+.safari-depth ol li.passed {
+  opacity: 0.8;
+}
+
+.safari-depth ol li.here {
+  background: #fff8c0;
+  color: #204010;
+  opacity: 1;
+  animation: bed-invite 1.4s ease-in-out infinite;
+}
+
+.safari-depth small {
+  font-size: 11px;
+}
+
+.safari-depth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Rastro no chão: pegadas piscando em sequência e o Pokémon que as deixou. */
+.safari-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-color: #806020;
+  background: linear-gradient(90deg, #f8ecc8, #e8d098);
+  text-align: left;
+}
+
+.safari-track > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.safari-track strong {
+  font: 700 13px var(--font-label);
+}
+
+.safari-track small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.safari-track .sprite {
+  width: 32px;
+}
+
+.safari-track-prints {
+  display: flex;
+  gap: 5px;
+}
+
+.safari-track-prints i {
+  width: 7px;
+  height: 9px;
+  border-radius: 50% 50% 40% 40%;
+  background: #604010;
+  opacity: 0.2;
+  animation: safari-print 1.5s steps(1, end) infinite;
+}
+
+.safari-track-prints i:nth-child(2) {
+  translate: 0 -4px;
+  animation-delay: 0.3s;
+}
+
+.safari-track-prints i:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes safari-print {
+  0%,
+  60% {
+    opacity: 0.85;
+  }
+  61%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.reduced-motion :is(.safari-depth ol li.here, .safari-track-prints i) {
+  animation: none !important;
+}
+
 /* Fim da visita. */
 .safari-summary {
   display: flex;

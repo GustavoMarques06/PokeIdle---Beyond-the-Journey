@@ -39,6 +39,13 @@ import {
   safariShopBlocked,
   safariShopBought,
   safariWalk,
+  safariDeeper,
+  safariFollow,
+  safariRetreat,
+  depthPoints,
+  walkCost,
+  SAFARI_DEPTHS,
+  TRACK_STEPS,
   startSafari,
   startSafariGuide,
   zoneOpen,
@@ -238,7 +245,8 @@ function Lobby({ state, summary }: { state: GameState; summary: ReactNode }) {
         <p className="hint">
           Sem batalhas: você recebe {cfg.balls + prog.extraBalls} Safari Balls e {600 + prog.upgrades.steps * 200} passos.
           Em cada encontro: bola, isca, berry, pedra, Lama, Pokébloco ou foto. O humor dele muda tudo. A entrada custa{' '}
-          <Money value={cfg.fee} />. A cada passo, escolha o caminho:
+          <Money value={cfg.fee} />. Gaste passos para entrar mais fundo na zona (mata e coração), onde vivem os
+          raros e os shinies, e siga os rastros que aparecem no chão. A cada passo, escolha o caminho:
         </p>
         <ul className="safari-path-cards">
           {(Object.keys(SAFARI_PATHS) as SafariPath[]).map((p) => (
@@ -488,7 +496,9 @@ export function SafariPanel({ state }: { state: GameState }) {
 
   const zone = getZone(s.zone);
   const steps = s.steps ?? 600;
-  const act = (a: SafariAction, item?: string) => {
+  const depth = Math.min(SAFARI_DEPTHS.length - 1, s.depth ?? 0);
+  const deeper = depth < SAFARI_DEPTHS.length - 1 ? SAFARI_DEPTHS[depth + 1] : undefined;
+  const act =(a: SafariAction, item?: string) => {
     setBerryOpen(false);
     engine.dispatch((st, now) => safariAct(st, a, now, item));
   };
@@ -503,18 +513,77 @@ export function SafariPanel({ state }: { state: GameState }) {
           <ItemIcon id="safari-ball" size={18} /> ×{s.balls}
         </span>
         <span>👣 {steps} passos</span>
+        <span>{SAFARI_DEPTHS[depth].name}</span>
         <span>★ {s.points ?? 0} pontos</span>
         <span>Capturados: {s.caught.length}</span>
       </div>
       <SafariScene zone={zone} enemy={e} fx={fx} />
       {!e ? (
         <div className="safari-paths">
+          {/* Camadas da zona: mais fundo, mais raros, shinies e pontos, e tudo custa mais passos. */}
+          <div className={`safari-depth depth-${depth}`}>
+            <ol>
+              {SAFARI_DEPTHS.map((d, i) => (
+                <li key={d.name} className={i === depth ? 'here' : i < depth ? 'passed' : ''}>
+                  {d.name}
+                </li>
+              ))}
+            </ol>
+            <small>
+              {depth === 0
+                ? 'Na borda: encontros comuns, caminhadas baratas.'
+                : `Raros ×${SAFARI_DEPTHS[depth].rare}, shiny ×${String(SAFARI_DEPTHS[depth].shiny).replace('.', ',')}, pontos ×${String(SAFARI_DEPTHS[depth].points).replace('.', ',')}, níveis +${SAFARI_DEPTHS[depth].level}. Eles fogem mais.`}
+            </small>
+            <span className="safari-depth-actions">
+              {deeper && (
+                <button
+                  className="pbtn small primary"
+                  disabled={steps < deeper.enter}
+                  onClick={() => engine.dispatch((st) => void safariDeeper(st))}
+                  title={`Raros ×${deeper.rare}, shiny ×${deeper.shiny}, pontos ×${deeper.points}`}
+                >
+                  Ir mais fundo: {deeper.name} (👣 {deeper.enter})
+                </button>
+              )}
+              {depth > 0 && (
+                <button className="pbtn small" onClick={() => engine.dispatch((st) => void safariRetreat(st))}>
+                  Voltar à borda
+                </button>
+              )}
+            </span>
+          </div>
+          {s.track && (
+            <button
+              className="pbtn safari-track"
+              disabled={steps < TRACK_STEPS}
+              onClick={() => engine.dispatch((st, now) => safariFollow(st, now))}
+              title="Seguir o rastro leva direto a esse Pokémon"
+            >
+              <span className="safari-track-prints" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
+              <PokemonSprite
+                speciesId={s.track.speciesId}
+                kind="icon"
+                silhouette={!state.pokedex[s.track.speciesId]?.caught}
+              />
+              <span>
+                <strong>
+                  Rastro de{' '}
+                  {state.pokedex[s.track.speciesId]?.caught ? speciesName(s.track.speciesId) : 'um Pokémon que falta'}
+                </strong>
+                <small>Seguir: {TRACK_STEPS} passos, encontro garantido</small>
+              </span>
+            </button>
+          )}
           <p className="hint">Para onde ir?</p>
           {(Object.keys(SAFARI_PATHS) as SafariPath[]).map((p) => (
             <button
               key={p}
               className={`pbtn safari-path path-${p}`}
-              disabled={steps < SAFARI_PATHS[p].steps}
+              disabled={steps < walkCost(s, p)}
               onClick={() => engine.dispatch((st, now) => safariWalk(st, p, now))}
               title={SAFARI_PATHS[p].hint}
             >
@@ -522,7 +591,7 @@ export function SafariPanel({ state }: { state: GameState }) {
               <span>
                 <strong>{SAFARI_PATHS[p].label}</strong>
                 <small>
-                  {SAFARI_PATHS[p].steps} passos · {SAFARI_PATHS[p].hint}
+                  {walkCost(s, p)} passos · {SAFARI_PATHS[p].hint}
                 </small>
               </span>
             </button>
@@ -536,7 +605,7 @@ export function SafariPanel({ state }: { state: GameState }) {
             </strong>{' '}
             {MOOD_TEXT[e.mood ?? 'watching'].text}
             {e.mood && e.mood !== 'watching' ? ` (${e.moodTurns})` : ''}. {pokemonMeters(e.speciesId, e.ivs, e.form).toFixed(2).replace('.', ',')} m · Captura {formatPercent(safariCatchChance(state, e))} ·
-            fuga {formatPercent(safariFleeChance(e))} · vale {capturePoints(zone, e.speciesId, e.shiny)} pontos
+            fuga {formatPercent(safariFleeChance(e))} · vale {Math.round(capturePoints(zone, e.speciesId, e.shiny) * depthPoints(e.depth))} pontos
           </p>
           <div className="safari-actions">
             <button className="pbtn primary" onClick={() => act('ball')}>

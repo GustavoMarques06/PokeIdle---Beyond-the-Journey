@@ -352,6 +352,10 @@ export const STATUS_TEXT: Record<
 };
 
 export const speciesName = (id: number) => getSpecies(id).name;
+
+/** A letra (ou o sinal) de uma forma de Unown. */
+export const unownLetter = (form: string) =>
+  form === 'exclamation' ? '!' : form === 'question' ? '?' : form.toUpperCase();
 export const moveName = (id: string) => SUPPORT_MOVES[id]?.name ?? getMove(id).name;
 export const itemName = (id: string) => getItem(id)?.name ?? UPGRADE_TEXT[id]?.name ?? id;
 
@@ -509,6 +513,10 @@ export function describeEvent(e: GameEvent): string | null {
       return `A raide de ${speciesName(e.speciesId)} terminou.`;
     case 'raidRage':
       return `${speciesName(e.speciesId)} está furioso! (fase ${e.stage})`;
+    case 'raidShieldBroken':
+      return `O escudo de ${speciesName(e.speciesId)} quebrou: ele ficou atordoado!`;
+    case 'raidBlast':
+      return `${speciesName(e.speciesId)} soltou o golpe gigante!`;
     case 'raidFailed':
       return `Acabou o tempo! ${speciesName(e.speciesId)} escapou da raide.`;
     case 'raidDefeated': {
@@ -541,10 +549,15 @@ export function describeEvent(e: GameEvent): string | null {
       return 'Safari: você completou a Pokédex de uma zona! O Guarda deixou um prêmio.';
     case 'gardenMutation':
       return `Mutação no Jardim! ${itemName(e.from[0])} + ${itemName(e.from[1])} deram uma ${itemName(e.berry)}${e.isNew ? ' (nova!)' : ''}.`;
-    case 'digDone':
-      return e.items.length
-        ? `Escavação: você achou ${e.items.map(itemName).join(', ')}!`
-        : 'Escavação: nada inteiro dessa vez…';
+    case 'digDone': {
+      const found = [
+        ...e.items.map(itemName),
+        ...(e.unown ?? []).map((f) => `uma tabuleta com o Unown ${unownLetter(f)}`),
+      ];
+      return found.length ? `Escavação: você achou ${found.join(', ')}!` : 'Escavação: nada inteiro dessa vez…';
+    }
+    case 'unownWord':
+      return `Ruínas de Alph: a palavra ${e.word} foi formada! +${e.coins} moedas e um Unown ${unownLetter(e.form)}${e.shiny ? ' brilhante' : ''}.`;
     case 'safariGuideReady':
       return 'O Guia do Safari voltou! Veja o que ele pegou.';
     case 'safariGuideBack':
@@ -638,6 +651,13 @@ export const WEATHER_EFFECTS: Record<string, string> = {
   sand: 'Golpes de Pedra, Terra e Aço +15%. Mais Pokémon de Pedra e Terra.',
   fog: 'Golpes Fantasma +20%. Mais Pokémon Fantasma e Psíquico.',
   hail: 'Golpes de Gelo +30%. Mais Pokémon de Gelo.',
+};
+
+/** Eventos raros do céu: nome e o que fazem. */
+export const SKY_TEXT: Record<'aurora' | 'rainbow' | 'meteors', [string, string]> = {
+  aurora: ['Aurora', 'Aurora no céu: shiny 2× mais provável enquanto a noite seguir limpa.'],
+  rainbow: ['Arco-íris', 'Arco-íris depois da chuva: shiny 2× mais provável por meia hora.'],
+  meteors: ['Chuva de meteoros', 'Chuva de meteoros: alguns selvagens aparecem segurando um Star Piece.'],
 };
 
 export const BUFF_NAMES: Record<string, string> = {

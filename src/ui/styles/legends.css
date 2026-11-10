@@ -53,8 +53,14 @@
   font-size: 10px;
 }
 
+/* Encontros e chance de shiny: selo claro (o dourado direto sobre o azul do cartão quase sumia). */
 .legend-card .legend-hunt {
-  color: var(--gold-dark);
+  padding: 1px 5px;
+  border: 1px solid var(--gold-dark);
+  border-radius: 6px;
+  background: #fff6d0;
+  color: #6a4800;
+  font-weight: 700;
 }
 
 .legend-needs {
@@ -590,5 +596,565 @@
 }
 
 .reduced-motion :is(.legend-particles, .legend-intro, .legend-caught-burst) {
+  display: none;
+}
+
+/* =============================================================================
+   ABA DE LENDÁRIOS (10/11): aura e anel de espera nos cartões, boato em manchete de jornal, Santuário como templo
+   (colunas, tochas, estrelas, poeira, feixe de luz e estátuas), história com os números, portão das regiões fechadas.
+   ============================================================================= */
+
+/* --- Cartões: halo na cor do tipo, anel da espera, ícones de quando aparece ------------------ */
+.legend-card-art {
+  position: relative;
+}
+
+.legend-card-art .sprite {
+  position: relative;
+  z-index: 1;
+}
+
+.legend-card.ready .legend-card-art::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, color-mix(in srgb, var(--glow) 45%, transparent), transparent 65%);
+  animation: legend-halo 2.6s ease-in-out infinite;
+}
+
+@keyframes legend-halo {
+  50% {
+    opacity: 0.35;
+    scale: 1.15;
+  }
+}
+
+.legend-card.ready {
+  transition: translate 0.15s;
+}
+
+.legend-card.ready:hover {
+  translate: 0 -2px;
+}
+
+/* Anel com o quanto falta da espera (esvazia até ele voltar). */
+.legend-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  margin: -35px 0 0 -35px;
+  border-radius: 50%;
+  background: conic-gradient(var(--glow) calc(var(--left) * 360deg), rgb(0 0 0 / 0.12) 0);
+  -webkit-mask: radial-gradient(circle, transparent 30px, #000 31px);
+  mask: radial-gradient(circle, transparent 30px, #000 31px);
+}
+
+.legend-when-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  vertical-align: middle;
+}
+
+.legend-chip {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: #f8d870;
+  color: var(--ink);
+  font: 700 8px var(--font-label);
+  font-style: normal;
+}
+
+.legend-next {
+  background: color-mix(in srgb, var(--glow) 25%, #fff);
+}
+
+/* --- Bolas e regras -------------------------------------------------------------------------- */
+.legend-balls {
+  flex-wrap: wrap;
+}
+
+.legend-balls li.none {
+  opacity: 0.45;
+}
+
+.legend-rules {
+  margin-top: 6px;
+}
+
+.legend-rules summary {
+  cursor: pointer;
+  font: 700 12px var(--font-label);
+  color: var(--ink-soft);
+}
+
+.legend-rules .hint {
+  margin: 4px 0 0;
+}
+
+/* --- Boato do dia: manchete de jornal --------------------------------------------------------- */
+.legend-rumor {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 50%, color-mix(in srgb, var(--glow) 45%, transparent), transparent 40%),
+    repeating-linear-gradient(#f8f0d8 0 17px, #ece0c0 17px 18px);
+}
+
+.legend-rumor-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--gold-dark);
+  font: 700 13px var(--font-label);
+  letter-spacing: 1px;
+  color: var(--gold-dark);
+}
+
+.legend-rumor-head b {
+  padding: 0 5px;
+  background: #c82828;
+  color: #fff;
+  rotate: -4deg;
+  animation: alert-bounce 0.9s steps(2, end) infinite;
+}
+
+.legend-rumor-time {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+/* O brilho do boato trocava o filtro da silhueta e mostrava o lendário ainda não capturado: aqui os dois valem. */
+.legend-rumor-art .sprite.silhouette {
+  filter: brightness(0) opacity(0.7) drop-shadow(0 0 6px var(--glow));
+}
+
+/* A silhueta de quem ainda não foi capturado treme de vez em quando. */
+.legend-rumor-art.unknown {
+  animation: rumor-shake 3.4s ease-in-out infinite;
+}
+
+@keyframes rumor-shake {
+  0%,
+  78%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  82% {
+    translate: -2px 0;
+    rotate: -4deg;
+  }
+  86% {
+    translate: 2px 0;
+    rotate: 4deg;
+  }
+  90% {
+    translate: -1px 0;
+    rotate: -2deg;
+  }
+  94% {
+    translate: 1px 0;
+  }
+}
+
+/* Pegadas atravessando o canto do jornal. */
+.legend-rumor-steps {
+  position: absolute;
+  right: 10px;
+  bottom: 4px;
+  display: flex;
+  gap: 9px;
+  pointer-events: none;
+}
+
+.legend-rumor-steps i {
+  width: 6px;
+  height: 8px;
+  border-radius: 50% 50% 40% 40%;
+  background: var(--ink-soft);
+  opacity: 0;
+  animation: rumor-step 3.2s steps(1, end) infinite;
+}
+
+.legend-rumor-steps i:nth-child(even) {
+  translate: 0 -5px;
+}
+.legend-rumor-steps i:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.legend-rumor-steps i:nth-child(3) {
+  animation-delay: 0.8s;
+}
+.legend-rumor-steps i:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+@keyframes rumor-step {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.55;
+  }
+  60% {
+    opacity: 0.25;
+  }
+  80% {
+    opacity: 0;
+  }
+}
+
+/* --- Santuário: progresso do título ----------------------------------------------------------- */
+.sanctuary-progress {
+  display: grid;
+  grid-template-columns: auto minmax(40px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.sanctuary-progress strong {
+  color: var(--gold-dark);
+}
+
+.sanctuary-bar {
+  height: 10px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 5px;
+  background: #fff;
+}
+
+.sanctuary-bar i {
+  display: block;
+  height: 100%;
+  background:
+    linear-gradient(110deg, transparent 40%, rgb(255 255 255 / 0.8) 50%, transparent 60%) 150% 0 / 250% 100% no-repeat,
+    linear-gradient(#f8e080, #d8a020);
+  transition: width 0.5s;
+  animation: sanctuary-shine 3s ease-in-out infinite;
+}
+
+@keyframes sanctuary-shine {
+  0%,
+  55% {
+    background-position:
+      150% 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      -100% 0,
+      0 0;
+  }
+}
+
+/* --- Santuário: o templo ---------------------------------------------------------------------- */
+.sanctuary-hall {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 28px 10px;
+  border: 2px solid var(--ink);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(255 240 200 / 0.35), transparent 55%),
+    linear-gradient(#141030, #3a3060 62%, #50467c 62%, #3a3060);
+}
+
+.sanctuary-hall .sanctuary {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Colunas de pedra nas laterais. */
+.sanctuary-hall::before,
+.sanctuary-hall::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  background: repeating-linear-gradient(90deg, #9088b8 0 3px, #6a6090 3px 5px);
+  box-shadow:
+    inset 0 10px 0 #b0a8d0,
+    inset 0 -10px 0 #b0a8d0,
+    0 0 0 2px #1a1430;
+}
+
+.sanctuary-hall::before {
+  left: 5px;
+}
+
+.sanctuary-hall::after {
+  right: 5px;
+}
+
+/* Estrelas piscando no alto. */
+.sanctuary-stars {
+  position: absolute;
+  inset: 0 0 45% 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 27% 42%, #fff, transparent),
+    radial-gradient(2px 2px at 41% 12%, #fff8c0, transparent), radial-gradient(1px 1px at 58% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 69% 9%, #fff, transparent), radial-gradient(2px 2px at 83% 38%, #c0d8ff, transparent),
+    radial-gradient(1px 1px at 91% 16%, #fff, transparent), radial-gradient(1px 1px at 50% 55%, #fff, transparent);
+  animation: sanctuary-twinkle 2.8s steps(2, end) infinite;
+}
+
+@keyframes sanctuary-twinkle {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Tochas presas às colunas. */
+.sanctuary-torch {
+  position: absolute;
+  top: 30px;
+  z-index: 2;
+  width: 6px;
+  height: 14px;
+  border: 1px solid #1a1430;
+  background: #6a4a20;
+}
+
+.sanctuary-torch.left {
+  left: 10px;
+}
+
+.sanctuary-torch.right {
+  right: 10px;
+}
+
+.sanctuary-torch i {
+  position: absolute;
+  top: -14px;
+  left: -4px;
+  width: 12px;
+  height: 14px;
+  border-radius: 50% 50% 30% 30%;
+  background: radial-gradient(circle at 50% 72%, #fff4a0 18%, #f8a030 52%, #e04818 78%, transparent 80%);
+  box-shadow: 0 0 14px 2px rgb(248 160 48 / 0.7);
+  transform-origin: 50% 100%;
+  animation: torch-flicker 0.4s steps(3, end) infinite alternate;
+}
+
+.sanctuary-torch.right i {
+  animation-delay: -0.17s;
+}
+
+@keyframes torch-flicker {
+  from {
+    scale: 1 1;
+    rotate: -4deg;
+  }
+  to {
+    scale: 0.85 1.2;
+    rotate: 5deg;
+  }
+}
+
+/* Poeira dourada subindo. */
+.sanctuary-dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sanctuary-dust i {
+  position: absolute;
+  bottom: 4px;
+  left: calc(10% + var(--i) * 11%);
+  width: 2px;
+  height: 2px;
+  background: #fff8d0;
+  box-shadow: 0 0 3px #f8d870;
+  opacity: 0;
+  animation: legend-mote 5.5s linear infinite;
+  animation-delay: calc(var(--i) * -0.7s);
+}
+
+/* Feixe de luz sobre os capturados. */
+.pedestal.has button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 6px;
+  left: 50%;
+  width: 48px;
+  margin-left: -24px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--glow) 45%, transparent));
+  clip-path: polygon(32% 0, 68% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+  animation: sanctuary-beam 3s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.27s);
+}
+
+@keyframes sanctuary-beam {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.pedestal.has button {
+  cursor: pointer;
+}
+
+.pedestal.has button:hover .pedestal-mon {
+  translate: 0 -3px;
+}
+
+.pedestal.open .pedestal-mon .sprite {
+  filter: drop-shadow(0 0 8px var(--glow)) drop-shadow(0 0 2px #fff);
+}
+
+/* Os que faltam são estátuas de pedra. */
+.pedestal:not(.has) .pedestal-mon .sprite {
+  opacity: 1;
+  filter: brightness(0) invert(0.4) drop-shadow(0 1px 0 #14102c);
+}
+
+/* --- Santuário: a história -------------------------------------------------------------------- */
+.sanctuary-lore {
+  background:
+    radial-gradient(circle at 8% 50%, color-mix(in srgb, var(--glow) 40%, transparent), transparent 38%), var(--cream);
+}
+
+.sanctuary-lore-art {
+  display: grid;
+  place-items: center;
+  min-width: 76px;
+}
+
+.sanctuary-lore-art .sprite {
+  animation: legend-float 2.6s ease-in-out infinite;
+}
+
+.sanctuary-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 10px;
+}
+
+.sanctuary-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--glow) 60%, var(--ink));
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.7);
+}
+
+.sanctuary-facts span {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* --- Filtro dos cartões ----------------------------------------------------------------------- */
+.legend-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+/* --- Regiões: portão selado e região completa ------------------------------------------------- */
+.legend-gate {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 56px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  background: #241c40;
+}
+
+.legend-gate span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  border: 2px solid #1a1430;
+  background: repeating-linear-gradient(90deg, #6a6090 0 12px, #584e80 12px 14px);
+  box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.12);
+}
+
+.legend-gate span:first-child {
+  left: 0;
+}
+
+.legend-gate span:nth-child(2) {
+  right: 0;
+}
+
+.legend-gate b {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #1a1430;
+  border-radius: 50%;
+  background: #f8d870;
+  animation: gate-lock 2.4s ease-in-out infinite;
+}
+
+@keyframes gate-lock {
+  50% {
+    box-shadow: 0 0 12px #f8d870;
+  }
+}
+
+.legend-region-done .window-title h3 {
+  color: var(--gold-dark);
+}
+
+@media (max-width: 560px) {
+  .sanctuary-progress {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .sanctuary-hall {
+    padding: 14px 24px 8px;
+  }
+}
+
+/* --- Movimento reduzido ou modo Desempenho ---------------------------------------------------- */
+.reduced-motion
+  :is(
+    .legend-rumor-head b,
+    .legend-rumor-art,
+    .sanctuary-bar i,
+    .sanctuary-stars,
+    .sanctuary-torch i,
+    .sanctuary-lore-art .sprite,
+    .legend-gate b
+  ) {
+  animation: none !important;
+}
+
+.reduced-motion .legend-card-art::before,
+.reduced-motion .pedestal.has button::before {
+  animation: none !important;
+}
+
+.reduced-motion :is(.sanctuary-dust, .legend-rumor-steps) {
   display: none;
 }

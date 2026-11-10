@@ -23,10 +23,20 @@ import { bossLook } from '../../core/rival';
 import { Badges } from '../components/Hud';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { useHotkeys } from '../hotkeys';
-import { formatDuration, itemName, speciesName } from '../i18n/pt-BR';
+import { WEATHER_NAMES, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
+import { frontOn } from '../../core/env';
 
 const MAX_ICONS = 9;
+
+const FRONT_ICON = {
+  clear: 'cloud',
+  sun: 'sun',
+  rain: 'rain',
+  sand: 'sand',
+  fog: 'fog',
+  hail: 'hail',
+} as const;
 
 /**
  * Arte oficial de cada região (public/maps/<id>.webp) e seu tamanho, para manter a proporção.
@@ -62,6 +72,11 @@ export function MapScreen({ state }: { state: GameState }) {
       onGo={() => engine.dispatch((s, now) => selectRoute(s, selected.id, now))}
       onChallenge={() => engine.dispatch((s) => challengeBoss(s, selected.id))}
     />
+  );
+
+  // A frente de clima que cruza esta região agora (só aparece se a rota dela já foi liberada).
+  const regionFront = state.env.fronts?.find(
+    (f) => region.routes.includes(f.routeId) && state.routes[f.routeId]?.unlocked,
   );
 
   const [enlarged, setEnlarged] = useState(false);
@@ -109,6 +124,22 @@ export function MapScreen({ state }: { state: GameState }) {
         onSelect={setSelectedId}
         onEnlarge={() => setEnlarged(true)}
       />
+
+      {regionFront && (
+        <button className={`map-front w-${regionFront.weather}`} onClick={() => setSelectedId(regionFront.routeId)}>
+          <PixelIcon name={FRONT_ICON[regionFront.weather]} scale={2} />
+          <span>
+            <strong>
+              Frente de {WEATHER_NAMES[regionFront.weather]} em {getRoute(regionFront.routeId).name}
+            </strong>
+            <small>
+              Fica mais {formatDuration(regionFront.until - state.lastTimerAt)}
+              {regionFront.next ? ` e segue para ${getRoute(regionFront.next).name}` : ' e se desfaz'}. Na rota
+              dela o shiny é 1,5× mais provável.
+            </small>
+          </span>
+        </button>
+      )}
 
       {details}
 
@@ -189,6 +220,9 @@ function RegionMap({
         const roamer = state.roamer && state.roamer.routeId === encounterRoute(r).id && r.kind === 'wild';
         const rocket = state.rocket?.routeId === r.id;
         const raid = state.raid?.routeId === r.id;
+        // Frente de clima: onde ela está agora e a rota para onde vai em seguida.
+        const front = frontOn(state.env, r.id);
+        const frontNext = !front && state.env.fronts?.some((f) => f.next === r.id);
         const water = WATER_SPOTS[r.id];
         const tree = prog.unlocked && treeBerry(r.id) && treeReady(state, r.id, state.lastTimerAt);
         const companion =
@@ -231,6 +265,15 @@ function RegionMap({
                 <PokemonSprite speciesId={companion.speciesId} kind="icon" />
               </span>
             )}
+            {front && prog.unlocked && (
+              <span
+                className={`node-front w-${front.weather}`}
+                title={`Frente de ${WEATHER_NAMES[front.weather]} por mais ${formatDuration(front.until - state.lastTimerAt)}: shiny 1,5× mais provável`}
+              >
+                <PixelIcon name={FRONT_ICON[front.weather]} scale={2} />
+              </span>
+            )}
+            {frontNext && prog.unlocked && <span className="node-front-next" title="A frente vem para cá" aria-hidden />}
             {(raid || tree || (water && prog.unlocked)) && (
               <span className="node-marks">
                 {raid && (
