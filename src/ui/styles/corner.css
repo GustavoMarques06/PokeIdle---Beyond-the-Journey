@@ -1,0 +1,634 @@
+/* Game Corner (GameCornerPanel.tsx): letreiro de neon, gabinete do caça-níquel com lâmpadas, rolos e alavanca,
+   JACKPOT, Voltorb Flip e a promoção da semana. */
+
+.gc-marquee {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border: 3px solid #1a0a28;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 120%, #5a1a78, #24083a 70%);
+  box-shadow: inset 0 0 0 2px #f0c040;
+}
+
+.gc-marquee span {
+  font: 700 22px var(--font-label);
+  letter-spacing: 0.12em;
+  color: #fff0f8;
+  text-shadow:
+    0 0 4px #ff60c0,
+    0 0 10px #ff2090,
+    0 0 18px #ff2090;
+  animation: gc-neon 2.4s steps(1, end) infinite;
+}
+
+.gc-marquee small {
+  font: 700 11px var(--font-label);
+  letter-spacing: 0.3em;
+  color: #80f0ff;
+  text-shadow: 0 0 6px #20c0ff;
+}
+
+@keyframes gc-neon {
+  0%,
+  92%,
+  100% {
+    opacity: 1;
+  }
+  94%,
+  97% {
+    opacity: 0.45;
+  }
+}
+
+.gc-tokens {
+  color: var(--gold-dark);
+}
+
+/* --- Gabinete --- */
+.gc-cabinet {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  grid-template-areas:
+    'screen lever'
+    'controls controls';
+  gap: 8px;
+  padding: 14px 12px 10px;
+  overflow: hidden;
+  border: 3px solid #4a0a14;
+  border-radius: 14px;
+  background: linear-gradient(#e84848, #b82030 60%, #8a1020);
+  box-shadow: inset 0 3px 0 rgb(255 255 255 / 0.25);
+}
+
+/* Lâmpadas em volta: andam em fila; aceleram quando gira e piscam na vitória. */
+.gc-bulbs {
+  position: absolute;
+  inset: 3px;
+  border-radius: 11px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #fff6a0 2.5px, transparent 3.5px) 0 0 / 16px 16px repeat-x,
+    radial-gradient(circle, #fff6a0 2.5px, transparent 3.5px) 0 100% / 16px 16px repeat-x;
+  animation: gc-bulbs 1.2s linear infinite;
+}
+
+.gc-cabinet.rolling .gc-bulbs {
+  animation-duration: 0.3s;
+}
+
+.gc-cabinet.win .gc-bulbs {
+  animation: gc-flash 0.25s steps(2, end) 8;
+}
+
+@keyframes gc-bulbs {
+  to {
+    background-position:
+      16px 0,
+      -16px 100%;
+  }
+}
+
+@keyframes gc-flash {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.gc-screen {
+  grid-area: screen;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 3px solid #2a0a10;
+  border-radius: 8px;
+  background: #1a1028;
+}
+
+.gc-reels {
+  position: relative;
+  display: flex;
+  gap: 6px;
+}
+
+.gc-reel {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border: 2px solid #c0a060;
+  border-radius: 6px;
+  background: linear-gradient(#d8d8d8, #fff 30% 70%, #c8c8c8);
+}
+
+.gc-reel .sprite,
+.gc-reel img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+/* Fita girando (borrada) e a parada com tranco. */
+.gc-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  filter: blur(1px);
+  animation: gc-roll linear infinite;
+}
+
+@keyframes gc-roll {
+  from {
+    transform: translateY(-50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.gc-face {
+  animation: gc-stop 0.28s cubic-bezier(0.3, 1.8, 0.5, 1) both;
+}
+
+@keyframes gc-stop {
+  from {
+    transform: translateY(-14px);
+  }
+}
+
+.gc-line {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  top: 50%;
+  height: 2px;
+  background: rgb(255 80 80 / 0.5);
+  pointer-events: none;
+}
+
+.gc-cabinet.win .gc-line {
+  height: 4px;
+  margin-top: -1px;
+  background: #fff060;
+  box-shadow: 0 0 8px #fff060;
+  animation: gc-flash 0.3s steps(2, end) 6;
+}
+
+.gc-cabinet.win .gc-reel {
+  border-color: #fff060;
+}
+
+.gc-result {
+  margin: 0;
+  font: 700 14px var(--font-label);
+  color: #fff;
+  text-shadow: 0 0 6px #ff60c0;
+}
+
+.gc-cabinet.win .gc-result {
+  color: #fff060;
+  animation: dpc-arrive 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+/* Alavanca: bola vermelha que desce ao puxar. */
+.gc-lever {
+  grid-area: lever;
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.gc-lever::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  bottom: 18px;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #888, #ddd, #888);
+}
+
+.gc-lever span {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  border: 3px solid #4a0a14;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff9090, #e02020 60%);
+}
+
+.gc-lever span.pulled {
+  animation: gc-pull 0.5s ease-in-out;
+}
+
+@keyframes gc-pull {
+  40% {
+    translate: 0 70px;
+  }
+}
+
+.gc-lever:disabled {
+  cursor: default;
+  filter: grayscale(0.5);
+}
+
+.gc-controls {
+  grid-area: controls;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.gc-bets {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 2px solid #4a0a14;
+  border-radius: 8px;
+  background: #2a0a10;
+}
+
+.gc-bet {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #f8d0d0;
+  font: 700 13px var(--font-label);
+}
+
+.gc-bet.on {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* JACKPOT: faixa enorme e fichas chovendo. */
+.gc-jackpot {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.gc-jackpot b {
+  font: 700 32px var(--font-label);
+  color: #fff060;
+  text-shadow:
+    3px 3px 0 #b82030,
+    0 0 16px #ffb000;
+  animation: gc-jackpot 1.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@keyframes gc-jackpot {
+  from {
+    scale: 0.2;
+    rotate: -12deg;
+  }
+  70% {
+    scale: 1.1;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+.gc-jackpot i {
+  position: absolute;
+  top: -30px;
+  left: calc(var(--k) * 5.5%);
+  animation: gc-coin-fall 1.4s ease-in forwards;
+  animation-delay: calc(var(--k) * 60ms);
+}
+
+@keyframes gc-coin-fall {
+  to {
+    translate: 0 320px;
+    rotate: 540deg;
+  }
+}
+
+.gc-floor {
+  margin: 8px 0 4px;
+  text-align: center;
+}
+
+.gc-sale {
+  border-color: var(--gold-dark);
+  background: #fff8d8;
+}
+
+.gc-sale-tag {
+  display: block;
+  margin-top: 2px;
+  font: 700 10px var(--font-label);
+  color: var(--red);
+  animation: status-blink 1s steps(2, end) infinite;
+}
+
+/* --- Voltorb Flip --- */
+.vf-best {
+  font: 700 11px var(--font-label);
+  color: var(--ink-muted);
+}
+
+.vf-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.vf-intro p {
+  margin: 0;
+}
+
+.vf-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.vf-coins {
+  padding: 4px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #183028;
+  color: #78f0a0;
+  font: 700 12px var(--font-label);
+}
+
+.vf-coins b {
+  display: inline-block;
+  min-width: 4ch;
+  font-size: 16px;
+  text-align: right;
+  animation: dpc-arrive 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.vf-memo {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.vf-memo small {
+  font: 700 11px var(--font-label);
+}
+
+.vf-memo-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  font: 700 14px var(--font-label);
+}
+
+.vf-memo-btn .sprite {
+  width: 26px;
+}
+
+.vf-memo-btn.on {
+  background: var(--gold);
+}
+
+.vf-board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(6, auto);
+  gap: 5px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 8px;
+  border: 3px solid #104030;
+  border-radius: 8px;
+  background: #2a8a60;
+}
+
+/* Carta: frente e verso que viram em 3D. */
+.vf-card {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  perspective: 300px;
+  cursor: pointer;
+}
+
+.vf-back,
+.vf-front {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  backface-visibility: hidden;
+  transition: transform 0.35s;
+}
+
+.vf-back {
+  background:
+    linear-gradient(135deg, transparent 45%, rgb(255 255 255 / 0.25) 45% 55%, transparent 55%),
+    linear-gradient(var(--row), var(--col));
+  box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.35);
+}
+
+.vf-card:hover .vf-back {
+  filter: brightness(1.15);
+}
+
+.vf-front {
+  background: #f8f0d8;
+  color: var(--ink);
+  font: 700 22px var(--font-label);
+  transform: rotateY(180deg);
+}
+
+.vf-card.open .vf-back {
+  transform: rotateY(180deg);
+}
+
+.vf-card.open .vf-front {
+  transform: rotateY(360deg);
+}
+
+.vf-card.bomb .vf-front {
+  background: #f8c0b0;
+}
+
+.vf-front .sprite {
+  width: 80%;
+}
+
+.vf-mark {
+  position: absolute;
+  font: 700 10px var(--font-label);
+  font-style: normal;
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.vf-mark.m0 {
+  top: 2px;
+  left: 4px;
+  color: #ffb0b0;
+}
+
+.vf-mark.m1 {
+  top: 2px;
+  right: 4px;
+}
+
+.vf-mark.m2 {
+  bottom: 2px;
+  left: 4px;
+}
+
+.vf-mark.m3 {
+  bottom: 2px;
+  right: 4px;
+}
+
+/* Explosão do Voltorb. */
+.vf-boom {
+  position: absolute;
+  inset: -40%;
+  z-index: 3;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 15%, #ffd040 30%, #ff6020 55%, transparent 70%);
+  pointer-events: none;
+  animation: vf-boom 0.6s ease-out forwards;
+}
+
+@keyframes vf-boom {
+  from {
+    scale: 0.2;
+  }
+  to {
+    scale: 1.6;
+    opacity: 0;
+  }
+}
+
+.vf-board.over.lost {
+  animation: dig-shake 0.2s steps(3, end) 2;
+}
+
+.vf-hint {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2px 4px;
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  background: var(--c);
+  color: #fff;
+  font: 700 13px var(--font-label);
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.5);
+  aspect-ratio: 1;
+}
+
+.vf-hint b {
+  text-align: right;
+}
+
+.vf-hint small {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 2px solid rgb(255 255 255 / 0.5);
+  font-size: 12px;
+}
+
+.vf-hint .sprite {
+  width: 18px;
+}
+
+.vf-foot,
+.vf-end {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.vf-end {
+  justify-content: center;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: 8px;
+  animation: dpc-arrive 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.vf-end.won {
+  background: #e0f8d8;
+}
+
+.vf-end.lost {
+  background: #f8e0d8;
+}
+
+@media (max-width: 480px) {
+  .gc-reel {
+    width: 54px;
+    height: 54px;
+  }
+
+  .vf-front {
+    font-size: 18px;
+  }
+
+  .vf-hint {
+    font-size: 11px;
+  }
+}
+
+.reduced-motion
+  :is(
+    .gc-marquee span,
+    .gc-bulbs,
+    .gc-strip,
+    .gc-face,
+    .gc-line,
+    .gc-lever span,
+    .gc-jackpot b,
+    .gc-jackpot i,
+    .gc-sale-tag,
+    .vf-boom,
+    .vf-board
+  ) {
+  animation: none !important;
+}
+
+.reduced-motion :is(.vf-back, .vf-front) {
+  transition: none;
+}

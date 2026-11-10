@@ -12,6 +12,7 @@
 @import './safari.css'; /* Safari: zonas, surto, pedidos do Guarda, loja e a cena viva do encontro */
 @import './garden.css'; /* Jardim: cena viva, plantas em pixel art, regador, insetos e mutações */
 @import './fossils.css'; /* Laboratório: máquina de reviver, Escavação e Museu de Fósseis */
+@import './corner.css'; /* Game Corner: letreiro, caça-níquel com alavanca e Voltorb Flip */
 @import './daycare-pc.css'; /* PC da Creche: escolher o hóspede numa janela no visual do PC */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */

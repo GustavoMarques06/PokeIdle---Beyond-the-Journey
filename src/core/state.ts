@@ -38,6 +38,7 @@ import type { PcState } from './pc';
 import type { LuresState } from './lures';
 import type { Gender } from './gender';
 import type { DigState } from './dig';
+import type { CornerState } from './voltorb';
 import type { SafariProgress, SafariState } from './safari';
 import type { TournamentState } from './tournament';
 import type { GardenPlot } from './garden';
@@ -321,6 +322,8 @@ export interface GameState {
   safariProgress?: SafariProgress;
   /** Escavação no Laboratório (parede, tesouros achados). */
   dig?: DigState;
+  /** Game Corner: Voltorb Flip e fichas do chão. */
+  corner?: CornerState;
   /** Fósseis revividos de cada espécie (o Museu). */
   fossilsRevived?: Record<number, number>;
   /** Quando cada árvore de berry selvagem dá frutos de novo (por rota; ausente = pronta). */

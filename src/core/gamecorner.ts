@@ -7,6 +7,7 @@ import { giveForm } from './forms';
 import { progressMission } from './missions';
 import { randomIvs, rollShiny } from './pokemon';
 import { pickWeighted, rngFrom } from './rng';
+import { weeklyPrize } from './voltorb';
 
 export interface SpinResult {
   reels: [string, string, string];
@@ -42,23 +43,34 @@ export function slotReturnRate(): number {
   return ev / SLOT_BET;
 }
 
-export function spinSlots(state: GameState, events: GameEvent[] = []): SpinResult | null {
-  if (!activityUnlocked(state, 'gamecorner') || state.tokens < SLOT_BET) return null;
+/** Apostas possíveis: multiplicam o custo e o prêmio do giro. */
+export const SLOT_MULTS = [1, 2, 5] as const;
+
+export function spinSlots(state: GameState, events: GameEvent[] = [], mult = 1): SpinResult | null {
+  const bet = SLOT_BET * mult;
+  if (!activityUnlocked(state, 'gamecorner') || !SLOT_MULTS.includes(mult as 1) || state.tokens < bet) return null;
   const rng = rngFrom(state);
-  state.tokens -= SLOT_BET;
+  state.tokens -= bet;
   const reels = [0, 1, 2].map(() => pickWeighted(rng, SLOT_SYMBOLS).id) as [string, string, string];
-  const payout = slotPayout(reels);
+  const payout = slotPayout(reels) * mult;
   state.tokens += payout;
   state.stats.slotsSpun++;
   progressMission(state, 'slots', 1, events);
   return { reels, payout };
 }
 
+/** Preço de um prêmio agora (o da semana sai com 30% de desconto). */
+export function prizePrice(index: number, now: number): number {
+  const w = weeklyPrize(now);
+  return w.index === index ? w.tokens : PRIZES[index].tokens;
+}
+
 export function buyPrize(state: GameState, index: number, now: number): boolean {
   const prize = PRIZES[index];
-  if (!prize || !activityUnlocked(state, 'gamecorner') || state.tokens < prize.tokens) return false;
+  const price = prize ? prizePrice(index, now) : 0;
+  if (!prize || !activityUnlocked(state, 'gamecorner') || state.tokens < price) return false;
   if (prize.kind === 'tm' && state.tms.includes(prize.move)) return false;
-  state.tokens -= prize.tokens;
+  state.tokens -= price;
   if (prize.kind === 'pokemon') {
     const rng = rngFrom(state);
     const p = addToCollection(

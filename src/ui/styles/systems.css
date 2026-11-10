@@ -2111,58 +2111,6 @@ html.reduced-motion .scene-sun::after {
   color: var(--gold-dark);
 }
 
-.slot-machine {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px;
-  background: linear-gradient(#e85060, #b02838);
-  border: 3px solid #601018;
-}
-
-.slot-reels {
-  display: flex;
-  gap: 6px;
-}
-
-.slot-reel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: #fff;
-}
-
-.slot-reel .sprite {
-  width: 48px;
-  height: 48px;
-}
-
-.slot-machine.rolling .slot-reel > * {
-  animation: reel 0.12s steps(2, end) infinite;
-}
-
-@keyframes reel {
-  50% {
-    translate: 0 -10px;
-    opacity: 0.4;
-  }
-}
-
-.slot-result {
-  margin: 0;
-  color: #fff;
-  font: 700 14px var(--font-label);
-  text-shadow: 1px 1px 0 #601018;
-}
-
-.slot-actions {
-  display: flex;
-  gap: 6px;
-}
-
 .slot-table {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

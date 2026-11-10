@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE, ROUTES, STARTER_GENERATIONS, getRoute, getSpecies, speciesId } from '../game-data';
+import { BALANCE, PRIZES, ROUTES, STARTER_GENERATIONS, getRoute, getSpecies, speciesId } from '../game-data';
 import { computeModifiers } from './bonuses';
 import { addToCollection } from './collection';
 import { compatible, daycareKills, hatchReadyEggs, putInDaycare } from './daycare';
@@ -9,7 +9,8 @@ import { updateRoamer, updateRocket } from './events';
 import { claimExpedition, expeditionSlots, startExpedition } from './expeditions';
 import { DIG_COST, DIG_H, DIG_W, FREE_DIGS, digHit, digState, finishDig, freeDigsLeft, startDig, treasureUncovered } from './dig';
 import { claimFossil, startRevive } from './fossils';
-import { buyPrize, buyTokens, slotReturnRate, spinSlots } from './gamecorner';
+import { buyPrize, buyTokens, prizePrice, slotReturnRate, spinSlots } from './gamecorner';
+import { VF_ENTRY, cashOutVoltorb, cornerState, flipCard, floorAvailable, searchFloor, startVoltorb, voltorbHints, weeklyPrize } from './voltorb';
 import { canWater, eatBerry, harvest, mutationFlag, mutationOf, pestActive, plantBerry, shooPest, waterPlot } from './garden';
 import {
   advance,
@@ -396,6 +397,64 @@ describe('Game Corner', () => {
     const before = s.collection.length;
     expect(buyPrize(s, 0, 0)).toBe(true);
     expect(s.collection.length).toBe(before + 1);
+  });
+
+  it('aposta ×5 custa e paga 5 vezes; o prêmio da semana sai 30% mais barato', () => {
+    const s = newGame(1, 0, 14);
+    clearUpTo(s, BALANCE.gameCorner.unlock);
+    s.tokens = 100;
+    const r = spinSlots(s, [], 5)!;
+    expect(s.tokens).toBe(100 - 15 + r.payout);
+    expect(r.payout % 5).toBe(0);
+    expect(spinSlots(s, [], 3)).toBeNull(); // aposta que não existe
+    const w = weeklyPrize(0);
+    expect(prizePrice(w.index, 0)).toBe(w.tokens);
+    expect(w.tokens).toBeLessThan(PRIZES[w.index].tokens);
+  });
+
+  it('Voltorb Flip: tabuleiro com pistas certas, ganhar sobe de nível e o Voltorb faz perder', () => {
+    const s = newGame(1, 0, 21);
+    clearUpTo(s, BALANCE.gameCorner.unlock);
+    s.tokens = 100;
+    expect(startVoltorb(s)).toBe(true);
+    expect(s.tokens).toBe(100 - VF_ENTRY);
+    const r = cornerState(s).round!;
+    expect(r.board).toHaveLength(25);
+    expect(r.board.filter((v) => v === 0)).toHaveLength(6); // nível 1: 6 Voltorbs
+    const h = voltorbHints(r.board);
+    expect(h.rows.reduce((a, [sum]) => a + sum, 0)).toBe(r.board.reduce((a, b) => a + b, 0));
+    expect(h.cols.reduce((a, [, b]) => a + b, 0)).toBe(6);
+    // Vira só as cartas boas: ganha a rodada.
+    const tokens = s.tokens;
+    r.board.forEach((v, i) => v > 1 && flipCard(s, i));
+    expect(r.over).toBe('won');
+    expect(s.tokens).toBeGreaterThan(tokens);
+    expect(cornerState(s).level).toBe(2);
+    // Nova rodada: o Voltorb na primeira carta derruba para o nível 1.
+    cornerState(s).round = null;
+    startVoltorb(s);
+    const r2 = cornerState(s).round!;
+    expect(flipCard(s, r2.board.indexOf(0))).toBe(0);
+    expect(r2.over).toBe('lost');
+    expect(cornerState(s).level).toBe(1);
+    // Parar leva o que acumulou.
+    cornerState(s).round = null;
+    startVoltorb(s);
+    const r3 = cornerState(s).round!;
+    const safe = r3.board.findIndex((v) => v >= 1);
+    flipCard(s, safe);
+    const before = s.tokens;
+    expect(cashOutVoltorb(s)).toBe(r3.board[safe]);
+    expect(s.tokens).toBe(before + r3.board[safe]);
+  });
+
+  it('fichas no chão uma vez por dia', () => {
+    const s = newGame(1, 0, 14);
+    clearUpTo(s, BALANCE.gameCorner.unlock);
+    expect(floorAvailable(s, 0)).toBe(true);
+    expect(searchFloor(s, 0)).toBeGreaterThanOrEqual(10);
+    expect(searchFloor(s, 1000)).toBe(0);
+    expect(floorAvailable(s, 86_400_000 * 2)).toBe(true);
   });
 });
 
