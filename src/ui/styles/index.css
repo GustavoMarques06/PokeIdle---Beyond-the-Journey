@@ -19,6 +19,7 @@
 @import './raids.css'; /* Raides: toca com pilar de energia, chefe gigante, estrelas e livro de raides */
 @import './training.css'; /* Campo de Treino: estações animadas por atributo, hexágono de EVs e planos */
 @import './expeditions.css'; /* Expedições: trilha com o grupo andando, diário de viagem e cartão-postal */
+@import './tower-legends.css'; /* Torre (prédio com os andares) e previsão dos lendários */
 @import './daycare-pc.css'; /* PC da Creche: escolher o hóspede numa janela no visual do PC */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */

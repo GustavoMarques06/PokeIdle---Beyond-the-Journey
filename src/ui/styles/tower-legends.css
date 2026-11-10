@@ -1,0 +1,203 @@
+/* Torre de Batalha (prédio com os andares) e Lendários (previsão das próximas horas). */
+
+.tw-building {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px 0 4px;
+  border-radius: 8px;
+  background: linear-gradient(#3a4a8a, #6a7ac0 70%, #8a9ad0);
+}
+
+.tw-roof {
+  width: 0;
+  height: 0;
+  border-left: 70px solid transparent;
+  border-right: 70px solid transparent;
+  border-bottom: 26px solid #c83838;
+}
+
+.tw-floors {
+  display: flex;
+  flex-direction: column;
+  width: 140px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 3px solid #1a2048;
+  border-right: 3px solid #1a2048;
+  background: #d8dce8;
+}
+
+.tw-floors li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  border-bottom: 2px solid #a8b0c8;
+  font: 700 11px var(--font-label);
+}
+
+.tw-num {
+  width: 22px;
+  text-align: right;
+  color: var(--ink-muted);
+}
+
+.tw-windows {
+  display: flex;
+  gap: 6px;
+}
+
+.tw-windows i {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #4a5070;
+  background: #384060;
+}
+
+/* Andares já vencidos acendem; o atual pisca dourado. */
+.tw-floors li.cleared .tw-windows i {
+  background: #f8e080;
+}
+
+.tw-floors li.here {
+  background: #fff4c0;
+}
+
+.tw-floors li.here .tw-windows i {
+  background: #ffd040;
+  animation: status-blink 0.8s steps(2, end) infinite;
+}
+
+.tw-floors li.boss {
+  background: linear-gradient(90deg, #f8e0e8, #d8dce8);
+}
+
+.tw-crown {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.tw-you {
+  position: absolute;
+  right: -46px;
+  top: -10px;
+  animation: lab-float 1.6s ease-in-out infinite;
+}
+
+.tw-you .sprite {
+  width: 40px;
+}
+
+.tw-flag {
+  position: absolute;
+  left: -64px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--gold);
+  font-size: 9px;
+}
+
+.tw-base {
+  width: 170px;
+  height: 10px;
+  border-radius: 3px;
+  background: #4a4a5a;
+}
+
+.tw-next {
+  margin-top: 4px;
+  font: 700 11px var(--font-label);
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+/* --- Previsão dos lendários --- */
+.lg-forecast {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lg-forecast li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 2px solid var(--menu-blue-light);
+  border-radius: 8px;
+  background: linear-gradient(#e8f4ff, #fff);
+  font-size: 10px;
+  text-align: center;
+}
+
+.lg-forecast li.night {
+  background: linear-gradient(#2a3460, #4a5480);
+  color: #e8eeff;
+}
+
+.lg-forecast li.now {
+  border-color: var(--gold-dark);
+  box-shadow: 0 0 0 2px #fff4c0;
+}
+
+.lg-forecast small {
+  font: 700 10px var(--font-label);
+}
+
+.lg-sky {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.5);
+}
+
+.lg-sky.w-rain {
+  animation: garden-step 1s steps(2, end) infinite;
+}
+
+.lg-wname {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 400 !important;
+}
+
+.lg-mons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  min-height: 32px;
+}
+
+.lg-mons .sprite {
+  width: 30px;
+}
+
+.lg-none {
+  opacity: 0.5;
+}
+
+@media (max-width: 560px) {
+  .lg-forecast {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.reduced-motion :is(.tw-floors li.here .tw-windows i, .tw-you, .lg-sky) {
+  animation: none !important;
+}

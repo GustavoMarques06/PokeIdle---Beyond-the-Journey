@@ -2,7 +2,8 @@
 // Santuário, um salão com os lendários capturados animados nos pedestais e os que faltam em silhueta.
 
 import { useState, type CSSProperties } from 'react';
-import { BALANCE, LEGENDARIES, REGIONS, type LegendaryDef } from '../../../game-data';
+import { BALANCE, LEGENDARIES, LEGEND_WHEN, REGIONS, type LegendaryDef } from '../../../game-data';
+import { periodAt, weatherAt } from '../../../core/env';
 import { challengeLegendary, type GameState } from '../../../core/game';
 import {
   legendaryInSeason,
@@ -13,13 +14,32 @@ import {
   rumorOf,
 } from '../../../core/legendary';
 import { ItemIcon, PixelIcon, PokemonSprite, Shiny, Window } from '../../components/common';
-import { formatDuration, itemName, speciesName } from '../../i18n/pt-BR';
+import { WEATHER_NAMES, formatDuration, itemName, speciesName } from '../../i18n/pt-BR';
 import { LEGEND_LORE, legendGlow, legendTitle, whenText } from '../../i18n/legends';
 import { useEngine } from '../../useGame';
 
-const BALLS = ['poke-ball', 'great-ball', 'ultra-ball', 'dusk-ball', 'quick-ball', 'dive-ball', 'nest-ball', 'master-ball'];
+const BALLS = [
+  'poke-ball',
+  'great-ball',
+  'ultra-ball',
+  'dusk-ball',
+  'quick-ball',
+  'dive-ball',
+  'nest-ball',
+  'master-ball',
+];
 
-function LegendaryCard({ state, def, now, rumor }: { state: GameState; def: LegendaryDef; now: number; rumor?: number }) {
+function LegendaryCard({
+  state,
+  def,
+  now,
+  rumor,
+}: {
+  state: GameState;
+  def: LegendaryDef;
+  now: number;
+  rumor?: number;
+}) {
   const engine = useEngine();
   const status = legendaryStatus(state, def, now);
   const locked = status === 'locked';
@@ -40,7 +60,12 @@ function LegendaryCard({ state, def, now, rumor }: { state: GameState; def: Lege
       {isRumor && <span className="legend-rumor-tag">BOATO</span>}
       {status === 'ready' && when && !isRumor && inSeason && <span className="legend-now-tag">AGORA!</span>}
       <span className="legend-card-art">
-        <PokemonSprite speciesId={def.speciesId} kind="front" silhouette={locked || status === 'needs'} pixelScale={1} />
+        <PokemonSprite
+          speciesId={def.speciesId}
+          kind="front"
+          silhouette={locked || status === 'needs'}
+          pixelScale={1}
+        />
       </span>
       <strong>{locked ? '???' : speciesName(def.speciesId).toUpperCase()}</strong>
       <small>
@@ -78,7 +103,8 @@ function LegendaryCard({ state, def, now, rumor }: { state: GameState; def: Lege
       {status === 'locked' && <PixelIcon name="lock" scale={2} />}
       {!locked && encounters > 0 && (
         <small className="legend-hunt" title="Cada encontro aumenta a chance de ele vir shiny (até 5×)">
-          ✦ {encounters} encontro{encounters > 1 ? 's' : ''} · shiny ×{legendaryShinyBoost(state, def.speciesId).toFixed(1)}
+          ✦ {encounters} encontro{encounters > 1 ? 's' : ''} · shiny ×
+          {legendaryShinyBoost(state, def.speciesId).toFixed(1)}
         </small>
       )}
       {status === 'ready' && (
@@ -109,7 +135,10 @@ function Sanctuary({ state }: { state: GameState }) {
   const title = legendTitle(caught.length, legends.length);
   const shown = open !== null ? legends.find((l) => l.speciesId === open) : undefined;
   return (
-    <Window title={`SANTUÁRIO · ${caught.length}/${legends.length}`} icon={<ItemIcon id="master-ball" size={24} />}>
+    <Window
+      title={`SANTUÁRIO · ${caught.length}/${legends.length}`}
+      icon={<ItemIcon id="master-ball" size={24} />}
+    >
       {title && (
         <p className="sanctuary-title">
           Título: <strong>{title.toUpperCase()}</strong>
@@ -144,7 +173,10 @@ function Sanctuary({ state }: { state: GameState }) {
         })}
       </ul>
       {shown && (
-        <div className="sanctuary-lore frame frame-dialog" style={{ '--glow': legendGlow(shown.speciesId) } as CSSProperties}>
+        <div
+          className="sanctuary-lore frame frame-dialog"
+          style={{ '--glow': legendGlow(shown.speciesId) } as CSSProperties}
+        >
           <PokemonSprite speciesId={shown.speciesId} kind="front" pixelScale={1} />
           <div>
             <strong>{speciesName(shown.speciesId).toUpperCase()}</strong>
@@ -152,6 +184,77 @@ function Sanctuary({ state }: { state: GameState }) {
           </div>
         </div>
       )}
+    </Window>
+  );
+}
+
+const WEATHER_ICON = {
+  clear: 'cloud',
+  sun: 'sun',
+  rain: 'rain',
+  sand: 'sand',
+  fog: 'fog',
+  hail: 'hail',
+} as const;
+
+/**
+ * Previsão das próximas horas: o clima e o período de cada faixa de 2 h e quais lendários (já liberados e com a chave)
+ * aparecem nela. O clima do jogo é sorteado por faixa de tempo, então dá para saber de antemão.
+ */
+function Forecast({ state, now }: { state: GameState; now: number }) {
+  const slot = BALANCE.weather.slotHours * 3_600_000;
+  const start = Math.floor(now / slot) * slot;
+  const ready = LEGENDARIES.filter((l) => !['locked', 'needs'].includes(legendaryStatus(state, l, now)));
+  const slots = Array.from({ length: 6 }, (_, i) => {
+    const t = start + i * slot;
+    const mid = t + slot / 2;
+    const weather = weatherAt(t);
+    const period = periodAt(mid);
+    const here = ready.filter((l) => {
+      const when = LEGEND_WHEN[l.speciesId];
+      return !when || when.weather?.includes(weather as never) || when.period?.includes(period);
+    });
+    return { t, weather, period, here };
+  });
+  return (
+    <Window title="PREVISÃO DOS LENDÁRIOS · próximas 12 h" icon={<PixelIcon name="sun" scale={2} />}>
+      <ul className="lg-forecast">
+        {slots.map((s, i) => {
+          const special = s.here.filter((l) => LEGEND_WHEN[l.speciesId]);
+          return (
+            <li key={s.t} className={`${i === 0 ? 'now' : ''} ${s.period}`}>
+              <small>
+                {i === 0
+                  ? 'AGORA'
+                  : new Date(s.t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </small>
+              <span className={`lg-sky w-${s.weather}`}>
+                <PixelIcon name={WEATHER_ICON[s.weather as keyof typeof WEATHER_ICON] ?? 'cloud'} scale={2} />
+              </span>
+              <small className="lg-wname">
+                {WEATHER_NAMES[s.weather]} · {s.period === 'night' ? 'noite' : 'dia'}
+              </small>
+              <span className="lg-mons">
+                {special.slice(0, 6).map((l) => (
+                  <span key={l.speciesId} title={speciesName(l.speciesId)}>
+                    <PokemonSprite
+                      speciesId={l.speciesId}
+                      kind="icon"
+                      silhouette={!state.pokedex[l.speciesId]?.caught}
+                    />
+                  </span>
+                ))}
+                {special.length > 6 && <small>+{special.length - 6}</small>}
+                {!special.length && <small className="lg-none">—</small>}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="hint">
+        Os ícones são os lendários que dependem do clima ou da hora e aparecem naquela faixa (os que aparecem
+        sempre não entram na previsão). Silhueta = ainda não capturado.
+      </p>
     </Window>
   );
 }
@@ -164,29 +267,42 @@ export function LegendaryPanel({ state }: { state: GameState }) {
   return (
     <>
       {rumor !== undefined && (
-        <div className="legend-rumor frame frame-dialog" style={{ '--glow': legendGlow(rumor) } as CSSProperties}>
+        <div
+          className="legend-rumor frame frame-dialog"
+          style={{ '--glow': legendGlow(rumor) } as CSSProperties}
+        >
           <span className="legend-rumor-art">
-            <PokemonSprite speciesId={rumor} kind="front" silhouette={!state.pokedex[rumor]?.caught} pixelScale={1} />
+            <PokemonSprite
+              speciesId={rumor}
+              kind="front"
+              silhouette={!state.pokedex[rumor]?.caught}
+              pixelScale={1}
+            />
           </span>
           <div>
             <strong>BOATO DO DIA</strong>
             <p>
-              Dizem que viram {state.pokedex[rumor]?.caught ? speciesName(rumor) : 'um Pokémon lendário'} por aí! Hoje
-              ele aparece a qualquer hora e fica 1,5× mais fácil de capturar.
+              Dizem que viram {state.pokedex[rumor]?.caught ? speciesName(rumor) : 'um Pokémon lendário'} por
+              aí! Hoje ele aparece a qualquer hora e fica 1,5× mais fácil de capturar.
             </p>
           </div>
         </div>
       )}
-      <Window title="LENDÁRIOS E QUASE LENDÁRIOS" icon={<ItemIcon id="master-ball" size={24} />} frame="dialog">
+      <Window
+        title="LENDÁRIOS E QUASE LENDÁRIOS"
+        icon={<ItemIcon id="master-ball" size={24} />}
+        frame="dialog"
+      >
         <p className="hint">
-          Vença o Campeão de uma região para liberar os desafios dela. Cada lendário aparece com um clima ou numa hora
-          do dia, e alguns pedem uma chave (um item, Pokémon na equipe ou outros lendários). A batalha é de verdade: ele
-          luta de volta, se enfurece abaixo de metade do HP e não pode ser derrotado (fica com 1 de HP). Capture-o{' '}
-          <strong>lançando as bolas à mão</strong>; status (sono, paralisia…) e a bola certa ajudam muito.
+          Vença o Campeão de uma região para liberar os desafios dela. Cada lendário aparece com um clima ou
+          numa hora do dia, e alguns pedem uma chave (um item, Pokémon na equipe ou outros lendários). A
+          batalha é de verdade: ele luta de volta, se enfurece abaixo de metade do HP e não pode ser derrotado
+          (fica com 1 de HP). Capture-o <strong>lançando as bolas à mão</strong>; status (sono, paralisia…) e
+          a bola certa ajudam muito.
         </p>
         <p className="hint">
-          <strong>Lendários:</strong> taxa de captura minúscula; {rule(BALANCE.legendary)}. Cada encontro aumenta a
-          chance de shiny.
+          <strong>Lendários:</strong> taxa de captura minúscula; {rule(BALANCE.legendary)}. Cada encontro
+          aumenta a chance de shiny.
         </p>
         <p className="hint">
           <strong>Quase lendários</strong> (Dragonite, Tyranitar, Salamence, Metagross, Garchomp, Hydreigon):
@@ -200,6 +316,7 @@ export function LegendaryPanel({ state }: { state: GameState }) {
           ))}
         </ul>
       </Window>
+      <Forecast state={state} now={now} />
       <Sanctuary state={state} />
       {REGIONS.map((region) => {
         const all = LEGENDARIES.filter((l) => l.regionId === region.id);

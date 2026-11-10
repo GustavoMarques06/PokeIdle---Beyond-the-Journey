@@ -1,4 +1,5 @@
-// Torre de Batalha: subida infinita com o Pokémon ativo, ranking local e loja de BP.
+// Torre de Batalha: subida infinita com o Pokémon ativo, ranking local e loja de BP. O prédio mostra os andares em
+// volta do atual (ou do recorde), com o elevador aceso, a marca do recorde e a coroa nos andares do Cérebro da Torre.
 
 import { BALANCE, TOWER_SHOP, WEEKLY_TOWER_MILESTONES } from '../../../game-data';
 import {
@@ -22,6 +23,58 @@ const SHOP_ICONS: Record<string, string> = {
   master: 'master-ball',
 };
 
+function TowerBuilding({ state }: { state: GameState }) {
+  const t = state.tower;
+  const climbing = state.battle.kind === 'tower';
+  const current = climbing ? (state.battle.floor ?? 1) : 0;
+  const focus = Math.max(1, current || t.best || 1);
+  // Mostra 9 andares, com o foco perto do meio.
+  const top = Math.max(9, focus + 4);
+  const floors = Array.from({ length: 9 }, (_, i) => top - i);
+  const every = BALANCE.tower.bossEvery;
+  const nextBoss = Math.ceil(Math.max(1, current || t.best + 1) / every) * every;
+  return (
+    <div className={`tw-building ${climbing ? 'climbing' : ''}`}>
+      <span className="tw-roof" aria-hidden />
+      <ol className="tw-floors">
+        {floors.map((f) => {
+          const boss = f % every === 0;
+          return (
+            <li
+              key={f}
+              className={`${f === current ? 'here' : ''} ${f === t.best ? 'best' : ''} ${boss ? 'boss' : ''} ${f < (current || 0) ? 'cleared' : ''}`}
+            >
+              <span className="tw-num">{f}</span>
+              <span className="tw-windows" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
+              {boss && (
+                <span className="tw-crown" title="Cérebro da Torre" aria-hidden>
+                  👑
+                </span>
+              )}
+              {f === current && (
+                <span className="tw-you">
+                  <PokemonSprite speciesId={activePokemon(state).speciesId} kind="icon" />
+                </span>
+              )}
+              {f === t.best && f !== current && <span className="tw-flag">RECORDE</span>}
+            </li>
+          );
+        })}
+      </ol>
+      <span className="tw-base" aria-hidden />
+      <small className="tw-next">
+        {climbing
+          ? `Andar ${current} · próximo Cérebro no ${nextBoss}`
+          : `Próximo Cérebro no andar ${nextBoss}`}
+      </small>
+    </div>
+  );
+}
+
 export function TowerPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   if (!towerUnlocked(state)) return <Locked routeId={BALANCE.tower.unlock} />;
@@ -32,6 +85,7 @@ export function TowerPanel({ state }: { state: GameState }) {
   return (
     <>
       <Window title="TORRE DE BATALHA" icon={<ItemIcon id="rainbow-pass" size={24} />} frame="dialog">
+        <TowerBuilding state={state} />
         <div className="tower-head">
           <div>
             <strong>RECORDE: ANDAR {t.best}</strong>
