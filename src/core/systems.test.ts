@@ -46,7 +46,7 @@ import {
 import { updateTimers } from './timers';
 import { parseSave, serialize } from './save';
 import { harvestTree, treeBerry, treeReady } from './berrytrees';
-import { canPlayTournament, playTournament, tournamentLost, tournamentWon } from './tournament';
+import { SPONSORS, canPlayTournament, playTournament, sponsorOf, tournamentLost, tournamentWon } from './tournament';
 
 const always = (v: number): Rng => ({ next: () => v });
 const DAY = 24 * 3_600_000;
@@ -382,6 +382,8 @@ describe('torneio semanal', () => {
     const s = entered();
     const events: GameEvent[] = [];
     let coins = s.coins;
+    const sponsor = sponsorOf(s.tournament.season);
+    const hadSponsor = s.items[sponsor.item] ?? 0;
     for (let round = 0; round < 3; round++) {
       tournamentWon(s, events);
       expect(s.tournament.round).toBe(round);
@@ -391,6 +393,8 @@ describe('torneio semanal', () => {
     }
     expect(s.tournament.place).toBe('champion');
     expect(s.stats.tournamentTitles).toBe(1);
+    expect(s.items[sponsor.item] ?? 0).toBeGreaterThanOrEqual(hadSponsor + sponsor.qty); // patrocínio da semana
+    expect(new Set(SPONSORS.map((_, w) => sponsorOf(w).item)).size).toBe(SPONSORS.length);
     expect(s.battle.kind).toBe('wild');
     expect(events.filter((e) => e.type === 'tournamentMatch')).toHaveLength(3);
     expect(canPlayTournament(s, NOW)).toBe(false); // um por semana

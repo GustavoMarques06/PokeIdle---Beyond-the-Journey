@@ -42,6 +42,18 @@ export interface TournamentState {
 }
 
 export const ROUND_NAMES = ['Quartas de final', 'Semifinal', 'Final'];
+
+/** Patrocinador da semana: o prêmio extra que o campeão leva (muda toda semana). */
+export const SPONSORS: { name: string; item: string; qty: number }[] = [
+  { name: 'Silph Co.', item: 'ultra-ball', qty: 10 },
+  { name: 'Devon Corp.', item: 'rare-candy', qty: 3 },
+  { name: 'Clube dos Criadores', item: 'lum-berry', qty: 3 },
+  { name: 'Joalheria de Celadon', item: 'star-piece', qty: 2 },
+  { name: 'Mina de Oreburgh', item: 'nugget', qty: 3 },
+  { name: 'Liga Pokémon', item: 'master-ball', qty: 1 },
+];
+
+export const sponsorOf = (season: number) => SPONSORS[((season % SPONSORS.length) + SPONSORS.length) % SPONSORS.length];
 const PLACE_BY_ROUND: TournamentPlace[] = ['quarter', 'semi', 'final'];
 
 export function emptyTournament(): TournamentState {
@@ -138,6 +150,8 @@ function finish(state: GameState, place: TournamentPlace, events: GameEvent[]): 
     const rng = rngFrom(state);
     for (let i = 0; i < BALANCE.tournament.championLoot; i++)
       giveItems(state, pickWeighted(rng, RAID_LOOT).items);
+    const sponsor = sponsorOf(t.season);
+    giveItems(state, { [sponsor.item]: sponsor.qty });
   }
   events.push({ type: 'tournamentEnded', place });
 }

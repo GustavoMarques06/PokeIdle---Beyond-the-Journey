@@ -3086,47 +3086,6 @@ html.reduced-motion .scene-toast {
 }
 
 /* --- TORNEIO ----------------------------------------------------------------------------- */
-.bracket {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.bracket-pair {
-  display: flex;
-  flex-direction: column;
-  border: 2px solid var(--menu-blue-light);
-  background: #f4f8ff;
-}
-
-.bracket-slot {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px;
-  font: 700 13px var(--font-label);
-}
-
-.bracket-slot + .bracket-slot {
-  border-top: 1px dashed var(--menu-blue-light);
-}
-
-.bracket-slot.you {
-  background: #fff8d8;
-  color: var(--gold-dark);
-}
-
-.bracket-slot.next {
-  background: #ffe0e0;
-  color: var(--red);
-}
-
-.bracket-slot.beaten {
-  opacity: 0.5;
-  text-decoration: line-through;
-}
-
 .tournament-result {
   font: 700 14px var(--font-label);
 }
