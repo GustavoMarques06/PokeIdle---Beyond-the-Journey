@@ -1,0 +1,381 @@
+/* Campo de Treino (TrainingPanel.tsx): uma estação animada por atributo, o hexágono de EVs e o plano de treino. */
+
+.train-stations {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.train-station {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 96px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 2px solid var(--menu-blue-light);
+  border-radius: 10px;
+  background: #f4f8ff;
+}
+
+/* O chão da estação: cor e aparelho mudam com o atributo. */
+.train-ground {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: linear-gradient(#c8e8ff 0 60%, #d8b888 60%);
+}
+
+.train-mon {
+  position: absolute;
+  bottom: 12px;
+  left: 28px;
+  z-index: 1;
+}
+
+.train-mon .sprite {
+  max-height: 80px;
+}
+
+.train-gear,
+.train-gear i {
+  position: absolute;
+}
+
+.train-sweat i {
+  position: absolute;
+  top: 30px;
+  left: 70px;
+  width: 4px;
+  height: 6px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: #78c8f8;
+  opacity: 0;
+  animation: train-sweat 1.4s ease-in infinite;
+}
+
+.train-sweat i:nth-child(2) {
+  left: 40px;
+  animation-delay: 0.7s;
+}
+
+@keyframes train-sweat {
+  20% {
+    opacity: 1;
+  }
+  100% {
+    translate: 6px 24px;
+    opacity: 0;
+  }
+}
+
+.train-plus {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font: 700 12px var(--font-label);
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+  animation: train-plus calc(2.4s / var(--rate, 1)) ease-out infinite;
+}
+
+@keyframes train-plus {
+  0% {
+    translate: 0 10px;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    translate: 0 -10px;
+    opacity: 0;
+  }
+}
+
+/* Ataque: saco de pancada balançando e o Pokémon dando o bote. */
+.st-atk .train-ground {
+  background: linear-gradient(#f8d8c8 0 60%, #c89878 60%);
+}
+
+.st-atk .train-gear {
+  top: 0;
+  right: 22px;
+  width: 2px;
+  height: 26px;
+  background: #555;
+}
+
+.st-atk .train-gear i:first-child {
+  top: 26px;
+  left: -14px;
+  width: 30px;
+  height: 52px;
+  border: 2px solid #5a1a10;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #c83828, #e85848, #c83828);
+  transform-origin: 50% -26px;
+  animation: train-bag 0.8s ease-in-out infinite;
+}
+
+.st-atk .train-mon {
+  animation: train-punch 0.8s ease-in-out infinite;
+}
+
+@keyframes train-bag {
+  45%,
+  55% {
+    rotate: 14deg;
+  }
+}
+
+@keyframes train-punch {
+  40% {
+    translate: 22px 0;
+  }
+}
+
+/* Velocidade: esteira com faixas correndo e linhas de vento. */
+.st-spe .train-ground {
+  background: linear-gradient(#d8f0ff 0 60%, #a8c8a8 60%);
+}
+
+.st-spe .train-gear i:first-child {
+  left: 10px;
+  right: 10px;
+  bottom: 6px;
+  height: 12px;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: repeating-linear-gradient(90deg, #555 0 8px, #777 8px 16px);
+  animation: train-belt 0.3s linear infinite;
+}
+
+.st-spe .train-gear i:last-child {
+  top: 40px;
+  left: 0;
+  width: 40px;
+  height: 30px;
+  background: repeating-linear-gradient(0deg, transparent 0 6px, rgb(255 255 255 / 0.8) 6px 8px);
+  animation: train-wind 0.5s linear infinite;
+}
+
+.st-spe .train-mon {
+  animation: garden-step 0.25s steps(2, end) infinite;
+}
+
+@keyframes train-belt {
+  to {
+    background-position: -16px 0;
+  }
+}
+
+@keyframes train-wind {
+  from {
+    translate: 120px 0;
+  }
+  to {
+    translate: -40px 0;
+  }
+}
+
+/* Defesa: escudo grande na frente, levando pancadas. */
+.st-def .train-ground {
+  background: linear-gradient(#d8e0f0 0 60%, #a0a8b8 60%);
+}
+
+.st-def .train-gear i:first-child {
+  bottom: 14px;
+  right: 18px;
+  width: 36px;
+  height: 50px;
+  border: 3px solid #3a4a6a;
+  border-radius: 6px 6px 50% 50%;
+  background: linear-gradient(135deg, #a8c0e8, #5878b8);
+  animation: train-shield 1.2s steps(2, end) infinite;
+}
+
+.st-def .train-gear i:last-child {
+  bottom: 30px;
+  right: 60px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #8a6438;
+  animation: train-rock 1.2s ease-in infinite;
+}
+
+@keyframes train-shield {
+  50% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes train-rock {
+  from {
+    translate: 70px -30px;
+  }
+  60%,
+  to {
+    translate: 0 0;
+    opacity: 0;
+  }
+}
+
+/* Ataque especial: orbe brilhando que pulsa. */
+.st-spAtk .train-ground {
+  background: linear-gradient(#e8d8f8 0 60%, #b8a0c8 60%);
+}
+
+.st-spAtk .train-gear i:first-child {
+  top: 24px;
+  right: 22px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff, #c080f8 40%, #6030a0);
+  box-shadow: 0 0 14px #c080f8;
+  animation: train-orb 1.4s ease-in-out infinite;
+}
+
+.st-spAtk .train-mon .sprite {
+  filter: drop-shadow(0 0 4px #c080f8);
+}
+
+@keyframes train-orb {
+  50% {
+    scale: 1.25;
+    box-shadow: 0 0 24px #e0b0ff;
+  }
+}
+
+/* Defesa especial: tapete de meditação e aura subindo. */
+.st-spDef .train-ground {
+  background: linear-gradient(#d8f4e8 0 60%, #a0c8b0 60%);
+}
+
+.st-spDef .train-gear i:first-child {
+  bottom: 8px;
+  left: 18px;
+  width: 80px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a9a78;
+}
+
+.st-spDef .train-gear i:last-child {
+  bottom: 14px;
+  left: 30px;
+  width: 60px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 80%, rgb(120 240 200 / 0.6), transparent 70%);
+  animation: hunt-pulse 2s ease-in-out infinite;
+}
+
+.st-spDef .train-mon {
+  animation: lab-float 2.4s ease-in-out infinite;
+}
+
+/* HP: halteres subindo e descendo. */
+.st-hp .train-ground {
+  background: linear-gradient(#f8e8c8 0 60%, #c8a878 60%);
+}
+
+.st-hp .train-gear i:first-child {
+  top: 22px;
+  right: 14px;
+  width: 44px;
+  height: 6px;
+  border-radius: 3px;
+  background: #555;
+  box-shadow:
+    -4px -6px 0 4px #333,
+    4px -6px 0 4px #333;
+  animation: train-lift 1s ease-in-out infinite;
+}
+
+@keyframes train-lift {
+  50% {
+    translate: 0 30px;
+  }
+}
+
+.train-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.train-info > strong {
+  font: 700 13px var(--font-label);
+}
+
+.train-coach {
+  margin: 0;
+  font-size: 12px;
+}
+
+.train-plan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.train-plan select {
+  max-width: 100%;
+  font: inherit;
+}
+
+/* Hexágono dos EVs. */
+.ev-hex {
+  width: 96px;
+  height: 96px;
+}
+
+.ev-hex .grid {
+  fill: none;
+  stroke: var(--menu-blue-light);
+  stroke-width: 1;
+}
+
+.ev-hex .fill {
+  fill: rgb(88 192 88 / 0.45);
+  stroke: #389038;
+  stroke-width: 1.5;
+  transition: all 0.4s;
+}
+
+.ev-hex text {
+  font: 700 7px var(--font-label);
+  fill: var(--ink-muted);
+  text-anchor: middle;
+}
+
+.ev-hex text.on {
+  fill: var(--red);
+}
+
+@media (max-width: 620px) {
+  .train-station {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .ev-hex {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
+.reduced-motion :is(.train-station *, .train-plus) {
+  animation: none !important;
+}

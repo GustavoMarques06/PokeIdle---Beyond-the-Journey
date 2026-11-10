@@ -322,6 +322,8 @@ export interface GameState {
   safariProgress?: SafariProgress;
   /** Escavação no Laboratório (parede, tesouros achados). */
   dig?: DigState;
+  /** Chefes de raide vencidos (espécie → vezes). */
+  raidLog?: Record<number, number>;
   /** Game Corner: Voltorb Flip e fichas do chão. */
   corner?: CornerState;
   /** Fósseis revividos de cada espécie (o Museu). */

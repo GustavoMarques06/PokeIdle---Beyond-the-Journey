@@ -13,6 +13,8 @@ export interface TrainingSlot {
   at: number;
   /** Fração de EV ainda não somada. */
   carry: number;
+  /** Plano de treino: os atributos em ordem; quando um enche, passa sozinho para o próximo. */
+  plan?: StatKey[];
 }
 
 export interface TrainingState {
@@ -48,6 +50,29 @@ export function startTraining(state: GameState, uid: number, stat: StatKey, now:
   if (state.training.slots.length >= trainingSlotsUnlocked(state)) return false;
   state.training.slots.push({ uid, stat, at: now, carry: 0 });
   return true;
+}
+
+/** Planos prontos (distribuições comuns de EVs). */
+export const TRAINING_PLANS: { id: string; name: string; stats: StatKey[] }[] = [
+  { id: 'physical', name: 'Atacante físico', stats: ['atk', 'spe', 'hp'] },
+  { id: 'special', name: 'Atacante especial', stats: ['spAtk', 'spe', 'hp'] },
+  { id: 'tank', name: 'Tanque', stats: ['hp', 'def', 'spDef'] },
+  { id: 'wall', name: 'Muralha especial', stats: ['hp', 'spDef', 'def'] },
+  { id: 'bruiser', name: 'Lutador resistente', stats: ['atk', 'hp', 'def'] },
+];
+
+/** Liga (ou desliga, com null) um plano no Pokémon em treino; começa pelo primeiro atributo que ainda tem espaço. */
+export function setTrainingPlan(state: GameState, uid: number, plan: StatKey[] | null): void {
+  const slot = state.training.slots.find((s) => s.uid === uid);
+  const p = findPokemon(state, uid);
+  if (!slot || !p) return;
+  if (!plan) {
+    delete slot.plan;
+    return;
+  }
+  slot.plan = [...plan];
+  const first = plan.find((k) => evRoom(p, k) > 0);
+  if (first) slot.stat = first;
 }
 
 export function stopTraining(state: GameState, uid: number): void {
@@ -96,6 +121,12 @@ export function trainingTick(state: GameState, now: number, events: GameEvent[])
     slot.carry = amount - whole;
     if (whole > 0) gainEvs(p, slot.stat, whole);
     if (evRoom(p, slot.stat) > 0) return true;
+    // Com plano, passa para o próximo atributo que ainda cabe.
+    const next = slot.plan?.find((k) => evRoom(p, k) > 0);
+    if (next) {
+      slot.stat = next;
+      return true;
+    }
     events.push({ type: 'trainingFull', uid: p.uid, stat: slot.stat });
     return false;
   });

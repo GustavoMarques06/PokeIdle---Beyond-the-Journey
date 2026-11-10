@@ -1,9 +1,11 @@
-// Campo de Treino: o Pokémon escolhido acumula EVs em tempo real (também com o jogo fechado).
-// Duplicatas da mesma espécie viram EVs na hora (sparring).
+// Campo de Treino: o Pokémon escolhido acumula EVs em tempo real (também com o jogo fechado). Cada vaga é uma estação
+// animada do atributo (saco de pancada, esteira, escudo, orbe, meditação, halteres), com o hexágono dos EVs e o plano
+// de treino (quando um atributo enche, passa para o próximo). Duplicatas viram EVs na hora (sparring).
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { BALANCE, type StatKey } from '../../../game-data';
 import { activityUnlocked, busyUids, findPokemon } from '../../../core/collection';
+import { TRAINING_PLANS, setTrainingPlan } from '../../../core/training';
 import {
   retarget,
   startTraining,
@@ -20,6 +22,43 @@ import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
 
 const STAT_KEYS = Object.keys(STAT_NAMES) as StatKey[];
+
+/** O que a treinadora diz de cada atributo. */
+const COACH: Record<StatKey, string> = {
+  hp: 'Levantando peso: resistência é tudo numa batalha longa!',
+  atk: 'Isso, mais força nesse golpe! O saco de pancada aguenta!',
+  def: 'Firme atrás do escudo! Nada passa por essa defesa!',
+  spAtk: 'Concentre a energia no orbe… sinta o poder!',
+  spDef: 'Respire fundo. A mente calma resiste a tudo.',
+  spe: 'Mais rápido! Quem ataca primeiro, ganha!',
+};
+
+/** Hexágono dos EVs (cada ponta até o máximo por atributo). */
+function EvHex({ evs, max, active }: { evs: Record<StatKey, number>; max: number; active: StatKey }) {
+  const pt = (i: number, r: number) => {
+    const a = -Math.PI / 2 + (i * Math.PI) / 3;
+    return `${50 + Math.cos(a) * r},${50 + Math.sin(a) * r}`;
+  };
+  const ring = (f: number) => STAT_KEYS.map((_, i) => pt(i, 40 * f)).join(' ');
+  return (
+    <svg className="ev-hex" viewBox="0 0 100 100" aria-hidden>
+      <polygon points={ring(1)} className="grid" />
+      <polygon points={ring(0.5)} className="grid" />
+      <polygon
+        points={STAT_KEYS.map((k, i) => pt(i, 40 * Math.max(0.04, (evs[k] ?? 0) / max))).join(' ')}
+        className="fill"
+      />
+      {STAT_KEYS.map((k, i) => {
+        const [x, y] = pt(i, 47).split(',').map(Number);
+        return (
+          <text key={k} x={x} y={y + 2} className={k === active ? 'on' : ''}>
+            {STAT_NAMES[k].slice(0, 3)}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
 
 function StatPick({
   value,
@@ -72,18 +111,42 @@ export function TrainingPanel({ state }: { state: GameState }) {
           no atributo, até {t.maxPerStat} por atributo e {t.maxTotal} no total. Vagas:{' '}
           {state.training.slots.length}/{slots}.
         </p>
-        <ul className="fossil-runs">
+        <ul className="train-stations">
           {state.training.slots.map((slot) => {
             const p = findPokemon(state, slot.uid);
             if (!p) return null;
             const evs = evsOf(p);
+            const planId = slot.plan
+              ? (TRAINING_PLANS.find((pl) => pl.stats.join() === slot.plan!.join())?.id ?? '')
+              : '';
             return (
-              <li key={slot.uid} className="fossil-run">
-                <PokemonSprite speciesId={p.speciesId} kind="icon" />
-                <div>
+              <li key={slot.uid} className={`train-station st-${slot.stat}`}>
+                <div
+                  className="train-ground"
+                  style={{ '--rate': trainingRate(p) / t.evsPerHour } as CSSProperties}
+                >
+                  <span className="train-gear" aria-hidden>
+                    <i />
+                    <i />
+                  </span>
+                  <span className="train-mon">
+                    <PokemonSprite speciesId={p.speciesId} kind="front" shiny={p.shiny} pixelScale={1} />
+                  </span>
+                  <span className="train-sweat" aria-hidden>
+                    <i />
+                    <i />
+                  </span>
+                  <span className="train-plus" aria-hidden>
+                    +EV
+                  </span>
+                </div>
+                <div className="train-info">
                   <strong>
                     {speciesName(p.speciesId).toUpperCase()} Nv{p.level}
                   </strong>
+                  <p className="train-coach">
+                    <span className="caretaker-tag">TREINADORA</span> {COACH[slot.stat]}
+                  </p>
                   <StatPick
                     value={slot.stat}
                     onPick={(k) => engine.dispatch((s) => retarget(s, p.uid, k))}
@@ -94,10 +157,31 @@ export function TrainingPanel({ state }: { state: GameState }) {
                     {STAT_NAMES[slot.stat]}: {evs[slot.stat]}/{t.maxPerStat} EVs · {trainingRate(p)}/h · total{' '}
                     {evTotal(p)}/{t.maxTotal}
                   </small>
+                  <label className="train-plan">
+                    Plano:{' '}
+                    <select
+                      value={planId}
+                      onChange={(e) => {
+                        const plan = TRAINING_PLANS.find((pl) => pl.id === e.target.value);
+                        engine.dispatch((s) => setTrainingPlan(s, p.uid, plan ? plan.stats : null));
+                      }}
+                    >
+                      <option value="">só {STAT_NAMES[slot.stat]}</option>
+                      {TRAINING_PLANS.map((pl) => (
+                        <option key={pl.id} value={pl.id}>
+                          {pl.name} ({pl.stats.map((k) => STAT_NAMES[k]).join(' → ')})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="pbtn small"
+                    onClick={() => engine.dispatch((s) => stopTraining(s, p.uid))}
+                  >
+                    Parar
+                  </button>
                 </div>
-                <button className="pbtn small" onClick={() => engine.dispatch((s) => stopTraining(s, p.uid))}>
-                  Parar
-                </button>
+                <EvHex evs={evs as Record<StatKey, number>} max={t.maxPerStat} active={slot.stat} />
               </li>
             );
           })}

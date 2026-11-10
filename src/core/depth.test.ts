@@ -14,6 +14,7 @@ import {
   getAbility,
   getHeldItem,
   getSpecies,
+  speciesId,
 } from '../game-data';
 import { addToCollection } from './collection';
 import { calcDamage, combatantOf, estimateDuel } from './combat';
@@ -40,11 +41,11 @@ import { addFriendship } from './friendship';
 import { abilityOf, abilitySlotOf, addEvs, evTotal, evsOf, statsOf, type PokemonInstance } from './pokemon';
 import { checkEvolution, levelEvolution } from './progression';
 import { floorTeam } from './tower';
-import { updateRaid } from './raids';
+import { raidStarBonus, raidStars, updateRaid } from './raids';
 import { canRematch } from './rematch';
 import { rngFrom, type Rng } from './rng';
 import { parseSave, serialize } from './save';
-import { startTraining, trainingTick, trainingRate } from './training';
+import { TRAINING_PLANS, setTrainingPlan, startTraining, trainingTick, trainingRate } from './training';
 import { calcStats } from './stats';
 
 const IVS = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
@@ -328,6 +329,30 @@ describe('EVs, vitaminas e treino', () => {
     expect(trainingRate(p)).toBe(2 * BALANCE.training.evsPerHour);
     trainingTick(s, 3 * 3_600_000, events);
     expect(evsOf(p).atk).toBe(4 * BALANCE.training.evsPerHour);
+  });
+
+  it('plano de treino: quando um atributo enche, passa para o próximo sozinho', () => {
+    const s = newGame(1, 0, 1);
+    s.routes['floresta-viridian'].bossDefeated = true;
+    const p = addMon(s, 25, 20);
+    startTraining(s, p.uid, 'hp', 0);
+    const plan = TRAINING_PLANS.find((pl) => pl.id === 'physical')!;
+    setTrainingPlan(s, p.uid, plan.stats);
+    expect(s.training.slots[0].stat).toBe('atk');
+    const events: GameEvent[] = [];
+    trainingTick(s, 30 * 3_600_000, events); // muito tempo: enche o Ataque
+    expect(evsOf(p).atk).toBe(BALANCE.training.maxPerStat);
+    expect(s.training.slots[0]?.stat).toBe('spe');
+    expect(events.some((e) => e.type === 'trainingFull')).toBe(false);
+  });
+});
+
+describe('estrelas das raides', () => {
+  it('mais forte, mais estrelas e mais moedas', () => {
+    expect(raidStars(speciesId('caterpie'))).toBe(1);
+    expect(raidStars(speciesId('tyranitar'))).toBe(5);
+    expect(raidStarBonus(5)).toBe(2);
+    expect(raidStarBonus(1)).toBe(1);
   });
 });
 

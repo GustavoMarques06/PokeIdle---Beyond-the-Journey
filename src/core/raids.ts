@@ -27,6 +27,16 @@ const RAID_HELD = [
   'shell-bell',
 ];
 
+/** Estrelas da raide (1 a 5), pela força da espécie (soma dos atributos base). */
+export function raidStars(speciesId: number): number {
+  const s = getSpecies(speciesId).baseStats;
+  const total = s.hp + s.atk + s.def + s.spAtk + s.spDef + s.spe;
+  return total < 400 ? 1 : total < 470 ? 2 : total < 530 ? 3 : total < 600 ? 4 : 5;
+}
+
+/** Bônus de moedas pelas estrelas: +25% por estrela acima da primeira. */
+export const raidStarBonus = (stars: number) => 1 + 0.25 * (stars - 1);
+
 export function raidUnlocked(state: GameState): boolean {
   return routeDone(state, BALANCE.raid.unlock);
 }

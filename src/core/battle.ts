@@ -54,6 +54,7 @@ import { routeWeather } from './env';
 import { relocateRoamer, roamerCaught } from './events';
 import { addFriendship, friendshipSteps } from './friendship';
 import { breakChain, huntShinyMultiplier, huntWeight, recordEncounter } from './hunt';
+import { raidStarBonus, raidStars } from './raids';
 import {
   endLegendary,
   legendaryCaptureBonus,
@@ -1036,7 +1037,7 @@ function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[]
   const b = state.battle;
   const rng = rngFrom(state);
   const cfg = BALANCE.raid;
-  const coins = Math.round(enemy.level * cfg.coinsPerLevel);
+  const coins = Math.round(enemy.level * cfg.coinsPerLevel * raidStarBonus(raidStars(enemy.speciesId)));
   const loot: Record<string, number> = {};
   for (let i = 0; i < 2; i++) {
     for (const [id, n] of Object.entries(pickWeighted(rng, RAID_LOOT).items)) loot[id] = (loot[id] ?? 0) + n;
@@ -1068,6 +1069,8 @@ function onRaidDefeated(state: GameState, enemy: EnemyState, events: GameEvent[]
   }
   progressMission(state, 'bosses', 1, events);
   state.stats.raidWins++;
+  const book = (state.raidLog ??= {});
+  book[enemy.speciesId] = (book[enemy.speciesId] ?? 0) + 1;
   events.push({ type: 'raidDefeated', speciesId: enemy.speciesId, coins, items: loot, caught });
   if (state.raid) state.raid = null;
   healTeam(state);

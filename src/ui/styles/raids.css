@@ -1,0 +1,218 @@
+/* Raides (RaidsPanel.tsx): a toca com pilar de energia, o chefe gigante, o anel do tempo, o sinal enquanto espera,
+   as estrelas e o livro de raides. */
+
+.raid-den {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 190px;
+  overflow: hidden;
+  border: 3px solid #2a0a28;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse 70% 30% at 50% 100%, #5a1a4a, transparent 70%), linear-gradient(#1a0a20, #3a1240);
+}
+
+/* Pilar de energia: forte com raide, fraco (pelo sinal) sem. */
+.raid-pillar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 90px;
+  height: 100%;
+  margin-left: -45px;
+  background: linear-gradient(transparent, rgb(255 80 160 / 0.55) 60%, rgb(255 140 200 / 0.8));
+  filter: blur(6px);
+  opacity: calc(0.15 + var(--signal) * 0.5);
+  animation: raid-pillar 1.6s ease-in-out infinite;
+}
+
+.raid-den.active .raid-pillar {
+  width: 140px;
+  margin-left: -70px;
+  opacity: 0.9;
+  animation-duration: 0.9s;
+}
+
+@keyframes raid-pillar {
+  50% {
+    scale: 1.15 1;
+    filter: blur(9px) brightness(1.3);
+  }
+}
+
+.raid-clouds {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60px 18px at 20% 25%, rgb(120 40 120 / 0.6), transparent 70%),
+    radial-gradient(ellipse 80px 20px at 80% 18%, rgb(120 40 120 / 0.5), transparent 70%),
+    radial-gradient(ellipse 70px 16px at 60% 40%, rgb(90 30 100 / 0.5), transparent 70%);
+  background-size: 200% 100%;
+  animation: garden-clouds 18s linear infinite;
+}
+
+.raid-den.active .raid-clouds {
+  animation-duration: 6s;
+}
+
+/* O chefe gigante: enorme, pulsando em vermelho. */
+.raid-boss {
+  position: relative;
+  z-index: 1;
+  animation: raid-boss 2s ease-in-out infinite;
+}
+
+.raid-boss .sprite {
+  max-height: 170px;
+  filter: drop-shadow(0 0 10px #ff50a0) drop-shadow(0 0 2px #fff);
+}
+
+@keyframes raid-boss {
+  50% {
+    scale: 1.06;
+    translate: 0 -4px;
+  }
+}
+
+/* Anel com o tempo que sobra. */
+.raid-ring {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: conic-gradient(#ff5090 calc(var(--left) * 360deg), rgb(255 255 255 / 0.15) 0);
+}
+
+.raid-ring > span {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #2a0a28;
+  color: #fff;
+  font: 700 10px var(--font-label);
+  text-align: center;
+}
+
+.raid-ring .countdown {
+  color: #fff;
+}
+
+.raid-wait {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #f8d0f0;
+  font: 700 12px var(--font-label);
+}
+
+.raid-signal {
+  width: 160px;
+  height: 12px;
+  overflow: hidden;
+  border: 2px solid #f8d0f0;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.raid-signal i {
+  display: block;
+  width: calc(var(--signal) * 100%);
+  height: 100%;
+  background: linear-gradient(90deg, #a040c0, #ff60b0);
+  animation: status-blink 1.2s steps(2, end) infinite;
+}
+
+.raid-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.raid-info strong {
+  font: 700 15px var(--font-label);
+}
+
+.raid-go {
+  width: 100%;
+  animation: bed-invite 1s ease-in-out infinite;
+}
+
+/* Estrelas. */
+.raid-stars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.raid-stars i {
+  width: 14px;
+  height: 14px;
+  background: #c8c0d0;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.raid-stars i.on {
+  background: linear-gradient(#fff070, #f0a020);
+}
+
+.raid-den.stars-5 .raid-boss .sprite {
+  filter: drop-shadow(0 0 14px #ffd040) drop-shadow(0 0 2px #fff);
+}
+
+/* Livro de raides. */
+.raid-book {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.raid-book li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border: 2px solid #c080c0;
+  border-radius: 8px;
+  background: linear-gradient(#fff0fa, #f4e0f0);
+  font-size: 11px;
+  text-align: center;
+}
+
+.raid-book li.stars-5 {
+  border-color: var(--gold-dark);
+  background: linear-gradient(#fff8d0, #f8ecc0);
+}
+
+.raid-book .sprite {
+  max-height: 64px;
+}
+
+.raid-book strong {
+  font: 700 12px var(--font-label);
+}
+
+.rematch-list li.ready {
+  border-color: var(--gold-dark);
+  background: #fff8d8;
+}
+
+.reduced-motion :is(.raid-pillar, .raid-clouds, .raid-boss, .raid-signal i, .raid-go) {
+  animation: none !important;
+}
