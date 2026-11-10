@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-10-creche-pc',
+    date: '10/11/2026',
+    title: 'Creche: escolha pelo PC',
+    items: [
+      { tag: 'novo', text: 'Toque numa vaga da Creche e o PC abre numa janela: suas caixas, busca por nome e "só os que combinam".' },
+      { tag: 'novo', text: 'Pares sugeridos para o hóspede que já está lá, com coração nos que combinam e a ficha de cada um (grupos de ovo, IVs, item).' },
+      { tag: 'correção', text: 'Textos legíveis nos cartões azuis (expedições, vagas da Creche e zonas do Safari) e abas do Treinador que não se sobrepõem no celular.' },
+      { tag: 'correção', text: 'Safari: foto repetida ou item que acabou não gastam mais o humor do Pokémon.' },
+    ],
+  },
+  {
     id: '2026-11-10-safari-2',
     date: '10/11/2026',
     title: 'Safari: Guia, Unova, Kalos e mais',

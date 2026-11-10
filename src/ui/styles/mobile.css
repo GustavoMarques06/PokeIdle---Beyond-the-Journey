@@ -345,13 +345,14 @@ html {
     margin-left: auto;
   }
 
+  /* As 7 abas quebram em duas linhas quando não cabem (antes os nomes passavam por cima das vizinhas). */
   .trainer-tabs {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
 
   .trainer-tabs .activity-tab {
-    flex: 1 1 0;
+    flex: 1 1 22%;
     min-width: 0;
     padding-left: 2px;
     padding-right: 2px;

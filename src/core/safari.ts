@@ -413,13 +413,21 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
     result('left');
     return next(state, events);
   }
+  // Ação que não pode acontecer (foto repetida, item que acabou) não gasta nada, nem o humor.
+  const has = (id: string) => (state.items[id] ?? 0) > 0;
+  if (
+    (action === 'photo' && enemy.photographed) ||
+    (action === 'berry' && !(item && has(item))) ||
+    (action === 'block' && !has('pokeblock')) ||
+    (action === 'mud' && !has('safari-mud'))
+  )
+    return events;
   // O humor dura algumas ações.
   if (enemy.mood && enemy.mood !== 'watching') {
     enemy.moodTurns = (enemy.moodTurns ?? 1) - 1;
     if (enemy.moodTurns <= 0) setMood(enemy, 'watching', 0);
   }
   if (action === 'photo') {
-    if (enemy.photographed) return events;
     enemy.photographed = true;
     const photos = (s.photos ??= []);
     if (!photos.includes(enemy.speciesId)) {
@@ -434,7 +442,7 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   } else if (action === 'ball') {
     s.balls--;
     if (rng.next() < safariCatchChance(state, enemy)) {
-      sizeRecord = catchIt(state, zone, enemy, now, events, `Safari · ${zone.name}`);
+      sizeRecord = catchIt(state, zone, enemy, now, events, `Safari · ${zone.name}`, true);
       s.caught.push(enemy.speciesId);
       result('caught');
       return next(state, events);
@@ -443,16 +451,13 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   } else if (action === 'bait') {
     setMood(enemy, 'eating', randInt(rng, 1, 3));
   } else if (action === 'berry') {
-    if (!item || !((state.items[item] ?? 0) > 0)) return events;
-    state.items[item]--;
+    state.items[item!]--;
     const fav = favoriteBerry(enemy.speciesId) === item;
     setMood(enemy, 'eating', fav ? randInt(rng, 3, 5) : randInt(rng, 2, 3), fav);
   } else if (action === 'block') {
-    if (!((state.items.pokeblock ?? 0) > 0)) return events;
     state.items.pokeblock--;
     setMood(enemy, 'eating', randInt(rng, 2, 4), true);
   } else if (action === 'mud') {
-    if (!((state.items['safari-mud'] ?? 0) > 0)) return events;
     state.items['safari-mud']--;
     setMood(enemy, 'muddy', 2);
   } else {
@@ -518,9 +523,11 @@ function catchIt(
   now: number,
   events: GameEvent[],
   origin: string,
+  /** Captura da sua visita (os pontos entram no resumo dela); o Guia passa false. */
+  inVisit: boolean,
   pointsMult = 1,
 ): boolean {
-  const s = state.safari;
+  const s = inVisit ? state.safari : null;
   const prog = safariProgress(state);
   const isNew = !dexEntry(state, enemy.speciesId).caught;
   const p = addToCollection(state, enemy.speciesId, enemy.level, enemy.ivs, enemy.shiny, now, origin);
@@ -596,7 +603,7 @@ export function claimSafariGuide(state: GameState, now: number, events: GameEven
       shiny: rollShiny(rng, computeModifiers(state).shiny),
       form: rollForm(id, rng, now),
     };
-    catchIt(state, zone, enemy, now, events, `Guia do Safari · ${zone.name}`, 0.5);
+    catchIt(state, zone, enemy, now, events, `Guia do Safari · ${zone.name}`, false, 0.5);
     caught.push(id);
   }
   events.push({ type: 'safariGuideBack', species: caught, zone: zone.id });

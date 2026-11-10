@@ -2026,6 +2026,12 @@ html.reduced-motion .status-box .expbar-fill::after {
   gap: 4px;
   min-width: 0;
   overflow-y: auto;
+  /* A rolagem para sempre numa linha inteira (antes parava com cartões cortados ao meio). */
+  scroll-snap-type: y mandatory;
+}
+
+.bc-list > * {
+  scroll-snap-align: start;
 }
 
 .bc-ball,

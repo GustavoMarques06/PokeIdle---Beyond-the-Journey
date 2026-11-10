@@ -24,7 +24,6 @@ import {
   incubatorSlots,
   nestSize,
   prioritizeEgg,
-  putInDaycare,
   takeFromDaycare,
   warmEgg,
   type Egg,
@@ -38,7 +37,8 @@ import { reservePokemon, reserveSlotsUnlocked } from '../../../core/team';
 import { Bar, ItemIcon, PokemonSprite, Shiny, Window } from '../../components/common';
 import { STAT_NAMES, formatDuration, moveName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
-import { Locked, PokemonPicker } from './shared';
+import { DaycarePc } from './DaycarePc';
+import { Locked } from './shared';
 
 // --- Ovo em pixel art -------------------------------------------------------------------------
 
@@ -602,6 +602,7 @@ export function DaycarePanel({ state }: { state: GameState }) {
   const [results, setResults] = useState<HatchResult[]>([]);
   const [summary, setSummary] = useState<HatchResult[] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [picking, setPicking] = useState(false);
   // Ovos que chegaram com a tela aberta caem no ninho com brilho (os que já estavam não).
   const seen = useRef<Set<number> | null>(null);
   const [fresh, setFresh] = useState<number[]>([]);
@@ -676,6 +677,7 @@ export function DaycarePanel({ state }: { state: GameState }) {
           document.body,
         )}
       {summary && createPortal(<HatchSummary results={summary} onClose={() => setSummary(null)} />, document.body)}
+      {picking && <DaycarePc state={state} onClose={() => setPicking(false)} />}
       <Window title="CRECHE POKéMON" icon={<ItemIcon id="mystery-egg" size={24} />} frame="dialog">
         <div className={`daycare-yard ${ok ? 'in-love' : guests.length === 2 ? 'grumpy' : ''}`}>
           {ok && (
@@ -714,10 +716,18 @@ export function DaycarePanel({ state }: { state: GameState }) {
                 <small>Retirar</small>
               </button>
             ) : (
-              <div key={i} className="daycare-guest frame frame-slotEmpty">
+              <button
+                key={i}
+                className="daycare-guest daycare-open frame frame-slotEmpty"
+                onClick={() => setPicking(true)}
+                title="Abrir o PC e escolher um hóspede"
+              >
+                <span className="daycare-plus" aria-hidden>
+                  +
+                </span>
                 <span>VAGA {i + 1}</span>
-                <small>Escolha abaixo</small>
-              </div>
+                <small>{a ? `Escolha o par do ${speciesName(a.speciesId)}` : 'Abrir o PC'}</small>
+              </button>
             );
           })}
         </div>
@@ -805,21 +815,6 @@ export function DaycarePanel({ state }: { state: GameState }) {
         </ul>
       </Window>
 
-      {guests.length < d.slots && (
-        <Window title="ESCOLHER HÓSPEDE">
-          <PokemonPicker
-            state={state}
-            onPick={(p) => engine.dispatch((s) => putInDaycare(s, p.uid))}
-            filter={(p) => !getSpecies(p.speciesId).legendary}
-          />
-          {a && (
-            <p className="hint">
-              Compatíveis com {speciesName(a.speciesId)}:{' '}
-              {state.collection.filter((p) => p.uid !== a.uid && compatible(a, p)).length} na coleção.
-            </p>
-          )}
-        </Window>
-      )}
     </>
   );
 }

@@ -262,6 +262,23 @@ describe('jogo do Safari', () => {
     expect(ev).toMatchObject({ shiny: true, item: 'pecha-berry' });
   });
 
+  it('ação que não acontece (foto repetida, item que acabou) não gasta o humor', () => {
+    const s = newGame(1, 0, 5);
+    clearAll(s, 'zona-safari');
+    s.coins = BALANCE.safari.fee;
+    startSafari(s, 0);
+    safariWalk(s, 'grass', 0);
+    const e = s.safari!.enemy!;
+    e.photographed = true;
+    e.mood = 'eating';
+    e.moodTurns = 3;
+    s.items.pokeblock = 0;
+    expect(safariAct(s, 'photo', 0)).toEqual([]);
+    expect(safariAct(s, 'block', 0)).toEqual([]);
+    expect(safariAct(s, 'berry', 0, 'pecha-berry')).toEqual([]);
+    expect(e.moodTurns).toBe(3);
+  });
+
   it('sair da visita encerra na hora', () => {
     const s = newGame(1, 0, 5);
     clearAll(s, 'zona-safari');

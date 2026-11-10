@@ -46,7 +46,9 @@
   gap: 3px;
   padding: 0 0 8px;
   overflow: hidden;
+  color: #fff;
   text-align: center;
+  text-shadow: 1px 1px 0 var(--ink);
 }
 
 .safari-zone-pic {
@@ -78,7 +80,7 @@
 
 .safari-zone small {
   font-size: 10px;
-  color: var(--ink-soft);
+  color: #dfe8ff;
 }
 
 .safari-zone.locked .safari-zone-pic > img {

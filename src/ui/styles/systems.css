@@ -605,7 +605,7 @@ html.reduced-motion .scene-sun::after {
 }
 
 .daycare-guest small {
-  color: var(--ink-muted);
+  color: #dfe8ff;
 }
 
 .daycare-status {
@@ -1920,7 +1920,14 @@ html.reduced-motion .scene-sun::after {
 
 .expedition-card small {
   font-size: 12px;
-  color: var(--ink-soft);
+  color: #dfe8ff;
+}
+
+/* Cartões sobre a moldura azul de vaga: texto claro com sombra, como os da equipe. */
+.expedition-card,
+.daycare-guest {
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
 }
 
 .expedition-card.selected {

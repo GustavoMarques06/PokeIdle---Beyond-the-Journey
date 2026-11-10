@@ -62,7 +62,8 @@ export const emptyDaycare = (): DaycareState => ({ uids: [], eggProgress: 0, lev
 const DITTO = speciesId('ditto');
 const NO_EGGS = new Set(['no-eggs', 'undiscovered']);
 
-function canBreed(id: number): boolean {
+/** A espécie gera ovos (lendários e os do grupo "sem ovos" não). */
+export function canBreed(id: number): boolean {
   const s = getSpecies(id);
   return !s.legendary && !s.eggGroups.some((g) => NO_EGGS.has(g)) && s.eggGroups.length > 0;
 }
