@@ -19,6 +19,7 @@ import {
 import {
   BALANCE,
   DEPT_STORE,
+  assetUrl,
   FOSSILS,
   SHOP_CATALOG,
   SPECIES,
@@ -184,7 +185,7 @@ function AisleSigns<T extends string>({
           }}
         >
           <span className="aisle-num">{i + 1}</span>
-          <ItemIcon id={c.icon} size={24} />
+          <ItemIcon id={c.icon} size={30} />
           <span>{c.label}</span>
         </button>
       ))}
@@ -343,8 +344,13 @@ function Showcase({
                 {p.tag && <span className="niche-tag">{p.tag}</span>}
                 {!!p.have && <span className="niche-have">×{p.have}</span>}
                 <span className="niche-icon">{p.icon}</span>
-                <span className="niche-name">{p.name}</span>
-                <span className="price-tag">₽{formatNumber(p.price)}</span>
+                <span className="niche-text">
+                  <span className="niche-name">{p.name}</span>
+                  <span className="price-tag">
+                    <PixelIcon name="pokedollar" scale={2} />
+                    {formatNumber(p.price)}
+                  </span>
+                </span>
               </button>
             </li>
           );
@@ -353,10 +359,13 @@ function Showcase({
           <li key={l.key}>
             <button className="niche locked" onClick={() => talk.say(l.hint, 'say')} title={l.hint}>
               <span className="niche-icon">
-                <ItemIcon id={l.icon} size={36} />
+                <ItemIcon id={l.icon} size={60} />
               </span>
               <PixelIcon name="lock" scale={2} className="niche-lock" />
-              <span className="niche-name">???</span>
+              <span className="niche-text">
+                <span className="niche-name">???</span>
+                <small className="niche-hint">bloqueado</small>
+              </span>
             </button>
           </li>
         ))}
@@ -366,12 +375,6 @@ function Showcase({
 }
 
 // --- A cena no alto ----------------------------------------------------------------------------
-
-const SHELF: Record<Store, string[]> = {
-  mart: ['poke-ball', 'great-ball', 'ultra-ball', 'potion', 'repel', 'net-ball', 'heal-ball', 'escape-rope'],
-  dept: ['thunder-stone', 'fire-stone', 'water-stone', 'rare-candy', 'luxury-ball', 'timer-ball', 'choice-band', 'macho-brace'],
-  merchant: ['amulet-coin', 'star-piece', 'shiny-charm', 'nugget'],
-};
 
 const GREETINGS: Record<Store, string[]> = {
   mart: ['Bem-vindo ao POKé MART!', 'Poké Balls fresquinhas hoje!', 'Precisa de algo para a jornada?'],
@@ -397,6 +400,13 @@ function ballTip(state: GameState): string | null {
   if (sold.has('ultra-ball')) return 'A Ultra Ball nunca decepciona.';
   return null;
 }
+
+/** Arte de cada loja (scripts/build-shop.py): fundo e frente, com o vendedor no meio. */
+const SCENE_ART: Record<Store, { back: string; front: string; night?: string }> = {
+  mart: { back: 'mart-back', front: 'mart-front' },
+  dept: { back: 'dept-back', front: 'dept-front' },
+  merchant: { back: 'road-back', front: 'road-front', night: 'road-night-back' },
+};
 
 function ShopScene({
   state,
@@ -426,94 +436,69 @@ function ShopScene({
   }, []);
   const tip = useMemo(() => ballTip(state), [state.currentRouteId, state.env.period]); // eslint-disable-line react-hooks/exhaustive-deps
   const phase = phaseOf(state);
+  const night = phase === 'night';
+  const art = SCENE_ART[store];
   const greetings = [...GREETINGS[store], ...(store === 'mart' && tip ? [tip] : [])];
   const text = away
     ? 'VOLTO LOGO! (o mercador está na estrada)'
     : (talk?.text ?? greetings[line % greetings.length]);
   const mood = away ? 'say' : (talk?.mood ?? 'say');
+  const url = (name: string) => `url(${assetUrl(`sprites/shop/${name}.png`)})`;
   return (
     <div className={`shop-scene store-${store} phase-${phase} ${away ? 'away' : ''}`} aria-hidden>
-      <span className="ss-wall" />
-      {store !== 'merchant' && <span className="ss-floor" />}
-      {store === 'mart' && <span className="ss-sign">POKé MART</span>}
-      {store === 'dept' && (
-        <span className="ss-sign ss-plaque" key={`floor-${floor.n}`}>
-          {floor.n}º ANDAR · {floor.label}
-        </span>
-      )}
-      {store !== 'merchant' && (
-        <span className="ss-shelves">
-          {[0, 1].map((row) => (
-            <span key={row} className="ss-plank">
-              {SHELF[store].map((id, i) => (
-                <span key={id} style={{ ['--i' as string]: i + row * 3 }}>
-                  <ItemIcon id={SHELF[store][(i + row * 3) % SHELF[store].length]} size={20} />
-                </span>
-              ))}
-            </span>
-          ))}
-        </span>
-      )}
-      {store === 'mart' && (
-        <>
+      <div className="ss-stage" style={{ backgroundImage: url(night && art.night ? art.night : art.back) }}>
+        {store === 'mart' && (
           <span className="ss-door">
             <i />
             <i />
           </span>
-          <span className="ss-customer">
-            <TrainerSprite id="class-lass" size={56} />
+        )}
+        {store === 'dept' && (
+          <span className="ss-elevator" key={`lift-${floor.n}`}>
+            <span className="ss-lights">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((f) => (
+                <i key={f} className={f === floor.n ? 'on' : ''} />
+              ))}
+            </span>
+            <i />
+            <i />
           </span>
-        </>
-      )}
-      {store === 'dept' && (
-        <span className="ss-elevator" key={`lift-${floor.n}`}>
-          <span className="ss-lights">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((f) => (
-              <i key={f} className={f === floor.n ? 'on' : ''} />
-            ))}
-          </span>
-          <i />
-          <i />
-        </span>
-      )}
-      {store === 'merchant' && (
-        <>
-          <span className="ss-hills" />
-          {phase === 'night' && <span className="ss-stars" />}
-          <span className="ss-cart">
-            <span className="ss-awning" />
-            <span className="ss-lantern" />
-            <span className="ss-lantern r" />
-            <span className="ss-wheel" />
-          </span>
-          {phase === 'night' && (
+        )}
+        {store === 'merchant' && night && (
+          <>
+            <span className="ss-glow" style={{ left: 333 }} />
+            <span className="ss-glow" style={{ left: 601 }} />
             <span className="ss-fire">
               <PixelIcon name="flame" scale={3} />
             </span>
-          )}
-        </>
-      )}
-      {!away && (
-        <span className={`ss-clerk mood-${mood}`} key={`clerk-${talk?.n ?? 0}`}>
-          <TrainerSprite id={store === 'merchant' ? 'class-backpacker' : 'class-clerk'} size={96} />
-          {idle && !talk ? (
-            <span className="ss-balloon">
-              <Balloon kind="dots" scale={2} />
-            </span>
-          ) : mood === 'thanks' ? (
-            <span className="ss-balloon">
-              <Balloon kind="heart" scale={2} />
-            </span>
-          ) : mood === 'broke' ? (
-            <span className="ss-balloon">
-              <Balloon kind="alert" scale={2} />
-            </span>
-          ) : null}
-        </span>
-      )}
-      <span className="ss-counter">
+          </>
+        )}
+        {!away && (
+          <span className={`ss-clerk mood-${mood}`} key={`clerk-${talk?.n ?? 0}`}>
+            <TrainerSprite id={store === 'merchant' ? 'class-backpacker' : 'class-clerk'} size={80} />
+            {idle && !talk ? (
+              <span className="ss-balloon">
+                <Balloon kind="dots" scale={2} />
+              </span>
+            ) : mood === 'thanks' ? (
+              <span className="ss-balloon">
+                <Balloon kind="heart" scale={2} />
+              </span>
+            ) : mood === 'broke' ? (
+              <span className="ss-balloon">
+                <Balloon kind="alert" scale={2} />
+              </span>
+            ) : null}
+          </span>
+        )}
+        <span className="ss-front" style={{ backgroundImage: url(art.front) }} />
+        {store === 'mart' && (
+          <span className="ss-customer">
+            <TrainerSprite id="class-lass" size={80} />
+          </span>
+        )}
         <span ref={registerRef} className="ss-register" key={`reg-${sale?.n ?? 0}`}>
-          <span className="ss-screen">{sale ? 'OBRIGADO' : store === 'merchant' ? '₽' : 'CAIXA'}</span>
+          <span className="ss-screen">{sale ? 'OBRIGADO!' : store === 'merchant' ? '₽ ₽ ₽' : 'CAIXA'}</span>
           <i className={`ss-drawer ${sale ? 'open' : ''}`} />
         </span>
         {visit.items > 0 && (
@@ -524,15 +509,25 @@ function ShopScene({
             </small>
           </span>
         )}
+        {sale && (
+          <span key={`sold-${sale.n}`} className="ss-sold">
+            <PixelFx fx="coins" scale={2} x="50%" y="50%" />
+          </span>
+        )}
+      </div>
+      {store === 'mart' && <span className="ss-sign">POKé MART</span>}
+      <span className="ss-money" key={`money-${sale?.n ?? 0}`}>
+        <PixelIcon name="pokedollar" scale={2} />
+        {formatNumber(state.coins)}
       </span>
+      {store === 'dept' && (
+        <span className="ss-sign" key={`floor-${floor.n}`}>
+          {floor.n}º ANDAR · {floor.label}
+        </span>
+      )}
       <span className="ss-say" key={`say-${talk?.n ?? 0}-${line}-${store}`}>
         {text}
       </span>
-      {sale && (
-        <span key={`sold-${sale.n}`} className="ss-sold">
-          <PixelFx fx="coins" scale={2} x="50%" y="50%" />
-        </span>
-      )}
     </div>
   );
 }
@@ -638,7 +633,7 @@ export function ShopScreen({ state }: { state: GameState }) {
             onAnimationEnd={() => setFlight((f) => (f?.n === flight.n ? null : f))}
             aria-hidden
           >
-            <ItemIcon id={flight.id} size={32} />
+            <ItemIcon id={flight.id} size={60} />
           </span>
         )}
         <div className="bag-pockets">
@@ -670,9 +665,6 @@ export function ShopScreen({ state }: { state: GameState }) {
           >
             <ItemIcon id="vs-seeker" size={30} /> MERCADOR{state.merchant ? ' !' : ''}
           </button>
-          <span className="bag-money frame frame-menu">
-            <Money value={state.coins} />
-          </span>
         </div>
         {store !== 'merchant' && (
           <input
@@ -720,7 +712,7 @@ function Mart({ state, income, query }: { state: GameState; income: number; quer
     return {
       key: entry.id,
       flyId: icon,
-      icon: <ItemIcon id={icon} size={36} />,
+      icon: <ItemIcon id={icon} size={60} />,
       name: itemName(entry.id),
       desc: isUpgrade ? UPGRADE_TEXT[entry.id]?.description : itemDescription(entry.id),
       price: entry.price,
@@ -741,7 +733,7 @@ function Mart({ state, income, query }: { state: GameState; income: number; quer
           hint: `Esse chega depois que você vencer ${getRoute(e.requiresBoss!).boss?.name ?? 'o próximo chefe'}!`,
         }));
   return (
-    <Window frame="menu" title="POKé MART" icon={<ItemIcon id="coin-case" size={24} />}>
+    <Window frame="menu" className="shop-window">
       {state.challenge === 'frugal' && (
         <p className="hint">Desafio “Mochila vazia”: o Poké Mart não vende Poké Balls nesta jornada.</p>
       )}
@@ -781,7 +773,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
     .map((entry) => ({
       key: entry.id,
       flyId: entry.id,
-      icon: <ItemIcon id={entry.id} size={36} />,
+      icon: <ItemIcon id={entry.id} size={60} />,
       name: itemName(entry.id),
       desc: describe(entry.id),
       price: entry.price,
@@ -802,7 +794,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
               flyId: 'tm',
               icon: (
                 <span className={`tm-disc type-bg-${mv.type}`}>
-                  <ItemIcon id="tm" size={30} />
+                  <ItemIcon id="tm" size={60} />
                 </span>
               ),
               name: `${tmLabel(entry.move)} ${moveName(entry.move)}`,
@@ -823,12 +815,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
   const lockedTms = TM_SHELF.length - tmShelf(state).length;
 
   return (
-    <Window
-      frame="menu"
-      title={DEPT_STORE.name.toUpperCase()}
-      icon={<ItemIcon id="dowsing-machine" size={24} />}
-      className="dept-store"
-    >
+    <Window frame="menu" className="shop-window dept-store">
       {!unlocked ? (
         <p className="hint">
           A maior loja de Kanto fica em {route.name}. Avance na campanha até lá para encontrá-la.
@@ -868,7 +855,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
 function Merchant({ state, income }: { state: GameState; income: number }) {
   if (!merchantUnlocked(state)) {
     return (
-      <Window frame="menu" title="MERCADOR VIAJANTE" icon={<ItemIcon id="vs-seeker" size={24} />}>
+      <Window frame="menu" className="shop-window">
         <Locked routeId={BALANCE.merchant.unlock} />
       </Window>
     );
@@ -878,7 +865,7 @@ function Merchant({ state, income }: { state: GameState; income: number }) {
   const products: Product[] = (m?.offers ?? []).map((o) => ({
     key: o.id,
     flyId: o.id,
-    icon: <ItemIcon id={o.id} size={36} />,
+    icon: <ItemIcon id={o.id} size={60} />,
     name: itemName(o.id),
     desc: (
       <>
@@ -897,7 +884,7 @@ function Merchant({ state, income }: { state: GameState; income: number }) {
     },
   }));
   return (
-    <Window frame="menu" title="MERCADOR VIAJANTE" icon={<ItemIcon id="vs-seeker" size={24} />}>
+    <Window frame="menu" className="shop-window">
       {!m ? (
         <p className="hint">
           O mercador está na estrada. Ele aparece a cada {BALANCE.merchant.minHours}–

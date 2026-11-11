@@ -483,125 +483,71 @@
 }
 
 /* --- 5. Loja --------------------------------------------------------------------------------- */
-/* A cena no alto: parede com placa, prateleiras ao fundo, piso quadriculado, porta automática com uma cliente
-   entrando (Poké Mart), elevador com o andar aceso (Loja de Departamentos) ou a carroça na estrada (mercador).
-   O vendedor fica atrás do balcão, com o caixa e a sacola da visita. */
+/* A cena é pixel art de verdade (scripts/build-shop.py), 900×200 em escala 1:1, centralizada: em telas estreitas
+   as laterais ficam de fora e o balcão continua no meio. O vendedor fica entre o fundo e a frente (o balcão). Tudo
+   que mexe (porta, elevador, cliente, caixa, sacola) é posicionado em pixels da cena. */
 .shop-screen {
   position: relative;
+  padding: 0;
+  gap: 0;
+  background: #f4f7fc;
+  border: 4px solid #3858a8;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .shop-scene {
   position: relative;
-  height: 196px;
+  height: 200px;
   overflow: hidden;
-  border: 3px solid var(--ink);
-  border-radius: 6px;
+  background: #f0ead8;
+  border-bottom: 4px solid #3858a8;
   isolation: isolate;
-  container: shop / inline-size;
 }
 
-.ss-wall {
+.shop-scene.store-dept {
+  background: #f8ecd8;
+}
+
+.shop-scene.store-merchant {
+  background: #78c058;
+}
+
+.ss-stage {
   position: absolute;
-  inset: 0 0 34% 0;
-  background:
-    linear-gradient(#5878c8 0 14px, #3858a8 14px 18px, transparent 18px),
-    repeating-linear-gradient(90deg, #f4f0e4 0 20px, #ece6d6 20px 40px);
+  top: 0;
+  left: 50%;
+  width: 900px;
+  height: 200px;
+  translate: -50% 0;
+  background: no-repeat 0 0 / 900px 200px;
+  image-rendering: pixelated;
 }
 
-.store-dept .ss-wall {
-  background:
-    linear-gradient(#c84848 0 14px, #983030 14px 18px, transparent 18px),
-    repeating-linear-gradient(90deg, #f8ecd8 0 20px, #f0e0c8 20px 40px);
-}
-
-.ss-floor {
+.ss-front {
   position: absolute;
-  inset: 66% 0 0 0;
-  background: repeating-conic-gradient(#e8e0d0 0 25%, #d4ccbc 0 50%) 0 0 / 24px 24px;
-  box-shadow: inset 0 4px 0 rgb(0 0 0 / 0.12);
+  inset: 0;
+  z-index: 3;
+  background: no-repeat 0 0 / 900px 200px;
+  pointer-events: none;
 }
 
-.store-dept .ss-floor {
-  background: repeating-conic-gradient(#e0e8f0 0 25%, #c8d4e0 0 50%) 0 0 / 24px 24px;
-}
-
-.ss-sign {
-  position: absolute;
-  top: 24px;
-  left: 10px;
-  z-index: 1;
-  padding: 2px 12px;
-  background: #fff;
-  border: 3px solid #3858a8;
-  border-radius: 4px;
-  color: #3858a8;
-  font: 700 13px var(--font-label);
-  letter-spacing: 2px;
-  white-space: nowrap;
-  box-shadow: 0 2px 0 rgb(0 0 0 / 0.2);
-}
-
-.ss-plaque {
-  border-color: #983030;
-  color: #983030;
-  animation: say-pop 0.3s steps(3, end);
-}
-
-/* Prateleiras: duas tábuas cheias de produtos, à esquerda. */
-.ss-shelves {
-  position: absolute;
-  top: 54px;
-  left: 10px;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: min(40%, 230px);
-  padding: 4px 6px 0;
-  background: #d8b888;
-  border: 3px solid #805830;
-  border-bottom-width: 5px;
-}
-
-.ss-plank {
-  display: flex;
-  justify-content: space-around;
-  overflow: hidden;
-  padding-bottom: 1px;
-  border-bottom: 4px solid #a07040;
-}
-
-.ss-plank > span {
-  display: inline-grid;
-  animation: shelf-bob 2.4s steps(2, end) infinite;
-  animation-delay: calc(var(--i) * -0.35s);
-}
-
-@keyframes shelf-bob {
-  50% {
-    translate: 0 -2px;
-  }
-}
-
-/* Porta automática: abre de tempos em tempos para a cliente entrar e sair. */
+/* Porta automática: as duas folhas de vidro abrem para a cliente entrar e sair. */
 .ss-door {
   position: absolute;
-  right: 10px;
-  bottom: 34%;
+  top: 40px;
+  left: 790px;
   z-index: 1;
   display: flex;
-  width: 70px;
+  width: 72px;
   height: 92px;
   overflow: hidden;
-  background: linear-gradient(#a8d8f8, #78b8e8);
-  border: 3px solid #586878;
-  border-bottom: 0;
 }
 
 .ss-door i {
   flex: 1;
-  background: linear-gradient(90deg, rgb(255 255 255 / 0.55) 0 4px, rgb(200 230 250 / 0.85) 4px);
-  border: 2px solid #8898a8;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.7) 0 3px, rgb(200 232 252 / 0.8) 3px 31px, #8898a8 31px);
+  border-top: 2px solid #8898a8;
   animation: door-left 12s steps(4, end) infinite;
 }
 
@@ -645,14 +591,13 @@
   }
 }
 
-/* A cliente: entra pela porta, vai até a prateleira, olha e volta. */
+/* A cliente entra pela porta, vai até a prateleira, olha e volta. */
 .ss-customer {
-  --walk: 300px;
   position: absolute;
-  right: 16px;
-  bottom: 4%;
+  top: 116px;
+  left: 790px;
   z-index: 4;
-  animation: customer-walk 12s steps(48, end) infinite;
+  animation: customer-walk 12s steps(60, end) infinite;
 }
 
 @keyframes customer-walk {
@@ -662,29 +607,33 @@
     opacity: 0;
     scale: -1 1;
   }
-  12% {
+  11% {
     opacity: 1;
-    translate: -20px 0;
+    translate: -10px 0;
     scale: -1 1;
   }
-  35% {
-    translate: calc(-1 * var(--walk)) 0;
+  38% {
+    translate: -560px 0;
+    scale: -1 1;
+  }
+  44% {
+    translate: -560px -3px;
     scale: -1 1;
   }
   50% {
-    translate: calc(-1 * var(--walk)) -2px;
+    translate: -560px 0;
     scale: -1 1;
   }
   52% {
-    translate: calc(-1 * var(--walk)) 0;
+    translate: -560px 0;
     scale: 1 1;
   }
   72% {
-    translate: -20px 0;
+    translate: -10px 0;
     scale: 1 1;
     opacity: 1;
   }
-  76%,
+  75%,
   100% {
     translate: 0 0;
     opacity: 0;
@@ -692,35 +641,28 @@
   }
 }
 
-/* Elevador da Loja de Departamentos: as luzes do andar e as portas que abrem a cada troca de corredor. */
+/* Elevador: luzes do andar no visor e portas que abrem a cada troca de corredor. */
 .ss-elevator {
   position: absolute;
-  right: 10px;
-  bottom: 34%;
+  top: 34px;
+  left: 790px;
   z-index: 1;
-  display: flex;
-  width: 74px;
-  height: 100px;
-  padding-top: 14px;
-  overflow: hidden;
-  background: #303840;
-  border: 3px solid #586878;
-  border-bottom: 0;
+  width: 72px;
+  height: 98px;
 }
 
 .ss-lights {
   position: absolute;
-  top: 3px;
-  left: 50%;
+  top: 2px;
+  left: 6px;
   display: flex;
   gap: 2px;
-  translate: -50% 0;
 }
 
 .ss-lights i {
-  width: 5px;
-  height: 5px;
-  background: #586878;
+  width: 6px;
+  height: 4px;
+  background: #405048;
 }
 
 .ss-lights i.on {
@@ -729,13 +671,20 @@
 }
 
 .ss-elevator > i {
-  flex: 1;
-  background: linear-gradient(90deg, #c8d0d8 0 3px, #a8b0b8 3px);
-  border: 2px solid #687078;
+  position: absolute;
+  top: 16px;
+  bottom: 0;
+  width: 34px;
+  background: linear-gradient(90deg, #d8e0e8 0 2px, #b0b8c0 2px 32px, #687078 32px);
   animation: lift-left 1.4s steps(4, end);
 }
 
+.ss-elevator > i:first-of-type {
+  left: 2px;
+}
+
 .ss-elevator > i + i {
+  right: 2px;
   animation-name: lift-right;
 }
 
@@ -743,6 +692,7 @@
   20%,
   70% {
     translate: -100% 0;
+    opacity: 0;
   }
 }
 
@@ -750,120 +700,37 @@
   20%,
   70% {
     translate: 100% 0;
+    opacity: 0;
   }
 }
 
-/* O mercador na estrada: céu (estrelado à noite), morros, a carroça com toldo e lanternas, e a fogueira. */
-.shop-scene.store-merchant {
-  background: linear-gradient(#a8d8f8 0 62%, #88c060 62%);
-}
-
-.shop-scene.store-merchant.phase-dusk {
-  background: linear-gradient(#f8b878 0 30%, #e88870 62%, #78a850 62%);
-}
-
-.shop-scene.store-merchant.phase-night {
-  background: linear-gradient(#182048 0 62%, #2c5030 62%);
-}
-
-.store-merchant .ss-wall {
-  display: none;
-}
-
-.ss-hills {
+/* Noite na estrada: lanternas acesas e a fogueira. */
+.ss-glow {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 34% 26% at 18% 64%, #78b858 0 98%, transparent 100%),
-    radial-gradient(ellipse 42% 30% at 78% 66%, #68a850 0 98%, transparent 100%);
-}
-
-.phase-night .ss-hills {
-  filter: brightness(0.45) saturate(0.7);
-}
-
-.ss-stars {
-  position: absolute;
-  inset: 0 0 45% 0;
-  background:
-    radial-gradient(circle, #fff 0 1px, transparent 1.5px) 10px 12px / 46px 34px,
-    radial-gradient(circle, #f8f0c0 0 1px, transparent 1.5px) 30px 24px / 62px 40px;
-  animation: blink 2.4s steps(1, end) infinite;
-}
-
-.ss-cart {
-  position: absolute;
-  left: 14px;
-  bottom: 26px;
+  top: 54px;
   z-index: 1;
-  width: min(42%, 230px);
-  height: 92px;
-  background: linear-gradient(transparent 0 46%, #b07840 46% 52%, #8a5a30 52%);
-}
-
-.ss-awning {
-  position: absolute;
-  inset: 0 -6px auto -6px;
-  height: 30px;
-  background: repeating-linear-gradient(90deg, #d84838 0 16px, #f8f0e0 16px 32px);
-  border: 3px solid var(--ink);
-  border-radius: 4px 4px 10px 10px;
-}
-
-.ss-awning::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 30px;
-  height: 18px;
-  border-left: 4px solid #6a4020;
-  border-right: 4px solid #6a4020;
-}
-
-.ss-lantern {
-  position: absolute;
-  top: 30px;
-  left: 14px;
-  width: 10px;
+  width: 12px;
   height: 14px;
   background: #f8d050;
-  border: 2px solid var(--ink);
-  box-shadow: 0 0 10px 4px rgb(248 208 80 / 0.55);
+  border: 2px solid #282030;
+  box-shadow: 0 0 14px 8px rgb(248 208 80 / 0.55);
   animation: lantern 1.6s steps(2, end) infinite;
-}
-
-.ss-lantern.r {
-  left: auto;
-  right: 14px;
-  animation-delay: -0.8s;
 }
 
 @keyframes lantern {
   50% {
-    box-shadow: 0 0 14px 6px rgb(248 208 80 / 0.7);
+    box-shadow: 0 0 20px 10px rgb(248 208 80 / 0.7);
   }
-}
-
-.ss-wheel {
-  position: absolute;
-  left: 18px;
-  bottom: -14px;
-  width: 26px;
-  height: 26px;
-  background: repeating-conic-gradient(#6a4020 0 10deg, #c89860 10deg 45deg);
-  border: 3px solid var(--ink);
-  border-radius: 50%;
 }
 
 .ss-fire {
   position: absolute;
-  right: 12%;
-  bottom: 14px;
-  z-index: 3;
-  filter: drop-shadow(0 0 8px #f8a040);
-  animation: fire-flicker 0.5s steps(2, end) infinite;
+  top: 148px;
+  left: 700px;
+  z-index: 4;
+  filter: drop-shadow(0 0 10px #f8a040);
   transform-origin: 50% 100%;
+  animation: fire-flicker 0.5s steps(2, end) infinite;
 }
 
 @keyframes fire-flicker {
@@ -872,19 +739,17 @@
   }
 }
 
-/* Vendedor: respira atrás do balcão, agradece com uma reverência, balança a cabeça quando falta dinheiro. */
+/* Vendedor: atrás do balcão, respira, agradece com uma reverência e balança a cabeça sem dinheiro. */
 .ss-clerk {
   position: absolute;
-  left: 54%;
-  bottom: 16px;
+  top: 98px;
+  left: 434px;
   z-index: 2;
   animation: clerk-idle 2.4s steps(2, end) infinite;
 }
 
 .store-merchant .ss-clerk {
-  left: auto;
-  right: 26%;
-  bottom: 16px;
+  top: 104px;
 }
 
 .ss-clerk.mood-thanks {
@@ -908,7 +773,6 @@
 @keyframes clerk-bow {
   40% {
     translate: 0 8px;
-    scale: 1 0.92;
   }
 }
 
@@ -929,54 +793,33 @@
 
 .ss-balloon {
   position: absolute;
-  top: -4px;
-  right: -14px;
+  top: -6px;
+  right: -12px;
   animation: say-pop 0.25s steps(3, end);
 }
 
-/* Balcão de madeira na frente do vendedor, com o caixa e a sacola da visita. */
-.ss-counter {
-  position: absolute;
-  left: 44%;
-  right: 96px;
-  bottom: 12px;
-  z-index: 3;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 6px;
-  min-width: 150px;
-  height: 46px;
-  padding: 0 8px 4px;
-  background: linear-gradient(#d89858 0 6px, #b87840 6px 8px, #a86a38 8px);
-  border: 3px solid var(--ink);
-  border-radius: 4px 4px 0 0;
-}
-
-.store-merchant .ss-counter {
-  left: 14px;
-  right: auto;
-  width: min(42%, 230px);
-  min-width: 0;
-  bottom: 0;
-  height: 34px;
-  background: #8a5a30;
-}
-
+/* Caixa registradora e sacola em cima do balcão. */
 .ss-register {
-  position: relative;
+  position: absolute;
+  top: 122px;
+  left: 354px;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
-  padding: 2px 5px 6px;
-  background: #586878;
-  border: 3px solid var(--ink);
-  border-radius: 3px;
+  padding: 3px 5px 7px;
+  background: linear-gradient(#788898 0 3px, #586878 3px);
+  border: 2px solid #282030;
+  border-radius: 3px 3px 0 0;
+}
+
+.store-merchant .ss-register {
+  top: 134px;
+  left: 372px;
 }
 
 .ss-screen {
-  padding: 0 4px;
+  padding: 1px 4px;
   background: #102018;
   color: #78f0a0;
   font: 700 9px var(--font-label);
@@ -985,12 +828,12 @@
 
 .ss-drawer {
   position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: -6px;
-  height: 6px;
+  left: 3px;
+  right: 3px;
+  bottom: -5px;
+  height: 5px;
   background: #384858;
-  border: 2px solid var(--ink);
+  border: 2px solid #282030;
   border-top: 0;
 }
 
@@ -1001,7 +844,7 @@
 @keyframes drawer {
   20%,
   70% {
-    translate: 0 6px;
+    translate: 0 5px;
   }
 }
 
@@ -1019,58 +862,92 @@
 }
 
 .ss-bag {
+  position: absolute;
+  top: 104px;
+  left: 530px;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 26px;
   animation: clerk-hop 0.4s steps(2, end);
+}
+
+.store-merchant .ss-bag {
+  top: 116px;
 }
 
 .ss-bag small {
   padding: 0 4px;
   background: #fff8e0;
-  border: 2px solid var(--ink);
+  border: 2px solid #282030;
   border-radius: 3px;
   font: 700 10px var(--font-label);
   white-space: nowrap;
 }
 
+.ss-sold {
+  position: absolute;
+  top: 70px;
+  left: 330px;
+  z-index: 5;
+  width: 80px;
+  height: 60px;
+  pointer-events: none;
+}
+
+/* Placa da loja na faixa do alto e o balão de fala do vendedor, presos ao quadro (não à cena). */
+.ss-sign {
+  position: absolute;
+  top: 1px;
+  left: 8px;
+  z-index: 6;
+  color: #fff;
+  font: 700 12px var(--font-label);
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 0 #182858;
+  white-space: nowrap;
+  animation: say-pop 0.3s steps(3, end);
+}
+
+.store-dept .ss-sign {
+  text-shadow: 1px 1px 0 #681818;
+}
+
 .ss-say {
   position: absolute;
-  top: 22px;
-  left: calc(min(40%, 230px) + 26px);
-  right: 96px;
-  z-index: 5;
-  min-height: 34px;
-  padding: 4px 10px;
+  top: 26px;
+  left: 50%;
+  z-index: 6;
+  width: max-content;
+  max-width: min(78%, 360px);
+  translate: -50% 0;
+  padding: 4px 12px;
   background: #fff;
-  border: 3px solid var(--ink);
+  border: 3px solid #282030;
   border-radius: 10px;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.18);
   font: 700 13px/1.3 var(--font-label);
+  text-align: center;
   animation: say-pop 0.25s steps(3, end);
 }
 
 .ss-say::after {
   content: '';
   position: absolute;
-  left: 34%;
-  bottom: -12px;
+  bottom: -11px;
+  left: calc(50% + 6px);
   border: 6px solid transparent;
-  border-top: 8px solid var(--ink);
+  border-top: 7px solid #282030;
 }
 
 .store-merchant .ss-say {
-  top: 10px;
-  left: calc(min(42%, 230px) + 30px);
-  right: 10px;
+  top: 64px;
 }
 
 .shop-scene.away .ss-say {
-  left: 10px;
-  right: 10px;
+  top: 70px;
   background: #f8e0a0;
   border-style: dashed;
-  text-align: center;
 }
 
 .shop-scene.away .ss-say::after {
@@ -1084,49 +961,7 @@
   }
 }
 
-.ss-sold {
-  position: absolute;
-  left: 44%;
-  bottom: 50px;
-  z-index: 6;
-  width: 80px;
-  height: 60px;
-  pointer-events: none;
-}
-
-@container shop (max-width: 480px) {
-  .ss-customer {
-    --walk: 150px;
-  }
-
-  .ss-shelves {
-    width: 34%;
-  }
-
-  .ss-say {
-    left: calc(34% + 22px);
-    right: 8px;
-    font-size: 12px;
-  }
-
-  .ss-counter {
-    left: 40%;
-    right: 72px;
-    min-width: 120px;
-  }
-
-  .ss-door,
-  .ss-elevator {
-    width: 58px;
-  }
-
-  .ss-sign {
-    top: 24px;
-    font-size: 11px;
-  }
-}
-
-/* O item comprado voa do nicho até o caixa, num arco. */
+/* O item comprado voa do cartão até o caixa, num arco. */
 .shop-fly {
   position: absolute;
   z-index: 40;
@@ -1137,18 +972,77 @@
 
 @keyframes shop-fly {
   0% {
-    transform: translate(0, 0) scale(1.2);
+    transform: translate(0, 0);
   }
   50% {
-    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5 - 60px)) scale(1.4);
+    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5 - 60px));
   }
   100% {
     transform: translate(var(--dx), var(--dy)) scale(0.5);
-    opacity: 0.4;
+    opacity: 0.3;
   }
 }
 
-/* Corredores: placas numeradas com o ícone da seção. */
+/* Abas das lojas: uma fileira presa embaixo da cena. */
+.shop-screen .bag-pockets {
+  gap: 4px;
+  padding: 8px 10px 0;
+  background: #e4ecf8;
+  border-bottom: 3px solid #3858a8;
+}
+
+.shop-screen .pocket {
+  margin-bottom: -3px;
+  padding: 4px 12px;
+  background: #c8d6ee;
+  border: 3px solid #3858a8;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  color: #283878;
+}
+
+.shop-screen .pocket.active {
+  padding-bottom: 7px;
+  background: #f4f7fc;
+}
+
+.shop-screen .shop-search {
+  width: calc(100% - 20px);
+  margin: 10px 10px 0;
+}
+
+.shop-screen .shop-window {
+  margin: 0;
+  padding: 10px;
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+}
+
+/* Dinheiro na faixa do alto, à direita (pula a cada compra). */
+.ss-money {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #fff;
+  font: 700 12px var(--font-label);
+  text-shadow: 1px 1px 0 #182858;
+  animation: coin-bump 0.45s steps(4, end);
+}
+
+.store-merchant .ss-money {
+  top: 4px;
+  padding: 0 6px;
+  background: rgb(40 32 48 / 0.6);
+  border-radius: 4px;
+}
+
+/* Corredores: abas com o ícone da seção. */
 .aisle-signs {
   display: flex;
   flex-wrap: wrap;
@@ -1157,57 +1051,42 @@
 }
 
 .aisle-sign {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 6px;
-  background: linear-gradient(#4868b8 0 50%, #3858a8 50%);
-  border: 3px solid var(--ink);
-  border-radius: 4px;
-  color: #fff;
+  gap: 4px;
+  padding: 2px 10px 2px 4px;
+  background: #fff;
+  border: 2px solid #b8c8e4;
+  border-radius: 20px;
+  color: #283878;
   font: 700 12px var(--font-label);
-  text-shadow: 1px 1px 0 var(--ink);
-  box-shadow: 0 3px 0 var(--ink);
   animation: row-in 0.25s steps(3, end) both;
   animation-delay: calc(var(--i) * 40ms);
   cursor: pointer;
 }
 
 .aisle-num {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  background: #f8d030;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  color: var(--ink);
-  font-size: 11px;
-  text-shadow: none;
+  display: none;
 }
 
 .aisle-sign:hover {
-  filter: brightness(1.12);
+  border-color: #3858a8;
 }
 
 .aisle-sign.active {
-  background: linear-gradient(#e85848 0 50%, #c83838 50%);
-  translate: 0 2px;
-  box-shadow: 0 1px 0 var(--ink);
+  background: #3858a8;
+  border-color: #283878;
+  color: #fff;
 }
 
-/* Vitrine: nichos de prateleira com o item grande e a etiqueta de preço pendurada. */
+/* Vitrine: cartões limpos com o item em 2× (60 px), nome e preço. */
 .showcase {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 10px 8px;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 8px;
   margin: 0;
-  padding: 8px 6px 10px;
+  padding: 0;
   list-style: none;
-  background: #f4ead4;
-  border: 3px solid #805830;
-  border-radius: 4px;
 }
 
 .showcase > li {
@@ -1218,17 +1097,24 @@
 .niche {
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   width: 100%;
-  height: 112px;
-  padding: 10px 4px 6px;
-  background: radial-gradient(ellipse 24% 4% at 50% 46%, rgb(0 0 0 / 0.16) 0 96%, transparent 100%), #fffaf0;
-  border: 2px solid #d8c8a8;
-  border-bottom: 6px solid #a07040;
-  border-radius: 4px 4px 2px 2px;
+  min-height: 72px;
+  padding: 4px 8px 4px 4px;
+  background: #fff;
+  border: 2px solid #c8d4e8;
+  border-radius: 8px;
+  box-shadow: 0 2px 0 #c8d4e8;
+  text-align: left;
   cursor: pointer;
+  transition: translate 0.1s;
+}
+
+.niche:hover:not(.locked) {
+  translate: 0 -2px;
+  border-color: #3858a8;
+  box-shadow: 0 4px 0 #3858a8;
 }
 
 .niche:hover:not(.locked) .niche-icon,
@@ -1236,59 +1122,52 @@
   animation: item-bob 0.6s steps(2, end) infinite;
 }
 
-.niche:hover:not(.locked) {
-  border-color: var(--menu-blue);
-  border-bottom-color: #a07040;
-}
-
 .niche.selected {
-  border-color: var(--red);
-  border-bottom-color: #a07040;
-  box-shadow: 0 0 10px rgb(232 72 56 / 0.45);
+  background: #eaf2ff;
+  border-color: #3858a8;
+  box-shadow: 0 2px 0 #3858a8;
 }
 
 .niche-icon {
   display: grid;
+  flex: none;
   place-items: center;
-  height: 40px;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, #eef4fc 0 60%, transparent 61%);
+}
+
+.niche-icon .tm-disc {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.niche-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
 .niche-name {
   display: -webkit-box;
   overflow: hidden;
-  max-width: 100%;
-  font: 700 11px/1.15 var(--font-label);
-  text-align: center;
+  font: 700 13px/1.15 var(--font-label);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .price-tag {
-  position: relative;
-  margin-top: auto;
-  padding: 1px 6px 1px 10px;
-  background: #f8e070;
-  border: 2px solid var(--ink);
-  border-radius: 2px 6px 6px 2px;
-  font: 700 11px var(--font-label);
-  rotate: -3deg;
-}
-
-.price-tag::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 3px;
-  width: 3px;
-  height: 3px;
-  translate: 0 -50%;
-  background: var(--ink);
-  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 700 14px var(--font-label);
+  color: #283878;
 }
 
 .niche.short .price-tag {
-  background: #f8c8c0;
-  color: #a02020;
+  color: #c03030;
 }
 
 .niche-tag,
@@ -1300,36 +1179,44 @@
 }
 
 .niche-tag {
-  left: 3px;
+  right: 6px;
 }
 
 .niche-have {
-  right: 4px;
+  right: 6px;
+  bottom: 4px;
+  top: auto;
   color: var(--ink-muted);
 }
 
 .niche.blocked {
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 /* Bloqueado: silhueta com cadeado. */
 .niche.locked {
+  background: #eef0f4;
+  border-style: dashed;
+  box-shadow: none;
   cursor: help;
-  background: #ece4d4;
 }
 
 .niche.locked .niche-icon {
-  filter: brightness(0) opacity(0.28);
+  filter: brightness(0) opacity(0.25);
 }
 
 .niche-lock {
   position: absolute;
-  top: 34px;
-  left: 50%;
-  translate: -50% 0;
+  top: 26px;
+  left: 26px;
 }
 
-/* Painel de compra: o item grande, a quantidade e o COMPRAR (fica no alto enquanto a vitrine rola). */
+.niche-hint {
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+/* Painel de compra: fica no alto enquanto a vitrine rola. */
 .buy-panel {
   position: sticky;
   top: 0;
@@ -1337,7 +1224,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 4px 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   animation: say-pop 0.2s steps(3, end);
 }
 
@@ -1345,13 +1232,12 @@
   display: grid;
   grid-row: span 2;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   background: radial-gradient(circle, #fff 0 42%, #dbe8ff 43% 68%, transparent 69%);
 }
 
 .buy-art > * {
-  scale: 1.35;
   animation: item-bob 1.2s steps(2, end) infinite;
 }
 
@@ -1363,7 +1249,7 @@
 }
 
 .buy-info strong {
-  font: 700 15px var(--font-label);
+  font: 700 16px var(--font-label);
 }
 
 .buy-info small {
@@ -2158,7 +2044,7 @@ html.reduced-motion :is(
     .ss-door i,
     .ss-customer,
     .ss-elevator > i,
-    .ss-lantern,
+    .ss-glow,
     .ss-fire,
     .ss-stars,
     .ss-register,

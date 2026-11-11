@@ -18,9 +18,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Um jogo mais bonito por toda parte',
     items: [
       { tag: 'melhoria', text: 'O fundo da tela é o chão de onde você está (grama, mata, areia, neve, rocha, água, cidade, lava ou a Liga), escurece com a hora e tem pólen, vaga-lumes, neve, poeira ou bolhas no ar.' },
-      { tag: 'novo', text: 'Loja nova: um Poké Mart de verdade (prateleiras, caixa, porta automática e clientes), o elevador da Loja de Departamentos e a carroça do mercador na estrada.' },
+      { tag: 'novo', text: 'Loja nova em pixel art: um Poké Mart de verdade (prateleiras cheias, janela, caixa, porta automática e clientes), a Loja de Departamentos com elevador e a carroça do mercador na estrada, de dia e de noite.' },
       { tag: 'novo', text: 'O vendedor conversa: indica a bola certa para a rota, avisa quando falta dinheiro, agradece e fica com "…" se você demora.' },
-      { tag: 'melhoria', text: 'Vitrine com etiquetas de preço, corredores com placas, itens bloqueados em silhueta e um painel de compra com quantidade (−, +, ×10, máximo); o item voa até o caixa e a sacola soma a visita.' },
+      { tag: 'melhoria', text: 'Vitrine em cartões com os itens em tamanho dobrado, corredores com ícone, itens bloqueados em silhueta e um painel de compra com quantidade (−, +, ×10, máximo); o item voa até o caixa e a sacola soma a visita.' },
       { tag: 'novo', text: 'Cartão de Treinador com 5 estrelas de feitos, brilho holográfico, inclinação com o mouse e um verso com a sua equipe.' },
       { tag: 'melhoria', text: 'Missões com o ícone do que pedem, barra animada e carimbo de CONCLUÍDA com chuva de moedas.' },
       { tag: 'melhoria', text: 'Laboratório com o cientista e a máquina: os Pokémon transferidos entram no tubo e a pesquisa que sobe de nível brilha.' },

@@ -253,3 +253,11 @@ Folhas, pétalas, vaga-lumes, aurora e estrelas cadentes entraram em 11/11 (Jard
 só a nevasca e os raios de sol (escurecem a cena inteira). O clima segue o relógio do jogo, com o lugar por cima
 (`routeWeather` em `env.ts`): nos campos de neve neva quase sempre (9/11); na praia, na selva e no pântano o granizo
 vira chuva, e no alto (Dragonspiral) a chuva cai como neve (11/11). As frentes chegam a cada rota com o clima de lá.
+
+## Loja em pixel art (11/11)
+
+A cena da Loja vem de `scripts/build-shop.py` (`python scripts/build-shop.py`): gera `public/sprites/shop/*.png`
+(900×200, escala 1:1, fundo e frente de cada loja, e a estrada de noite) com os sprites reais dos itens nas prateleiras.
+Em `ShopScreen.tsx` a cena fica centralizada e tudo o que mexe (porta, cliente, elevador, caixa, sacola, vendedor) é
+posicionado em pixels da cena; em telas estreitas as laterais saem e o balcão fica no meio (x 330–610). O vendedor é
+`class-clerk` e o mercador `class-backpacker` (Showdown, em `UI_TRAINERS`).
