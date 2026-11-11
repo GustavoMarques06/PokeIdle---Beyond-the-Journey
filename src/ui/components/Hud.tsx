@@ -65,12 +65,14 @@ const COUNT_MS = 450;
 function useCountUp(value: number) {
   const [shown, setShown] = useState(value);
   const [gain, setGain] = useState<{ id: number; amount: number } | null>(null);
+  const [loss, setLoss] = useState<{ id: number; amount: number } | null>(null);
   const prev = useRef(value);
   useEffect(() => {
     const from = prev.current;
     prev.current = value;
     if (value === from) return;
     if (value > from) setGain((g) => ({ id: (g?.id ?? 0) + 1, amount: value - from }));
+    else setLoss((g) => ({ id: (g?.id ?? 0) + 1, amount: from - value }));
     if (document.documentElement.classList.contains('reduced-motion')) {
       setShown(value);
       return;
@@ -85,7 +87,7 @@ function useCountUp(value: number) {
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [value]);
-  return { shown, gain };
+  return { shown, gain, loss };
 }
 
 const fmt = formatNumber;
@@ -217,6 +219,11 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
         {money.gain && (
           <span key={money.gain.id} className="hud-gain" aria-hidden>
             +{fmt(money.gain.amount)}
+          </span>
+        )}
+        {money.loss && (
+          <span key={`l-${money.loss.id}`} className="hud-loss" aria-hidden>
+            −{fmt(money.loss.amount)}
           </span>
         )}
         <div className="hud-panel frame frame-menu" role="tooltip">

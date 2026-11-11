@@ -483,43 +483,420 @@
 }
 
 /* --- 5. Loja --------------------------------------------------------------------------------- */
-/* Balcão: parede, o vendedor atrás do balcão de madeira, produtos em cima e o balão de fala. */
-.shop-counter {
+/* A cena no alto: parede com placa, prateleiras ao fundo, piso quadriculado, porta automática com uma cliente
+   entrando (Poké Mart), elevador com o andar aceso (Loja de Departamentos) ou a carroça na estrada (mercador).
+   O vendedor fica atrás do balcão, com o caixa e a sacola da visita. */
+.shop-screen {
   position: relative;
-  height: 124px;
-  margin-bottom: 8px;
+}
+
+.shop-scene {
+  position: relative;
+  height: 196px;
   overflow: hidden;
   border: 3px solid var(--ink);
   border-radius: 6px;
-  background:
-    linear-gradient(transparent 0 70%, rgb(0 0 0 / 0.08) 70% 72%, transparent 72%),
-    repeating-linear-gradient(90deg, #f8eccc 0 16px, #f2e2bc 16px 32px);
+  isolation: isolate;
+  container: shop / inline-size;
 }
 
-.shop-counter.store-dept {
-  background:
-    linear-gradient(transparent 0 70%, rgb(0 0 0 / 0.08) 70% 72%, transparent 72%),
-    repeating-linear-gradient(90deg, #e4eef8 0 16px, #d8e4f2 16px 32px);
-}
-
-/* O mercador fica na estrada: céu, morros e grama. */
-.shop-counter.store-merchant {
-  background:
-    radial-gradient(ellipse 40% 30% at 20% 78%, #78b858 0 98%, transparent 100%),
-    radial-gradient(ellipse 45% 35% at 75% 80%, #68a850 0 98%, transparent 100%),
-    linear-gradient(#a8d8f8 0 60%, #88c060 60%);
-}
-
-.shop-clerk {
+.ss-wall {
   position: absolute;
-  right: 18px;
-  bottom: 14px;
+  inset: 0 0 34% 0;
+  background:
+    linear-gradient(#5878c8 0 14px, #3858a8 14px 18px, transparent 18px),
+    repeating-linear-gradient(90deg, #f4f0e4 0 20px, #ece6d6 20px 40px);
+}
+
+.store-dept .ss-wall {
+  background:
+    linear-gradient(#c84848 0 14px, #983030 14px 18px, transparent 18px),
+    repeating-linear-gradient(90deg, #f8ecd8 0 20px, #f0e0c8 20px 40px);
+}
+
+.ss-floor {
+  position: absolute;
+  inset: 66% 0 0 0;
+  background: repeating-conic-gradient(#e8e0d0 0 25%, #d4ccbc 0 50%) 0 0 / 24px 24px;
+  box-shadow: inset 0 4px 0 rgb(0 0 0 / 0.12);
+}
+
+.store-dept .ss-floor {
+  background: repeating-conic-gradient(#e0e8f0 0 25%, #c8d4e0 0 50%) 0 0 / 24px 24px;
+}
+
+.ss-sign {
+  position: absolute;
+  top: 24px;
+  left: 10px;
   z-index: 1;
+  padding: 2px 12px;
+  background: #fff;
+  border: 3px solid #3858a8;
+  border-radius: 4px;
+  color: #3858a8;
+  font: 700 13px var(--font-label);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 rgb(0 0 0 / 0.2);
+}
+
+.ss-plaque {
+  border-color: #983030;
+  color: #983030;
+  animation: say-pop 0.3s steps(3, end);
+}
+
+/* Prateleiras: duas tábuas cheias de produtos, à esquerda. */
+.ss-shelves {
+  position: absolute;
+  top: 54px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(40%, 230px);
+  padding: 4px 6px 0;
+  background: #d8b888;
+  border: 3px solid #805830;
+  border-bottom-width: 5px;
+}
+
+.ss-plank {
+  display: flex;
+  justify-content: space-around;
+  overflow: hidden;
+  padding-bottom: 1px;
+  border-bottom: 4px solid #a07040;
+}
+
+.ss-plank > span {
+  display: inline-grid;
+  animation: shelf-bob 2.4s steps(2, end) infinite;
+  animation-delay: calc(var(--i) * -0.35s);
+}
+
+@keyframes shelf-bob {
+  50% {
+    translate: 0 -2px;
+  }
+}
+
+/* Porta automática: abre de tempos em tempos para a cliente entrar e sair. */
+.ss-door {
+  position: absolute;
+  right: 10px;
+  bottom: 34%;
+  z-index: 1;
+  display: flex;
+  width: 70px;
+  height: 92px;
+  overflow: hidden;
+  background: linear-gradient(#a8d8f8, #78b8e8);
+  border: 3px solid #586878;
+  border-bottom: 0;
+}
+
+.ss-door i {
+  flex: 1;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.55) 0 4px, rgb(200 230 250 / 0.85) 4px);
+  border: 2px solid #8898a8;
+  animation: door-left 12s steps(4, end) infinite;
+}
+
+.ss-door i + i {
+  animation-name: door-right;
+}
+
+@keyframes door-left {
+  0%,
+  6%,
+  22%,
+  60%,
+  66%,
+  82%,
+  100% {
+    translate: 0 0;
+  }
+  9%,
+  19%,
+  69%,
+  79% {
+    translate: -100% 0;
+  }
+}
+
+@keyframes door-right {
+  0%,
+  6%,
+  22%,
+  60%,
+  66%,
+  82%,
+  100% {
+    translate: 0 0;
+  }
+  9%,
+  19%,
+  69%,
+  79% {
+    translate: 100% 0;
+  }
+}
+
+/* A cliente: entra pela porta, vai até a prateleira, olha e volta. */
+.ss-customer {
+  --walk: 300px;
+  position: absolute;
+  right: 16px;
+  bottom: 4%;
+  z-index: 4;
+  animation: customer-walk 12s steps(48, end) infinite;
+}
+
+@keyframes customer-walk {
+  0%,
+  8% {
+    translate: 0 0;
+    opacity: 0;
+    scale: -1 1;
+  }
+  12% {
+    opacity: 1;
+    translate: -20px 0;
+    scale: -1 1;
+  }
+  35% {
+    translate: calc(-1 * var(--walk)) 0;
+    scale: -1 1;
+  }
+  50% {
+    translate: calc(-1 * var(--walk)) -2px;
+    scale: -1 1;
+  }
+  52% {
+    translate: calc(-1 * var(--walk)) 0;
+    scale: 1 1;
+  }
+  72% {
+    translate: -20px 0;
+    scale: 1 1;
+    opacity: 1;
+  }
+  76%,
+  100% {
+    translate: 0 0;
+    opacity: 0;
+    scale: 1 1;
+  }
+}
+
+/* Elevador da Loja de Departamentos: as luzes do andar e as portas que abrem a cada troca de corredor. */
+.ss-elevator {
+  position: absolute;
+  right: 10px;
+  bottom: 34%;
+  z-index: 1;
+  display: flex;
+  width: 74px;
+  height: 100px;
+  padding-top: 14px;
+  overflow: hidden;
+  background: #303840;
+  border: 3px solid #586878;
+  border-bottom: 0;
+}
+
+.ss-lights {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  display: flex;
+  gap: 2px;
+  translate: -50% 0;
+}
+
+.ss-lights i {
+  width: 5px;
+  height: 5px;
+  background: #586878;
+}
+
+.ss-lights i.on {
+  background: #f8d030;
+  box-shadow: 0 0 4px #f8d030;
+}
+
+.ss-elevator > i {
+  flex: 1;
+  background: linear-gradient(90deg, #c8d0d8 0 3px, #a8b0b8 3px);
+  border: 2px solid #687078;
+  animation: lift-left 1.4s steps(4, end);
+}
+
+.ss-elevator > i + i {
+  animation-name: lift-right;
+}
+
+@keyframes lift-left {
+  20%,
+  70% {
+    translate: -100% 0;
+  }
+}
+
+@keyframes lift-right {
+  20%,
+  70% {
+    translate: 100% 0;
+  }
+}
+
+/* O mercador na estrada: céu (estrelado à noite), morros, a carroça com toldo e lanternas, e a fogueira. */
+.shop-scene.store-merchant {
+  background: linear-gradient(#a8d8f8 0 62%, #88c060 62%);
+}
+
+.shop-scene.store-merchant.phase-dusk {
+  background: linear-gradient(#f8b878 0 30%, #e88870 62%, #78a850 62%);
+}
+
+.shop-scene.store-merchant.phase-night {
+  background: linear-gradient(#182048 0 62%, #2c5030 62%);
+}
+
+.store-merchant .ss-wall {
+  display: none;
+}
+
+.ss-hills {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 34% 26% at 18% 64%, #78b858 0 98%, transparent 100%),
+    radial-gradient(ellipse 42% 30% at 78% 66%, #68a850 0 98%, transparent 100%);
+}
+
+.phase-night .ss-hills {
+  filter: brightness(0.45) saturate(0.7);
+}
+
+.ss-stars {
+  position: absolute;
+  inset: 0 0 45% 0;
+  background:
+    radial-gradient(circle, #fff 0 1px, transparent 1.5px) 10px 12px / 46px 34px,
+    radial-gradient(circle, #f8f0c0 0 1px, transparent 1.5px) 30px 24px / 62px 40px;
+  animation: blink 2.4s steps(1, end) infinite;
+}
+
+.ss-cart {
+  position: absolute;
+  left: 14px;
+  bottom: 26px;
+  z-index: 1;
+  width: min(42%, 230px);
+  height: 92px;
+  background: linear-gradient(transparent 0 46%, #b07840 46% 52%, #8a5a30 52%);
+}
+
+.ss-awning {
+  position: absolute;
+  inset: 0 -6px auto -6px;
+  height: 30px;
+  background: repeating-linear-gradient(90deg, #d84838 0 16px, #f8f0e0 16px 32px);
+  border: 3px solid var(--ink);
+  border-radius: 4px 4px 10px 10px;
+}
+
+.ss-awning::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 30px;
+  height: 18px;
+  border-left: 4px solid #6a4020;
+  border-right: 4px solid #6a4020;
+}
+
+.ss-lantern {
+  position: absolute;
+  top: 30px;
+  left: 14px;
+  width: 10px;
+  height: 14px;
+  background: #f8d050;
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 10px 4px rgb(248 208 80 / 0.55);
+  animation: lantern 1.6s steps(2, end) infinite;
+}
+
+.ss-lantern.r {
+  left: auto;
+  right: 14px;
+  animation-delay: -0.8s;
+}
+
+@keyframes lantern {
+  50% {
+    box-shadow: 0 0 14px 6px rgb(248 208 80 / 0.7);
+  }
+}
+
+.ss-wheel {
+  position: absolute;
+  left: 18px;
+  bottom: -14px;
+  width: 26px;
+  height: 26px;
+  background: repeating-conic-gradient(#6a4020 0 10deg, #c89860 10deg 45deg);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+}
+
+.ss-fire {
+  position: absolute;
+  right: 12%;
+  bottom: 14px;
+  z-index: 3;
+  filter: drop-shadow(0 0 8px #f8a040);
+  animation: fire-flicker 0.5s steps(2, end) infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes fire-flicker {
+  50% {
+    scale: 1.1 0.92;
+  }
+}
+
+/* Vendedor: respira atrás do balcão, agradece com uma reverência, balança a cabeça quando falta dinheiro. */
+.ss-clerk {
+  position: absolute;
+  left: 54%;
+  bottom: 16px;
+  z-index: 2;
   animation: clerk-idle 2.4s steps(2, end) infinite;
 }
 
-.shop-clerk.thanks {
-  animation: clerk-bow 0.6s steps(3, end);
+.store-merchant .ss-clerk {
+  left: auto;
+  right: 26%;
+  bottom: 16px;
+}
+
+.ss-clerk.mood-thanks {
+  animation: clerk-bow 0.7s steps(4, end);
+}
+
+.ss-clerk.mood-broke {
+  animation: clerk-shake 0.5s steps(4, end);
+}
+
+.ss-clerk.mood-pick {
+  animation: clerk-hop 0.4s steps(2, end);
 }
 
 @keyframes clerk-idle {
@@ -530,56 +907,141 @@
 
 @keyframes clerk-bow {
   40% {
-    translate: 0 6px;
-    scale: 1 0.94;
+    translate: 0 8px;
+    scale: 1 0.92;
   }
 }
 
-.shop-desk {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  height: 30px;
-  background:
-    linear-gradient(#d89858 0 6px, #b87840 6px 8px, #a86a38 8px 100%),
-    #a86a38;
-  border-top: 3px solid var(--ink);
+@keyframes clerk-shake {
+  25% {
+    translate: -4px 0;
+  }
+  75% {
+    translate: 4px 0;
+  }
 }
 
-.store-merchant .shop-desk {
-  height: 22px;
-  background: repeating-linear-gradient(90deg, #c84838 0 12px, #f8f0e0 12px 24px);
+@keyframes clerk-hop {
+  50% {
+    translate: 0 -6px;
+  }
 }
 
-.shop-shelf {
+.ss-balloon {
   position: absolute;
-  left: 12px;
-  bottom: 28px;
+  top: -4px;
+  right: -14px;
+  animation: say-pop 0.25s steps(3, end);
+}
+
+/* Balcão de madeira na frente do vendedor, com o caixa e a sacola da visita. */
+.ss-counter {
+  position: absolute;
+  left: 44%;
+  right: 96px;
+  bottom: 12px;
   z-index: 3;
   display: flex;
-  gap: 4px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 150px;
+  height: 46px;
+  padding: 0 8px 4px;
+  background: linear-gradient(#d89858 0 6px, #b87840 6px 8px, #a86a38 8px);
+  border: 3px solid var(--ink);
+  border-radius: 4px 4px 0 0;
 }
 
-.shop-shelf > span {
-  display: inline-grid;
-  animation: shelf-bob 2s steps(2, end) infinite;
-  animation-delay: calc(var(--i) * -0.3s);
+.store-merchant .ss-counter {
+  left: 14px;
+  right: auto;
+  width: min(42%, 230px);
+  min-width: 0;
+  bottom: 0;
+  height: 34px;
+  background: #8a5a30;
 }
 
-@keyframes shelf-bob {
-  50% {
-    translate: 0 -2px;
+.ss-register {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 2px 5px 6px;
+  background: #586878;
+  border: 3px solid var(--ink);
+  border-radius: 3px;
+}
+
+.ss-screen {
+  padding: 0 4px;
+  background: #102018;
+  color: #78f0a0;
+  font: 700 9px var(--font-label);
+  letter-spacing: 1px;
+}
+
+.ss-drawer {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: -6px;
+  height: 6px;
+  background: #384858;
+  border: 2px solid var(--ink);
+  border-top: 0;
+}
+
+.ss-drawer.open {
+  animation: drawer 0.9s steps(4, end);
+}
+
+@keyframes drawer {
+  20%,
+  70% {
+    translate: 0 6px;
   }
 }
 
-.shop-say {
+.ss-register:has(.open) {
+  animation: register-ring 0.5s steps(4, end);
+}
+
+@keyframes register-ring {
+  25% {
+    rotate: -4deg;
+  }
+  75% {
+    rotate: 4deg;
+  }
+}
+
+.ss-bag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 26px;
+  animation: clerk-hop 0.4s steps(2, end);
+}
+
+.ss-bag small {
+  padding: 0 4px;
+  background: #fff8e0;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  font: 700 10px var(--font-label);
+  white-space: nowrap;
+}
+
+.ss-say {
   position: absolute;
-  top: 8px;
-  left: 10px;
-  right: 112px;
-  z-index: 3;
+  top: 22px;
+  left: calc(min(40%, 230px) + 26px);
+  right: 96px;
+  z-index: 5;
+  min-height: 34px;
   padding: 4px 10px;
   background: #fff;
   border: 3px solid var(--ink);
@@ -588,23 +1050,30 @@
   animation: say-pop 0.25s steps(3, end);
 }
 
-.shop-say::after {
+.ss-say::after {
   content: '';
   position: absolute;
-  top: 10px;
-  right: -11px;
+  left: 34%;
+  bottom: -12px;
   border: 6px solid transparent;
-  border-left: 8px solid var(--ink);
+  border-top: 8px solid var(--ink);
 }
 
-.shop-counter.away .shop-say {
+.store-merchant .ss-say {
+  top: 10px;
+  left: calc(min(42%, 230px) + 30px);
+  right: 10px;
+}
+
+.shop-scene.away .ss-say {
+  left: 10px;
   right: 10px;
   background: #f8e0a0;
   border-style: dashed;
   text-align: center;
 }
 
-.shop-counter.away .shop-say::after {
+.shop-scene.away .ss-say::after {
   display: none;
 }
 
@@ -615,30 +1084,336 @@
   }
 }
 
-.shop-sold {
+.ss-sold {
   position: absolute;
-  right: 44px;
-  bottom: 40px;
-  z-index: 4;
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  animation: sold-rise 1.1s steps(8, end) forwards;
+  left: 44%;
+  bottom: 50px;
+  z-index: 6;
+  width: 80px;
+  height: 60px;
+  pointer-events: none;
 }
 
-@keyframes sold-rise {
-  0% {
-    translate: 0 10px;
-    scale: 0.5;
+@container shop (max-width: 480px) {
+  .ss-customer {
+    --walk: 150px;
   }
-  30% {
-    translate: 0 -14px;
-    scale: 1.2;
+
+  .ss-shelves {
+    width: 34%;
+  }
+
+  .ss-say {
+    left: calc(34% + 22px);
+    right: 8px;
+    font-size: 12px;
+  }
+
+  .ss-counter {
+    left: 40%;
+    right: 72px;
+    min-width: 120px;
+  }
+
+  .ss-door,
+  .ss-elevator {
+    width: 58px;
+  }
+
+  .ss-sign {
+    top: 24px;
+    font-size: 11px;
+  }
+}
+
+/* O item comprado voa do nicho até o caixa, num arco. */
+.shop-fly {
+  position: absolute;
+  z-index: 40;
+  translate: -50% -50%;
+  pointer-events: none;
+  animation: shop-fly 0.7s steps(10, end) forwards;
+}
+
+@keyframes shop-fly {
+  0% {
+    transform: translate(0, 0) scale(1.2);
+  }
+  50% {
+    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5 - 60px)) scale(1.4);
   }
   100% {
-    translate: 0 -48px;
+    transform: translate(var(--dx), var(--dy)) scale(0.5);
+    opacity: 0.4;
+  }
+}
+
+/* Corredores: placas numeradas com o ícone da seção. */
+.aisle-signs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.aisle-sign {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  background: linear-gradient(#4868b8 0 50%, #3858a8 50%);
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  color: #fff;
+  font: 700 12px var(--font-label);
+  text-shadow: 1px 1px 0 var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  animation: row-in 0.25s steps(3, end) both;
+  animation-delay: calc(var(--i) * 40ms);
+  cursor: pointer;
+}
+
+.aisle-num {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  background: #f8d030;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 11px;
+  text-shadow: none;
+}
+
+.aisle-sign:hover {
+  filter: brightness(1.12);
+}
+
+.aisle-sign.active {
+  background: linear-gradient(#e85848 0 50%, #c83838 50%);
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+/* Vitrine: nichos de prateleira com o item grande e a etiqueta de preço pendurada. */
+.showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px 8px;
+  margin: 0;
+  padding: 8px 6px 10px;
+  list-style: none;
+  background: #f4ead4;
+  border: 3px solid #805830;
+  border-radius: 4px;
+}
+
+.showcase > li {
+  animation: row-in 0.25s steps(3, end) both;
+  animation-delay: calc(var(--i, 0) * 25ms);
+}
+
+.niche {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  height: 112px;
+  padding: 10px 4px 6px;
+  background: radial-gradient(ellipse 24% 4% at 50% 46%, rgb(0 0 0 / 0.16) 0 96%, transparent 100%), #fffaf0;
+  border: 2px solid #d8c8a8;
+  border-bottom: 6px solid #a07040;
+  border-radius: 4px 4px 2px 2px;
+  cursor: pointer;
+}
+
+.niche:hover:not(.locked) .niche-icon,
+.niche.selected .niche-icon {
+  animation: item-bob 0.6s steps(2, end) infinite;
+}
+
+.niche:hover:not(.locked) {
+  border-color: var(--menu-blue);
+  border-bottom-color: #a07040;
+}
+
+.niche.selected {
+  border-color: var(--red);
+  border-bottom-color: #a07040;
+  box-shadow: 0 0 10px rgb(232 72 56 / 0.45);
+}
+
+.niche-icon {
+  display: grid;
+  place-items: center;
+  height: 40px;
+}
+
+.niche-name {
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 100%;
+  font: 700 11px/1.15 var(--font-label);
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.price-tag {
+  position: relative;
+  margin-top: auto;
+  padding: 1px 6px 1px 10px;
+  background: #f8e070;
+  border: 2px solid var(--ink);
+  border-radius: 2px 6px 6px 2px;
+  font: 700 11px var(--font-label);
+  rotate: -3deg;
+}
+
+.price-tag::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 3px;
+  height: 3px;
+  translate: 0 -50%;
+  background: var(--ink);
+  border-radius: 50%;
+}
+
+.niche.short .price-tag {
+  background: #f8c8c0;
+  color: #a02020;
+}
+
+.niche-tag,
+.niche-have {
+  position: absolute;
+  top: 3px;
+  z-index: 1;
+  font: 700 10px var(--font-label);
+}
+
+.niche-tag {
+  left: 3px;
+}
+
+.niche-have {
+  right: 4px;
+  color: var(--ink-muted);
+}
+
+.niche.blocked {
+  opacity: 0.75;
+}
+
+/* Bloqueado: silhueta com cadeado. */
+.niche.locked {
+  cursor: help;
+  background: #ece4d4;
+}
+
+.niche.locked .niche-icon {
+  filter: brightness(0) opacity(0.28);
+}
+
+.niche-lock {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  translate: -50% 0;
+}
+
+/* Painel de compra: o item grande, a quantidade e o COMPRAR (fica no alto enquanto a vitrine rola). */
+.buy-panel {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin-bottom: 8px;
+  animation: say-pop 0.2s steps(3, end);
+}
+
+.buy-art {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  background: radial-gradient(circle, #fff 0 42%, #dbe8ff 43% 68%, transparent 69%);
+}
+
+.buy-art > * {
+  scale: 1.35;
+  animation: item-bob 1.2s steps(2, end) infinite;
+}
+
+.buy-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.buy-info strong {
+  font: 700 15px var(--font-label);
+}
+
+.buy-info small {
+  font-size: 12px;
+}
+
+.buy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.buy-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.buy-qty b {
+  min-width: 32px;
+  padding: 2px 4px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  font: 700 15px var(--font-label);
+  text-align: center;
+}
+
+.buy-go {
+  font-size: 14px;
+}
+
+.hud-loss {
+  position: absolute;
+  right: 16px;
+  bottom: -14px;
+  font: 700 13px var(--font-label);
+  color: var(--red-dark);
+  pointer-events: none;
+  animation: hud-loss 1s ease-in forwards;
+}
+
+@keyframes hud-loss {
+  from {
+    opacity: 1;
+    translate: 0 -6px;
+  }
+  to {
     opacity: 0;
+    translate: 0 10px;
   }
 }
 
@@ -1377,10 +2152,27 @@ html.reduced-motion :is(
     .hud-coin,
     .dialog-caret,
     .bc-icon .pixel-icon,
-    .shop-clerk,
-    .shop-shelf > span,
-    .shop-say,
-    .shop-sold,
+    .ss-clerk,
+    .ss-plank > span,
+    .ss-say,
+    .ss-door i,
+    .ss-customer,
+    .ss-elevator > i,
+    .ss-lantern,
+    .ss-fire,
+    .ss-stars,
+    .ss-register,
+    .ss-drawer,
+    .ss-bag,
+    .ss-plaque,
+    .ss-balloon,
+    .shop-fly,
+    .aisle-sign,
+    .showcase > li,
+    .niche .niche-icon,
+    .buy-panel,
+    .buy-art > *,
+    .hud-loss,
     .bag-art,
     .bag-list > li,
     .item-row.selected .item-icon,
@@ -1422,7 +2214,10 @@ html.gfx-performance :is(
     .card-holo,
     .hud-route-track .pbar-fill,
     .mission .pbar-fill,
-    .shop-shelf > span,
+    .ss-plank > span,
+    .ss-customer,
+    .ss-door i,
+    .ss-stars,
     .lab-bubble,
     .transfer-icons > span,
     .card-badges .badge-icon
