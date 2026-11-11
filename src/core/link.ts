@@ -31,7 +31,7 @@ import { abilitySlotOf, movesOf, statsOf, type PokemonInstance } from './pokemon
 import { healTeam, reservePokemon } from './team';
 import { checksum, packCode, unpackCode } from './transfer';
 import { recordEvolution } from './battle';
-import { freshBattle } from './state';
+import { freshBattle, type DuelMove } from './state';
 import type { Evs, Ivs } from './stats';
 
 export const TRADE_PREFIX = 'PKT1';
@@ -130,6 +130,60 @@ export interface GhostRecord {
   losses: number;
   /** Já pagou a recompensa da primeira vitória. */
   rewarded: boolean;
+  /** Os últimos duelos contra esta equipe (o mais novo primeiro), com o lance a lance do último. */
+  duels?: { at: number; won: boolean }[];
+  lastDuel?: { at: number; won: boolean; log: DuelMove[] };
+}
+
+/** Temporada do Duelo: um mês. O placar contra cada amigo no mês e os troféus dos meses que você venceu. */
+export interface DuelSeason {
+  month: string;
+  /** Placar seu contra cada equipe neste mês (trainerId → vitórias e derrotas suas). */
+  vs: Record<string, { w: number; l: number }>;
+  trophies: string[];
+}
+
+export const monthOf = (now: number) => {
+  const d = new Date(now);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+/** Ranking do mês: você (somando todas as vitórias) e cada amigo (as vitórias dele contra você). */
+export function duelRanking(state: GameState, now: number): { name: string; you?: boolean; w: number; l: number }[] {
+  const season = duelSeason(state, now);
+  const ghosts = linkState(state).ghosts;
+  const you = Object.values(season.vs).reduce((acc, r) => ({ w: acc.w + r.w, l: acc.l + r.l }), { w: 0, l: 0 });
+  const rows = [
+    { name: state.trainerName, you: true, ...you },
+    ...ghosts.map((g) => ({ name: g.name, w: season.vs[g.trainerId]?.l ?? 0, l: season.vs[g.trainerId]?.w ?? 0 })),
+  ];
+  return rows.sort((a, b) => b.w - a.w || a.l - b.l);
+}
+
+/** A temporada do mês (vira sozinha: quem fechou o mês passado em 1º, com 3 vitórias ou mais, ganha o troféu). */
+export function duelSeason(state: GameState, now: number): DuelSeason {
+  const month = monthOf(now);
+  const s = (state.duelSeason ??= { month, vs: {}, trophies: [] });
+  if (s.month !== month) {
+    const total = Object.values(s.vs).reduce((acc, r) => ({ w: acc.w + r.w, l: acc.l + r.l }), { w: 0, l: 0 });
+    const bestFriend = Math.max(0, ...Object.values(s.vs).map((r) => r.l));
+    if (total.w >= 3 && total.w > bestFriend) s.trophies = [s.month, ...s.trophies].slice(0, 24);
+    s.month = month;
+    s.vs = {};
+  }
+  return s;
+}
+
+function recordDuel(state: GameState, g: GhostRecord | undefined, won: boolean): void {
+  const now = state.lastTimerAt;
+  if (g) {
+    g.duels = [{ at: now, won }, ...(g.duels ?? [])].slice(0, 10);
+    g.lastDuel = { at: now, won, log: state.battle.duelLog ?? [] };
+    const season = duelSeason(state, now);
+    const r = (season.vs[g.trainerId] ??= { w: 0, l: 0 });
+    if (won) r.w++;
+    else r.l++;
+  }
 }
 
 export interface LinkState {
@@ -693,6 +747,7 @@ export function ghostWon(state: GameState, events: GameEvent[]): void {
     g.wins++;
     g.rewarded = true;
   }
+  recordDuel(state, g, true);
   state.coins += coins;
   state.stats.coinsEarned += coins;
   state.stats.ghostWins++;
@@ -706,6 +761,7 @@ export function ghostLost(state: GameState, events: GameEvent[]): void {
   const b = state.battle;
   const g = ghostById(state, b.ghostId);
   if (g) g.losses++;
+  recordDuel(state, g, false);
   events.push({ type: 'ghostDuelEnded', name: g?.name ?? b.trainer?.name ?? '', won: false, coins: 0 });
 }
 

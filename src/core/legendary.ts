@@ -30,6 +30,19 @@ export interface LegendState {
   rumorDay?: number;
   /** O lendário do boato desse dia (fixo até o dia virar, mesmo que a equipe ou as capturas mudem). */
   rumorId?: number;
+  /** Onde cada lendário já foi enfrentado (rotas, sem repetir): o mapa das aparições. */
+  sightings?: Record<number, string[]>;
+  /** A primeira captura de cada um: onde, quando, com qual bola e se veio shiny (a galeria). */
+  captures?: Record<number, LegendCapture>;
+}
+
+export interface LegendCapture {
+  routeId: string;
+  at: number;
+  ball: string;
+  shiny: boolean;
+  /** Bolas lançadas até pegar. */
+  throws: number;
 }
 
 export const emptyLegends = (): LegendState => ({ caught: [], cooldowns: {} });
@@ -188,14 +201,25 @@ export function legendaryCaptureBonus(
   return st * affinity * rumor;
 }
 
-export function countEncounter(state: GameState, speciesId: number): void {
+export function countEncounter(state: GameState, speciesId: number, routeId?: string): void {
   const enc = (state.legends.encounters ??= {});
   enc[speciesId] = (enc[speciesId] ?? 0) + 1;
+  if (routeId) {
+    const seen = ((state.legends.sightings ??= {})[speciesId] ??= []);
+    if (!seen.includes(routeId)) seen.push(routeId);
+  }
 }
 
 /** Capturado: entra na lista (uma vez) e volta a aparecer depois da espera de recaptura. */
-export function legendaryCaught(state: GameState, speciesId: number, now: number): void {
+export function legendaryCaught(
+  state: GameState,
+  speciesId: number,
+  now: number,
+  capture?: Omit<LegendCapture, 'at'>,
+): void {
   if (!state.legends.caught.includes(speciesId)) state.legends.caught.push(speciesId);
+  // Guarda a primeira captura para a galeria (as seguintes não apagam a lembrança).
+  if (capture) (state.legends.captures ??= {})[speciesId] ??= { ...capture, at: now };
   state.legends.cooldowns[speciesId] = now + legendaryRules(speciesId).recaptureMinutes * 60_000;
 }
 

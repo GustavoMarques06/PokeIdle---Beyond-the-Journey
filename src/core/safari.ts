@@ -132,7 +132,33 @@ export interface SafariProgress {
   biggest?: { speciesId: number; meters: number; mult: number; shiny: boolean };
   /** Guia do Safari: entra numa zona sozinho e volta com capturas. */
   guide?: SafariGuideRun;
+  /** Álbum de fotos: a melhor foto de cada espécie (shiny e tamanho contam). */
+  album?: Record<number, SafariPhoto>;
 }
+
+export interface SafariPhoto {
+  at: number;
+  zone: SafariZoneId;
+  shiny: boolean;
+  form?: string;
+  /** Tamanho em relação ao normal da espécie (0,8× a 1,2×) e o humor na hora do clique. */
+  size: number;
+  mood: SafariMood;
+}
+
+/** Nota da foto: shiny vale muito; tamanho fora do comum e um humor diferente valem um pouco. */
+export const photoScore = (p: SafariPhoto) =>
+  (p.shiny ? 100 : 0) + Math.round(Math.abs(p.size - 1) * 100) + (p.mood === 'watching' ? 0 : 5);
+
+// --- Clima dentro da zona ------------------------------------------------------------------------
+
+/** O clima da zona: a chuva traz Pokémon de água para a grama; a neblina deixa todos mais calmos. */
+export function safariWeather(state: GameState): 'rain' | 'fog' | undefined {
+  const w = state.env.weather;
+  return w === 'rain' || w === 'fog' ? w : undefined;
+}
+const FOG_FLEE = 0.8;
+const RAIN_WATER_WEIGHT = 0.5;
 
 export interface SafariGuideRun {
   zone: SafariZoneId;
@@ -335,6 +361,10 @@ function spawn(state: GameState, path: SafariPath, rng: Rng, now: number, forced
     if (outbreak?.zone === zone.id && outbreak.speciesId === id) weight *= 5;
     return { speciesId: id, weight };
   });
+  if (path !== 'water' && safariWeather(state) === 'rain') {
+    for (const [slug, w] of zone.water)
+      if (!table.some((t) => t.speciesId === sid(slug))) table.push({ speciesId: sid(slug), weight: w * RAIN_WATER_WEIGHT });
+  }
   // O surto também aparece na grama baixa da zona dele, mesmo se for da grama alta.
   if (path === 'grass' && outbreak?.zone === zone.id && !table.some((t) => t.speciesId === outbreak.speciesId))
     table.push({ speciesId: outbreak.speciesId, weight: 25 });
@@ -466,11 +496,12 @@ export function safariCatchChance(state: GameState, enemy: SafariEnemy): number 
   return Math.min(1, base * mult);
 }
 
-export function safariFleeChance(enemy: SafariEnemy): number {
+export function safariFleeChance(enemy: SafariEnemy, state?: GameState): number {
   const cfg = BALANCE.safari;
   const base = cfg.fleeBase + getSpecies(enemy.speciesId).baseStats.spe * cfg.fleePerSpeed;
   const legacy = cfg.bait.flee ** (enemy.bait ?? 0) * cfg.rock.flee ** (enemy.rock ?? 0);
-  return Math.min(0.9, base * MOOD[enemy.mood ?? 'watching'].flee * legacy * depthOf(enemy.depth).flee);
+  const fog = state && safariWeather(state) === 'fog' ? FOG_FLEE : 1;
+  return Math.min(0.9, base * MOOD[enemy.mood ?? 'watching'].flee * legacy * depthOf(enemy.depth).flee * fog);
 }
 
 function setMood(enemy: SafariEnemy, mood: SafariMood, turns: number, happy = false): void {
@@ -523,6 +554,17 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   }
   if (action === 'photo') {
     enemy.photographed = true;
+    const album = (safariProgress(state).album ??= {});
+    const shot: SafariPhoto = {
+      at: now,
+      zone: zone.id,
+      shiny: enemy.shiny,
+      ...(enemy.form ? { form: enemy.form } : {}),
+      size: sizeMultiplier(enemy.ivs),
+      mood: enemy.mood ?? 'watching',
+    };
+    const old = album[enemy.speciesId];
+    if (!old || photoScore(shot) > photoScore(old)) album[enemy.speciesId] = shot;
     const photos = (s.photos ??= []);
     if (!photos.includes(enemy.speciesId)) {
       photos.push(enemy.speciesId);
@@ -557,7 +599,7 @@ export function safariAct(state: GameState, action: SafariAction, now: number, i
   } else {
     setMood(enemy, 'angry', randInt(rng, 1, 3));
   }
-  if (action !== 'photo' && rng.next() < safariFleeChance(enemy)) {
+  if (action !== 'photo' && rng.next() < safariFleeChance(enemy, state)) {
     result('fled');
     return next(state, events);
   }

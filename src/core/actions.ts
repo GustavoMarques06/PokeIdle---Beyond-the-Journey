@@ -214,7 +214,7 @@ export function challengeLegendary(state: GameState, speciesId: number, now: num
   if (!def || legendaryStatus(state, def, now) !== 'ready' || state.battle.kind !== 'wild') return false;
   applyChallengePreset(state, 'legendary');
   healTeam(state);
-  countEncounter(state, speciesId);
+  countEncounter(state, speciesId, state.currentRouteId);
   state.battle = {
     ...freshBattle(state.currentRouteId),
     kind: 'legendary',

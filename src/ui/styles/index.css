@@ -16,6 +16,7 @@
 @import './tournament.css'; /* Torneio: chave em árvore, narrador, festa do título e sala de troféus */
 @import './link.css'; /* Cabo Link: animação da Troca Surpresa e histórico */
 @import './hunt.css'; /* Caça ao shiny: aura, contador, curva da chance, Poké Radar e diário */
+@import './vida.css'; /* Mais vida nas atividades: uma seção por aba */
 @import './sky.css'; /* Clima: frentes no mapa e eventos raros do céu (aurora, arco-íris, meteoros) */
 @import './raids.css'; /* Raides: toca com pilar de energia, chefe gigante, estrelas e livro de raides */
 @import './training.css'; /* Campo de Treino: estações animadas por atributo, hexágono de EVs e planos */

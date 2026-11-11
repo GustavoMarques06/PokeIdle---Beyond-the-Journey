@@ -9,6 +9,10 @@ import { currentEncounters, type GameState } from '../../../core/game';
 import {
   RADAR_CHAIN,
   RADAR_CHARGE,
+  SHINY_CHARM_AT,
+  SHINY_CHARM_BOOST,
+  hasShinyCharm,
+  shinySpecies,
   huntShinyMultiplier,
   pickRadarBush,
   radarReady,
@@ -124,6 +128,71 @@ function Radar({ state }: { state: GameState }) {
   );
 }
 
+/**
+ * Galeria Brilhante: os shinies da coleção (um por espécie) em pedestais que brilham, e o caminho até o Amuleto
+ * Brilhante (shiny 1,5× para sempre).
+ */
+function ShinyGallery({ state }: { state: GameState }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const seen = new Set<number>();
+  const shinies = state.collection.filter((p) => p.shiny && !seen.has(p.speciesId) && seen.add(p.speciesId));
+  const species = shinySpecies(state);
+  const charm = hasShinyCharm(state);
+  const shown = open !== null ? state.collection.find((p) => p.uid === open) : undefined;
+  return (
+    <Window title={`GALERIA BRILHANTE · ${species} espécie${species === 1 ? '' : 's'}`} icon={<Shiny />}>
+      <div className={`shiny-charm ${charm ? 'on' : ''}`}>
+        <span className="shiny-charm-icon" aria-hidden>
+          ✦
+        </span>
+        <span>
+          <strong>AMULETO BRILHANTE</strong>
+          <small>
+            {charm
+              ? `Seu! Shinies aparecem ${String(SHINY_CHARM_BOOST).replace('.', ',')}× mais.`
+              : `Capture shinies de ${SHINY_CHARM_AT} espécies para ganhar: shiny ${String(SHINY_CHARM_BOOST).replace('.', ',')}× para sempre.`}
+          </small>
+          {!charm && (
+            <span className="shiny-charm-bar">
+              <i style={{ width: `${(species / SHINY_CHARM_AT) * 100}%` }} />
+            </span>
+          )}
+        </span>
+        <b>
+          {Math.min(species, SHINY_CHARM_AT)}/{SHINY_CHARM_AT}
+        </b>
+      </div>
+      {shinies.length ? (
+        <ul className="shiny-gallery">
+          {shinies.map((p, i) => (
+            <li key={p.uid} className={open === p.uid ? 'open' : ''} style={{ '--i': i } as CSSProperties}>
+              <button onClick={() => setOpen(open === p.uid ? null : p.uid)} title={speciesName(p.speciesId)}>
+                <span className="shiny-gallery-mon">
+                  <PokemonSprite speciesId={p.speciesId} kind="front" shiny pixelScale={1} form={p.form} />
+                </span>
+                <span className="shiny-gallery-base" />
+                <span className="shiny-gallery-sparks" aria-hidden>
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="hint">Seus shinies aparecem aqui, cada um no seu pedestal.</p>
+      )}
+      {shown && (
+        <p className="shiny-gallery-note">
+          <strong>{speciesName(shown.speciesId).toUpperCase()}</strong> Nv{shown.level} · {shown.caughtOn} ·{' '}
+          {new Date(shown.caughtAt).toLocaleDateString('pt-BR')}
+        </p>
+      )}
+    </Window>
+  );
+}
+
 export function HuntPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const h = state.hunt;
@@ -218,6 +287,8 @@ export function HuntPanel({ state }: { state: GameState }) {
         </ul>
         <p className="hint">O número é o total de encontros com cada espécie.</p>
       </Window>
+
+      <ShinyGallery state={state} />
 
       {h.log.length > 0 && (
         <Window title={`DIÁRIO DE SHINIES · ${h.log.length}`} icon={<Shiny />}>

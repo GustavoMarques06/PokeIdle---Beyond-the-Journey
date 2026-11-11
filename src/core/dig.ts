@@ -37,6 +37,34 @@ export interface DigRun {
   /** 100 = firme; 0 = desaba. */
   stability: number;
   hits: number;
+  /** Lanternas que sobram nesta parede e as casas em que elas mostraram um brilho de tesouro. */
+  lanterns?: number;
+  glints?: number[];
+}
+
+/** Lanternas por parede: mostram um brilho nas casas com tesouro num raio de 2 (sem cavar nem abalar). */
+export const DIG_LANTERNS = 2;
+const LANTERN_RADIUS = 2;
+
+/** Usa a lanterna na casa (x, y). Devolve quantas casas com tesouro ela revelou (ou -1 se não deu). */
+export function useLantern(state: GameState, x: number, y: number): number {
+  const run = digState(state).run;
+  const left = run?.lanterns ?? DIG_LANTERNS;
+  if (!run || left <= 0 || run.stability <= 0) return -1;
+  run.lanterns = left - 1;
+  const found = new Set(run.glints ?? []);
+  let n = 0;
+  for (const t of run.treasures)
+    for (let yy = t.y; yy < t.y + t.h; yy++)
+      for (let xx = t.x; xx < t.x + t.w; xx++) {
+        const i = yy * DIG_W + xx;
+        if (Math.abs(xx - x) <= LANTERN_RADIUS && Math.abs(yy - y) <= LANTERN_RADIUS && run.depth[i] > 0 && !found.has(i)) {
+          found.add(i);
+          n++;
+        }
+      }
+  run.glints = [...found];
+  return n;
 }
 
 export interface DigState {

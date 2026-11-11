@@ -1222,24 +1222,28 @@
     .raid-pillar,
     .raid-clouds,
     .raid-runes,
-    .raid-runes::before,
     .raid-boss,
     .raid-boss-inner,
     .raid-den,
     .raid-signal i,
-    .raid-signal i::after,
     .raid-go,
     .raid-ring,
     .raid-stars i,
     .raid-book li .sprite,
-    .raid-book li::after,
     .raid-giant .sprite,
-    .raid-giant::before,
     .raid-vignette,
     .raid-banner,
     .raid-secs,
     .raid-record
   ) {
+  animation: none !important;
+}
+
+/* Pseudo-elementos não valem dentro de :is(): ficam numa regra à parte. */
+:is(.reduced-motion, html.gfx-performance) .raid-runes::before,
+:is(.reduced-motion, html.gfx-performance) .raid-signal i::after,
+:is(.reduced-motion, html.gfx-performance) .raid-book li::after,
+:is(.reduced-motion, html.gfx-performance) .raid-giant::before {
   animation: none !important;
 }
 

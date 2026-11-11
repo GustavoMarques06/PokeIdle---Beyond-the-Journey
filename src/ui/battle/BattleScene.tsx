@@ -50,7 +50,7 @@ import {
   TrainerImage,
   TypeBadge,
 } from '../components/common';
-import { raidBreakers } from '../../core/raids';
+import { raidAllies, raidBreakers } from '../../core/raids';
 import { genderOf } from '../../core/gender';
 import { activeLure } from '../../core/lures';
 import { STATUS_TEXT, TYPE_NAMES, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
@@ -324,7 +324,10 @@ export function BattleScene({ state }: { state: GameState }) {
   useEffect(() => () => setEvolving(null), []);
   const [shake, setShake] = useState(0);
   const [shinyFx, setShinyFx] = useState<number | null>(null);
+  const [shinyBush, setShinyBush] = useState<number | null>(null);
   // Raide vencida: o chefe se desfaz, chovem estrelas e moedas e aparece o cartão do resultado.
+  // Golpe de um aliado na raide (o ícone dele pula e dispara).
+  const [allyHit, setAllyHit] = useState<{ id: number; speciesId: number } | null>(null);
   const [raidWin, setRaidWin] = useState<(Extract<GameEvent, { type: 'raidDefeated' }> & { id: number }) | null>(
     null,
   );
@@ -458,6 +461,15 @@ export function BattleScene({ state }: { state: GameState }) {
         } else if (e.type === 'raidRage') {
           audio.cry(e.speciesId);
           if (motion) setShake((n) => n + 1);
+        } else if (e.type === 'raidAlly') {
+          const id = nextId.current++;
+          setAllyHit({ id, speciesId: e.speciesId });
+          setTimeout(() => setAllyHit((cur) => (cur?.id === id ? null : cur)), 900);
+          if (st.settings.showDamageNumbers && motion) {
+            const f: Floater = { id: nextId.current++, side: 'enemy', text: `-${e.damage}`, tone: 'normal' };
+            setFloaters((list) => [...list.slice(-6), f]);
+            setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+          }
         } else if (e.type === 'raidShieldBroken') {
           audio.sfx('crit');
           if (motion) setShake((n) => n + 1);
@@ -504,7 +516,11 @@ export function BattleScene({ state }: { state: GameState }) {
           const trainer = st.battle.trainer;
           if (e.boss && trainer && st.battle.bossIndex === 0) {
             setEncounter({ id, trainer });
-            setTimeout(() => setEncounter((cur) => (cur?.id === id ? null : cur)), 1700 / speed);
+            setTimeout(
+              () => setEncounter((cur) => (cur?.id === id ? null : cur)),
+              (trainer.line ? 3400 : 1700) / speed,
+            );
+            if (trainer.line) audio.sfx('boss');
           } else if (st.battle.kind === 'wild' && (e.shiny || e.roamer || e.perfect)) {
             // Só no raro: num jogo idle, um clarão a cada encontro cansa os olhos.
             setEncounter({ id });
@@ -514,6 +530,10 @@ export function BattleScene({ state }: { state: GameState }) {
             const id = nextId.current++;
             setShinyFx(id);
             setTimeout(() => setShinyFx((cur) => (cur === id ? null : cur)), 1300);
+            // Antes dele aparecer, a moita brilha e treme diferente (com um tilintar).
+            audio.sfx('itemGet');
+            setShinyBush(id);
+            setTimeout(() => setShinyBush((cur) => (cur === id ? null : cur)), 1500);
           }
         } else if (e.type === 'levelUp' && e.uid === st.activeUid) {
           // Janela de nível do ativo: ganho de cada atributo e, depois, os valores novos.
@@ -990,6 +1010,8 @@ export function BattleScene({ state }: { state: GameState }) {
             name={encounter.trainer.name}
             sprite={encounter.trainer.sprite}
             outfit={encounter.trainer.outfit}
+            title={encounter.trainer.title}
+            line={encounter.trainer.line}
           />
         ) : (
           <EncounterFlash key={`enc-${encounter.id}`} />
@@ -1033,6 +1055,21 @@ export function BattleScene({ state }: { state: GameState }) {
             ))}
           </div>
           <div className="raid-vignette" aria-hidden />
+          {raidAllies(state).length > 0 && (
+            <div className="raid-allies" title="Times de amigos ajudando na raide">
+              {raidAllies(state).map((a) => (
+                <span
+                  key={a.name}
+                  className={`raid-ally ${allyHit?.speciesId === a.speciesId ? 'hit' : ''}`}
+                  title={`${a.name} · ${speciesName(a.speciesId)}`}
+                >
+                  <PokemonSprite speciesId={a.speciesId} kind="icon" />
+                  <small>{a.name}</small>
+                </span>
+              ))}
+              {allyHit && <span key={allyHit.id} className="raid-ally-bolt" aria-hidden />}
+            </div>
+          )}
           {!!enemy?.rage && <div key={enemy.rage} className="raid-flash" aria-hidden />}
           <div
             className={`boss-banner raid-banner ${(b.raidMs ?? 0) < 30_000 ? 'urgent' : ''} ${(b.raidMs ?? 0) < 10_000 ? 'final' : ''} rage-${enemy?.rage ?? 0}`}
@@ -1070,6 +1107,12 @@ export function BattleScene({ state }: { state: GameState }) {
         </div>
       )}
       {raidWin && <RaidVictory win={raidWin} />}
+      {shinyBush !== null && motionOn && (
+        <span key={shinyBush} className="shiny-bush" aria-hidden>
+          <i />
+          <b>!</b>
+        </span>
+      )}
       {b.kind === 'legendary' && (
         <div className="boss-banner">
           {enemy && legendaryDef(enemy.speciesId)?.tier === 'pseudo' ? 'QUASE LENDÁRIO' : 'LENDÁRIO'}

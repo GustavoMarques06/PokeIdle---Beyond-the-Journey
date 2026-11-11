@@ -39,6 +39,26 @@ export interface TournamentState {
   score: [number, number];
   place: TournamentPlace | null;
   history: { season: number; place: TournamentPlace }[];
+  /** Rivais: o seu placar de partidas contra cada adversário (nome → vitórias e derrotas suas). */
+  rivals?: Record<string, RivalRecord>;
+}
+
+export interface RivalRecord {
+  sprite: string;
+  wins: number;
+  losses: number;
+}
+
+/** Cada partida que você venceu contra o mesmo rival o deixa 2 níveis mais forte na próxima (até +6). */
+const RIVAL_LEVELS = 2;
+const RIVAL_MAX = 6;
+
+/** O que o rival diz ao reencontrar você (nada no primeiro encontro). */
+export function rivalLine(r: RivalRecord | undefined): string | undefined {
+  if (!r || r.wins + r.losses === 0) return undefined;
+  if (r.wins > r.losses) return `De novo você! Treinei muito desde a última vez (${r.losses}–${r.wins}). Hoje é a minha vez!`;
+  if (r.losses > r.wins) return `Ainda lembra da última vez? Eu lembro bem (${r.losses}–${r.wins} pra mim)!`;
+  return `Empatados (${r.wins}–${r.losses})… Hoje a gente desempata!`;
 }
 
 export const ROUND_NAMES = ['Quartas de final', 'Semifinal', 'Final'];
@@ -73,7 +93,12 @@ function eligible(state: GameState): string[] {
 export function refreshSeason(state: GameState, now: number): void {
   const season = weekOf(now);
   if (state.tournament.season === season) return;
-  state.tournament = { ...emptyTournament(), season, history: state.tournament.history };
+  state.tournament = {
+    ...emptyTournament(),
+    season,
+    history: state.tournament.history,
+    ...(state.tournament.rivals ? { rivals: state.tournament.rivals } : {}),
+  };
 }
 
 export function canPlayTournament(state: GameState, now: number): boolean {
@@ -92,6 +117,13 @@ function buildBracket(state: GameState): void {
   const pool = eligible(state);
   const picked: string[] = [];
   while (picked.length < 7) picked.push(pool.splice(Math.floor(rng.next() * pool.length), 1)[0]);
+  // Um rival conhecido entra logo nas quartas, se estiver entre os chefes possíveis.
+  const rivals = state.tournament.rivals ?? {};
+  const known = picked
+    .map((id, i) => ({ i, name: bossLook(state, getRoute(id).boss!).name }))
+    .filter((x) => rivals[x.name])
+    .sort((a, b) => rivals[b.name].wins + rivals[b.name].losses - (rivals[a.name].wins + rivals[a.name].losses))[0];
+  if (known && known.i !== 0) [picked[0], picked[known.i]] = [picked[known.i], picked[0]];
   const entrants: TournamentEntrant[] = [
     { name: state.trainerName, sprite: state.trainerAvatar, outfit: state.trainerOutfit, routeId: '' },
     ...picked.map((id) => {
@@ -112,7 +144,9 @@ export function tournamentBattle(state: GameState): BattleState {
   const t = state.tournament;
   const foe = t.bracket![t.opponents[t.round]];
   const boss = getRoute(foe.routeId).boss!;
-  const extra = t.round * BALANCE.tournament.levelsPerRound;
+  const rival = t.rivals?.[foe.name];
+  const extra =
+    t.round * BALANCE.tournament.levelsPerRound + Math.min(RIVAL_MAX, (rival?.wins ?? 0) * RIVAL_LEVELS);
   const team = resolveBossTeam(state, boss, true).map((m) => ({
     ...m,
     level: Math.min(BALANCE.maxLevel, m.level + extra),
@@ -125,7 +159,9 @@ export function tournamentBattle(state: GameState): BattleState {
       sprite: foe.sprite,
       outfit: foe.outfit,
       name: foe.name,
-      title: `Torneio · ${ROUND_NAMES[t.round]} (${t.score[0]}–${t.score[1]})`,
+      title: `${rival ? 'Rival' : 'Torneio'} · ${ROUND_NAMES[t.round]} (${t.score[0]}–${t.score[1]})`,
+      // A fala do rival só na primeira batalha da partida.
+      ...(t.score[0] + t.score[1] === 0 && rivalLine(rival) ? { line: rivalLine(rival) } : {}),
     },
   };
 }
@@ -170,6 +206,7 @@ export function tournamentWon(state: GameState, events: GameEvent[]): void {
     };
     return;
   }
+  recordRival(state, true);
   const coins = BALANCE.tournament.coinsPerRound[t.round];
   state.coins += coins;
   state.stats.coinsEarned += coins;
@@ -202,6 +239,7 @@ export function tournamentLost(state: GameState, events: GameEvent[], forfeit = 
     state.battle = tournamentBattle(state);
     return;
   }
+  recordRival(state, false);
   events.push({
     type: 'tournamentMatch',
     round: t.round,
@@ -212,6 +250,16 @@ export function tournamentLost(state: GameState, events: GameEvent[], forfeit = 
   });
   finish(state, PLACE_BY_ROUND[t.round], events);
   state.battle = freshBattle(routeId);
+}
+
+/** Anota o resultado da partida contra o adversário atual no placar de rivais. */
+function recordRival(state: GameState, won: boolean): void {
+  const t = state.tournament;
+  const foe = t.bracket?.[t.opponents[t.round]];
+  if (!foe) return;
+  const r = ((t.rivals ??= {})[foe.name] ??= { sprite: foe.sprite, wins: 0, losses: 0 });
+  if (won) r.wins++;
+  else r.losses++;
 }
 
 /** Melhor colocação já alcançada (para o ranking). */

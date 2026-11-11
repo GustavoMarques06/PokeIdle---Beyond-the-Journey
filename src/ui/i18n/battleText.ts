@@ -220,6 +220,8 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
         text: `${speciesName(e.speciesId)} ficou FURIOSO, ergueu o escudo e está carregando um golpe gigante!`,
         important: true,
       };
+    case 'raidAlly':
+      return { text: `${speciesName(e.speciesId)} de ${e.name} acertou o chefe!`, important: false };
     case 'raidShieldBroken':
       return { text: `O escudo quebrou! ${speciesName(e.speciesId)} ficou atordoado!`, important: true };
     case 'raidBlast':

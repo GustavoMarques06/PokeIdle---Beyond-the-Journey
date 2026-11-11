@@ -109,6 +109,17 @@ export function TournamentPanel({ state }: { state: GameState }) {
   const counts = { champion: 0, final: 0, semi: 0, quarter: 0 };
   for (const h of t.history) counts[h.place]++;
   const champion = current && t.place === 'champion';
+  // A plateia: torce na partida, festeja o título, vai embora quando você cai, espera quando não há jogo.
+  const crowd = champion
+    ? 'party'
+    : current && t.place
+      ? 'out'
+      : inBattle
+        ? 'cheer'
+        : 'wait';
+  const rivals = Object.entries(t.rivals ?? {}).sort(
+    (a, b) => b[1].wins + b[1].losses - (a[1].wins + a[1].losses),
+  );
 
   // `col`: a fase da coluna (0 quartas, 1 semi, 2 final); o "VS" só pulsa na fase que está sendo jogada.
   const slot = (idx: number | null, lostHere: boolean, col: number) => (
@@ -124,8 +135,15 @@ export function TournamentPanel({ state }: { state: GameState }) {
   return (
     <>
       <Window title="TORNEIO DA SEMANA" icon={<ItemIcon id="relic-crown" size={24} />} frame="dialog">
-        <div className={`tn-stage ${champion ? 'champion' : ''}`}>
+        <div className={`tn-stage ${champion ? 'champion' : ''} crowd-${crowd}`}>
           <span className="tn-crowd" aria-hidden />
+          {/* Bandeirinhas na plateia: balançam na torcida, caem quando você é eliminado. */}
+          <span className="tn-flags" aria-hidden>
+            {Array.from({ length: 7 }, (_, k) => (
+              <i key={k} style={{ '--i': k } as CSSProperties} />
+            ))}
+          </span>
+          {crowd === 'out' && <span className="tn-leaving" aria-hidden />}
           <div className="tn-announcer">
             <span className="caretaker-tag">NARRADOR</span>
             <p key={`${t.round}-${t.score.join()}-${t.place}`}>{announcer(state, inBattle)}</p>
@@ -236,6 +254,33 @@ export function TournamentPanel({ state }: { state: GameState }) {
           </span>
         </div>
       </Window>
+
+      {rivals.length > 0 && (
+        <Window title={`RIVAIS · ${rivals.length}`} icon={<ItemIcon id="vs-seeker" size={24} />}>
+          <ul className="tn-rivals">
+            {rivals.map(([name, r], i) => (
+              <li key={name} className={r.wins >= r.losses ? 'ahead' : 'behind'} style={{ '--i': i } as CSSProperties}>
+                <TrainerSprite id={r.sprite} size={40} head />
+                <strong>{name}</strong>
+                <span className="tn-rival-score">
+                  <b>{r.wins}</b>–<b>{r.losses}</b>
+                </span>
+                <small>
+                  {r.wins > r.losses
+                    ? `voltou mais forte (+${Math.min(6, r.wins * 2)} níveis)`
+                    : r.losses > r.wins
+                      ? 'quer manter a vantagem'
+                      : 'empatados'}
+                </small>
+              </li>
+            ))}
+          </ul>
+          <p className="hint">
+            Cada vitória sua deixa o rival 2 níveis mais forte na próxima vez (até +6), e um rival conhecido sempre
+            aparece nas quartas.
+          </p>
+        </Window>
+      )}
 
       <Window
         title={`SALA DE TROFÉUS · ${state.stats.tournamentTitles} títulos`}

@@ -144,6 +144,23 @@ function finalForm(speciesId: number, rng: Rng): number {
   return id;
 }
 
+// --- Aliados: os times de amigos (Cabo Link) entram na raide ---------------------------------------
+
+/** No máximo dois amigos ajudam; cada um ataca a cada 7 s, com o primeiro Pokémon da equipe dele. */
+export const RAID_ALLY_MS = 7_000;
+const RAID_ALLY_DAMAGE = 0.025;
+
+export function raidAllies(state: GameState): { name: string; speciesId: number }[] {
+  return (state.link?.ghosts ?? [])
+    .filter((g) => g.team.length > 0)
+    .slice(0, 2)
+    .map((g) => ({ name: g.name, speciesId: g.team[0].speciesId }));
+}
+
+/** Dano de um golpe de aliado: uma fração do HP do chefe (o escudo corta pela metade). */
+export const raidAllyDamage = (maxHp: number, shielded: boolean) =>
+  Math.max(1, Math.round(maxHp * RAID_ALLY_DAMAGE * (shielded ? 0.5 : 1)));
+
 /** Rotas onde uma raide pode surgir: as de captura já liberadas. */
 const raidGrounds = (state: GameState) =>
   ROUTES.filter((r) => r.kind === 'wild' && r.encounters.length && state.routes[r.id]?.unlocked);

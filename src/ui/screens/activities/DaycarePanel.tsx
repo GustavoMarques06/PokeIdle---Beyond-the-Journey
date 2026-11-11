@@ -731,6 +731,26 @@ export function DaycarePanel({ state }: { state: GameState }) {
             );
           })}
         </div>
+        {/* O gramado: os hóspedes passeiam. Compatíveis se encontram no meio; brigados, cada um vai para um lado. */}
+        {guests.length > 0 && (
+          <div
+            className={`yard-lane ${ok ? 'together' : guests.length === 2 ? 'apart' : 'alone'}`}
+            aria-hidden
+          >
+            <span className="yard-flowers" />
+            {guests.map((p, i) => (
+              <span key={p.uid} className={`yard-walker w-${i}`}>
+                <PokemonSprite speciesId={p.speciesId} kind="icon" shiny={p.shiny} />
+              </span>
+            ))}
+            {ok && <span className="yard-meet">♥</span>}
+            {ok && !full && state.daycare.eggProgress / d.killsPerEgg > 0.8 && (
+              <span className="yard-egg">
+                <EggSprite crack={0} size={20} />
+              </span>
+            )}
+          </div>
+        )}
         <p className="daycare-status caretaker">
           <span className="caretaker-tag">DONO DA CRECHE</span> {caretakerLine(state, a, b)}
         </p>

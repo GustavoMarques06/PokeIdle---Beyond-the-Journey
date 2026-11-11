@@ -9,7 +9,12 @@ import {
   buffValue,
   canWater,
   eatBerry,
+  beesNext,
+  beesVisiting,
+  berryInSeason,
+  gardenGuardian,
   gardenHelper,
+  gardenSeason,
   gardenPlots,
   harvest,
   mutationFlag,
@@ -211,6 +216,8 @@ function PlotView({
   );
 }
 
+const SEASON_LABEL = { spring: 'Primavera:', summer: 'Verão:', autumn: 'Outono:', winter: 'Inverno:' } as const;
+
 export function GardenPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [seed, setSeed] = useState<string | null>(null);
@@ -235,6 +242,9 @@ export function GardenPanel({ state }: { state: GameState }) {
   const raining = state.env.weather === 'rain';
   const night = state.env.period === 'night';
   const found = BERRIES.filter((b) => state.flags.includes(mutationFlag(b.id)));
+  const season = gardenSeason(now);
+  const bees = beesVisiting(now);
+  const guardian = gardenGuardian(state);
 
   const doHarvest = (i: number) => {
     const berry = state.garden[i]?.berry;
@@ -272,9 +282,32 @@ export function GardenPanel({ state }: { state: GameState }) {
           )
         }
       >
-        <div className={`garden-scene ${night ? 'night' : ''} ${raining ? 'raining' : ''}`}>
+        <div className={`garden-scene ${night ? 'night' : ''} ${raining ? 'raining' : ''} season-${season}`}>
           <span className="garden-sky" aria-hidden />
           {raining && <span className="garden-raindrops" aria-hidden />}
+          {/* A estação cai do céu: pétalas, folhas, neve ou o brilho do verão. */}
+          <span className={`garden-season-fx s-${season}`} aria-hidden>
+            {Array.from({ length: 9 }, (_, k) => (
+              <i key={k} style={{ '--i': k } as CSSProperties} />
+            ))}
+          </span>
+          {bees && (
+            <span className="garden-bees" aria-hidden>
+              {[0, 1, 2].map((k) => (
+                <span key={k} className="garden-bee" style={{ '--i': k } as CSSProperties}>
+                  <PokemonSprite speciesId={415} kind="icon" />
+                </span>
+              ))}
+            </span>
+          )}
+          {guardian && (
+            <span
+              className="garden-guardian"
+              title={`${speciesName(guardian.speciesId)} vigia o jardim: espanta os insetos sozinho`}
+            >
+              <PokemonSprite speciesId={guardian.speciesId} kind="icon" shiny={guardian.shiny} />
+            </span>
+          )}
           {helper && (
             <span
               className="garden-helper"
@@ -331,6 +364,23 @@ export function GardenPanel({ state }: { state: GameState }) {
             : ' Um Pokémon de planta na equipe faz crescer mais rápido.'}{' '}
           Berries diferentes lado a lado podem gerar uma mutação.
         </p>
+        <ul className="garden-status">
+          <li className={`gs-season s-${season}`}>
+            <strong>{SEASON_LABEL[season]}</strong> berries da estação crescem 20% mais rápido
+          </li>
+          <li className={bees ? 'on' : ''}>
+            <strong>{bees ? 'Combee polinizando!' : 'Combee'}</strong>{' '}
+            {bees
+              ? `colha agora: mutação 2× por mais ${formatDuration(beesNext(now) - now)}`
+              : `voltam em ${formatDuration(beesNext(now) - now)}`}
+          </li>
+          <li className={guardian ? 'on' : ''}>
+            <strong>Guardião</strong>{' '}
+            {guardian
+              ? `${speciesName(guardian.speciesId)} espanta os insetos sozinho`
+              : 'um Pokémon Voador ou de Fogo na equipe espanta os insetos'}
+          </li>
+        </ul>
       </Window>
 
       <Window title="BERRIES" icon={<ItemIcon id="oran-berry" size={24} />}>
@@ -344,6 +394,7 @@ export function GardenPanel({ state }: { state: GameState }) {
               <div>
                 <strong>
                   {itemName(b.id).toUpperCase()} ×{state.items[b.id]}
+                  {berryInSeason(b.id, season) && <span className="berry-season">DA ESTAÇÃO</span>}
                 </strong>
                 <small>
                   Cresce em {formatDuration(b.growMinutes * 60_000)} · rende {b.yield[0]}–{b.yield[1]} ·

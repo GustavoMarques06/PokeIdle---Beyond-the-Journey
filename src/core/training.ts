@@ -4,7 +4,10 @@
 import { BALANCE, type StatKey } from '../game-data';
 import { busyUids, findPokemon, routeDone } from './collection';
 import type { GameEvent, GameState } from './state';
-import { addEvs, evRoom, evTotal, heldOf, statsOf, type PokemonInstance } from './pokemon';
+import { addEvs, evRoom, evTotal, evsOf, heldOf, statsOf, type PokemonInstance } from './pokemon';
+import { localDay } from './missions';
+import { seededRng } from './rng';
+import { VITAMINS } from '../game-data';
 
 export interface TrainingSlot {
   uid: number;
@@ -119,7 +122,7 @@ export function trainingTick(state: GameState, now: number, events: GameEvent[])
     const amount = (Math.min(elapsed, maxMs) / 3_600_000) * trainingRate(p) + slot.carry;
     const whole = Math.floor(amount);
     slot.carry = amount - whole;
-    if (whole > 0) gainEvs(p, slot.stat, whole);
+    if (whole > 0) countDaily(state, slot.stat, gainEvs(p, slot.stat, whole), now);
     if (evRoom(p, slot.stat) > 0) return true;
     // Com plano, passa para o próximo atributo que ainda cabe.
     const next = slot.plan?.find((k) => evRoom(p, k) > 0);
@@ -130,6 +133,67 @@ export function trainingTick(state: GameState, now: number, events: GameEvent[])
     events.push({ type: 'trainingFull', uid: p.uid, stat: slot.stat });
     return false;
   });
+}
+
+// --- Desafio do dia e medalhas -----------------------------------------------------------------
+
+export interface TrainingDaily {
+  day: number;
+  /** EVs ganhos hoje no Campo de Treino, por atributo. */
+  gained: Partial<Record<StatKey, number>>;
+  claimed?: boolean;
+}
+
+const STATS: StatKey[] = ['hp', 'atk', 'def', 'spAtk', 'spDef', 'spe'];
+/** EVs no atributo do dia para cumprir o desafio (3 horas de treino numa vaga). */
+export const DAILY_GOAL = 60;
+export const DAILY_COINS = 5_000;
+
+/** O desafio da treinadora hoje: um atributo, sorteado pelo dia. */
+export function dailyChallenge(now: number): { stat: StatKey; goal: number; reward: string } {
+  const stat = STATS[Math.floor(seededRng(localDay(now) * 92821 + 5).next() * STATS.length)];
+  return { stat, goal: DAILY_GOAL, reward: VITAMINS.find((v) => v.stat === stat)?.id ?? 'protein' };
+}
+
+function dailyOf(state: GameState, now: number): TrainingDaily {
+  const day = localDay(now);
+  if (state.trainingDaily?.day !== day) state.trainingDaily = { day, gained: {} };
+  return state.trainingDaily;
+}
+
+function countDaily(state: GameState, stat: StatKey, gained: number, now: number): void {
+  if (gained <= 0) return;
+  const d = dailyOf(state, now);
+  d.gained[stat] = (d.gained[stat] ?? 0) + gained;
+}
+
+/** Quanto do desafio de hoje já foi feito. */
+export function dailyProgress(state: GameState, now: number): { done: number; claimed: boolean } {
+  const { stat } = dailyChallenge(now);
+  const d = state.trainingDaily?.day === localDay(now) ? state.trainingDaily : undefined;
+  return { done: d?.gained[stat] ?? 0, claimed: !!d?.claimed };
+}
+
+/** Resgata o prêmio do desafio do dia (moedas e a vitamina do atributo). */
+export function claimDaily(state: GameState, now: number): boolean {
+  const c = dailyChallenge(now);
+  const { done, claimed } = dailyProgress(state, now);
+  if (claimed || done < c.goal) return false;
+  dailyOf(state, now).claimed = true;
+  state.coins += DAILY_COINS;
+  state.stats.coinsEarned += DAILY_COINS;
+  state.items[c.reward] = (state.items[c.reward] ?? 0) + 1;
+  return true;
+}
+
+/** Medalhas: cada atributo levado ao máximo (252 EVs) num Pokémon vale uma. */
+export function trainingMedals(p: PokemonInstance): StatKey[] {
+  const evs = evsOf(p);
+  return STATS.filter((k) => evs[k] >= BALANCE.training.maxPerStat);
+}
+
+export function totalMedals(state: GameState): number {
+  return state.collection.reduce((n, p) => n + trainingMedals(p).length, 0);
 }
 
 /** Sparring: uma duplicata da mesma espécie vira EVs no atributo escolhido (e some da coleção). */

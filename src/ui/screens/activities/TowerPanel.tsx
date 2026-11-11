@@ -1,6 +1,7 @@
 // Torre de Batalha: subida infinita com o Pokémon ativo, ranking local e loja de BP. O prédio mostra os andares em
 // volta do atual (ou do recorde), com o elevador aceso, a marca do recorde e a coroa nos andares do Cérebro da Torre.
 
+import type { CSSProperties } from 'react';
 import { BALANCE, TOWER_SHOP, WEEKLY_TOWER_MILESTONES } from '../../../game-data';
 import {
   activePokemon,
@@ -10,7 +11,7 @@ import {
   type GameState,
 } from '../../../core/game';
 import { buyTowerReward, floorLevel, towerUnlocked, weeklyBlocker, weeklyRule } from '../../../core/tower';
-import { ItemIcon, PixelIcon, PokemonSprite, TypeBadge, Window } from '../../components/common';
+import { ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, TypeBadge, Window } from '../../components/common';
 import { TYPE_NAMES, formatDuration, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked } from './shared';
@@ -36,6 +37,13 @@ function TowerBuilding({ state }: { state: GameState }) {
   return (
     <div className={`tw-building ${climbing ? 'climbing' : ''}`}>
       <span className="tw-roof" aria-hidden />
+      <span className="tw-shaft" aria-hidden style={{ '--car': top - focus } as CSSProperties}>
+        <span className="tw-car">
+          <i className="tw-car-door l" />
+          <i className="tw-car-door r" />
+          <b>{focus}</b>
+        </span>
+      </span>
       <ol className="tw-floors">
         {floors.map((f) => {
           const boss = f % every === 0;
@@ -106,6 +114,23 @@ export function TowerPanel({ state }: { state: GameState }) {
             </button>
           )}
         </div>
+        {climbing && state.battle.trainer && (
+          <div className={`tw-foe ${state.battle.trainer.line ? 'brain' : ''}`}>
+            <TrainerSprite id={state.battle.trainer.sprite} size={48} head />
+            <span>
+              <small>{state.battle.trainer.title.toUpperCase()}</small>
+              <strong>{state.battle.trainer.name}</strong>
+              {state.battle.trainer.line && <em>“{state.battle.trainer.line}”</em>}
+            </span>
+            <span className="tw-foe-team">
+              {state.battle.team.map((m, i) => (
+                <span key={i} className={i < state.battle.bossIndex ? 'down' : ''}>
+                  <PokemonSprite speciesId={m.speciesId} kind="icon" />
+                </span>
+              ))}
+            </span>
+          </div>
+        )}
         <p className="hint">
           Cada andar tem 3 Pokémon, começando no Nv{BALANCE.tower.baseLevel}. A cada {BALANCE.tower.bossEvery}{' '}
           andares, um Cérebro da Torre com um lendário. Entre andares você recupera{' '}

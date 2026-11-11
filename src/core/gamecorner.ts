@@ -7,7 +7,7 @@ import { giveForm } from './forms';
 import { progressMission } from './missions';
 import { randomIvs, rollShiny } from './pokemon';
 import { pickWeighted, rngFrom } from './rng';
-import { weeklyPrize } from './voltorb';
+import { cornerState, weeklyPrize, type HiLoRound, type JackpotRecord } from './voltorb';
 
 export interface SpinResult {
   reels: [string, string, string];
@@ -55,8 +55,70 @@ export function spinSlots(state: GameState, events: GameEvent[] = [], mult = 1):
   const payout = slotPayout(reels) * mult;
   state.tokens += payout;
   state.stats.slotsSpun++;
+  // Mural: prêmios de 10× a aposta ou mais entram (fica com os 5 maiores).
+  if (payout >= bet * 10) {
+    const c = cornerState(state);
+    const entry: JackpotRecord = { payout, reels, mult, at: state.lastTimerAt };
+    c.jackpots = [...(c.jackpots ?? []), entry].sort((a, b) => b.payout - a.payout).slice(0, 5);
+  }
   progressMission(state, 'slots', 1, events);
   return { reels, payout };
+}
+
+// --- Maior ou Menor --------------------------------------------------------------------------------
+
+/** As 13 cartas, do 1 ao 13, cada uma com um Pokémon. */
+export const HILO_CARDS = [129, 19, 16, 10, 52, 25, 54, 39, 133, 63, 147, 143, 149];
+export const HILO_ENTRY = 5;
+const HILO_GROWTH = 1.7;
+/** Sequência máxima: aí o prêmio sai sozinho. */
+export const HILO_MAX = 8;
+
+export const hiloPot = (streak: number) => Math.round(HILO_ENTRY * HILO_GROWTH ** streak);
+
+const drawCard = (state: GameState) => 1 + Math.floor(rngFrom(state).next() * HILO_CARDS.length);
+
+export function startHiLo(state: GameState): boolean {
+  const c = cornerState(state);
+  if (!activityUnlocked(state, 'gamecorner') || (c.hilo && !c.hilo.over) || state.tokens < HILO_ENTRY) return false;
+  state.tokens -= HILO_ENTRY;
+  c.hilo = { card: drawCard(state), streak: 0, pot: HILO_ENTRY };
+  return true;
+}
+
+/** Palpite: a próxima carta é maior ou menor? Empate não conta (vira a carta e segue). */
+export function guessHiLo(state: GameState, guess: 'high' | 'low'): HiLoRound | null {
+  const c = cornerState(state);
+  const r = c.hilo;
+  if (!r || r.over) return null;
+  const next = drawCard(state);
+  if (next === r.card) {
+    r.last = { card: next, result: 'tie' };
+    return r;
+  }
+  const right = guess === 'high' ? next > r.card : next < r.card;
+  r.card = next;
+  if (!right) {
+    r.last = { card: next, result: 'wrong' };
+    r.over = 'lost';
+    r.pot = 0;
+    return r;
+  }
+  r.streak++;
+  r.pot = hiloPot(r.streak);
+  r.last = { card: next, result: 'right' };
+  c.hiloBest = Math.max(c.hiloBest ?? 0, r.streak);
+  if (r.streak >= HILO_MAX) cashHiLo(state);
+  return r;
+}
+
+/** Para e leva o pote (só depois de acertar ao menos uma). */
+export function cashHiLo(state: GameState): number {
+  const r = cornerState(state).hilo;
+  if (!r || r.over || r.streak === 0) return 0;
+  state.tokens += r.pot;
+  r.over = 'cashed';
+  return r.pot;
 }
 
 /** Preço de um prêmio agora (o da semana sai com 30% de desconto). */

@@ -48,6 +48,17 @@ export function setHuntTarget(state: GameState, speciesId: number | null): void 
   state.hunt.radarShiny = false;
 }
 
+// --- Amuleto Brilhante ---------------------------------------------------------------------------
+
+/** Espécies com shiny capturado para ganhar o Amuleto Brilhante (shiny 1,5× para sempre). */
+export const SHINY_CHARM_AT = 10;
+export const SHINY_CHARM_BOOST = 1.5;
+
+export const shinySpecies = (state: GameState) =>
+  Object.values(state.pokedex).filter((e) => e?.shinyCaught).length;
+
+export const hasShinyCharm = (state: GameState) => shinySpecies(state) >= SHINY_CHARM_AT;
+
 export function huntWeight(state: GameState, speciesId: number): number {
   return state.hunt.target === speciesId ? BALANCE.hunt.targetWeight : 1;
 }

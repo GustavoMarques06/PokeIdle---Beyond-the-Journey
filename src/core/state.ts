@@ -184,12 +184,27 @@ export interface TeamMember {
   nickname?: string;
 }
 
+/** Um lance do duelo: quem atacou, com o quê, quanto tirou e se derrubou. */
+export interface DuelMove {
+  side: 'player' | 'enemy';
+  attacker: number;
+  target: number;
+  move: string;
+  damage: number;
+  crit?: boolean;
+  super?: boolean;
+  missed?: boolean;
+  ko?: boolean;
+}
+
 export interface TrainerInfo {
   sprite: string;
   /** Roupa (só nos avatares de jogador: o próprio, fantasmas e torneio). */
   outfit?: TrainerOutfit;
   name: string;
   title: string;
+  /** Fala na entrada (o Cérebro da Torre tem a dele). */
+  line?: string;
 }
 
 export interface BattleState {
@@ -223,6 +238,10 @@ export interface BattleState {
   playerUsed?: string[];
   /** Raide: tempo restante (ms). */
   raidMs?: number;
+  /** Duelo fantasma: o lance a lance (para o replay em texto). */
+  duelLog?: DuelMove[];
+  /** Raide: quanto falta para os aliados (times de amigos) atacarem de novo. */
+  allyMs?: number;
   /** Revanche contra um chefe já vencido (sem insígnia, TM nem desbloqueios). */
   rematch?: boolean;
   /** Subida da Torre semanal (regra e andares da semana). */
@@ -331,6 +350,14 @@ export interface GameState {
   dig?: DigState;
   /** Chefes de raide vencidos (espécie → vezes). */
   raidLog?: Record<number, number>;
+  /** Campo de Treino: EVs ganhos hoje (para o desafio da treinadora). */
+  trainingDaily?: import('./training').TrainingDaily;
+  /** Duelo: a temporada do mês (placar contra cada amigo e os troféus). */
+  duelSeason?: import('./link').DuelSeason;
+  /** Laboratório: dia em que o pedido do cientista foi entregue. */
+  labDone?: number;
+  /** Expedições: cartões-postais recebidos de cada destino (destino → vezes). */
+  postcards?: Record<string, number>;
   /** Ruínas de Alph: semana da última palavra resgatada. */
   unown?: { week: number; claimed: boolean };
   /** Melhor tempo (ms) de cada chefe de raide vencido (espécie → ms). */
@@ -535,6 +562,7 @@ export type GameEvent =
   | { type: 'raidLeft'; speciesId: number }
   | { type: 'raidRage'; speciesId: number; stage: number }
   | { type: 'raidShieldBroken'; speciesId: number }
+  | { type: 'raidAlly'; name: string; speciesId: number; damage: number }
   | { type: 'raidBlast'; speciesId: number }
   | { type: 'raidFailed'; speciesId: number }
   | {

@@ -39,6 +39,8 @@ import {
   safariShopBlocked,
   safariShopBought,
   safariWalk,
+  safariWeather,
+  photoScore,
   safariDeeper,
   safariFollow,
   safariRetreat,
@@ -210,6 +212,43 @@ function ZoneDex({ state, zone }: { state: GameState; zone: SafariZone }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Álbum de fotos do Safari: a melhor foto de cada espécie, numa moldura de polaroide. */
+function PhotoAlbum({ state }: { state: GameState }) {
+  const album = Object.entries(safariProgress(state).album ?? {}).sort(
+    (a, b) => photoScore(b[1]) - photoScore(a[1]) || b[1].at - a[1].at,
+  );
+  return (
+    <Window title={`ÁLBUM DE FOTOS · ${album.length}`} icon={<ItemIcon id="safari-ball" size={24} />}>
+      {album.length ? (
+        <ul className="safari-album">
+          {album.map(([id, ph], i) => (
+            <li
+              key={id}
+              className={`${ph.shiny ? 'shiny' : ''} mood-${ph.mood}`}
+              style={{ '--i': i, '--tilt': `${((+id * 7) % 9) - 4}deg` } as CSSProperties}
+              title={`${speciesName(+id)} · ${getZone(ph.zone).name} · ${new Date(ph.at).toLocaleDateString('pt-BR')}`}
+            >
+              <span className="safari-photo-pic">
+                <PokemonSprite speciesId={+id} kind="front" shiny={ph.shiny} form={ph.form} pixelScale={1} />
+                {ph.shiny && <i className="safari-photo-glint" aria-hidden />}
+              </span>
+              <strong>
+                {speciesName(+id)} {ph.shiny && <Shiny />}
+              </strong>
+              <small>
+                {ph.size >= 1.1 ? 'grandão' : ph.size <= 0.9 ? 'pequenino' : 'tamanho normal'} ·{' '}
+                {MOOD_TEXT[ph.mood].text.replace('está ', '')}
+              </small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="hint">Tire fotos no Safari (botão FOTO no encontro). A melhor de cada espécie fica aqui.</p>
+      )}
+    </Window>
   );
 }
 
@@ -492,7 +531,13 @@ export function SafariPanel({ state }: { state: GameState }) {
   if (!activityUnlocked(state, 'safari')) return <Locked routeId={BALANCE.safari.unlock} />;
   const s = state.safari;
   const summary = ended && <EndSummary e={ended} onClose={() => setEnded(null)} />;
-  if (!s) return <Lobby state={state} summary={summary} />;
+  if (!s)
+    return (
+      <>
+        <Lobby state={state} summary={summary} />
+        <PhotoAlbum state={state} />
+      </>
+    );
 
   const zone = getZone(s.zone);
   const steps = s.steps ?? 600;
@@ -514,6 +559,11 @@ export function SafariPanel({ state }: { state: GameState }) {
         </span>
         <span>👣 {steps} passos</span>
         <span>{SAFARI_DEPTHS[depth].name}</span>
+        {safariWeather(state) && (
+          <span className={`safari-weather w-${safariWeather(state)}`}>
+            {safariWeather(state) === 'rain' ? 'Chuva: Pokémon de água na grama' : 'Neblina: fogem menos'}
+          </span>
+        )}
         <span>★ {s.points ?? 0} pontos</span>
         <span>Capturados: {s.caught.length}</span>
       </div>
@@ -605,7 +655,7 @@ export function SafariPanel({ state }: { state: GameState }) {
             </strong>{' '}
             {MOOD_TEXT[e.mood ?? 'watching'].text}
             {e.mood && e.mood !== 'watching' ? ` (${e.moodTurns})` : ''}. {pokemonMeters(e.speciesId, e.ivs, e.form).toFixed(2).replace('.', ',')} m · Captura {formatPercent(safariCatchChance(state, e))} ·
-            fuga {formatPercent(safariFleeChance(e))} · vale {Math.round(capturePoints(zone, e.speciesId, e.shiny) * depthPoints(e.depth))} pontos
+            fuga {formatPercent(safariFleeChance(e, state))} · vale {Math.round(capturePoints(zone, e.speciesId, e.shiny) * depthPoints(e.depth))} pontos
           </p>
           <div className="safari-actions">
             <button className="pbtn primary" onClick={() => act('ball')}>

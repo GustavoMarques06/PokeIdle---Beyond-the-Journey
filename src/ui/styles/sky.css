@@ -222,7 +222,8 @@
   }
 }
 
-.reduced-motion :is(.node-front, .node-front-next, .scene-sky, .scene-sky::before, .scene-sky i) {
+.reduced-motion .scene-sky::before,
+.reduced-motion :is(.node-front, .node-front-next, .scene-sky, .scene-sky i) {
   animation: none !important;
 }
 

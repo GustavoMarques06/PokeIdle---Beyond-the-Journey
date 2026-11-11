@@ -9,8 +9,11 @@ import { seededRng } from '../../../core/rng';
 import type { ExpeditionRun } from '../../../core/expeditions';
 import { audio } from '../../audio';
 import {
+  EXPEDITION_FRIENDSHIP,
   availableExpeditions,
+  chooseFork,
   claimExpedition,
+  forkOpen,
   expeditionDone,
   expeditionRolls,
   expeditionSlots,
@@ -137,6 +140,72 @@ function Trail({ state, run, def }: { state: GameState; run: ExpeditionRun; def:
   );
 }
 
+const FORK_RESULT = {
+  safe: 'Pela trilha segura, sem sustos: acharam um pouco a mais pelo caminho.',
+  lucky: 'O atalho deu certo! Acharam muito mais coisa do que o esperado.',
+  unlucky: 'O atalho deu errado: o grupo se perdeu e voltou com menos coisas.',
+} as const;
+
+/** A bifurcação no meio da viagem: o grupo espera a sua escolha (sem escolha, segue normal). */
+function ForkChoice({ run, name }: { run: ExpeditionRun; name: string }) {
+  const engine = useEngine();
+  const pick = (fork: 'safe' | 'risky') => {
+    audio.sfx('click');
+    engine.dispatch((s, t) => void chooseFork(s, run.id, fork, t));
+  };
+  return (
+    <div className="ex-fork" role="group" aria-label="Bifurcação no caminho">
+      <span className="ex-fork-sign" aria-hidden>
+        ⇆
+      </span>
+      <p>
+        <strong>{name} achou uma bifurcação!</strong> Por onde o grupo segue?
+      </p>
+      <span className="ex-fork-options">
+        <button className="pbtn small" onClick={() => pick('safe')} title="Um achado a mais, garantido">
+          Trilha segura
+        </button>
+        <button
+          className="pbtn small primary"
+          onClick={() => pick('risky')}
+          title="Pode render muito mais… ou o grupo se perde e volta com menos"
+        >
+          Atalho arriscado
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/** Álbum de cartões-postais: um por destino, com quantas vezes o grupo foi lá. */
+function Album({ state }: { state: GameState }) {
+  const album = state.postcards ?? {};
+  const got = EXPEDITIONS.filter((e) => album[e.id]).length;
+  return (
+    <Window title={`ÁLBUM DE CARTÕES-POSTAIS · ${got}/${EXPEDITIONS.length}`} icon={<ItemIcon id="town-map" size={24} />}>
+      <ul className="ex-album">
+        {EXPEDITIONS.map((e, i) => {
+          const n = album[e.id] ?? 0;
+          return (
+            <li
+              key={e.id}
+              className={n ? 'has' : ''}
+              style={{ '--theme': THEME[e.types[0]] ?? '#88c070', '--i': i } as CSSProperties}
+              title={n ? `${e.name}: ${n} viagem(ns)` : 'Ainda não visitado'}
+            >
+              <span className="ex-album-photo" aria-hidden>
+                <i />
+              </span>
+              <strong>{n ? e.name : '???'}</strong>
+              <small>{n ? `×${n}` : 'não visitado'}</small>
+            </li>
+          );
+        })}
+      </ul>
+    </Window>
+  );
+}
+
 function Postcard({
   name,
   def,
@@ -162,6 +231,7 @@ function Postcard({
         <span className="ex-stamp" aria-hidden>
           <ItemIcon id="explorer-kit" size={28} />
         </span>
+        {loot.newPostcard && <span className="ex-new-card">NOVO NO ÁLBUM!</span>}
         <div
           className="ex-photo"
           style={{ '--theme': THEME[def?.types[0] ?? 'normal'] ?? '#88c070' } as CSSProperties}
@@ -174,8 +244,20 @@ function Postcard({
         </div>
         <div className="ex-letter">
           <strong>Saudações de “{name}”!</strong>
+          {loot.fork && <p className={`ex-fork-result ${loot.fork}`}>{FORK_RESULT[loot.fork]}</p>}
           <p>A equipe voltou cansada, mas feliz, e trouxe:</p>
           <LootSummary loot={loot} />
+          {loot.stories && loot.stories.length > 0 && (
+            <ul className="ex-stories">
+              {loot.stories.map((st, i) => (
+                <li key={st.uid} style={{ '--i': i } as CSSProperties}>
+                  <PokemonSprite speciesId={st.speciesId} kind="icon" />
+                  <span>“{st.line}”</span>
+                  <small>♥ +{EXPEDITION_FRIENDSHIP}</small>
+                </li>
+              ))}
+            </ul>
+          )}
           <button className="pbtn primary" onClick={onClose} autoFocus>
             Que viagem!
           </button>
@@ -239,6 +321,17 @@ export function ExpeditionsPanel({ state }: { state: GameState }) {
                   <strong>{d.name.toUpperCase()}</strong>
                   <Bar value={now - run.startedAt} max={run.endsAt - run.startedAt} tone="grass" />
                   <Countdown until={run.endsAt} now={now} done="VOLTOU!" />
+                  {run.fork && (
+                    <small className={`ex-fork-tag ${run.fork}`}>
+                      {run.fork === 'safe' ? 'pela trilha segura' : 'pelo atalho arriscado'}
+                    </small>
+                  )}
+                  {forkOpen(run, now) && (
+                    <ForkChoice
+                      run={run}
+                      name={speciesName(state.collection.find((p) => p.uid === run.uids[0])?.speciesId ?? 0)}
+                    />
+                  )}
                   {diaryOf(state, run, now).length > 0 && (
                     <ol className="ex-diary">
                       {diaryOf(state, run, now)
@@ -313,6 +406,7 @@ export function ExpeditionsPanel({ state }: { state: GameState }) {
           )}
         </Window>
       )}
+      <Album state={state} />
     </>
   );
 }

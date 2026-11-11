@@ -6,7 +6,14 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BALANCE, PRIZES, SLOT_BET, SLOT_SINGLE_CHERRY, SLOT_SYMBOLS } from '../../../game-data';
 import { activityUnlocked } from '../../../core/collection';
 import {
+  HILO_CARDS,
+  HILO_ENTRY,
+  HILO_MAX,
   SLOT_MULTS,
+  cashHiLo,
+  guessHiLo,
+  hiloPot,
+  startHiLo,
   buyPrize,
   buyTokens,
   prizePrice,
@@ -16,7 +23,7 @@ import {
 import type { GameEvent, GameState } from '../../../core/game';
 import {
   VF_CAP,
-  VF_ENTRY,
+  voltorbEntry,
   VF_MAX_LEVEL,
   VF_SIZE,
   cashOutVoltorb,
@@ -30,7 +37,7 @@ import {
   weeklyPrize,
 } from '../../../core/voltorb';
 import { audio } from '../../audio';
-import { ItemIcon, PokemonSprite, Window } from '../../components/common';
+import { ItemIcon, PokemonSprite, TrainerSprite, Window } from '../../components/common';
 import { formatNumber, itemName, moveName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked } from './shared';
@@ -238,8 +245,8 @@ function VoltorbFlip({ state }: { state: GameState }) {
             rodada. As pistas dizem a soma e quantos Voltorbs há em cada linha e coluna. Vire todos os 2 e 3
             para vencer e subir de nível (até {VF_MAX_LEVEL}).
           </p>
-          <button className="pbtn primary" disabled={state.tokens < VF_ENTRY} onClick={start}>
-            Jogar nível {c.level} ({VF_ENTRY} fichas)
+          <button className="pbtn primary" disabled={state.tokens < voltorbEntry(c.level)} onClick={start}>
+            Jogar nível {c.level} ({voltorbEntry(c.level) ? `${voltorbEntry(c.level)} fichas` : 'grátis'})
           </button>
         </div>
       ) : (
@@ -366,6 +373,163 @@ function VoltorbFlip({ state }: { state: GameState }) {
 
 // --- Painel --------------------------------------------------------------------------------
 
+/** Os vizinhos de máquina: falam sozinhos de tempos em tempos e comemoram (ou reclamam) com você. */
+const NEIGHBORS: { sprite: string; name: string; lines: string[] }[] = [
+  {
+    sprite: 'kanto-rocketgrunt',
+    name: 'Recruta',
+    lines: [
+      'Essa máquina está quente hoje, eu sinto!',
+      'Psiu… dizem que tem uma passagem secreta atrás de um pôster.',
+      'Mais uma ficha e eu paro. Juro.',
+      'Ganhar? A casa sempre ganha, hehe.',
+    ],
+  },
+  {
+    sprite: 'kanto-erika',
+    name: 'Erika',
+    lines: [
+      'Que barulho… só vim buscar meu Porygon.',
+      'Os perfumes da minha loja são bem melhores que estas fichas.',
+      'Hmm, as luzes até que são bonitas.',
+      'Será que dão Rare Candy no balcão?',
+    ],
+  },
+];
+
+function Neighbors({ state, cheer }: { state: GameState; cheer: boolean }) {
+  const tick = Math.floor(state.lastTimerAt / 7000);
+  return (
+    <div className="gc-neighbors" aria-live="polite">
+      {NEIGHBORS.map((n, i) => (
+        <span key={n.name} className={`gc-neighbor n-${i} ${cheer ? 'cheer' : ''}`}>
+          <TrainerSprite id={n.sprite} size={44} head />
+          <span className="gc-bubble" key={cheer ? 'cheer' : tick}>
+            {cheer ? (i ? 'Que sorte!' : 'UAU! JACKPOT!') : n.lines[(tick + i * 2) % n.lines.length]}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Maior ou Menor: a carta virada e o palpite da próxima; cada acerto multiplica o pote. */
+function HiLo({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const c = cornerState(state);
+  const r = c.hilo;
+  const playing = !!r && !r.over;
+  const guess = (g: 'high' | 'low') => {
+    let res: ReturnType<typeof guessHiLo> = null;
+    engine.dispatch((s) => void (res = guessHiLo(s, g)));
+    const out = res as ReturnType<typeof guessHiLo>;
+    audio.sfx(out?.last?.result === 'wrong' ? 'faint' : out?.last?.result === 'right' ? 'coin' : 'click');
+  };
+  return (
+    <Window
+      title={`MAIOR OU MENOR · recorde ${c.hiloBest ?? 0} acerto${(c.hiloBest ?? 0) === 1 ? '' : 's'}`}
+      icon={<ItemIcon id="coin-case" size={24} />}
+    >
+      <div className={`hilo-table ${r?.over ?? ''} ${r?.last?.result ?? ''}`}>
+        {r ? (
+          <>
+            <span key={`${r.card}-${r.streak}-${r.over ?? ''}`} className="hilo-card">
+              <b>{r.card}</b>
+              <PokemonSprite speciesId={HILO_CARDS[r.card - 1]} kind="front" pixelScale={1} />
+              <b className="bottom">{r.card}</b>
+            </span>
+            <span className="hilo-info">
+              <strong>
+                {r.over === 'lost'
+                  ? 'Errou! O pote se foi.'
+                  : r.over === 'cashed'
+                    ? `Levou ${r.pot} fichas!`
+                    : r.last?.result === 'tie'
+                      ? 'Empate: segue valendo!'
+                      : r.streak
+                        ? `${r.streak} acerto${r.streak > 1 ? 's' : ''} seguido${r.streak > 1 ? 's' : ''}!`
+                        : 'A próxima carta é maior ou menor?'}
+              </strong>
+              <small>
+                Pote: {r.pot} fichas{playing ? ` · próximo acerto: ${hiloPot(r.streak + 1)}` : ''}
+              </small>
+              <span className="hilo-streak" aria-hidden>
+                {Array.from({ length: HILO_MAX }, (_, k) => (
+                  <i key={k} className={k < r.streak ? 'on' : ''} />
+                ))}
+              </span>
+            </span>
+          </>
+        ) : (
+          <p className="hint">
+            Uma carta de 1 a 13 é virada. Diga se a próxima vem maior ou menor: cada acerto multiplica o pote
+            (até {HILO_MAX} seguidos). Errou, perde tudo. Pare quando quiser.
+          </p>
+        )}
+      </div>
+      <div className="hilo-actions">
+        {playing ? (
+          <>
+            <button className="pbtn" onClick={() => guess('low')}>
+              ▼ Menor
+            </button>
+            <button className="pbtn" onClick={() => guess('high')}>
+              ▲ Maior
+            </button>
+            <button
+              className="pbtn primary"
+              disabled={!r.streak}
+              onClick={() => {
+                audio.sfx('itemGet');
+                engine.dispatch((s) => void cashHiLo(s));
+              }}
+            >
+              Parar e levar {r.pot}
+            </button>
+          </>
+        ) : (
+          <button
+            className="pbtn primary"
+            disabled={state.tokens < HILO_ENTRY}
+            onClick={() => {
+              audio.sfx('click');
+              engine.dispatch((s) => void startHiLo(s));
+            }}
+          >
+            Jogar ({HILO_ENTRY} fichas)
+          </button>
+        )}
+      </div>
+    </Window>
+  );
+}
+
+/** Mural dos jackpots: os 5 maiores prêmios do caça-níquel. */
+function JackpotWall({ state }: { state: GameState }) {
+  const list = cornerState(state).jackpots ?? [];
+  if (!list.length) return null;
+  return (
+    <Window title="MURAL DOS JACKPOTS" icon={<ItemIcon id="star-piece" size={24} />}>
+      <ol className="gc-wall">
+        {list.map((j, i) => (
+          <li key={`${j.at}-${i}`} className={i === 0 ? 'top' : ''} style={{ '--i': i } as CSSProperties}>
+            <span className="gc-wall-rank">{i + 1}º</span>
+            <span className="gc-wall-reels">
+              {j.reels.map((r, k) => (
+                <SlotIcon key={k} id={r} />
+              ))}
+            </span>
+            <strong>{formatNumber(j.payout)} fichas</strong>
+            <small>
+              ×{j.mult} · {new Date(j.at).toLocaleDateString('pt-BR')}
+            </small>
+          </li>
+        ))}
+      </ol>
+    </Window>
+  );
+}
+
 export function GameCornerPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [found, setFound] = useState<number | null>(null);
@@ -385,6 +549,7 @@ export function GameCornerPanel({ state }: { state: GameState }) {
         frame="dialog"
         actions={<strong className="tokens gc-tokens">{formatNumber(state.tokens)} FICHAS</strong>}
       >
+        <Neighbors state={state} cheer={(cornerState(state).jackpots?.[0]?.at ?? 0) > now - 6000} />
         <SlotMachine state={state} />
         <div className="gc-floor">
           {floorAvailable(state, now) ? (
@@ -426,6 +591,8 @@ export function GameCornerPanel({ state }: { state: GameState }) {
       </Window>
 
       <VoltorbFlip state={state} />
+      <HiLo state={state} />
+      <JackpotWall state={state} />
 
       <Window title="BALCÃO DE PRÊMIOS" icon={<ItemIcon id="star-piece" size={24} />}>
         <ul className="shop-list">

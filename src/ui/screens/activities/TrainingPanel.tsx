@@ -5,7 +5,17 @@
 import { useState, type CSSProperties } from 'react';
 import { BALANCE, type StatKey } from '../../../game-data';
 import { activityUnlocked, busyUids, findPokemon } from '../../../core/collection';
-import { TRAINING_PLANS, setTrainingPlan } from '../../../core/training';
+import {
+  DAILY_COINS,
+  TRAINING_PLANS,
+  claimDaily,
+  dailyChallenge,
+  dailyProgress,
+  setTrainingPlan,
+  totalMedals,
+  trainingMedals,
+} from '../../../core/training';
+import { audio } from '../../audio';
 import {
   retarget,
   startTraining,
@@ -16,8 +26,8 @@ import {
   type GameState,
 } from '../../../core/game';
 import { evRoom, evsOf, evTotal, type PokemonInstance } from '../../../core/pokemon';
-import { Bar, ItemIcon, PokemonSprite, Window } from '../../components/common';
-import { STAT_NAMES, speciesName } from '../../i18n/pt-BR';
+import { Bar, ItemIcon, Money, PokemonSprite, TrainerSprite, Window } from '../../components/common';
+import { STAT_NAMES, itemName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
 
@@ -87,6 +97,77 @@ function StatPick({
   );
 }
 
+/** O desafio do dia da treinadora: encher um atributo no Campo de Treino. */
+function DailyChallenge({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const now = state.lastTimerAt;
+  const c = dailyChallenge(now);
+  const { done, claimed } = dailyProgress(state, now);
+  const ready = done >= c.goal && !claimed;
+  return (
+    <div className={`train-daily frame frame-dialog ${ready ? 'ready' : ''} ${claimed ? 'done' : ''}`}>
+      <span className="train-daily-coach" aria-hidden>
+        <TrainerSprite id="kalos-korrina" size={48} head />
+      </span>
+      <div>
+        <strong>DESAFIO DO DIA · {STAT_NAMES[c.stat].toUpperCase()}</strong>
+        <p>
+          {claimed
+            ? 'Mandou bem! Amanhã eu trago outro desafio.'
+            : `Ganhe ${c.goal} EVs de ${STAT_NAMES[c.stat]} no Campo de Treino hoje!`}
+        </p>
+        {!claimed && (
+          <span className="train-daily-bar">
+            <Bar value={Math.min(done, c.goal)} max={c.goal} tone="gold" />
+            <small>
+              {Math.min(done, c.goal)}/{c.goal} · prêmio <Money value={DAILY_COINS} /> +{' '}
+              <ItemIcon id={c.reward} size={16} /> {itemName(c.reward)}
+            </small>
+          </span>
+        )}
+      </div>
+      {!claimed && (
+        <button
+          className="pbtn small primary"
+          disabled={!ready}
+          onClick={() => {
+            audio.sfx('fanfare');
+            engine.dispatch((s, t) => void claimDaily(s, t));
+          }}
+        >
+          Pegar prêmio
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** O ringue: os dois primeiros treinando juntos, golpe a golpe (sozinho, ele treina com o saco de pancada). */
+function SparRing({ state }: { state: GameState }) {
+  const mons = state.training.slots
+    .map((s) => findPokemon(state, s.uid))
+    .filter((p): p is PokemonInstance => !!p)
+    .slice(0, 2);
+  if (!mons.length) return null;
+  return (
+    <div className={`spar-ring ${mons.length === 2 ? 'duo' : 'solo'}`} aria-hidden>
+      <span className="spar-ropes" />
+      <span className="spar-mon left">
+        <PokemonSprite speciesId={mons[0].speciesId} kind="front" shiny={mons[0].shiny} pixelScale={1} />
+      </span>
+      {mons[1] ? (
+        <span className="spar-mon right">
+          <PokemonSprite speciesId={mons[1].speciesId} kind="front" shiny={mons[1].shiny} pixelScale={1} />
+        </span>
+      ) : (
+        <span className="spar-bag" />
+      )}
+      <span className="spar-pow">POW!</span>
+      <span className="spar-pow p2">!</span>
+    </div>
+  );
+}
+
 export function TrainingPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [stat, setStat] = useState<StatKey>('atk');
@@ -105,7 +186,13 @@ export function TrainingPanel({ state }: { state: GameState }) {
 
   return (
     <>
-      <Window title="CAMPO DE TREINO" icon={<ItemIcon id="macho-brace" size={24} />} frame="dialog">
+      <DailyChallenge state={state} />
+      <Window
+        title={`CAMPO DE TREINO · ${totalMedals(state)} medalha${totalMedals(state) === 1 ? '' : 's'}`}
+        icon={<ItemIcon id="macho-brace" size={24} />}
+        frame="dialog"
+      >
+        <SparRing state={state} />
         <p className="hint">
           Treine um atributo e acumule EVs ({t.evsPerHour} por hora; a Macho Brace dobra). Cada 4 EVs valem +1
           no atributo, até {t.maxPerStat} por atributo e {t.maxTotal} no total. Vagas:{' '}
@@ -143,6 +230,11 @@ export function TrainingPanel({ state }: { state: GameState }) {
                 <div className="train-info">
                   <strong>
                     {speciesName(p.speciesId).toUpperCase()} Nv{p.level}
+                    {trainingMedals(p).map((k) => (
+                      <span key={k} className="train-medal" title={`Medalha de ${STAT_NAMES[k]}: 252 EVs`}>
+                        ★
+                      </span>
+                    ))}
                   </strong>
                   <p className="train-coach">
                     <span className="caretaker-tag">TREINADORA</span> {COACH[slot.stat]}

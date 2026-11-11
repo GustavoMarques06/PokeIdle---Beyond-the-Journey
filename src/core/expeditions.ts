@@ -7,6 +7,7 @@ import { activityUnlocked, addToCollection, busyUids, findPokemon, routeDone, un
 import { giveGiftEgg } from './daycare';
 import type { GameEvent, GameState } from './game';
 import { giveForm } from './forms';
+import { addFriendship } from './friendship';
 import { progressMission } from './missions';
 import { randomIvs, rollShiny } from './pokemon';
 import { setLevel } from './progression';
@@ -20,6 +21,17 @@ export interface ExpeditionRun {
   endsAt: number;
   seed: number;
   notified?: boolean;
+  /** Bifurcação no meio do caminho: a trilha segura ou o atalho arriscado (escolhida pelo jogador). */
+  fork?: ExpeditionFork;
+}
+
+export type ExpeditionFork = 'safe' | 'risky';
+
+/** Uma frase de cada Pokémon do grupo na volta. */
+export interface ExpeditionStory {
+  uid: number;
+  speciesId: number;
+  line: string;
 }
 
 export interface ExpeditionLoot {
@@ -31,7 +43,44 @@ export interface ExpeditionLoot {
   levels: { uid: number; from: number; to: number }[];
   /** Ovos raros de presente (vão para o ninho da Creche). */
   eggs: number;
+  /** Como foi a bifurcação: a trilha segura, o atalho que deu certo ou o que deu errado. */
+  fork?: 'safe' | 'lucky' | 'unlucky';
+  /** O que cada um conta da viagem (e a amizade que ganhou). */
+  stories?: ExpeditionStory[];
+  /** Primeira vez neste destino: um cartão-postal novo no álbum. */
+  newPostcard?: boolean;
 }
+
+/** A bifurcação aparece na metade da viagem e fica aberta até a volta. */
+export function forkOpen(run: ExpeditionRun, now: number): boolean {
+  return !run.fork && now >= (run.startedAt + run.endsAt) / 2 && now < run.endsAt;
+}
+
+export function chooseFork(state: GameState, id: string, fork: ExpeditionFork, now: number): boolean {
+  const run = state.expeditions.find((r) => r.id === id);
+  if (!run || !forkOpen(run, now)) return false;
+  run.fork = fork;
+  return true;
+}
+
+/** O atalho dá certo? Sai da semente da viagem, então não muda ao recarregar. */
+export const riskyLucky = (run: ExpeditionRun) => seededRng(run.seed ^ 0x5f3759df).next() < 0.55;
+
+/** Amizade que cada membro ganha ao voltar. */
+export const EXPEDITION_FRIENDSHIP = 10;
+
+const STORIES = [
+  'Achei uma pedra brilhante e quis trazer para você!',
+  'Teve uma hora que choveu e eu adorei.',
+  'Fiz um amigo selvagem no caminho.',
+  'Dormi debaixo de uma árvore enorme.',
+  'Corri na frente o caminho todo!',
+  'Senti saudade, mas foi muito divertido.',
+  'Vi um Pokémon que nunca tinha visto!',
+  'Aprendi a atravessar o rio pulando nas pedras.',
+  'Quero ir de novo amanhã!',
+  'Carreguei a mochila do grupo sozinho.',
+]
 
 export function expeditionSlots(state: GameState): number {
   return BALANCE.expeditions.slots.filter((r) => routeDone(state, r)).length;
@@ -103,7 +152,16 @@ export function claimExpedition(
   const rng = seededRng(run.seed);
   const loot: ExpeditionLoot = { coins: 0, research: 0, items: {}, pokemon: [], tms: [], levels: [], eggs: 0 };
   const table = def.rewards.map((r) => ({ ...r, weight: r.w }));
-  const rolls = expeditionRolls(state, def, uids, run.hours);
+  let rolls = expeditionRolls(state, def, uids, run.hours);
+  // A bifurcação: a trilha segura dá um achado a mais; o atalho dá muito mais… ou se perde um.
+  if (run.fork === 'safe') {
+    rolls += 1;
+    loot.fork = 'safe';
+  } else if (run.fork === 'risky') {
+    const lucky = riskyLucky(run);
+    rolls = lucky ? rolls + Math.max(2, Math.round(rolls / 2)) : Math.max(1, rolls - 1);
+    loot.fork = lucky ? 'lucky' : 'unlucky';
+  }
   for (let i = 0; i < rolls; i++) {
     const r = pickWeighted(rng, table);
     if ('coins' in r) loot.coins += randInt(rng, r.coins[0], r.coins[1]);
@@ -134,7 +192,14 @@ export function claimExpedition(
     const from = p.level;
     setLevel(p, p.level + gain);
     if (p.level > from) loot.levels.push({ uid, from, to: p.level });
+    // Voltam mais apegados, cada um com uma história.
+    addFriendship(p, EXPEDITION_FRIENDSHIP);
+    (loot.stories ??= []).push({ uid, speciesId: p.speciesId, line: STORIES[Math.floor(rng.next() * STORIES.length)] });
   }
+  // Álbum de cartões-postais: um por destino.
+  const album = (state.postcards ??= {});
+  loot.newPostcard = !album[def.id];
+  album[def.id] = (album[def.id] ?? 0) + 1;
   // Ovo raro de presente: mais chance quanto mais longa a expedição.
   const giftChance = Math.min(BALANCE.daycare.giftEggMax, run.hours * BALANCE.daycare.giftEggPerHour);
   if (rng.next() < giftChance && giveGiftEgg(state, rng, def.name)) loot.eggs = 1;

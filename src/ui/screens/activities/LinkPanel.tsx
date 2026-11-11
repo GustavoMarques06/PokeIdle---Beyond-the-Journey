@@ -1,7 +1,7 @@
 // CABO LINK: troca de Pokémon e duelo fantasma por código. Os códigos são texto: dá para mandar
 // por mensagem, e-mail ou qualquer lugar. Nada passa por servidor.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { BALANCE } from '../../../game-data';
 import { findPokemon } from '../../../core/collection';
@@ -13,6 +13,7 @@ import {
   commitSend,
   decodeLinkCode,
   deleteGhost,
+  duelRanking,
   encodeLinkCode,
   ghostAverageLevel,
   ghostPacket,
@@ -30,7 +31,7 @@ import {
 } from '../../../core/link';
 import { pokemonName, potential } from '../../../core/pokemon';
 import { ItemIcon, Money, PokemonSprite, Shiny, TrainerSprite, Window } from '../../components/common';
-import { formatNumber, speciesName } from '../../i18n/pt-BR';
+import { formatDuration, formatNumber, moveName, speciesName } from '../../i18n/pt-BR';
 import { audio } from '../../audio';
 import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
@@ -63,8 +64,67 @@ function CodeBox({ code, label }: { code: string; label: string }) {
 }
 
 /** Colar um código (troca ou equipe) e ver o que vem nele antes de aceitar. */
+/** Chegada de um Pokémon por código: a bola atravessa o cabo e ele sai dela. */
+function ArrivalShow({
+  speciesId,
+  shiny,
+  from,
+  avatar,
+  onClose,
+}: {
+  speciesId: number;
+  shiny: boolean;
+  from: string;
+  avatar: string;
+  onClose: () => void;
+}) {
+  const [stage, setStage] = useState<'arrive' | 'done'>('arrive');
+  useEffect(() => {
+    audio.sfx('throw');
+    const t = window.setTimeout(() => {
+      setStage('done');
+      audio.sfx(shiny ? 'fanfare' : 'itemGet');
+    }, 1700);
+    return () => clearTimeout(t);
+  }, [shiny]);
+  return createPortal(
+    <div className="modal-backdrop st-backdrop" role="dialog" aria-modal="true" aria-label="Troca recebida">
+      <div className={`st-show frame frame-dialog stage-${stage} lk-arrival`}>
+        <h3>TROCA RECEBIDA</h3>
+        <div className="st-cable" aria-hidden>
+          <span className="st-you">
+            <TrainerSprite id={avatar} size={48} head />
+          </span>
+          <span className="st-wire" />
+          <span className="st-ball in">
+            <ItemIcon id="poke-ball" size={24} />
+          </span>
+        </div>
+        <p className="st-caption">{stage === 'arrive' ? `${from} está mandando um Pokémon pelo cabo…` : ''}</p>
+        {stage === 'done' && (
+          <div className="st-result">
+            <span className="st-burst" aria-hidden />
+            <PokemonSprite speciesId={speciesId} kind="front" shiny={shiny} pixelScale={2} />
+            <strong>
+              {speciesName(speciesId).toUpperCase()} {shiny && <Shiny />}
+            </strong>
+            <small>Veio de {from}. Ele já está no seu PC.</small>
+            <button className="pbtn primary" onClick={onClose} autoFocus>
+              Obrigado, {from}!
+            </button>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function Receive({ expect }: { expect: LinkPacket['kind'] }) {
   const engine = useEngine();
+  const [arrival, setArrival] = useState<{ speciesId: number; shiny: boolean; from: string; avatar: string } | null>(
+    null,
+  );
   const [text, setText] = useState('');
   const [packet, setPacket] = useState<LinkPacket | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -95,6 +155,13 @@ function Receive({ expect }: { expect: LinkPacket['kind'] }) {
     });
     if (result.error) setMessage(result.error);
     else {
+      if (packet.kind === 'trade')
+        setArrival({
+          speciesId: packet.pokemon.speciesId,
+          shiny: packet.pokemon.shiny,
+          from: packet.from.name,
+          avatar: packet.from.avatar,
+        });
       audio.sfx('itemGet');
       setMessage(
         packet.kind === 'trade'
@@ -108,6 +175,7 @@ function Receive({ expect }: { expect: LinkPacket['kind'] }) {
 
   return (
     <div className="link-receive">
+      {arrival && <ArrivalShow {...arrival} onClose={() => setArrival(null)} />}
       <textarea
         value={text}
         rows={3}
@@ -301,6 +369,31 @@ function SurpriseTrade({ state }: { state: GameState }) {
   );
 }
 
+/** Os Pokémon que vieram de outros treinadores (pela troca ou pela Troca Surpresa), com a origem. */
+function Received({ state }: { state: GameState }) {
+  const list = state.collection.filter((p) => p.ot && p.ot !== state.trainerName).sort((a, b) => b.uid - a.uid);
+  if (!list.length) return null;
+  return (
+    <Window title={`RECEBIDOS DE OUTROS TREINADORES · ${list.length}`} icon={<ItemIcon id="luxury-ball" size={24} />}>
+      <ul className="lk-received">
+        {list.slice(0, 18).map((p, i) => (
+          <li key={p.uid} style={{ '--i': i } as CSSProperties} title={p.caughtOn}>
+            <PokemonSprite speciesId={p.speciesId} kind="icon" shiny={p.shiny} form={p.form} />
+            <span>
+              <strong>
+                {p.nickname ?? speciesName(p.speciesId)} {p.shiny && <Shiny />}
+              </strong>
+              <small>
+                de <b>{p.ot}</b> · {p.caughtOn} · {new Date(p.caughtAt).toLocaleDateString('pt-BR')}
+              </small>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Window>
+  );
+}
+
 export function TradePanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [uid, setUid] = useState<number | null>(null);
@@ -377,6 +470,7 @@ export function TradePanel({ state }: { state: GameState }) {
         {code && <CodeBox code={code} label="Código de troca" />}
       </Window>
 
+      <Received state={state} />
       <Window title="RECEBER" icon={<ItemIcon id="pokemon-box" size={24} />}>
         <Receive expect="trade" />
       </Window>
@@ -424,9 +518,104 @@ export function TradePanel({ state }: { state: GameState }) {
   );
 }
 
+/** O replay do último duelo: os lances aparecem um a um, como num relato de partida. */
+function DuelReplay({ state, ghostId, onClose }: { state: GameState; ghostId: string; onClose: () => void }) {
+  const g = state.link?.ghosts.find((x) => x.id === ghostId);
+  const log = g?.lastDuel?.log ?? [];
+  const [shown, setShown] = useState(1);
+  useEffect(() => {
+    if (shown >= log.length) return;
+    const t = window.setTimeout(() => setShown((n) => n + 1), 700);
+    return () => clearTimeout(t);
+  }, [shown, log.length]);
+  if (!g?.lastDuel) return null;
+  return createPortal(
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Replay do duelo" onClick={onClose}>
+      <div className="duel-replay frame frame-dialog" onClick={(e) => e.stopPropagation()}>
+        <h3>
+          REPLAY · VOCÊ × {g.name.toUpperCase()}{' '}
+          <span className={g.lastDuel.won ? 'w' : 'l'}>{g.lastDuel.won ? 'VITÓRIA' : 'DERROTA'}</span>
+        </h3>
+        <ol className="duel-replay-log">
+          {log.slice(0, shown).map((m, i) => (
+            <li key={i} className={`${m.side} ${m.ko ? 'ko' : ''}`}>
+              <PokemonSprite speciesId={m.attacker} kind="icon" />
+              <span>
+                <b>{speciesName(m.attacker)}</b>
+                {m.side === 'enemy' ? ` (de ${g.name})` : ''} usou <b>{moveName(m.move)}</b>
+                {m.missed
+                  ? ': errou!'
+                  : `: ${m.damage} de dano${m.crit ? ', crítico' : ''}${m.super ? ', super efetivo' : ''}`}
+                {m.ko ? ` · ${speciesName(m.target)} caiu!` : ''}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="duel-replay-actions">
+          {shown < log.length && (
+            <button className="pbtn small" onClick={() => setShown(log.length)}>
+              Mostrar tudo
+            </button>
+          )}
+          <button className="pbtn primary" onClick={onClose} autoFocus>
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Temporada do mês: o ranking local (você e os amigos) e os troféus dos meses que você venceu. */
+function DuelSeasonBoard({ state }: { state: GameState }) {
+  const now = state.lastTimerAt;
+  const ghosts = state.link?.ghosts ?? [];
+  if (!ghosts.length) return null;
+  const rows = duelRanking(state, now);
+  const season = state.duelSeason;
+  const end = new Date(now);
+  end.setMonth(end.getMonth() + 1, 1);
+  end.setHours(0, 0, 0, 0);
+  const left = end.getTime() - now;
+  return (
+    <Window
+      title={`TEMPORADA ${new Date(now).toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()}`}
+      icon={<ItemIcon id="relic-crown" size={24} />}
+    >
+      <ol className="duel-ranking">
+        {rows.map((r, i) => (
+          <li key={`${r.name}-${i}`} className={`${r.you ? 'you' : ''} ${i === 0 ? 'first' : ''}`} style={{ '--i': i } as CSSProperties}>
+            <span className="duel-rank">{i + 1}º</span>
+            <strong>{r.you ? `${r.name} (você)` : r.name}</strong>
+            <span>
+              {r.w}V {r.l}D
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="hint">
+        A temporada fecha em {left > 2 * 86_400_000 ? `${Math.ceil(left / 86_400_000)} dias` : formatDuration(left)}. Quem fecha o mês em 1º com 3 vitórias ou mais
+        ganha um troféu. Contam os duelos contra as equipes guardadas.
+      </p>
+      {season && season.trophies.length > 0 && (
+        <ul className="duel-trophies">
+          {season.trophies.map((m) => (
+            <li key={m} title={`Campeão de ${m}`}>
+              <span aria-hidden>🏆</span>
+              <small>{m.split('-').reverse().join('/')}</small>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Window>
+  );
+}
+
 export function DuelPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [code, setCode] = useState<string | null>(null);
+  const [replay, setReplay] = useState<string | null>(null);
   if (!linkUnlocked(state)) return <Locked routeId={BALANCE.link.unlock} />;
   const ghosts = state.link?.ghosts ?? [];
   const wild = state.battle.kind === 'wild';
@@ -447,6 +636,8 @@ export function DuelPanel({ state }: { state: GameState }) {
         {code && <CodeBox code={code} label="Código da equipe" />}
       </Window>
 
+      {replay && <DuelReplay state={state} ghostId={replay} onClose={() => setReplay(null)} />}
+      <DuelSeasonBoard state={state} />
       <Window title="EQUIPES DE AMIGOS" icon={<ItemIcon id="vs-recorder" size={24} />}>
         <Receive expect="ghost" />
         {ghosts.length === 0 ? (
@@ -463,6 +654,15 @@ export function DuelPanel({ state }: { state: GameState }) {
                     <small>
                       {badgesText(g.badges)} · Nv. médio {ghostAverageLevel(g)} · {g.wins}V {g.losses}D
                     </small>
+                    {g.duels && g.duels.length > 0 && (
+                      <span className="duel-form" title="Últimos duelos (o mais novo à esquerda)">
+                        {g.duels.map((d, i) => (
+                          <i key={i} className={d.won ? 'w' : 'l'}>
+                            {d.won ? 'V' : 'D'}
+                          </i>
+                        ))}
+                      </span>
+                    )}
                     <ul className="link-team">
                       {g.team.map((m, i) => (
                         <li key={i} title={`${pokemonName(m)} Nv. ${m.level}`}>
@@ -486,6 +686,11 @@ export function DuelPanel({ state }: { state: GameState }) {
                     >
                       Duelar
                     </button>
+                    {g.lastDuel && g.lastDuel.log.length > 0 && (
+                      <button className="pbtn small" onClick={() => setReplay(g.id)}>
+                        Replay
+                      </button>
+                    )}
                     <button
                       className="pbtn small danger"
                       onClick={() => {

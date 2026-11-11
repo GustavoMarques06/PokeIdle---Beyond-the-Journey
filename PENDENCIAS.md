@@ -61,8 +61,26 @@ nem medido com jogo de verdade.
 - **Shiny:** frente (1,5×) e céu (2×) somam até 3× nas rotas; o coração do Safari dá 2,5× à parte. Somam com a Caça
   Shiny. Não medido em jogo.
 
-**Ainda dá para fazer:** Duelo (histórico e ranking dos times de amigos), Creche (hóspedes andando pelo quintal,
-árvore genealógica) e ver o equilíbrio do Voltorb Flip e da Escavação com jogo de verdade.
+**Voltorb Flip e Escavação (medido em 11/11, jogadores simulados que usam as pistas e miram no que aparece):**
+- Voltorb Flip: com a entrada de 10 fichas em todo nível, o jogador ficava entre −4 e +1 ficha por rodada e não subia
+  de nível (um tabuleiro inteiro do nível 1 paga 18 a 54). Agora `voltorbEntry`: grátis nos níveis 1–2, 10 do 3 ao 5,
+  20 do 6 ao 8. Resultado: +6 a +10 fichas por rodada no começo (1 ficha = 50 moedas).
+- Escavação: sem mudança. Mirando no tesouro que começa a aparecer, 2 tesouros por parede (de 3,2), fóssil em 60% das
+  paredes, ~5.600 moedas em venda; a parede paga (8.000) só compensa pelo fóssil e pelas pedras. O martelo rende menos
+  (1,3 tesouro) porque abala mais a parede.
+
+**Mais vida em cada aba (11/11):** CSS novo em `styles/vida.css` (uma seção por aba); regras novas em
+`core/lab.ts` (pedido do Blaine), `expeditions.ts` (bifurcação, histórias, `state.postcards`), `garden.ts` (estação,
+Combee, guardião), `dig.ts` (lanterna), `training.ts` (desafio do dia, medalhas), `raids.ts`/`battle.ts` (aliados dos
+amigos), `hunt.ts`/`bonuses.ts` (Amuleto Brilhante), `legendary.ts` (`sightings`, `captures`), `battle.ts`
+(`TOWER_BRAINS`), `tournament.ts` (rivais), `safari.ts` (álbum, clima), `gamecorner.ts`/`voltorb.ts` (Maior ou
+Menor, mural), `link.ts` (histórico, replay, `state.duelSeason`). Testes em `core/vida.test.ts`; prints conferidas.
+- **Não deu para ver em print:** a entrada do Cérebro da Torre (o jogo reinicia a batalha ao carregar o save; a regra
+  está no teste) e a animação de chegada da troca por código.
+- **Falta medir:** Maior ou Menor (pote ×1,7 por acerto, até 8) e os aliados da raide (2,5% do HP do chefe a cada 7 s
+  por amigo, metade com escudo).
+
+**Ainda dá para fazer:** a árvore genealógica dentro da cerimônia do ovo (hoje ela fica só na ficha do Pokémon).
 
 ## Safari (9/11 e 10/11)
 

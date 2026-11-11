@@ -13,6 +13,26 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-11-mais-vida',
+    date: '11/11/2026',
+    title: 'Mais vida em cada atividade',
+    items: [
+      { tag: 'novo', text: 'Creche: os hóspedes passeiam no gramado; o casal se encontra no meio e o ovo aparece quando está para sair.' },
+      { tag: 'novo', text: 'Expedições: uma bifurcação no meio do caminho (trilha segura ou atalho arriscado), uma frase de cada Pokémon na volta e o álbum de cartões-postais.' },
+      { tag: 'novo', text: 'Jardim: estações do ano (as berries da estação crescem mais rápido), Combee polinizando (mutação 2×) e um guardião Voador ou de Fogo que espanta os insetos.' },
+      { tag: 'novo', text: 'Fósseis: esqueletos no Museu (toque para ver vivo), lanterna na Escavação e um pedido do Blaine por dia.' },
+      { tag: 'novo', text: 'Treino: ringue de sparring, desafio do dia da Korrina e medalhas para cada atributo no máximo.' },
+      { tag: 'novo', text: 'Raides: os times dos seus amigos ajudam na luta, e 5 vitórias contra o mesmo chefe dão um troféu.' },
+      { tag: 'novo', text: 'Caça Shiny: Galeria Brilhante, Amuleto Brilhante (shiny 1,5× com shinies de 10 espécies) e a moita que brilha antes do shiny.' },
+      { tag: 'novo', text: 'Lendários: galeria das capturas (com replay) e o mapa de onde cada um apareceu.' },
+      { tag: 'novo', text: 'Torre: elevador, o adversário do andar e os Cérebros: Blue, Lance, Steven, Cynthia, Alder e Diantha.' },
+      { tag: 'novo', text: 'Torneio: a plateia torce, festeja e vai embora; rivais que voltam mais fortes e lembram de você.' },
+      { tag: 'novo', text: 'Safari: álbum com a melhor foto de cada espécie; chuva traz Pokémon de água à grama e a neblina os acalma.' },
+      { tag: 'novo', text: 'Game Corner: Maior ou Menor, vizinhos de máquina e o mural dos jackpots.' },
+      { tag: 'novo', text: 'Troca e Duelo: a chegada pelo cabo, os recebidos de outros treinadores, replay do duelo e a temporada do mês com troféu.' },
+    ],
+  },
+  {
     id: '2026-11-11-raides-safari-clima',
     date: '11/11/2026',
     title: 'Raides com escudo, Safari profundo e o céu vivo',
@@ -25,6 +45,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       { tag: 'novo', text: 'Clima: frentes cruzam cada região (veja no mapa; shiny mais provável na rota delas), e às vezes há aurora, arco-íris ou chuva de meteoros.' },
       { tag: 'novo', text: 'Lendários: boato em manchete, Santuário como templo, quando cada um volta a aparecer e filtro dos cartões.' },
       { tag: 'melhoria', text: 'O chefe das raides acompanha o seu progresso: não aparece mais chefe fraco numa rota do começo.' },
+      { tag: 'melhoria', text: 'Voltorb Flip: os níveis 1 e 2 agora são grátis (a entrada comia quase todo o ganho); do nível 6 em diante custa 20 fichas.' },
       { tag: 'correção', text: 'A previsão dos lendários acerta na virada do dia e da noite e não mostra quem ainda está em espera.' },
       { tag: 'correção', text: 'O boato do dia não troca mais no meio do dia, e o Kyurem aceita o Reshiram ou o Zekrom.' },
     ],

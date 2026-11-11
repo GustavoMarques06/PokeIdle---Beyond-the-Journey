@@ -23,6 +23,7 @@ import { environmentMoveBoost, mergeBoosts, routeWeather, type Weather } from '.
 import type { GameState } from './game';
 import { abilityOf, heldOf, type PokemonInstance } from './pokemon';
 import { teamPokemon } from './team';
+import { SHINY_CHARM_BOOST, hasShinyCharm } from './hunt';
 
 export const BONUS_KINDS: BonusKind[] = ['damage', 'defense', 'speed', 'exp', 'coins', 'capture', 'heal'];
 
@@ -213,7 +214,8 @@ export function computeModifiers(state: GameState): Modifiers {
     shiny:
       (1 + 0.5 * prestigeLevel(state, 'shiny')) *
       (1 + dex.shiny + buff(state, 'shiny')) *
-      (1 + (activeHeld?.shiny ?? 0)),
+      (1 + (activeHeld?.shiny ?? 0)) *
+      (hasShinyCharm(state) ? SHINY_CHARM_BOOST : 1),
     damageTaken: (1 - passive.defense) * (1 - masteryBonus),
     enemyDamage: state.challenge === 'fierce' ? BALANCE.fierceEnemyDamage : 1,
     attackInterval: 1 / ((1 + passive.speed) * (1 + buff(state, 'speed'))),

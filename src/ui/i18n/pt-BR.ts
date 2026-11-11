@@ -513,6 +513,8 @@ export function describeEvent(e: GameEvent): string | null {
       return `A raide de ${speciesName(e.speciesId)} terminou.`;
     case 'raidRage':
       return `${speciesName(e.speciesId)} está furioso! (fase ${e.stage})`;
+    case 'raidAlly':
+      return `${e.name} mandou ${speciesName(e.speciesId)} ajudar: −${e.damage} HP no chefe!`;
     case 'raidShieldBroken':
       return `O escudo de ${speciesName(e.speciesId)} quebrou: ele ficou atordoado!`;
     case 'raidBlast':

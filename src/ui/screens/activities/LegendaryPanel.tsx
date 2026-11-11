@@ -3,7 +3,16 @@
 // (com quando aparecem, a próxima janela, o que pedem e a caça ao shiny).
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { BALANCE, LEGENDARIES, LEGEND_BALLS, LEGEND_WHEN, REGIONS, type LegendaryDef } from '../../../game-data';
+import {
+  BALANCE,
+  LEGENDARIES,
+  LEGEND_BALLS,
+  LEGEND_WHEN,
+  REGIONS,
+  assetUrl,
+  getRoute,
+  type LegendaryDef,
+} from '../../../game-data';
 import { periodAt, weatherAt } from '../../../core/env';
 import { challengeLegendary, type GameState } from '../../../core/game';
 import {
@@ -434,6 +443,126 @@ function RumorBanner({ state, rumor, now }: { state: GameState; rumor: number; n
   );
 }
 
+/** Mapa das lendas: a arte de cada região com os lendários nas rotas onde você os enfrentou. */
+function LegendMap({ state }: { state: GameState }) {
+  const sightings = state.legends.sightings ?? {};
+  const regions = REGIONS.filter((r) => Object.values(sightings).some((ids) => ids.some((id) => r.routes.includes(id))));
+  const [regionId, setRegionId] = useState<string | null>(null);
+  if (!regions.length) {
+    return (
+      <Window title="MAPA DAS LENDAS" icon={<ItemIcon id="town-map" size={24} />}>
+        <p className="hint">Enfrente um lendário e o lugar onde ele apareceu fica marcado aqui, no mapa da região.</p>
+      </Window>
+    );
+  }
+  const region = regions.find((r) => r.id === regionId) ?? regions[0];
+  const pins = Object.entries(sightings).flatMap(([id, routes]) =>
+    routes.filter((r) => region.routes.includes(r)).map((r) => ({ speciesId: +id, route: getRoute(r) })),
+  );
+  // Vários lendários na mesma rota: os marcadores se espalham lado a lado em vez de se cobrirem.
+  const atRoute: Record<string, number> = {};
+  const spread = pins.map((pin) => {
+    const k = (atRoute[pin.route.id] = (atRoute[pin.route.id] ?? -1) + 1);
+    const total = pins.filter((x) => x.route.id === pin.route.id).length;
+    return (k - (total - 1) / 2) * 30;
+  });
+  return (
+    <Window title={`MAPA DAS LENDAS · ${pins.length} aparições`} icon={<ItemIcon id="town-map" size={24} />}>
+      {regions.length > 1 && (
+        <div className="legend-map-tabs" role="tablist">
+          {regions.map((r) => (
+            <button
+              key={r.id}
+              role="tab"
+              aria-selected={r.id === region.id}
+              className={`pbtn small ${r.id === region.id ? 'primary' : ''}`}
+              onClick={() => setRegionId(r.id)}
+            >
+              {r.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="legend-map">
+        <img src={assetUrl(`maps/${region.id}.webp`)} alt={`Mapa de ${region.name}`} draggable={false} />
+        {pins.map((pin, i) => {
+          const caught = state.legends.caught.includes(pin.speciesId);
+          return (
+            <span
+              key={`${pin.speciesId}-${pin.route.id}`}
+              className={`legend-pin ${caught ? 'caught' : ''}`}
+              style={
+                {
+                  left: `calc(${pin.route.map[0]}% + ${spread[i]}px)`,
+                  top: `${pin.route.map[1]}%`,
+                  '--glow': legendGlow(pin.speciesId),
+                  '--i': i,
+                } as CSSProperties
+              }
+              title={`${caught ? speciesName(pin.speciesId) : 'Lendário'} · ${pin.route.name}`}
+            >
+              <PokemonSprite speciesId={pin.speciesId} kind="icon" silhouette={!caught} />
+            </span>
+          );
+        })}
+      </div>
+    </Window>
+  );
+}
+
+/** Galeria das capturas: cada lendário capturado, com onde, quando e qual bola; "Rever" repete a captura. */
+function CaptureGallery({ state }: { state: GameState }) {
+  const [replay, setReplay] = useState<{ id: number; key: number } | null>(null);
+  const caught = LEGENDARIES.filter((l) => state.legends.caught.includes(l.speciesId));
+  if (!caught.length) return null;
+  const captures = state.legends.captures ?? {};
+  return (
+    <Window title={`GALERIA DAS CAPTURAS · ${caught.length}`} icon={<ItemIcon id="master-ball" size={24} />}>
+      <ul className="legend-gallery">
+        {caught.map((l) => {
+          const c = captures[l.speciesId];
+          const playing = replay?.id === l.speciesId;
+          return (
+            <li key={l.speciesId} style={{ '--glow': legendGlow(l.speciesId) } as CSSProperties}>
+              <span key={playing ? replay!.key : 'still'} className={`legend-gallery-scene ${playing ? 'replay' : ''}`}>
+                <span className="lg-ball">
+                  <ItemIcon id={c?.ball ?? 'poke-ball'} size={22} />
+                </span>
+                <span className="lg-mon">
+                  <PokemonSprite speciesId={l.speciesId} kind="front" shiny={c?.shiny} pixelScale={1} />
+                </span>
+                <span className="lg-stars" aria-hidden>
+                  {Array.from({ length: 8 }, (_, k) => (
+                    <i key={k} style={{ '--a': `${k * 45}deg` } as CSSProperties} />
+                  ))}
+                </span>
+              </span>
+              <strong>
+                {speciesName(l.speciesId)} {c?.shiny && <Shiny />}
+              </strong>
+              <small>
+                {c
+                  ? `${new Date(c.at).toLocaleDateString('pt-BR')} · ${getRoute(c.routeId).name} · ${itemName(c.ball)}${c.throws > 1 ? ` (${c.throws}ª bola)` : ' de primeira!'}`
+                  : 'Capturado antes deste registro'}
+              </small>
+              <button
+                className="pbtn small"
+                onClick={() => {
+                  audio.sfx('throw');
+                  setTimeout(() => audio.cry(l.speciesId), 1300);
+                  setReplay({ id: l.speciesId, key: Date.now() });
+                }}
+              >
+                Rever
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </Window>
+  );
+}
+
 export function LegendaryPanel({ state }: { state: GameState }) {
   const now = state.lastTimerAt;
   const rumor = rumorOf(state, now);
@@ -484,6 +613,8 @@ export function LegendaryPanel({ state }: { state: GameState }) {
         </details>
       </Window>
       <Sanctuary state={state} />
+      <CaptureGallery state={state} />
+      <LegendMap state={state} />
       <div className="legend-filter" role="group" aria-label="Filtrar lendários">
         {FILTERS.map(([id, label]) => (
           <button

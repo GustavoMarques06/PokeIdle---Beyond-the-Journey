@@ -10,6 +10,8 @@ import type { GameEvent, GameState } from './game';
 import { progressMission } from './missions';
 import { randInt, rngFrom } from './rng';
 import { teamPokemon } from './team';
+import { seasonAt } from './forms';
+import { SEASONS, type Season } from '../game-data';
 
 export interface GardenPlot {
   berry: string;
@@ -36,6 +38,29 @@ const WATER_CUT = 0.12;
 const HELPER_SPEED = 0.9;
 const PEST_CHANCE = 0.4;
 const MUTATION_CHANCE = 0.2;
+// --- Estações, abelhas e guardião ---------------------------------------------------------------
+
+/** Cada estação favorece uma parte das berries (em rodízio pela lista): plantadas na estação, crescem mais rápido. */
+const SEASON_SPEED = 0.8;
+export function berryInSeason(berry: string, season: Season): boolean {
+  const i = BERRIES.findIndex((b) => b.id === berry);
+  return i >= 0 && i % SEASONS.length === SEASONS.indexOf(season);
+}
+export const gardenSeason = (now: number) => seasonAt(now);
+
+/** Os Combee passam 10 minutos a cada meia hora polinizando: colher nessa hora dobra a chance de mutação. */
+const BEE_WINDOW = 10 * 60_000;
+const BEE_CYCLE = 30 * 60_000;
+export const beesVisiting = (now: number) => now % BEE_CYCLE < BEE_WINDOW;
+/** Quando os Combee voltam (ou até quando ficam, se já estão aqui). */
+export const beesNext = (now: number) =>
+  beesVisiting(now) ? now - (now % BEE_CYCLE) + BEE_WINDOW : now - (now % BEE_CYCLE) + BEE_CYCLE;
+
+/** Guardião do jardim: um Pokémon Voador ou de Fogo na equipe espanta os insetos sozinho. */
+export function gardenGuardian(state: GameState) {
+  return teamPokemon(state).find((p) => getSpecies(p.speciesId).types.some((t) => t === 'flying' || t === 'fire'));
+}
+
 const PESTS = ['caterpie', 'weedle', 'wurmple', 'combee', 'ledyba', 'sewaddle', 'scatterbug'];
 
 /** O Pokémon de planta da equipe que ajuda no jardim (o primeiro), se houver. */
@@ -80,7 +105,11 @@ export function plantBerry(state: GameState, plot: number, berry: string, now: n
   if ((state.items[berry] ?? 0) <= 0) return false;
   state.items[berry]--;
   const rng = rngFrom(state);
-  const growMs = def.growMinutes * 60_000 * (gardenHelper(state) ? HELPER_SPEED : 1);
+  const growMs =
+    def.growMinutes *
+    60_000 *
+    (gardenHelper(state) ? HELPER_SPEED : 1) *
+    (berryInSeason(berry, gardenSeason(now)) ? SEASON_SPEED : 1);
   const pest = rng.next() < PEST_CHANCE;
   state.garden[plot] = {
     berry,
@@ -130,7 +159,7 @@ export function harvest(state: GameState, plot: number, now: number, events: Gam
   state.items[p.berry] = (state.items[p.berry] ?? 0) + qty;
   // Mutação: uma berry diferente plantada ao lado pode gerar uma mais rara.
   const neighbors = [state.garden[plot - 1], state.garden[plot + 1]].filter((n): n is GardenPlot => !!n && n.berry !== p.berry);
-  if (neighbors.length && rng.next() < MUTATION_CHANCE) {
+  if (neighbors.length && rng.next() < MUTATION_CHANCE * (beesVisiting(now) ? 2 : 1)) {
     const other = neighbors[Math.floor(rng.next() * neighbors.length)];
     const mutated = mutationOf(p.berry, other.berry);
     if (mutated) {
@@ -192,6 +221,8 @@ export function gardenTimers(state: GameState, now: number, events: GameEvent[])
   while (state.garden.length < BALANCE.garden.plots.length) state.garden.push(null);
   // Chuva: o jardim se rega sozinho.
   if (state.env.weather === 'rain') state.garden.forEach((p, i) => canWater(p, now) && waterPlot(state, i, now));
+  // O guardião espanta os insetos assim que chegam (e a pesquisa vem do mesmo jeito).
+  if (gardenGuardian(state)) state.garden.forEach((p, i) => pestActive(p, now) && shooPest(state, i, now));
   for (const p of state.garden) {
     if (p && !p.notified && plotReady(p, now)) {
       p.notified = true;

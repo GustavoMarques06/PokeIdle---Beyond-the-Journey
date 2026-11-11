@@ -20,18 +20,34 @@ export function TrainerIntro({
   name,
   sprite,
   outfit,
+  title,
+  line,
 }: {
   name: string;
   sprite: string;
   outfit?: TrainerOutfit;
+  title?: string;
+  /** Com fala, a entrada vira a do Cérebro da Torre (dourada, com a frase dele). */
+  line?: string;
 }) {
   const src = useTrainerSprite(sprite, outfit);
   return (
-    <div className="enc-trainer" aria-live="polite">
+    <div className={`enc-trainer ${line ? 'brain' : ''}`} aria-live="polite">
       <span className="enc-bar top" aria-hidden />
       <span className="enc-bar bottom" aria-hidden />
+      {line && <span className="enc-brain-rays" aria-hidden />}
       <img className="enc-trainer-sprite" src={src} alt="" draggable={false} />
-      <div className="enc-trainer-text frame frame-dialog">{name.toUpperCase()} quer batalhar!</div>
+      <div className="enc-trainer-text frame frame-dialog">
+        {line ? (
+          <>
+            <small>{(title ?? '').toUpperCase()}</small>
+            <strong>{name.toUpperCase()}</strong>
+            <span>“{line}”</span>
+          </>
+        ) : (
+          `${name.toUpperCase()} quer batalhar!`
+        )}
+      </div>
     </div>
   );
 }

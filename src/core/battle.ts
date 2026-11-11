@@ -55,7 +55,10 @@ import { relocateRoamer, roamerCaught } from './events';
 import { addFriendship, friendshipSteps } from './friendship';
 import { breakChain, huntShinyMultiplier, huntWeight, recordEncounter } from './hunt';
 import {
+  RAID_ALLY_MS,
   RAID_MODS,
+  raidAllies,
+  raidAllyDamage,
   raidBreakers,
   raidHpMultiplier,
   raidLootRolls,
@@ -201,6 +204,34 @@ export function step(
     // Contadores só para a tela: a carga do golpe gigante e o atordoamento (o que vale é o cronômetro do chefe).
     if (enemy.chargeMs) enemy.chargeMs = Math.max(0, enemy.chargeMs - dt);
     if (enemy.stunMs) enemy.stunMs = Math.max(0, enemy.stunMs - dt) || undefined;
+    // Os amigos (times recebidos pelo Cabo Link) ajudam: cada um acerta o chefe de tempos em tempos.
+    const allies = raidAllies(state);
+    if (allies.length) {
+      b.allyMs = (b.allyMs ?? RAID_ALLY_MS) - dt;
+      if (b.allyMs <= 0) {
+        b.allyMs = RAID_ALLY_MS;
+        for (const ally of allies) {
+          const damage = raidAllyDamage(enemy.maxHp, !!enemy.shield);
+          enemy.hp = Math.max(0, enemy.hp - damage);
+          events.push({ type: 'raidAlly', name: ally.name, speciesId: ally.speciesId, damage });
+          if (enemy.shield) {
+            enemy.shield = Math.max(0, enemy.shield - 1);
+            if (!enemy.shield) {
+              enemy.charging = false;
+              enemy.chargeMs = undefined;
+              enemy.stunMs = BALANCE.raid.stunMs;
+              b.enemyTimerMs = Math.max(b.enemyTimerMs, BALANCE.raid.stunMs);
+              events.push({ type: 'raidShieldBroken', speciesId: enemy.speciesId });
+            }
+          }
+          if (enemy.hp <= 0) {
+            onFaint(state, 'enemy', now, events, mods);
+            return;
+          }
+        }
+        raidRage(state, enemy, events);
+      }
+    }
     if (b.raidMs <= 0) {
       events.push({ type: 'raidFailed', speciesId: enemy.speciesId });
       healTeam(state);
@@ -623,6 +654,21 @@ function takeTurn(
   }
   setHp(other, hp(other) - result.damage);
   events.push({ type: 'attack', side, attacker: self.speciesId, target: foe.speciesId, result });
+  if (duel) {
+    const log = (b.duelLog ??= []);
+    if (log.length < 80)
+      log.push({
+        side,
+        attacker: self.speciesId,
+        target: foe.speciesId,
+        move: moveId,
+        damage: result.damage,
+        ...(result.crit ? { crit: true } : {}),
+        ...(result.effectiveness > 1 ? { super: true } : {}),
+        ...(result.missed ? { missed: true } : {}),
+        ...(hp(other) <= 0 ? { ko: true } : {}),
+      });
+  }
   if (isPlayer) addRecord(player, { damage: result.damage, crits: result.crit && !result.missed ? 1 : 0 });
   if (!result.missed && result.effectiveness === 0 && absorbedBy(self, foe, moveId)) {
     const before = hp(other);
@@ -1430,7 +1476,12 @@ function attemptCapture(
     perfect: isPerfect(p.ivs),
   });
   if (state.battle.kind === 'legendary') {
-    legendaryCaught(state, p.speciesId, now);
+    legendaryCaught(state, p.speciesId, now, {
+      routeId: state.battle.routeId,
+      ball,
+      shiny: p.shiny,
+      throws: (enemy.throws ?? 0) + 1,
+    });
     events.push({ type: 'legendaryEnded', speciesId: p.speciesId, reason: 'caught' });
     const player = activePokemon(state);
     player.currentHp = statsOf(player).hp;
@@ -1469,6 +1520,16 @@ function maybeAutoCapture(
 
 const TOWER_TRAINERS = ROUTES.flatMap((r) => (r.boss ? [{ sprite: r.boss.trainer, name: r.boss.name }] : []));
 
+/** Os Cérebros da Torre: um campeão por faixa de andares (em rodízio), cada um com a sua fala. */
+export const TOWER_BRAINS: { sprite: string; name: string; line: string }[] = [
+  { sprite: 'kanto-blue', name: 'Blue', line: 'Chegou até aqui? Então mostre se merece o topo!' },
+  { sprite: 'johto-lance', name: 'Lance', line: 'Os dragões não perdoam erros. Venha com tudo!' },
+  { sprite: 'hoenn-steven', name: 'Steven', line: 'Como uma pedra rara, um bom treinador brilha sob pressão.' },
+  { sprite: 'sinnoh-cynthia', name: 'Cynthia', line: 'Quero ver até onde vai o laço entre você e o seu Pokémon.' },
+  { sprite: 'unova-alder', name: 'Alder', line: 'Batalhar é conhecer o coração do outro. Vamos lá!' },
+  { sprite: 'kalos-diantha', name: 'Diantha', line: 'Toda subida merece um grande final. Que seja este!' },
+];
+
 /** Batalha de um andar. Com `weeklyAt`, usa a regra e a semente da semana desse instante. */
 export function towerBattle(
   state: GameState,
@@ -1479,12 +1540,17 @@ export function towerBattle(
   const rule = weeklyAt === undefined ? null : weeklyRule(weeklyAt);
   const rng = rule ? weeklyRng(rule.week, floor) : rngFrom(state);
   const t = TOWER_TRAINERS[Math.floor(rng.next() * TOWER_TRAINERS.length)];
+  const brain = isBossFloor(floor)
+    ? TOWER_BRAINS[(Math.floor(floor / BALANCE.tower.bossEvery) - 1) % TOWER_BRAINS.length]
+    : undefined;
   return {
     ...freshBattle(routeId),
     kind: 'tower',
     floor,
     team: floorTeam(floor, rng, rule?.mod.boost ?? 1),
-    trainer: { ...t, title: isBossFloor(floor) ? 'Cérebro da Torre' : `Andar ${floor}` },
+    trainer: brain
+      ? { sprite: brain.sprite, name: brain.name, title: 'Cérebro da Torre', line: brain.line }
+      : { ...t, title: `Andar ${floor}` },
     ...(rule ? { weekly: true } : {}),
   };
 }

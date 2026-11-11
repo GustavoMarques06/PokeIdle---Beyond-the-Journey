@@ -1,0 +1,2281 @@
+/* =============================================================================
+   MAIS VIDA NAS ATIVIDADES (11/11): uma seção por aba. Tudo em pixel art e CSS; com movimento reduzido ou no modo
+   Desempenho as animações param (bloco no fim do arquivo).
+   ============================================================================= */
+
+/* --- Creche: o gramado onde os hóspedes passeiam --------------------------------------------- */
+.yard-lane {
+  position: relative;
+  height: 46px;
+  margin-top: 6px;
+  overflow: hidden;
+  border: 2px solid var(--grass-dark);
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse 30px 6px at 50% 100%, rgb(0 0 0 / 0.12), transparent 70%),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.12) 0 2px, transparent 2px 9px),
+    linear-gradient(#b8e890, #88c060);
+}
+
+.yard-flowers {
+  position: absolute;
+  inset: auto 0 2px 0;
+  height: 8px;
+  background:
+    radial-gradient(circle 2px at 8% 50%, #f86890, transparent 3px),
+    radial-gradient(circle 2px at 23% 30%, #fff, transparent 3px),
+    radial-gradient(circle 2px at 61% 60%, #f8d030, transparent 3px),
+    radial-gradient(circle 2px at 77% 40%, #f86890, transparent 3px),
+    radial-gradient(circle 2px at 92% 55%, #fff, transparent 3px);
+  animation: yard-sway 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes yard-sway {
+  to {
+    translate: 2px 0;
+  }
+}
+
+.yard-walker {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  width: 40px;
+}
+
+.yard-walker .sprite {
+  width: 40px;
+  animation: yard-step 0.5s steps(2, end) infinite;
+}
+
+@keyframes yard-step {
+  50% {
+    translate: 0 -2px;
+  }
+}
+
+/* Sozinho: vai e volta pelo gramado todo. */
+.yard-lane.alone .yard-walker {
+  animation: yard-roam 9s ease-in-out infinite alternate;
+}
+
+@keyframes yard-roam {
+  from {
+    left: 4%;
+  }
+  to {
+    left: calc(96% - 40px);
+  }
+}
+
+/* Juntos: cada um vem de um lado e se encontram no meio. */
+.yard-lane.together .w-0 {
+  animation: yard-meet-left 6s ease-in-out infinite;
+}
+
+.yard-lane.together .w-1 {
+  animation: yard-meet-right 6s ease-in-out infinite;
+}
+
+.yard-lane.together .w-1 .sprite,
+.yard-lane.apart .w-1 .sprite {
+  scale: -1 1;
+}
+
+@keyframes yard-meet-left {
+  0%,
+  100% {
+    left: 4%;
+  }
+  45%,
+  65% {
+    left: calc(50% - 40px);
+  }
+}
+
+@keyframes yard-meet-right {
+  0%,
+  100% {
+    left: calc(96% - 40px);
+  }
+  45%,
+  65% {
+    left: 50%;
+  }
+}
+
+.yard-meet {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  translate: -50% 0;
+  color: #f05080;
+  font: 700 14px var(--font-label);
+  opacity: 0;
+  animation: yard-heart 6s ease-out infinite;
+}
+
+@keyframes yard-heart {
+  0%,
+  44% {
+    opacity: 0;
+    translate: -50% 6px;
+  }
+  50% {
+    opacity: 1;
+    translate: -50% 0;
+  }
+  66% {
+    opacity: 0;
+    translate: -50% -10px;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Brigados: cada um vai para um canto, de costas. */
+.yard-lane.apart .w-0 {
+  animation: yard-sulk-left 7s ease-in-out infinite alternate;
+}
+
+.yard-lane.apart .w-1 {
+  animation: yard-sulk-right 7s ease-in-out infinite alternate;
+}
+
+.yard-lane.apart .w-0 .sprite {
+  scale: -1 1;
+}
+
+.yard-lane.apart .w-1 .sprite {
+  scale: 1 1;
+}
+
+@keyframes yard-sulk-left {
+  from {
+    left: 30%;
+  }
+  to {
+    left: 2%;
+  }
+}
+
+@keyframes yard-sulk-right {
+  from {
+    left: calc(70% - 40px);
+  }
+  to {
+    left: calc(98% - 40px);
+  }
+}
+
+/* Quase saindo um ovo: aparece no meio, pulsando. */
+.yard-egg {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  translate: -50% 0;
+  animation: yard-egg 1s ease-in-out infinite;
+}
+
+@keyframes yard-egg {
+  50% {
+    scale: 1.15;
+    filter: drop-shadow(0 0 4px #fff8a0);
+  }
+}
+
+/* --- Fim: movimento reduzido ------------------------------------------------------------------ */
+.reduced-motion :is(.yard-flowers, .yard-walker, .yard-walker .sprite, .yard-meet, .yard-egg) {
+  animation: none !important;
+}
+
+/* --- Expedições: bifurcação, histórias na volta e álbum de cartões-postais ------------------ */
+.ex-fork {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border: 2px dashed #a06a10;
+  border-radius: 6px;
+  background: #fff4c8;
+  animation: ex-fork-in 0.4s steps(3, end);
+}
+
+.ex-fork p {
+  flex: 1 1 160px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.ex-fork-sign {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #6a4810;
+  border-radius: 4px;
+  background: #c89048;
+  color: #fff;
+  font: 700 13px var(--font-label);
+  animation: ex-sign-wobble 1.2s ease-in-out infinite;
+}
+
+.ex-fork-options {
+  display: flex;
+  gap: 4px;
+}
+
+@keyframes ex-fork-in {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+
+@keyframes ex-sign-wobble {
+  25% {
+    rotate: -8deg;
+  }
+  75% {
+    rotate: 8deg;
+  }
+}
+
+.ex-fork-tag {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: #e0f0d0;
+}
+
+.ex-fork-tag.risky {
+  background: #ffe0c8;
+}
+
+.ex-fork-result {
+  margin: 2px 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: #e0f0d0;
+}
+
+.ex-fork-result.lucky {
+  background: #fff0a0;
+  animation: ex-lucky 0.6s steps(2, end) 3;
+}
+
+.ex-fork-result.unlucky {
+  background: #f8d8d0;
+}
+
+@keyframes ex-lucky {
+  50% {
+    filter: brightness(1.15);
+    scale: 1.03;
+  }
+}
+
+.ex-stories {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ex-stories li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  opacity: 0;
+  animation: ex-story-in 0.35s ease-out forwards;
+  animation-delay: calc(0.4s + var(--i) * 0.35s);
+}
+
+.ex-stories .sprite {
+  width: 32px;
+  flex: none;
+}
+
+.ex-stories span {
+  flex: 1;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
+  font-style: italic;
+}
+
+.ex-stories small {
+  color: #d04070;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@keyframes ex-story-in {
+  from {
+    opacity: 0;
+    translate: -10px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.ex-new-card {
+  position: absolute;
+  top: 10px;
+  left: -8px;
+  z-index: 2;
+  padding: 2px 8px;
+  background: #e04070;
+  color: #fff;
+  font: 700 10px var(--font-label);
+  rotate: -8deg;
+  box-shadow: 0 2px 0 #901838;
+  animation: alert-bounce 0.8s steps(2, end) infinite;
+}
+
+.ex-album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ex-album li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 6px;
+  border: 2px solid #c8b890;
+  background: #fffdf4;
+  box-shadow: 1px 2px 0 rgb(0 0 0 / 0.15);
+  font-size: 10px;
+  text-align: center;
+  rotate: calc((var(--i) - 3) * 0.6deg);
+  transition: rotate 0.2s, translate 0.2s;
+}
+
+.ex-album li.has:hover {
+  rotate: 0deg;
+  translate: 0 -3px;
+}
+
+.ex-album strong {
+  font: 700 10px var(--font-label);
+}
+
+.ex-album-photo {
+  position: relative;
+  width: 100%;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 0.25);
+  background:
+    linear-gradient(transparent 55%, color-mix(in srgb, var(--theme) 80%, #000) 55%),
+    linear-gradient(#bfe4ff, #e8f6ff);
+}
+
+/* Silhueta de morro e um sol, na cor do destino. */
+.ex-album-photo i {
+  position: absolute;
+  inset: 30% -10% 0;
+  border-radius: 50% 50% 0 0;
+  background: var(--theme);
+}
+
+.ex-album-photo::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffe070;
+}
+
+.ex-album li:not(.has) .ex-album-photo {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.ex-album li:not(.has) {
+  opacity: 0.55;
+}
+
+.reduced-motion :is(.ex-fork, .ex-fork-sign, .ex-fork-result, .ex-stories li, .ex-new-card) {
+  animation: none !important;
+  opacity: 1;
+}
+
+/* --- Jardim: estação, Combee polinizando e guardião ------------------------------------------ */
+.garden-season-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.garden-season-fx i {
+  position: absolute;
+  top: -10px;
+  left: calc(var(--i) * 11% + 3%);
+  width: 5px;
+  height: 4px;
+  opacity: 0;
+  animation: season-fall 7s linear infinite;
+  animation-delay: calc(var(--i) * -0.8s);
+}
+
+.s-spring i {
+  border-radius: 60% 0;
+  background: #f8b8d0;
+}
+
+.s-autumn i {
+  width: 6px;
+  height: 5px;
+  border-radius: 0 60%;
+  background: #e07830;
+}
+
+.s-autumn i:nth-child(odd) {
+  background: #c8a030;
+}
+
+.s-winter i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 2px #fff;
+  animation-duration: 9s;
+}
+
+/* Verão: brilhos de calor subindo em vez de algo caindo. */
+.s-summer i {
+  top: auto;
+  bottom: -6px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff4a0;
+  animation-name: season-shimmer;
+  animation-duration: 4s;
+}
+
+@keyframes season-fall {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+    translate: 24px 230px;
+    rotate: 540deg;
+  }
+}
+
+@keyframes season-shimmer {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    translate: 6px -160px;
+  }
+}
+
+.garden-scene.season-winter .garden-sky {
+  filter: saturate(0.6) brightness(1.08);
+}
+
+.garden-scene.season-autumn .garden-sky {
+  filter: sepia(0.25) saturate(1.2);
+}
+
+/* Combee voando em oito sobre os canteiros. */
+.garden-bees {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.garden-bee {
+  position: absolute;
+  top: 26%;
+  left: calc(20% + var(--i) * 26%);
+  animation: bee-flight 5s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.6s);
+}
+
+.garden-bee .sprite {
+  width: 30px;
+  animation: yard-step 0.18s steps(2, end) infinite;
+}
+
+@keyframes bee-flight {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 40px -14px;
+  }
+  50% {
+    translate: 0 -24px;
+  }
+  75% {
+    translate: -40px -10px;
+  }
+}
+
+/* O guardião fica de vigia num canto, olhando para os lados. */
+.garden-guardian {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 3;
+}
+
+.garden-guardian .sprite {
+  width: 40px;
+  animation: guardian-watch 3s steps(1, end) infinite;
+}
+
+@keyframes guardian-watch {
+  50% {
+    scale: -1 1;
+  }
+}
+
+.garden-status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.garden-status li {
+  padding: 3px 6px;
+  border: 2px solid #c8d8b0;
+  border-radius: 6px;
+  background: #f4faea;
+}
+
+.garden-status li.on {
+  border-color: #a07a10;
+  background: #fff4c8;
+}
+
+.garden-status .gs-season.s-spring {
+  background: #fde8f0;
+}
+
+.garden-status .gs-season.s-summer {
+  background: #fff6c8;
+}
+
+.garden-status .gs-season.s-autumn {
+  background: #fbe4cc;
+}
+
+.garden-status .gs-season.s-winter {
+  background: #e8f2fb;
+}
+
+.berry-season {
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #78c060;
+  color: #fff;
+  font-size: 8px;
+  vertical-align: middle;
+}
+
+.reduced-motion :is(.garden-season-fx i, .garden-bee, .garden-bee .sprite, .garden-guardian .sprite) {
+  animation: none !important;
+}
+
+.reduced-motion .garden-season-fx {
+  display: none;
+}
+
+/* --- Fósseis: lanterna, esqueletos no Museu e o pedido do cientista -------------------------- */
+.dig-tool.lantern.on {
+  background: #fff4a0;
+}
+
+.dig-cell.lantern-aim.aim {
+  box-shadow: inset 0 0 0 2px #ffe070;
+  background-color: rgb(255 240 150 / 0.35);
+}
+
+/* Brilho de tesouro que a lanterna revelou (fica até a casa ser descoberta). */
+.dig-cell.glint {
+  position: relative;
+}
+
+.dig-cell.glint::after {
+  content: '';
+  position: absolute;
+  inset: 25%;
+  background: #fff8c0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  filter: drop-shadow(0 0 3px #ffd040);
+  animation: dig-glint 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes dig-glint {
+  0%,
+  100% {
+    opacity: 0.35;
+    scale: 0.7;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+/* Museu: o revivido aparece como esqueleto cor de osso; tocar mostra vivo, com um clarão. */
+.museum .museum-show {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.museum .museum-show:disabled {
+  cursor: default;
+}
+
+.museum li.on .museum-show .museum-bones {
+  filter: grayscale(1) brightness(1.9) sepia(0.35) contrast(1.4) drop-shadow(1px 0 0 #5a4020)
+    drop-shadow(-1px 0 0 #5a4020) drop-shadow(0 1px 0 #5a4020) drop-shadow(0 -1px 0 #5a4020);
+  animation: museum-bones 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.3s);
+}
+
+.museum li.alive .museum-show .museum-bones {
+  filter: drop-shadow(0 0 4px #ffe080);
+  animation: museum-alive 0.6s ease-out, fl-float 2.4s ease-in-out 0.6s infinite;
+}
+
+@keyframes museum-bones {
+  50% {
+    translate: 0 -2px;
+  }
+}
+
+@keyframes museum-alive {
+  from {
+    filter: brightness(3) drop-shadow(0 0 10px #fff);
+    scale: 1.2;
+  }
+}
+
+.museum-plaque {
+  margin-top: 3px;
+  padding: 2px 4px;
+  border: 1px solid #5a4020;
+  border-radius: 2px;
+  background: linear-gradient(#e8d098, #c8a868);
+  color: #3a2810;
+  font: 400 9px var(--font-label);
+  line-height: 1.25;
+}
+
+.lab-request {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
+}
+
+.lab-request > div {
+  flex: 1;
+}
+
+.lab-request strong {
+  font: 700 12px var(--font-label);
+}
+
+.lab-request p {
+  margin: 2px 0;
+  font-size: 11px;
+}
+
+.lab-scientist {
+  animation: guest-hop 2.4s steps(2, end) infinite;
+}
+
+.lab-request-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font: 700 11px var(--font-label);
+}
+
+.lab-request-items > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.lab-request-items .have {
+  color: #208040;
+}
+
+.lab-reward {
+  color: var(--ink-soft);
+}
+
+.lab-request.ready {
+  box-shadow: 0 0 0 2px var(--gold);
+  animation: rumor-pulse 1.6s ease-in-out infinite;
+}
+
+.lab-request.done {
+  opacity: 0.75;
+}
+
+.reduced-motion .dig-cell.glint::after,
+.reduced-motion :is(.museum-bones, .lab-scientist, .lab-request.ready) {
+  animation: none !important;
+}
+
+/* --- Treino: desafio do dia, ringue de sparring e medalhas ----------------------------------- */
+.train-daily {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+}
+
+.train-daily > div {
+  flex: 1;
+}
+
+.train-daily strong {
+  font: 700 12px var(--font-label);
+}
+
+.train-daily p {
+  margin: 2px 0;
+  font-size: 11px;
+}
+
+.train-daily-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+}
+
+.train-daily-coach {
+  animation: guest-hop 1.4s steps(2, end) infinite;
+}
+
+.train-daily.ready {
+  box-shadow: 0 0 0 2px var(--gold);
+  animation: rumor-pulse 1.4s ease-in-out infinite;
+}
+
+.train-daily.done {
+  opacity: 0.75;
+}
+
+.spar-ring {
+  position: relative;
+  height: 96px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border: 3px solid #6a3818;
+  border-radius: 6px;
+  background:
+    linear-gradient(transparent 70%, #c8783c 70%, #a85c28),
+    linear-gradient(#ffe8b0, #f8c878);
+}
+
+/* As cordas do ringue. */
+.spar-ropes {
+  position: absolute;
+  inset: 18px 6px auto;
+  height: 22px;
+  border-top: 3px solid #e83838;
+  border-bottom: 3px solid #fff;
+  box-shadow: 0 10px 0 -7px #3858d8;
+}
+
+.spar-mon {
+  position: absolute;
+  bottom: 6px;
+}
+
+.spar-mon .sprite {
+  max-height: 68px;
+}
+
+.spar-mon.left {
+  left: 22%;
+  animation: spar-jab-right 1.6s ease-in-out infinite;
+}
+
+.spar-mon.right {
+  right: 22%;
+  animation: spar-jab-left 1.6s ease-in-out infinite 0.8s;
+}
+
+.spar-mon.right .sprite {
+  scale: -1 1;
+}
+
+@keyframes spar-jab-right {
+  0%,
+  60%,
+  100% {
+    translate: 0 0;
+  }
+  70% {
+    translate: 18px -4px;
+  }
+  80% {
+    translate: 0 0;
+  }
+}
+
+@keyframes spar-jab-left {
+  0%,
+  60%,
+  100% {
+    translate: 0 0;
+  }
+  70% {
+    translate: -18px -4px;
+  }
+  80% {
+    translate: 0 0;
+  }
+}
+
+/* Sozinho: o saco de pancada balança a cada golpe. */
+.spar-bag {
+  position: absolute;
+  top: 6px;
+  right: 30%;
+  width: 18px;
+  height: 52px;
+  border: 2px solid #4a2810;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #c84828, #e8683c 50%, #c84828);
+  transform-origin: 50% 0;
+  animation: spar-bag 1.6s ease-in-out infinite;
+}
+
+.spar-bag::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 2px;
+  height: 8px;
+  background: #4a2810;
+}
+
+@keyframes spar-bag {
+  0%,
+  70%,
+  100% {
+    rotate: 0deg;
+  }
+  76% {
+    rotate: 18deg;
+  }
+  86% {
+    rotate: -8deg;
+  }
+}
+
+.spar-pow {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 0 4px;
+  background: #fff8a0;
+  border: 2px solid #4a2810;
+  font: 700 11px var(--font-label);
+  opacity: 0;
+  animation: spar-pow 1.6s steps(1, end) infinite;
+}
+
+.spar-pow.p2 {
+  top: 40px;
+  left: 58%;
+  animation-delay: 0.8s;
+}
+
+.spar-ring.solo .spar-pow.p2 {
+  display: none;
+}
+
+@keyframes spar-pow {
+  0%,
+  68% {
+    opacity: 0;
+  }
+  70%,
+  82% {
+    opacity: 1;
+  }
+  84%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.train-medal {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 3px;
+  border: 1px solid #806000;
+  border-radius: 50%;
+  background: radial-gradient(#fff4a0, #e0a820);
+  color: #604000;
+  font-size: 9px;
+  vertical-align: middle;
+  animation: raid-twinkle 2.6s ease-in-out infinite;
+}
+
+.reduced-motion :is(.train-daily-coach, .train-daily.ready, .spar-mon, .spar-bag, .spar-pow, .train-medal) {
+  animation: none !important;
+}
+
+/* --- Raides: aliados (times de amigos) e troféu por espécie --------------------------------- */
+.raid-allies {
+  position: absolute;
+  bottom: 30%;
+  left: 2%;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  pointer-events: none;
+}
+
+.raid-ally {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px 1px 1px;
+  border: 1px solid #6a3cc0;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.85);
+  font: 700 9px var(--font-label);
+  animation: guest-hop 1.4s steps(2, end) infinite;
+}
+
+.raid-ally .sprite {
+  width: 30px;
+}
+
+.raid-ally.hit {
+  border-color: #ffb000;
+  background: #fff4b0;
+  animation: raid-ally-hit 0.5s ease-out;
+}
+
+@keyframes raid-ally-hit {
+  40% {
+    translate: 10px -4px;
+    scale: 1.15;
+  }
+}
+
+/* O golpe do aliado cruza a tela até o chefe. */
+.raid-ally-bolt {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: calc(var(--u) * 14);
+  height: calc(var(--u) * 2);
+  background: linear-gradient(90deg, transparent, #fff4a0, #ffb000);
+  box-shadow: 0 0 calc(var(--u) * 3) #ffd040;
+  animation: raid-ally-bolt 0.6s ease-in forwards;
+}
+
+@keyframes raid-ally-bolt {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: calc(var(--u) * 120) calc(var(--u) * -40);
+  }
+}
+
+.raid-allies-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font: 700 11px var(--font-label);
+}
+
+.raid-allies-panel > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.raid-allies-panel .sprite {
+  width: 30px;
+}
+
+.raid-book li.trophy {
+  border-color: #c89020;
+  box-shadow: 0 0 0 2px rgb(255 200 60 / 0.35);
+}
+
+.raid-trophy {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 14px;
+  animation: alert-bounce 1.2s steps(2, end) infinite;
+}
+
+.reduced-motion :is(.raid-ally, .raid-trophy) {
+  animation: none !important;
+}
+
+.reduced-motion .raid-ally-bolt {
+  display: none;
+}
+
+/* --- Caça Shiny: Amuleto Brilhante, galeria em pedestais e a moita que avisa ----------------- */
+.shiny-charm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 2px solid #9a8ab8;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f4f0ff, #fff);
+}
+
+.shiny-charm > span:nth-child(2) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.shiny-charm strong {
+  font: 700 12px var(--font-label);
+}
+
+.shiny-charm b {
+  font: 700 13px var(--font-label);
+}
+
+.shiny-charm-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #6a5a90;
+  border-radius: 50%;
+  background: radial-gradient(#fff, #c8b8f0);
+  color: #6a5a90;
+  font-size: 16px;
+  filter: grayscale(0.8);
+}
+
+.shiny-charm.on {
+  border-color: #c89020;
+  background: linear-gradient(90deg, #fff4c0, #fff);
+}
+
+.shiny-charm.on .shiny-charm-icon {
+  border-color: #a07010;
+  background: radial-gradient(#fff, #ffd860);
+  color: #a07010;
+  filter: none;
+  animation: shiny-charm-spin 4s linear infinite;
+}
+
+@keyframes shiny-charm-spin {
+  50% {
+    rotate: 180deg;
+    box-shadow: 0 0 12px #ffd860;
+  }
+  to {
+    rotate: 360deg;
+  }
+}
+
+.shiny-charm-bar {
+  height: 6px;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  background: #fff;
+}
+
+.shiny-charm-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b8a8f0, #ffd860);
+}
+
+.shiny-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 10px 6px;
+  list-style: none;
+  border: 2px solid var(--ink);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(255 250 220 / 0.5), transparent 60%),
+    linear-gradient(#2a2050, #4a3c80);
+}
+
+.shiny-gallery button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.shiny-gallery-mon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: end center;
+  height: 58px;
+}
+
+.shiny-gallery-mon .sprite {
+  max-height: 56px;
+  max-width: 64px;
+  filter: drop-shadow(0 0 5px #fff4a0);
+  animation: legend-float 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.3s);
+}
+
+.shiny-gallery-base {
+  width: 50px;
+  height: 10px;
+  margin-top: -3px;
+  border: 2px solid #1a1430;
+  border-radius: 50%;
+  background: linear-gradient(#fff4c0, #d8a030);
+  box-shadow: 0 0 10px #ffd860;
+}
+
+.shiny-gallery li.open .shiny-gallery-base {
+  box-shadow:
+    0 0 16px #ffd860,
+    0 0 0 2px #fff;
+}
+
+.shiny-gallery-sparks i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #fff8c0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: dig-glint 1.8s ease-in-out infinite;
+}
+
+.shiny-gallery-sparks i:nth-child(1) {
+  top: 8px;
+  left: 14%;
+  animation-delay: calc(var(--i) * -0.2s);
+}
+
+.shiny-gallery-sparks i:nth-child(2) {
+  top: 18px;
+  right: 12%;
+  animation-delay: calc(var(--i) * -0.2s - 0.6s);
+}
+
+.shiny-gallery-sparks i:nth-child(3) {
+  top: 40px;
+  left: 30%;
+  animation-delay: calc(var(--i) * -0.2s - 1.2s);
+}
+
+.shiny-gallery-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+}
+
+/* Na batalha: a moita brilhante treme forte antes do shiny aparecer. */
+.shiny-bush {
+  position: absolute;
+  top: 38%;
+  right: 22%;
+  z-index: 25;
+  pointer-events: none;
+  animation: shiny-bush-out 1.5s ease-in forwards;
+}
+
+.shiny-bush i {
+  display: block;
+  width: calc(var(--u) * 26);
+  height: calc(var(--u) * 16);
+  border-radius: 50% 50% 30% 30%;
+  background: radial-gradient(circle at 40% 40%, #8ae070, #3a9038 70%);
+  box-shadow:
+    0 0 calc(var(--u) * 4) #fff8a0,
+    inset 0 0 calc(var(--u) * 3) #fff8a0;
+  animation: shiny-bush-shake 0.12s steps(2, end) infinite;
+}
+
+.shiny-bush b {
+  position: absolute;
+  top: calc(var(--u) * -14);
+  left: 50%;
+  translate: -50% 0;
+  padding: 0 calc(var(--u) * 2);
+  border: 2px solid #4a3a10;
+  border-radius: 4px;
+  background: #fff8a0;
+  font: 700 14px var(--font-label);
+  animation: alert-bounce 0.3s steps(2, end) infinite;
+}
+
+@keyframes shiny-bush-shake {
+  50% {
+    translate: calc(var(--u) * 2) 0;
+    rotate: 4deg;
+  }
+}
+
+@keyframes shiny-bush-out {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.4;
+  }
+}
+
+.reduced-motion :is(.shiny-charm.on .shiny-charm-icon, .shiny-gallery-mon .sprite, .shiny-gallery-sparks i) {
+  animation: none !important;
+}
+
+/* --- Lendários: mapa das lendas e galeria das capturas --------------------------------------- */
+.legend-map-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.legend-map {
+  position: relative;
+  border: 2px solid var(--ink);
+}
+
+.legend-map img {
+  display: block;
+  width: 100%;
+  filter: saturate(0.75) brightness(0.92);
+}
+
+.legend-pin {
+  position: absolute;
+  translate: -50% -60%;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #1a1430;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--glow) 55%, #fff), color-mix(in srgb, var(--glow) 70%, #000));
+  box-shadow: 0 0 8px var(--glow);
+  animation: legend-pin 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.4s);
+}
+
+.legend-pin .sprite {
+  width: 32px;
+}
+
+.legend-pin.caught {
+  border-color: #c89020;
+}
+
+@keyframes legend-pin {
+  50% {
+    translate: -50% -75%;
+    box-shadow: 0 0 16px var(--glow);
+  }
+}
+
+.legend-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend-gallery li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  border: 2px solid color-mix(in srgb, var(--glow) 60%, var(--ink));
+  border-radius: 8px;
+  background: linear-gradient(color-mix(in srgb, var(--glow) 18%, #fff), #fff);
+  font-size: 10px;
+  text-align: center;
+}
+
+.legend-gallery strong {
+  font: 700 12px var(--font-label);
+}
+
+.legend-gallery-scene {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  width: 100%;
+  height: 76px;
+}
+
+.lg-mon .sprite {
+  max-height: 72px;
+  filter: drop-shadow(0 0 5px var(--glow));
+}
+
+.lg-ball {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  translate: -50% 0;
+  opacity: 0;
+}
+
+.lg-stars {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+}
+
+.lg-stars i {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: #fff4a0;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  rotate: var(--a);
+  opacity: 0;
+}
+
+/* Rever: a bola cai e balança três vezes, clica, e o lendário aparece entre estrelas. */
+.legend-gallery-scene.replay .lg-mon {
+  animation: lg-mon-in 2.4s ease-out both;
+}
+
+.legend-gallery-scene.replay .lg-ball {
+  animation: lg-ball 2.4s ease-in-out both;
+}
+
+.legend-gallery-scene.replay .lg-stars i {
+  animation: burst-out 1s cubic-bezier(0.2, 0.8, 0.4, 1) 1.5s both;
+}
+
+@keyframes lg-ball {
+  0% {
+    opacity: 1;
+    translate: -50% -60px;
+  }
+  15% {
+    translate: -50% 0;
+  }
+  22%,
+  34%,
+  46% {
+    rotate: -25deg;
+  }
+  28%,
+  40%,
+  52% {
+    rotate: 25deg;
+  }
+  58% {
+    rotate: 0deg;
+    opacity: 1;
+    filter: brightness(1);
+  }
+  62% {
+    filter: brightness(3);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    translate: -50% 0;
+  }
+}
+
+@keyframes lg-mon-in {
+  0%,
+  60% {
+    opacity: 0;
+    scale: 0.2;
+    filter: brightness(4);
+  }
+  80% {
+    opacity: 1;
+    scale: 1.1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+.reduced-motion .legend-pin {
+  animation: none !important;
+}
+
+/* --- Torre: elevador, adversário do andar e a entrada do Cérebro ----------------------------- */
+/* Poço do elevador ao lado do prédio; a cabine para no andar em foco (24 px por andar). */
+.tw-shaft {
+  position: absolute;
+  top: 38px;
+  left: calc(50% + 74px);
+  width: 22px;
+  height: calc(9 * 24px);
+  border: 2px solid #1a2048;
+  background: repeating-linear-gradient(#2a3060 0 12px, #343a70 12px 26px);
+}
+
+.tw-car {
+  position: absolute;
+  top: calc(var(--car) * 24px + 1px);
+  left: 1px;
+  width: 16px;
+  height: 20px;
+  border: 2px solid #c89020;
+  background: #f8e8a0;
+  transition: top 0.9s cubic-bezier(0.5, 0, 0.3, 1);
+}
+
+.tw-car-door {
+  position: absolute;
+  top: 3px;
+  width: 6px;
+  height: 14px;
+  background: #b8a060;
+  transition: width 0.3s 0.9s;
+}
+
+.tw-car-door.l {
+  left: 1px;
+}
+
+.tw-car-door.r {
+  right: 1px;
+}
+
+/* Subindo: as portas abrem e fecham (o "ding" do andar). */
+.tw-building.climbing .tw-car-door {
+  animation: tw-door 2.4s steps(3, end) infinite;
+}
+
+@keyframes tw-door {
+  0%,
+  60%,
+  100% {
+    width: 6px;
+  }
+  75%,
+  90% {
+    width: 1px;
+  }
+}
+
+.tw-car b {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 0 2px;
+  background: #1a2048;
+  color: #ffd860;
+  font: 700 8px var(--font-label);
+}
+
+.tw-foe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 2px solid #3a4a8a;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e4e8f8, #fff);
+  animation: ex-fork-in 0.4s steps(3, end);
+}
+
+.tw-foe > span:nth-child(2) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font-size: 11px;
+}
+
+.tw-foe strong {
+  font: 700 13px var(--font-label);
+}
+
+.tw-foe em {
+  font-size: 10px;
+}
+
+.tw-foe.brain {
+  border-color: #c89020;
+  background: linear-gradient(90deg, #fff0b8, #fff);
+  box-shadow: 0 0 10px rgb(255 200 60 / 0.5);
+}
+
+.tw-foe-team {
+  display: flex;
+}
+
+.tw-foe-team .sprite {
+  width: 32px;
+}
+
+.tw-foe-team .down {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+/* A entrada do Cérebro: raios dourados, a fala e mais tempo na tela. */
+.enc-trainer.brain .enc-trainer-sprite,
+.enc-trainer.brain .enc-trainer-text,
+.enc-trainer.brain .enc-bar {
+  animation-duration: 3.4s;
+}
+
+.enc-trainer.brain .enc-trainer-text {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  font-size: calc(var(--u) * 7);
+}
+
+.enc-trainer.brain .enc-trainer-text small {
+  color: #a07010;
+  font: 700 calc(var(--u) * 6) var(--font-label);
+}
+
+.enc-trainer.brain .enc-trainer-text strong {
+  font: 700 calc(var(--u) * 10) var(--font-label);
+}
+
+.enc-brain-rays {
+  position: absolute;
+  inset: -50%;
+  background: repeating-conic-gradient(rgb(255 210 80 / 0.4) 0 10deg, transparent 10deg 24deg);
+  animation: lg-rays 6s linear infinite, enc-text 3.4s steps(1, end) forwards;
+  opacity: 0;
+}
+
+.reduced-motion :is(.tw-building.climbing .tw-car-door, .tw-foe, .enc-brain-rays) {
+  animation: none !important;
+}
+
+/* --- Torneio: plateia que reage e rivais ----------------------------------------------------- */
+.tn-flags {
+  position: absolute;
+  inset: 4px 0 auto;
+  z-index: 1;
+  height: 26px;
+  pointer-events: none;
+}
+
+.tn-flags i {
+  position: absolute;
+  top: 0;
+  left: calc(6% + var(--i) * 14%);
+  width: 10px;
+  height: 8px;
+  border-left: 2px solid #f0f0f0;
+  background: linear-gradient(90deg, #e83838 50%, #f8d030 50%);
+  transform-origin: 0 100%;
+  animation: tn-flag 0.8s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -0.13s);
+}
+
+.tn-flags i:nth-child(even) {
+  background: linear-gradient(90deg, #3858d8 50%, #fff 50%);
+}
+
+@keyframes tn-flag {
+  from {
+    rotate: -18deg;
+  }
+  to {
+    rotate: 18deg;
+    translate: 0 -3px;
+  }
+}
+
+/* Torcendo: bandeiras rápidas. Festa do título: mais rápidas ainda. */
+.tn-stage.crowd-cheer .tn-flags i {
+  animation-duration: 0.35s;
+}
+
+.tn-stage.crowd-party .tn-flags i {
+  animation-duration: 0.2s;
+}
+
+/* Esperando: quietos, bandeiras paradas. */
+.tn-stage.crowd-wait .tn-crowd {
+  animation-duration: 1.6s;
+}
+
+.tn-stage.crowd-wait .tn-flags i {
+  animation-duration: 2.4s;
+}
+
+/* Eliminado: a plateia esvazia e as bandeiras caem. */
+.tn-stage.crowd-out .tn-crowd {
+  animation: tn-empty 2.4s ease-in forwards;
+}
+
+.tn-stage.crowd-out .tn-flags i {
+  animation: tn-flag-drop 1.2s ease-in forwards;
+  animation-delay: calc(var(--i) * 0.12s);
+}
+
+@keyframes tn-empty {
+  to {
+    background:
+      radial-gradient(circle at 50% 70%, #f0c890 5px, transparent 6px) 0 0 / 54px 22px repeat-x,
+      radial-gradient(circle at 50% 70%, #a87850 5px, transparent 6px) 27px 6px / 72px 22px repeat-x,
+      linear-gradient(#1a2448, #2a3a6a);
+  }
+}
+
+@keyframes tn-flag-drop {
+  to {
+    rotate: 90deg;
+    translate: 0 14px;
+    opacity: 0.3;
+  }
+}
+
+.tn-leaving {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0c890;
+  box-shadow:
+    10px 2px 0 #a87850,
+    20px 0 0 #f0c890;
+  animation: tn-walk-out 3s steps(6, end) forwards;
+}
+
+@keyframes tn-walk-out {
+  to {
+    translate: 60px 0;
+    opacity: 0;
+  }
+}
+
+.tn-rivals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tn-rivals li {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 2px 6px;
+  padding: 4px 6px;
+  border: 2px solid #8a90b8;
+  border-radius: 8px;
+  background: #f4f6ff;
+  animation: ex-story-in 0.35s ease-out both;
+  animation-delay: calc(var(--i) * 0.08s);
+}
+
+.tn-rivals li > :first-child {
+  grid-row: span 2;
+}
+
+.tn-rivals strong {
+  font: 700 12px var(--font-label);
+}
+
+.tn-rivals small {
+  grid-column: 2 / -1;
+  font-size: 10px;
+}
+
+.tn-rival-score {
+  font: 700 13px var(--font-label);
+}
+
+.tn-rivals li.ahead .tn-rival-score b:first-child,
+.tn-rivals li.behind .tn-rival-score b:last-child {
+  color: #c02040;
+}
+
+.tn-rivals li.ahead {
+  border-color: #5a9850;
+  background: #f0faec;
+}
+
+.reduced-motion :is(.tn-flags i, .tn-leaving, .tn-rivals li) {
+  animation: none !important;
+}
+
+/* --- Safari: álbum de fotos e clima na zona -------------------------------------------------- */
+.safari-weather {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #dcecff;
+  font-size: 10px;
+}
+
+.safari-weather.w-fog {
+  background: #ececf4;
+}
+
+.safari-album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 6px;
+  background: repeating-linear-gradient(45deg, #e8dcc0 0 6px, #e0d2b4 6px 12px);
+}
+
+/* Polaroide: moldura branca, inclinada, que endireita ao passar o mouse. */
+.safari-album li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 5px 7px;
+  background: #fff;
+  box-shadow: 1px 2px 3px rgb(0 0 0 / 0.25);
+  font-size: 10px;
+  text-align: center;
+  rotate: var(--tilt);
+  transition: rotate 0.2s, scale 0.2s;
+  animation: ex-story-in 0.35s ease-out both;
+  animation-delay: calc(var(--i) * 0.05s);
+}
+
+.safari-album li:hover {
+  rotate: 0deg;
+  scale: 1.06;
+}
+
+.safari-album strong {
+  font: 700 11px var(--font-label);
+}
+
+.safari-photo-pic {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  width: 100%;
+  height: 72px;
+  overflow: hidden;
+  background: linear-gradient(#bfe4ff 55%, #8ac868 55%);
+}
+
+.safari-photo-pic .sprite {
+  max-height: 68px;
+}
+
+.safari-album li.mood-eating .safari-photo-pic {
+  background: linear-gradient(#ffe8c0 55%, #8ac868 55%);
+}
+
+.safari-album li.mood-angry .safari-photo-pic {
+  background: linear-gradient(#ffd0c8 55%, #8ac868 55%);
+}
+
+.safari-album li.shiny {
+  box-shadow:
+    0 0 0 2px #ffd860,
+    1px 2px 6px rgb(0 0 0 / 0.25);
+}
+
+.safari-photo-glint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.85) 50%, transparent 65%) no-repeat;
+  background-size: 250% 100%;
+  animation: raid-shine 2.6s ease-in-out infinite;
+}
+
+.reduced-motion :is(.safari-album li, .safari-photo-glint) {
+  animation: none !important;
+}
+
+/* --- Game Corner: vizinhos de máquina, Maior ou Menor e o mural dos jackpots ---------------- */
+.gc-neighbors {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.gc-neighbor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 50%;
+}
+
+.gc-neighbor.n-1 {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.gc-neighbor > :first-child {
+  flex: none;
+  animation: guest-hop 2s steps(2, end) infinite;
+}
+
+.gc-neighbor.n-1 > :first-child {
+  animation-delay: -1s;
+}
+
+.gc-bubble {
+  position: relative;
+  padding: 3px 7px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 10px;
+  animation: gc-bubble-in 0.3s steps(3, end);
+}
+
+@keyframes gc-bubble-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+.gc-neighbor.cheer > :first-child {
+  animation: alert-bounce 0.3s steps(2, end) infinite;
+}
+
+.gc-neighbor.cheer .gc-bubble {
+  background: #fff4a0;
+  font-weight: 700;
+}
+
+.hilo-table {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 120px;
+  padding: 8px;
+  border: 3px solid #1a5030;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 40%, #2a8050, #145030);
+  color: #f0fff0;
+}
+
+.hilo-table .hint {
+  color: #d8f0d8;
+}
+
+/* A carta vira ao aparecer. */
+.hilo-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 76px;
+  height: 104px;
+  border: 3px solid #fff;
+  border-radius: 8px;
+  background: linear-gradient(#fffdf4, #f0e8d0);
+  box-shadow: 2px 3px 0 rgb(0 0 0 / 0.35);
+  color: #c02040;
+  animation: hilo-flip 0.45s ease-out;
+}
+
+.hilo-card .sprite {
+  max-width: 60px;
+  max-height: 60px;
+}
+
+.hilo-card b {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  font: 700 14px var(--font-label);
+}
+
+.hilo-card b.bottom {
+  top: auto;
+  right: 5px;
+  bottom: 2px;
+  left: auto;
+  rotate: 180deg;
+}
+
+@keyframes hilo-flip {
+  from {
+    rotate: y 90deg;
+    filter: brightness(0.6);
+  }
+  to {
+    rotate: y 0deg;
+  }
+}
+
+.hilo-table.right .hilo-card {
+  box-shadow:
+    0 0 14px #ffe060,
+    2px 3px 0 rgb(0 0 0 / 0.35);
+}
+
+.hilo-table.lost .hilo-card {
+  filter: grayscale(0.7);
+  animation: hilo-flip 0.45s ease-out, scene-quake 0.4s steps(6, end) 0.45s;
+}
+
+.hilo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hilo-info strong {
+  font: 700 14px var(--font-label);
+}
+
+.hilo-streak {
+  display: flex;
+  gap: 3px;
+}
+
+.hilo-streak i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #a0d0a8;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.25);
+}
+
+.hilo-streak i.on {
+  border-color: #fff4a0;
+  background: radial-gradient(#fff8c0, #e0a820);
+  box-shadow: 0 0 5px #ffd860;
+}
+
+.hilo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.gc-wall {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gc-wall li {
+  display: grid;
+  grid-template-columns: 28px auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 2px solid #3a2a60;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #2a1a48, #40286a);
+  color: #fff4c0;
+  animation: ex-story-in 0.35s ease-out both;
+  animation-delay: calc(var(--i) * 0.08s);
+}
+
+.gc-wall li.top {
+  border-color: #ffd860;
+  box-shadow: 0 0 10px rgb(255 216 96 / 0.5);
+}
+
+.gc-wall-rank {
+  font: 700 13px var(--font-label);
+}
+
+.gc-wall-reels {
+  display: flex;
+  gap: 2px;
+}
+
+.gc-wall strong {
+  font: 700 13px var(--font-label);
+}
+
+.reduced-motion :is(.gc-neighbor > :first-child, .gc-bubble, .hilo-card, .gc-wall li) {
+  animation: none !important;
+}
+
+/* --- Troca e Duelo: recebidos, forma recente, ranking da temporada e replay ------------------- */
+.lk-received {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lk-received li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 2px solid #c8b8e8;
+  border-radius: 6px;
+  background: #faf6ff;
+  font-size: 10px;
+  animation: ex-story-in 0.3s ease-out both;
+  animation-delay: calc(var(--i) * 0.04s);
+}
+
+.lk-received .sprite {
+  width: 34px;
+  flex: none;
+}
+
+.lk-received span {
+  display: flex;
+  flex-direction: column;
+}
+
+.lk-received strong {
+  font: 700 11px var(--font-label);
+}
+
+.lk-arrival .st-you {
+  display: grid;
+  place-items: center;
+}
+
+.duel-form {
+  display: flex;
+  gap: 2px;
+  margin: 2px 0;
+}
+
+.duel-form i {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  color: #fff;
+  font: 700 8px var(--font-label);
+  font-style: normal;
+}
+
+.duel-form i.w {
+  background: #3a9a48;
+}
+
+.duel-form i.l {
+  background: #c83838;
+}
+
+.duel-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.duel-ranking li {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 2px solid #b8c0d8;
+  border-radius: 6px;
+  background: #f6f8ff;
+  font-size: 12px;
+  animation: ex-story-in 0.35s ease-out both;
+  animation-delay: calc(var(--i) * 0.07s);
+}
+
+.duel-ranking li.first {
+  border-color: #c89020;
+  background: linear-gradient(90deg, #fff0b8, #fff);
+}
+
+.duel-ranking li.you strong {
+  color: #2858b8;
+}
+
+.duel-rank {
+  font: 700 14px var(--font-label);
+}
+
+.duel-trophies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.duel-trophies li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 18px;
+  animation: raid-twinkle 2.6s ease-in-out infinite;
+}
+
+.duel-trophies small {
+  font-size: 9px;
+}
+
+.duel-replay {
+  width: min(560px, 94vw);
+  max-height: 80vh;
+  overflow: auto;
+  padding: 10px;
+}
+
+.duel-replay h3 {
+  margin: 0 0 8px;
+  font: 700 14px var(--font-label);
+}
+
+.duel-replay h3 .w {
+  color: #208040;
+}
+
+.duel-replay h3 .l {
+  color: #c02040;
+}
+
+.duel-replay-log {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.duel-replay-log li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #eef4ff;
+  animation: ex-story-in 0.3s ease-out;
+}
+
+.duel-replay-log li.enemy {
+  flex-direction: row-reverse;
+  background: #fff0f0;
+  text-align: right;
+}
+
+.duel-replay-log li.ko {
+  box-shadow: inset 0 0 0 2px #e8a030;
+}
+
+.duel-replay-log .sprite {
+  width: 32px;
+  flex: none;
+}
+
+.duel-replay-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.reduced-motion :is(.lk-received li, .duel-ranking li, .duel-trophies li, .duel-replay-log li) {
+  animation: none !important;
+}

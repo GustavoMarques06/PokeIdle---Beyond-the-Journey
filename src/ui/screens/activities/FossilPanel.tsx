@@ -16,6 +16,7 @@ import {
 } from '../../../core/unown';
 import {
   DIG_COST,
+  DIG_LANTERNS,
   DIG_H,
   DIG_W,
   FREE_DIGS,
@@ -26,12 +27,14 @@ import {
   hitArea,
   startDig,
   treasureUncovered,
+  useLantern,
   type DigTool,
 } from '../../../core/dig';
 import { claimFossil, startRevive } from '../../../core/fossils';
+import { claimLabRequest, labRequest, labRequestDone, labRequestReady } from '../../../core/lab';
 import type { GameEvent, GameState } from '../../../core/game';
 import { audio } from '../../audio';
-import { ItemIcon, Money, PokemonSprite, Shiny, Window } from '../../components/common';
+import { ItemIcon, Money, PokemonSprite, Shiny, TrainerSprite, Window } from '../../components/common';
 import { itemName, speciesName, unownLetter } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Countdown, Locked } from './shared';
@@ -131,7 +134,7 @@ function DigSite({ state }: { state: GameState }) {
   const now = state.lastTimerAt;
   const d = digState(state);
   const run = d.run;
-  const [tool, setTool] = useState<DigTool>('pick');
+  const [tool, setTool] = useState<DigTool | 'lantern'>('pick');
   const [shake, setShake] = useState(0);
   const [dust, setDust] = useState<{ id: number; x: number; y: number } | null>(null);
   const [result, setResult] = useState<Extract<GameEvent, { type: 'digDone' }> | null>(null);
@@ -152,13 +155,27 @@ function DigSite({ state }: { state: GameState }) {
     }
   };
   const hit = (x: number, y: number) => {
+    if (tool === 'lantern') {
+      let found = -1;
+      engine.dispatch((s) => void (found = useLantern(s, x, y)));
+      audio.sfx(found > 0 ? 'shutter' : 'cursor');
+      setDust({ id: Date.now(), x, y });
+      if (!run || (run.lanterns ?? DIG_LANTERNS) <= 1) setTool('pick');
+      return;
+    }
     audio.sfx(tool === 'pick' ? 'hit' : 'super');
     setShake((s) => s + 1);
     setDust({ id: Date.now(), x, y });
-    act((s) => digHit(s, x, y, tool));
+    act((s) => digHit(s, x, y, tool as DigTool));
   };
   const area = hover
-    ? new Set(hitArea(tool, hover.x, hover.y).map((c) => c.y * DIG_W + c.x))
+    ? new Set(
+        tool === 'lantern'
+          ? [-2, -1, 0, 1, 2].flatMap((dy) =>
+              [-2, -1, 0, 1, 2].map((dx) => (hover.y + dy) * DIG_W + hover.x + dx),
+            )
+          : hitArea(tool, hover.x, hover.y).map((c) => c.y * DIG_W + c.x),
+      )
     : new Set<number>();
   const found = Object.entries(d.found).sort((a, b) => b[1] - a[1]);
 
@@ -213,6 +230,14 @@ function DigSite({ state }: { state: GameState }) {
               >
                 🔨 Martelo
               </button>
+              <button
+                className={`dig-tool lantern ${tool === 'lantern' ? 'on' : ''}`}
+                onClick={() => setTool('lantern')}
+                disabled={(run.lanterns ?? DIG_LANTERNS) <= 0}
+                title="Lanterna: mostra um brilho onde há tesouro (raio de 2), sem cavar nem abalar"
+              >
+                🔦 Lanterna ×{run.lanterns ?? DIG_LANTERNS}
+              </button>
             </span>
           </div>
           <div
@@ -245,7 +270,7 @@ function DigSite({ state }: { state: GameState }) {
                 return (
                   <button
                     key={i}
-                    className={`dig-cell d${depth} ${area.has(i) ? 'aim' : ''}`}
+                    className={`dig-cell d${depth} ${area.has(i) ? 'aim' : ''} ${depth > 0 && run.glints?.includes(i) ? 'glint' : ''} ${tool === 'lantern' ? 'lantern-aim' : ''}`}
                     onClick={() => hit(x, y)}
                     onMouseEnter={() => setHover({ x, y })}
                     aria-label={`Bloco ${x + 1}, ${y + 1}${depth ? `, profundidade ${depth}` : ', descoberto'}`}
@@ -388,12 +413,85 @@ function AlphRuins({ state }: { state: GameState }) {
   );
 }
 
+/** A placa do Museu: a era (no tom da Pokédex) e a região do fóssil. */
+const FOSSIL_ERA: Record<string, string> = {
+  'helix-fossil': 'Mares antigos',
+  'dome-fossil': 'Mares antigos',
+  'old-amber': 'Céus pré-históricos',
+  'root-fossil': 'Fundo do mar primitivo',
+  'claw-fossil': 'Fundo do mar primitivo',
+  'skull-fossil': 'Florestas de 100 milhões de anos',
+  'armor-fossil': 'Florestas de 100 milhões de anos',
+  'cover-fossil': 'Recifes antigos',
+  'plume-fossil': 'Primeiras aves',
+  'jaw-fossil': 'Tempo dos grandes répteis',
+  'sail-fossil': 'Era do gelo antiga',
+};
+const FOSSIL_REGION: Record<string, string> = {
+  'helix-fossil': 'Kanto',
+  'dome-fossil': 'Kanto',
+  'old-amber': 'Kanto',
+  'root-fossil': 'Hoenn',
+  'claw-fossil': 'Hoenn',
+  'skull-fossil': 'Sinnoh',
+  'armor-fossil': 'Sinnoh',
+  'cover-fossil': 'Unova',
+  'plume-fossil': 'Unova',
+  'jaw-fossil': 'Kalos',
+  'sail-fossil': 'Kalos',
+};
+
+/** O cientista do Laboratório e o pedido do dia. */
+function ScientistRequest({ state }: { state: GameState }) {
+  const engine = useEngine();
+  const now = state.lastTimerAt;
+  const req = labRequest(now);
+  const done = labRequestDone(state, now);
+  const ready = labRequestReady(state, now);
+  return (
+    <div className={`lab-request frame frame-dialog ${done ? 'done' : ready ? 'ready' : ''}`}>
+      <span className="lab-scientist" aria-hidden>
+        <TrainerSprite id="kanto-blaine" size={48} head />
+      </span>
+      <div>
+        <strong>PEDIDO DO BLAINE · CIENTISTA</strong>
+        <p>{done ? 'Obrigado! Isso vai ajudar muito a pesquisa. Volte amanhã, que eu terei outro pedido.' : req.line}</p>
+        {!done && (
+          <span className="lab-request-items">
+            {Object.entries(req.items).map(([id, n]) => (
+              <span key={id} className={(state.items[id] ?? 0) >= n ? 'have' : ''} title={itemName(id)}>
+                <ItemIcon id={id} size={20} /> {Math.min(state.items[id] ?? 0, n)}/{n}
+              </span>
+            ))}
+            <span className="lab-reward">
+              → <Money value={req.coins} /> + <ItemIcon id={req.reward} size={18} /> {itemName(req.reward)}
+            </span>
+          </span>
+        )}
+      </div>
+      {!done && (
+        <button
+          className="pbtn small primary"
+          disabled={!ready}
+          onClick={() => {
+            audio.sfx('fanfare');
+            engine.dispatch((s, t) => void claimLabRequest(s, t));
+          }}
+        >
+          Entregar
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function FossilPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [reveal, setReveal] = useState<{ speciesId: number; shiny: boolean } | null>(null);
   if (!activityUnlocked(state, 'fossils')) return <Locked routeId={BALANCE.fossils.unlock} />;
   const busy = state.fossils.length >= BALANCE.fossils.slots;
   const museum = state.fossilsRevived ?? {};
+  const [living, setLiving] = useState<number | null>(null);
   const revivedKinds = FOSSILS.filter((f) => museum[f.speciesId]).length;
 
   const open = (i: number) => {
@@ -413,6 +511,7 @@ export function FossilPanel({ state }: { state: GameState }) {
       {reveal && <Reveal speciesId={reveal.speciesId} shiny={reveal.shiny} onClose={() => setReveal(null)} />}
       <Window title="LABORATÓRIO POKéMON" icon={<ItemIcon id="old-amber" size={24} />} frame="dialog">
         <Machine state={state} onOpen={open} />
+        <ScientistRequest state={state} />
       </Window>
 
       <DigSite state={state} />
@@ -455,23 +554,39 @@ export function FossilPanel({ state }: { state: GameState }) {
         icon={<ItemIcon id="old-amber" size={24} />}
       >
         <ul className="museum">
-          {FOSSILS.map((f) => {
+          {FOSSILS.map((f, k) => {
             const n = museum[f.speciesId] ?? 0;
+            const alive = living === f.speciesId;
             return (
               <li
                 key={f.item}
-                className={n ? 'on' : ''}
-                title={n ? `${speciesName(f.speciesId)} · revivido ${n}×` : itemName(f.item)}
+                className={`${n ? 'on' : ''} ${alive ? 'alive' : ''}`}
+                style={{ '--i': k } as CSSProperties}
+                title={n ? `${speciesName(f.speciesId)} · revivido ${n}× · toque para ver vivo` : itemName(f.item)}
               >
-                <span className="museum-show">
+                <button
+                  className="museum-show"
+                  disabled={!n}
+                  onClick={() => {
+                    if (!alive) audio.cry(f.speciesId);
+                    setLiving(alive ? null : f.speciesId);
+                  }}
+                >
                   {n ? (
-                    <PokemonSprite speciesId={f.speciesId} kind="front" pixelScale={1} />
+                    <PokemonSprite speciesId={f.speciesId} kind="front" pixelScale={1} className="museum-bones" />
                   ) : (
                     <ItemIcon id={f.item} size={32} />
                   )}
-                </span>
+                </button>
                 <span className="museum-pedestal" />
                 <small>{n ? speciesName(f.speciesId) : '???'}</small>
+                {n > 0 && (
+                  <span className="museum-plaque">
+                    {FOSSIL_ERA[f.item] ?? 'Era antiga'}
+                    <br />
+                    {FOSSIL_REGION[f.item] ?? ''} · revivido ×{n}
+                  </span>
+                )}
               </li>
             );
           })}

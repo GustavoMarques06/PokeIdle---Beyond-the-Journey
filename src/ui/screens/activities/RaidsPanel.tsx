@@ -13,6 +13,7 @@ import {
   type GameState,
 } from '../../../core/game';
 import {
+  raidAllies,
   raidBreakers,
   raidHpMultiplier,
   raidLootRolls,
@@ -36,6 +37,9 @@ const RAID_MOD_TEXT: Record<RaidModId, [string, string]> = {
   treasure: ['Tesouro', 'O chefe tem 25% mais HP e a vitória dá dois sorteios de item a mais.'],
   blitz: ['Relâmpago', 'Você tem 25% menos tempo, mas a captura do chefe é garantida.'],
 };
+
+/** Vitórias contra a mesma espécie que valem o troféu dourado no livro. */
+const RAID_TROPHY = 5;
 
 function Stars({ n }: { n: number }) {
   return (
@@ -158,6 +162,23 @@ export function RaidsPanel({ state }: { state: GameState }) {
             .
           </p>
         )}
+        <div className="raid-allies-panel">
+          {raidAllies(state).length ? (
+            <>
+              <small>Seus amigos ajudam:</small>
+              {raidAllies(state).map((a) => (
+                <span key={a.name} title={speciesName(a.speciesId)}>
+                  <PokemonSprite speciesId={a.speciesId} kind="icon" /> {a.name}
+                </span>
+              ))}
+            </>
+          ) : (
+            <small>
+              Receba a equipe de um amigo no DUELO (Cabo Link) e ela ajuda nas raides: até 2 amigos, um golpe a
+              cada 7 s.
+            </small>
+          )}
+        </div>
         <div className={`raid-mod mod-${modId}`}>
           <strong>
             {raid ? 'REGRA DESTA RAIDE' : 'REGRA DA SEMANA'}: {RAID_MOD_TEXT[modId][0].toUpperCase()}
@@ -207,7 +228,15 @@ export function RaidsPanel({ state }: { state: GameState }) {
         {book.length ? (
           <ul className="raid-book">
             {book.map(([id, n]) => (
-              <li key={id} className={`stars-${raidStars(+id)} ${+id === fastest ? 'record' : ''}`}>
+              <li
+                key={id}
+                className={`stars-${raidStars(+id)} ${+id === fastest ? 'record' : ''} ${n >= RAID_TROPHY ? 'trophy' : ''}`}
+              >
+                {n >= RAID_TROPHY && (
+                  <span className="raid-trophy" title={`Troféu: ${n} vitórias contra ${speciesName(+id)}`}>
+                    🏆
+                  </span>
+                )}
                 {+id === fastest && <span className="raid-record-seal">RECORDE</span>}
                 <PokemonSprite speciesId={+id} kind="front" pixelScale={1} />
                 <strong>{speciesName(+id)}</strong>
