@@ -10,7 +10,7 @@ import { claimExpedition, expeditionSlots, startExpedition } from './expeditions
 import { DIG_COST, DIG_H, DIG_W, FREE_DIGS, digHit, digState, finishDig, freeDigsLeft, startDig, treasureUncovered } from './dig';
 import { claimFossil, startRevive } from './fossils';
 import { buyPrize, buyTokens, prizePrice, slotReturnRate, spinSlots } from './gamecorner';
-import { VF_ENTRY, cashOutVoltorb, cornerState, flipCard, floorAvailable, searchFloor, startVoltorb, voltorbHints, weeklyPrize } from './voltorb';
+import { VF_ENTRY, voltorbEntry, cashOutVoltorb, cornerState, flipCard, floorAvailable, searchFloor, startVoltorb, voltorbHints, weeklyPrize } from './voltorb';
 import { canWater, eatBerry, harvest, mutationFlag, mutationOf, pestActive, plantBerry, shooPest, waterPlot } from './garden';
 import {
   advance,
@@ -443,8 +443,11 @@ describe('Game Corner', () => {
     const s = newGame(1, 0, 21);
     clearUpTo(s, BALANCE.gameCorner.unlock);
     s.tokens = 100;
+    expect(voltorbEntry(1)).toBe(0); // níveis 1 e 2 são grátis
+    expect(voltorbEntry(3)).toBe(VF_ENTRY);
+    expect(voltorbEntry(8)).toBe(VF_ENTRY * 2);
     expect(startVoltorb(s)).toBe(true);
-    expect(s.tokens).toBe(100 - VF_ENTRY);
+    expect(s.tokens).toBe(100);
     const r = cornerState(s).round!;
     expect(r.board).toHaveLength(25);
     expect(r.board.filter((v) => v === 0)).toHaveLength(6); // nível 1: 6 Voltorbs

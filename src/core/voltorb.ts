@@ -1,7 +1,7 @@
 // Voltorb Flip (Game Corner): um tabuleiro 5×5 de cartas viradas com 1, 2, 3 ou um Voltorb. Cada linha e coluna
 // mostra a soma das cartas e quantos Voltorbs tem. Virar multiplica as fichas da rodada; virar um Voltorb perde tudo
 // dela. Virando todos os 2 e 3, a rodada é ganha e o nível sobe (até 8). Perdendo, o nível cai para o número de cartas
-// viradas. Entrar numa rodada custa algumas fichas. Fora disso: fichas no chão uma vez por dia e o prêmio da semana.
+// viradas. Entrar numa rodada custa algumas fichas a partir do nível 3. Fora disso: fichas no chão uma vez por dia e o prêmio da semana.
 
 import { PRIZES } from '../game-data';
 import { activityUnlocked } from './collection';
@@ -12,6 +12,13 @@ import { randInt, rngFrom, seededRng } from './rng';
 export const VF_SIZE = 5;
 export const VF_MAX_LEVEL = 8;
 export const VF_ENTRY = 10;
+
+/**
+ * Entrada de uma rodada pelo nível. Nos níveis 1 e 2 o tabuleiro inteiro paga só 18 a 54 fichas e a entrada de 10
+ * comia o ganho (numa simulação, um jogador que usa as pistas empatava ou perdia fichas e nunca subia de nível).
+ * Lá em cima uma rodada paga milhares, então a entrada sobe.
+ */
+export const voltorbEntry = (level: number) => (level <= 2 ? 0 : level <= 5 ? VF_ENTRY : VF_ENTRY * 2);
 /** Teto de fichas que uma rodada paga (nos níveis altos a multiplicação explode). */
 export const VF_CAP = 5000;
 
@@ -91,6 +98,28 @@ export interface CornerState {
   wins: number;
   /** Dia em que já pegou as fichas do chão. */
   floorDay: number | null;
+  /** Mural dos maiores prêmios do caça-níquel (os 5 maiores). */
+  jackpots?: JackpotRecord[];
+  /** Maior ou Menor: a rodada atual e a maior sequência já feita. */
+  hilo?: HiLoRound | null;
+  hiloBest?: number;
+}
+
+export interface JackpotRecord {
+  payout: number;
+  reels: [string, string, string];
+  mult: number;
+  at: number;
+}
+
+export interface HiLoRound {
+  /** Valor da carta virada (1 a 13). */
+  card: number;
+  streak: number;
+  pot: number;
+  over?: 'lost' | 'cashed';
+  /** A carta que acabou de sair e se o palpite acertou (para a animação). */
+  last?: { card: number; result: 'right' | 'wrong' | 'tie' };
 }
 
 export function cornerState(state: GameState): CornerState {
@@ -126,9 +155,9 @@ export function voltorbHints(board: number[]): { rows: [number, number][]; cols:
 
 export function startVoltorb(state: GameState): boolean {
   const c = cornerState(state);
-  if (!activityUnlocked(state, 'gamecorner') || (c.round && !c.round.over) || state.tokens < VF_ENTRY)
+  if (!activityUnlocked(state, 'gamecorner') || (c.round && !c.round.over) || state.tokens < voltorbEntry(c.level))
     return false;
-  state.tokens -= VF_ENTRY;
+  state.tokens -= voltorbEntry(c.level);
   c.round = {
     board: makeBoard(c.level, (rngFrom(state).next() * 2 ** 32) | 0),
     flipped: Array(VF_SIZE * VF_SIZE).fill(false),
