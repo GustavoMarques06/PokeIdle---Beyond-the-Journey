@@ -642,7 +642,9 @@
   position: relative;
 }
 
+/* O brilho agora é o do PVFX (PixelFx); a estrela de CSS fica só como reserva sem animação. */
 .dig-cell.glint::after {
+  display: none;
   content: '';
   position: absolute;
   inset: 25%;
@@ -2344,4 +2346,132 @@ html.gfx-performance :is(.garden-anim, .safari-weather-anim, .scene-sky-anim),
 
 .reduced-motion .daycare-owner-sprite {
   animation: none !important;
+}
+
+/* --- Peças de pixel art (PixelUi.tsx e PixelFx.tsx) ----------------------------------------------- */
+.px-balloon,
+.px-emote,
+.px-award {
+  display: inline-block;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+/* O balão surge em 8 quadros e fica no último. */
+.px-balloon {
+  background-repeat: no-repeat;
+  background-position-x: 0;
+  animation: px-balloon 0.5s steps(7, jump-none) forwards;
+}
+
+@keyframes px-balloon {
+  to {
+    background-position-x: var(--px-w);
+  }
+}
+
+.pixel-fx {
+  z-index: 5;
+}
+
+.reduced-motion .px-balloon {
+  animation-duration: 0.01s;
+}
+
+.reduced-motion .pixel-fx:not(.loop) {
+  display: none;
+}
+
+/* --- Onde ficam os efeitos de pixel art nas atividades ------------------------------------------ */
+.raid-fireworks,
+.raid-portal,
+.museum-fx,
+.alph-fx,
+.train-daily-fx,
+.lg-fx,
+.tn-fireworks {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.raid-portal {
+  z-index: 0;
+}
+
+.museum li,
+.alph-word,
+.train-daily {
+  position: relative;
+}
+
+.yard-hearts-fx {
+  z-index: 0;
+  opacity: 0.85;
+}
+
+/* O balão do encontro no gramado: sem o "pulinho" do coração de texto, ele já surge sozinho. */
+.yard-meet .px-balloon {
+  animation: px-balloon 0.5s steps(7, jump-none) forwards;
+}
+
+/* Balão de humor do Safari: a moldura agora é o próprio balão de pixel art. */
+.safari-mood.px {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  animation: none;
+}
+
+.gc-emote {
+  flex: none;
+}
+
+.train-medal-px {
+  display: inline-flex;
+  margin-left: 3px;
+  vertical-align: middle;
+  animation: raid-twinkle 2.6s ease-in-out infinite;
+}
+
+/* As taças de pixel art substituem as desenhadas em CSS na sala de troféus. */
+.tn-trophy .tn-cup-px {
+  filter: grayscale(1) opacity(0.4);
+}
+
+.tn-trophy.has .tn-cup-px {
+  filter: drop-shadow(0 0 4px rgb(255 220 120 / 0.8));
+  animation: legend-float 2.4s ease-in-out infinite;
+}
+
+.reduced-motion :is(.train-medal-px, .tn-trophy.has .tn-cup-px) {
+  animation: none !important;
+}
+
+/* Rever a captura: as estrelas de pixel art só estouram quando o lendário sai da bola. */
+.lg-fx {
+  opacity: 0;
+  animation: lg-fx-show 0.01s 1.45s forwards;
+}
+
+.lg-fx .pixel-fx {
+  animation-delay: 1.45s;
+}
+
+@keyframes lg-fx-show {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Escudo e carga da raide: por cima do chefe, mas sem escondê-lo. */
+.raid-fx-layer {
+  display: contents;
+}
+
+.raid-fx-layer > .fx-art {
+  opacity: 0.6;
 }

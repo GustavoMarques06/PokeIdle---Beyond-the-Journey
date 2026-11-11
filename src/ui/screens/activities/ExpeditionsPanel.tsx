@@ -8,6 +8,7 @@ import { BALANCE, EXPEDITIONS, getSpecies, type ExpeditionDef } from '../../../g
 import { seededRng } from '../../../core/rng';
 import type { ExpeditionRun } from '../../../core/expeditions';
 import { audio } from '../../audio';
+import { Emote } from '../../components/PixelUi';
 import {
   EXPEDITION_FRIENDSHIP,
   availableExpeditions,
@@ -252,6 +253,7 @@ function Postcard({
               {loot.stories.map((st, i) => (
                 <li key={st.uid} style={{ '--i': i } as CSSProperties}>
                   <PokemonSprite speciesId={st.speciesId} kind="icon" />
+                  <Emote mood={i % 3 === 2 ? 'veryhappy' : 'happy'} scale={1} />
                   <span>“{st.line}”</span>
                   <small>♥ +{EXPEDITION_FRIENDSHIP}</small>
                 </li>

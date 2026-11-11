@@ -140,7 +140,37 @@ for s, d in STATUS.items():
     sheets[name] = build(name, d['src'], d['at'], d['k'], loop_wanted=True)
     status[s] = name
 
-DATA.write_text(json.dumps(dict(types=types, status=status, sheets=sheets), separators=(',', ':')), encoding='utf-8')
+# Efeitos das atividades (fora da batalha): escudo e carga da raide, fogos, moedas, brilhos, corações, colheita…
+# chave → (efeito do PVFX, toca em loop?). Saem como act-<chave>.png.
+ACTIVITY = {
+    'shield': ('pvfx:holy/shield-bubble', True),
+    'shatter': ('pvfx:arcane/shield-shatter', False),
+    'charge': ('pvfx:status/power-up-aura', True),
+    'portal': ('pvfx:arcane/portal-summon', False),
+    'circle': ('pvfx:arcane/magic-circle', True),
+    'firework': ('pvfx:explosions/firework-burst', False),
+    'coins': ('pvfx:ui/coin-pickup', False),
+    'stars': ('pvfx:ui/star-burst-pickup', False),
+    'glint': ('pvfx:ui/treasure-glint', True),
+    'dust': ('pvfx:smoke/dust-puff', False),
+    'resurrect': ('pvfx:holy/resurrect', False),
+    'hearts': ('pvfx:status/charm-hearts', True),
+    'heart': ('pvfx:ui/heart-pickup', False),
+    'bloom': ('pvfx:nature/bloom-heal', False),
+    'spore': ('pvfx:nature/spore-burst', False),
+    'splash': ('pvfx:water/water-splash', False),
+    'levelup': ('pvfx:ui/level-up', False),
+}
+activity = {}
+for key, (spec, loop) in ACTIVITY.items():
+    name = f'act-{key}'
+    sheets[name] = build(name, spec, 'body', 1, loop_wanted=loop, once=not loop)
+    activity[key] = name
+
+DATA.write_text(
+    json.dumps(dict(types=types, status=status, activity=activity, sheets=sheets), separators=(',', ':')),
+    encoding='utf-8',
+)
 print(len(sheets), 'folhas;', sum(p.stat().st_size for p in OUT.glob('*.png')) // 1024, 'KB')
 for n, v in sheets.items():
     print(f"{n:24} {v['w']}x{v['h']} n={v['n']} {v['ms']}ms anchor=({v['ax']},{v['ay']}) {v['at']}")

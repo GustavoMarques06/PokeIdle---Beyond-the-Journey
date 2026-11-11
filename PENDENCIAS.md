@@ -88,6 +88,19 @@ pixelfx que sobravam entraram: pétalas, folhas, neve e vaga-lumes no Jardim, ch
 cadentes no céu da batalha. Cartas CC0 para o Maior ou Menor (jfredd, SpicyGame) só se baixam pela página do itch.io;
 a carta em CSS ficou. Não achei plateia de estádio livre.
 
+**Mais arte de pixel nas atividades (11/11):**
+- 17 efeitos do PVFX (o pacote CC0 dos golpes da batalha) entraram em `scripts/build-fx.py` (bloco `ACTIVITY`, folhas
+  `public/sprites/fx/act-*.png`, `activity` em `fx-art.json`) e tocam com `components/PixelFx.tsx`: escudo, quebra e
+  carga da raide, portal da toca, fogos e moedas nas vitórias e no jackpot, estrelas no replay dos lendários e nas
+  Ruínas, brilho de tesouro na lanterna, poeira na Escavação, ressurreição no Museu, corações na Creche, planta,
+  esporos e respingo no Jardim, subida de nível no desafio do Treino.
+- Balões, rostinhos e troféus CC0 do OpenGameArt (Imanor, 16x16 Emotes, Arne16) em `art/ui-packs/` (ver `LEIA.txt`),
+  copiados para `public/sprites/ui/` por `scripts/build-ui.py` e usados por `components/PixelUi.tsx` (`Balloon`,
+  `Emote`, `Award`): humor do Safari, vizinhos do Game Corner, Creche, histórias das Expedições, rivais do Torneio,
+  taças do Torneio, do Duelo e das Raides, medalhas do Treino.
+- O que ficou de fora do Showdown: os efeitos de lá quase todos são desenho liso (não pixel art); os ícones de tipo em
+  pixel art vêm em inglês.
+
 **Ainda dá para fazer:** a árvore genealógica dentro da cerimônia do ovo (hoje ela fica só na ficha do Pokémon).
 
 ## Safari (9/11 e 10/11)

@@ -30,6 +30,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { tag: 'novo', text: 'Safari: álbum com a melhor foto de cada espécie; chuva traz Pokémon de água à grama e a neblina os acalma.' },
       { tag: 'novo', text: 'Game Corner: Maior ou Menor, vizinhos de máquina e o mural dos jackpots.' },
       { tag: 'melhoria', text: 'Personagens novos em pixel art: a dona da Creche, o cientista do Laboratório, a treinadora do Treino, o apostador do Game Corner e 26 classes de treinador nos andares da Torre.' },
+      { tag: 'melhoria', text: 'Efeitos de pixel art nas atividades: escudo e carga do chefe da raide, fogos e moedas nas vitórias, corações na Creche, brilho de tesouro na Escavação, a planta brotando na colheita e o fóssil voltando à vida no Museu.' },
+      { tag: 'melhoria', text: 'Balões de emoção em pixel art no humor dos Pokémon do Safari e nos vizinhos do Game Corner, e taças e medalhas desenhadas nos troféus do Torneio, do Duelo, das Raides e do Treino.' },
       { tag: 'melhoria', text: 'Pétalas, folhas, neve e vaga-lumes animados no Jardim; chuva e neblina no Safari; aurora e chuva de meteoros em pixel art no céu da batalha.' },
       { tag: 'novo', text: 'Troca e Duelo: a chegada pelo cabo, os recebidos de outros treinadores, replay do duelo e a temporada do mês com troféu.' },
     ],

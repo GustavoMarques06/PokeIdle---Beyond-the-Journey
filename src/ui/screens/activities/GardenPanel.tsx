@@ -28,6 +28,7 @@ import {
 } from '../../../core/garden';
 import type { GameEvent, GameState } from '../../../core/game';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, Window } from '../../components/common';
 import { BUFF_NAMES, formatDuration, formatPercent, itemName, speciesName } from '../../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../../useGame';
@@ -127,11 +128,13 @@ function PlotView({
                 </i>
               ))}
               <b>+{f.qty}</b>
+              <PixelFx fx="bloom" scale={1} x="50%" y="70%" pivot />
             </span>
           ) : f.kind === 'mutation' ? (
             <span key={f.id} className="bed-mutation" aria-hidden>
               <ItemIcon id={f.berry!} size={26} />
               <b>MUTAÇÃO!</b>
+              <PixelFx fx="spore" scale={1} x="50%" y="60%" />
             </span>
           ) : null,
         )}
@@ -187,6 +190,7 @@ function PlotView({
             <i />
             <i />
             <i />
+            <PixelFx fx="splash" scale={1} x="50%" y="85%" />
           </span>
         ) : f.kind === 'shoo' ? (
           <span key={f.id} className="bed-shoo" aria-hidden>

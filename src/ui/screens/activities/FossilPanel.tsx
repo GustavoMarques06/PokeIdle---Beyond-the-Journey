@@ -34,6 +34,7 @@ import { claimFossil, startRevive } from '../../../core/fossils';
 import { claimLabRequest, labRequest, labRequestDone, labRequestReady } from '../../../core/lab';
 import type { GameEvent, GameState } from '../../../core/game';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
 import { ItemIcon, Money, PokemonSprite, Shiny, TrainerSprite, Window } from '../../components/common';
 import { itemName, speciesName, unownLetter } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
@@ -274,7 +275,9 @@ function DigSite({ state }: { state: GameState }) {
                     onClick={() => hit(x, y)}
                     onMouseEnter={() => setHover({ x, y })}
                     aria-label={`Bloco ${x + 1}, ${y + 1}${depth ? `, profundidade ${depth}` : ', descoberto'}`}
-                  />
+                  >
+                    {depth > 0 && run.glints?.includes(i) && <PixelFx fx="glint" scale={1} />}
+                  </button>
                 );
               })}
             </div>
@@ -293,6 +296,7 @@ function DigSite({ state }: { state: GameState }) {
                 <i />
                 <i />
                 <i />
+                <PixelFx fx="dust" scale={2} x="0" y="0" />
               </span>
             )}
           </div>
@@ -381,6 +385,12 @@ function AlphRuins({ state }: { state: GameState }) {
         não são gastos. As letras vêm das expedições nas ruínas e das tabuletas da Escavação.
       </p>
       <ol className={`alph-word ${status.ready ? 'ready' : ''}`} aria-label={`Palavra da semana: ${status.word}`}>
+        {status.ready && !status.claimed && (
+          <span className="alph-fx" aria-hidden>
+            <PixelFx fx="stars" scale={2} x="20%" y="40%" />
+            <PixelFx fx="stars" scale={2} x="80%" y="50%" speed={0.8} />
+          </span>
+        )}
         {status.letters.map((l, i) => (
           <li key={i} className={l.have ? 'have' : ''} style={{ '--i': i } as CSSProperties}>
             <PokemonSprite speciesId={UNOWN_ID} kind="front" form={l.letter} silhouette={!l.have} />
@@ -578,6 +588,11 @@ export function FossilPanel({ state }: { state: GameState }) {
                     <ItemIcon id={f.item} size={32} />
                   )}
                 </button>
+                {alive && (
+                  <span key={`res-${f.speciesId}`} className="museum-fx" aria-hidden>
+                    <PixelFx fx="resurrect" scale={1} x="50%" y="62%" />
+                  </span>
+                )}
                 <span className="museum-pedestal" />
                 <small>{n ? speciesName(f.speciesId) : '???'}</small>
                 {n > 0 && (

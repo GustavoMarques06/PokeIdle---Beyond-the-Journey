@@ -18,6 +18,8 @@ import { ItemIcon, Money, TrainerSprite, Window } from '../../components/common'
 import { TOURNAMENT_PLACES, itemName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked } from './shared';
+import { PixelFx } from '../../components/PixelFx';
+import { Award, Emote } from '../../components/PixelUi';
 
 /**
  * Quem passou de cada fase. O jogador e os adversários dele são reais; o outro jogo de cada lado é só para mostrar a
@@ -137,6 +139,12 @@ export function TournamentPanel({ state }: { state: GameState }) {
       <Window title="TORNEIO DA SEMANA" icon={<ItemIcon id="relic-crown" size={24} />} frame="dialog">
         <div className={`tn-stage ${champion ? 'champion' : ''} crowd-${crowd}`}>
           <span className="tn-crowd" aria-hidden />
+          {champion && (
+            <span className="tn-fireworks" aria-hidden>
+              <PixelFx fx="firework" scale={2} x="15%" y="45%" />
+              <PixelFx fx="firework" scale={2} x="85%" y="40%" speed={0.8} />
+            </span>
+          )}
           {/* Bandeirinhas na plateia: balançam na torcida, caem quando você é eliminado. */}
           <span className="tn-flags" aria-hidden>
             {Array.from({ length: 7 }, (_, k) => (
@@ -261,7 +269,9 @@ export function TournamentPanel({ state }: { state: GameState }) {
             {rivals.map(([name, r], i) => (
               <li key={name} className={r.wins >= r.losses ? 'ahead' : 'behind'} style={{ '--i': i } as CSSProperties}>
                 <TrainerSprite id={r.sprite} size={40} head />
-                <strong>{name}</strong>
+                <strong>
+                  {name} <Emote mood={r.wins > r.losses ? 'angry' : r.losses > r.wins ? 'veryhappy' : 'confused'} scale={1} />
+                </strong>
                 <span className="tn-rival-score">
                   <b>{r.wins}</b>–<b>{r.losses}</b>
                 </span>
@@ -295,7 +305,7 @@ export function TournamentPanel({ state }: { state: GameState }) {
             ] as const
           ).map(([place, metal, label]) => (
             <li key={place} className={`tn-trophy ${metal} ${counts[place] ? 'has' : ''}`}>
-              <span className="tn-cup" aria-hidden />
+              <Award kind="cup" metal={metal} scale={3} className="tn-cup-px" />
               <strong>×{counts[place]}</strong>
               <small>{label}</small>
             </li>

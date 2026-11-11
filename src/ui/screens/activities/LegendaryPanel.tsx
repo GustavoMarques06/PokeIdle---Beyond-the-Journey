@@ -28,6 +28,7 @@ import {
   rumorOf,
 } from '../../../core/legendary';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
 import { ItemIcon, PixelIcon, PokemonSprite, Shiny, Window } from '../../components/common';
 import { WEATHER_NAMES, formatDuration, itemName, speciesName } from '../../i18n/pt-BR';
 import { LEGEND_LORE, legendGlow, legendTitle, nextLegendTitle, whenText } from '../../i18n/legends';
@@ -531,6 +532,11 @@ function CaptureGallery({ state }: { state: GameState }) {
                 <span className="lg-mon">
                   <PokemonSprite speciesId={l.speciesId} kind="front" shiny={c?.shiny} pixelScale={1} />
                 </span>
+                {playing && (
+                  <span className="lg-fx" aria-hidden>
+                    <PixelFx fx="stars" scale={2} x="50%" y="45%" />
+                  </span>
+                )}
                 <span className="lg-stars" aria-hidden>
                   {Array.from({ length: 8 }, (_, k) => (
                     <i key={k} style={{ '--a': `${k * 45}deg` } as CSSProperties} />

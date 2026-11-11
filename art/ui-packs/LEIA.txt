@@ -1,0 +1,5 @@
+Pacotes de interface em pixel art, todos CC0 (domínio público; crédito opcional), do OpenGameArt:
+- ImanorBalloon.png: "Animated emote bubbles" (Imanor) - https://opengameart.org/content/animated-emote-bubbles
+- Emotes.zip: "16x16 Emotes for RPGs and Digital Pets" - https://opengameart.org/content/16x16-emotes-for-rpgs-and-digital-pets
+- awards_0.zip: "Awards - Arne16" - https://opengameart.org/node/136243
+As peças usadas no jogo vão para public/sprites/ui/ com: python scripts/build-ui.py

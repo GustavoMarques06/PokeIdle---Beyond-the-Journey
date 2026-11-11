@@ -25,6 +25,8 @@ import {
   raidTimeLimit,
 } from '../../../core/raids';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
+import { Award } from '../../components/PixelUi';
 import { ItemIcon, PokemonSprite, TrainerSprite, TypeBadge, Window } from '../../components/common';
 import { formatDuration, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
@@ -93,6 +95,9 @@ export function RaidsPanel({ state }: { state: GameState }) {
           </span>
           {raid ? (
             <>
+              <span key={`portal-${raid.speciesId}-${raid.until}`} className="raid-portal" aria-hidden>
+                <PixelFx fx="portal" scale={2} x="50%" y="60%" />
+              </span>
               <span key={`${raid.speciesId}-${raid.until}`} className="raid-boss">
                 <span className="raid-boss-inner">
                   <PokemonSprite speciesId={raid.speciesId} kind="front" pixelScale={2} />
@@ -234,7 +239,7 @@ export function RaidsPanel({ state }: { state: GameState }) {
               >
                 {n >= RAID_TROPHY && (
                   <span className="raid-trophy" title={`Troféu: ${n} vitórias contra ${speciesName(+id)}`}>
-                    🏆
+                    <Award kind="cup" metal="gold" />
                   </span>
                 )}
                 {+id === fastest && <span className="raid-record-seal">RECORDE</span>}

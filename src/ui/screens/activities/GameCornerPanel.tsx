@@ -37,6 +37,8 @@ import {
   weeklyPrize,
 } from '../../../core/voltorb';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
+import { Balloon, Emote, type EmoteMood } from '../../components/PixelUi';
 import { ItemIcon, PokemonSprite, TrainerSprite, Window } from '../../components/common';
 import { formatNumber, itemName, moveName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
@@ -176,6 +178,9 @@ function SlotMachine({ state }: { state: GameState }) {
       {jackpot && (
         <span key={spin.id} className="gc-jackpot" aria-hidden>
           <b>JACKPOT!</b>
+          <PixelFx fx="coins" scale={3} x="30%" y="45%" />
+          <PixelFx fx="coins" scale={3} x="70%" y="40%" speed={0.8} />
+          <PixelFx fx="firework" scale={2} x="50%" y="25%" />
           {Array.from({ length: 18 }, (_, k) => (
             <i key={k} style={{ '--k': k } as CSSProperties}>
               <ItemIcon id="coin-case" size={18} />
@@ -397,6 +402,12 @@ const NEIGHBORS: { sprite: string; name: string; lines: string[] }[] = [
   },
 ];
 
+/** O humor de cada vizinho, alternando a cada fala. */
+const NEIGHBOR_MOODS: [EmoteMood, EmoteMood][] = [
+  ['happy', 'worried'],
+  ['bored', 'confused'],
+];
+
 function Neighbors({ state, cheer }: { state: GameState; cheer: boolean }) {
   const tick = Math.floor(state.lastTimerAt / 7000);
   return (
@@ -404,6 +415,9 @@ function Neighbors({ state, cheer }: { state: GameState; cheer: boolean }) {
       {NEIGHBORS.map((n, i) => (
         <span key={n.name} className={`gc-neighbor n-${i} ${cheer ? 'cheer' : ''}`}>
           <TrainerSprite id={n.sprite} size={44} head />
+          <span className="gc-emote" key={`e-${cheer ? 'cheer' : tick}`}>
+            {cheer ? <Balloon kind="alert" /> : <Emote mood={NEIGHBOR_MOODS[i][tick % 2]} />}
+          </span>
           <span className="gc-bubble" key={cheer ? 'cheer' : tick}>
             {cheer ? (i ? 'Que sorte!' : 'UAU! JACKPOT!') : n.lines[(tick + i * 2) % n.lines.length]}
           </span>

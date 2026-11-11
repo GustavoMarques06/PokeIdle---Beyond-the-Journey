@@ -68,7 +68,7 @@ import { battleSpritePath, useWarmBattleSprites } from './warmSprites';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
 import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer, ambientFor } from './effects';
-import { artMs, impactArt, statusArt, type FxArt } from './fxart';
+import { activityArt, artMs, impactArt, statusArt, type FxArt } from './fxart';
 
 interface Floater {
   id: number;
@@ -325,6 +325,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const [shake, setShake] = useState(0);
   const [shinyFx, setShinyFx] = useState<number | null>(null);
   const [shinyBush, setShinyBush] = useState<number | null>(null);
+  const [shieldBreak, setShieldBreak] = useState<number | null>(null);
   // Raide vencida: o chefe se desfaz, chovem estrelas e moedas e aparece o cartão do resultado.
   // Golpe de um aliado na raide (o ícone dele pula e dispara).
   const [allyHit, setAllyHit] = useState<{ id: number; speciesId: number } | null>(null);
@@ -474,6 +475,9 @@ export function BattleScene({ state }: { state: GameState }) {
         } else if (e.type === 'raidShieldBroken') {
           audio.sfx('crit');
           if (motion) setShake((n) => n + 1);
+          const id = nextId.current++;
+          setShieldBreak(id);
+          setTimeout(() => setShieldBreak((cur) => (cur === id ? null : cur)), 1100);
         } else if (e.type === 'raidBlast') {
           audio.sfx('boss');
           if (motion) setShake((n) => n + 1);
@@ -982,6 +986,42 @@ export function BattleScene({ state }: { state: GameState }) {
             />
           ) : null;
         })}
+      {raidHere && enemy && !hideEnemy && motionOn && (() => {
+        const cy = ENEMY_BASE.y - enemyBox.bodyH / 2;
+        const shield = enemy.shield ? activityArt('shield') : undefined;
+        const charge = enemy.charging ? activityArt('charge') : undefined;
+        const shatter = shieldBreak !== null ? activityArt('shatter') : undefined;
+        return (
+          <span className="raid-fx-layer">
+            {shield && (
+              <ArtFx
+                art={{ ...shield, k: (enemyBox.bodyH * 1.05) / shield.h, ax: shield.w / 2, ay: shield.h / 2 }}
+                x={ENEMY_BASE.x}
+                y={cy}
+                speed={1}
+              />
+            )}
+            {charge && (
+              <ArtFx
+                art={{ ...charge, k: (enemyBox.bodyH * 0.7) / charge.h }}
+                x={ENEMY_BASE.x}
+                y={ENEMY_BASE.y - 2}
+                speed={1}
+                low
+              />
+            )}
+            {shatter && (
+              <ArtFx
+                key={`shatter-${shieldBreak}`}
+                art={{ ...shatter, k: 1.6, ax: shatter.w / 2, ay: shatter.h / 2 }}
+                x={ENEMY_BASE.x}
+                y={cy}
+                speed={1}
+              />
+            )}
+          </span>
+        );
+      })()}
       {shinyFx !== null && enemy?.shiny && (
         <ShinySparkle key={`shiny-${shinyFx}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.bodyH / 2} />
       )}

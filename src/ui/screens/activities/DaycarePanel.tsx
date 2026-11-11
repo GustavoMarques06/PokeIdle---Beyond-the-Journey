@@ -5,6 +5,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
+import { Balloon } from '../../components/PixelUi';
 import { BALANCE, getSpecies, type TypeName } from '../../../game-data';
 import { activityUnlocked, findPokemon } from '../../../core/collection';
 import {
@@ -743,7 +745,12 @@ export function DaycarePanel({ state }: { state: GameState }) {
                 <PokemonSprite speciesId={p.speciesId} kind="icon" shiny={p.shiny} />
               </span>
             ))}
-            {ok && <span className="yard-meet">♥</span>}
+            {ok && (
+              <span className="yard-meet">
+                <Balloon kind="heart" scale={2} />
+              </span>
+            )}
+            {ok && <PixelFx fx="hearts" scale={1} x="50%" y="40%" className="yard-hearts-fx" />}
             {ok && !full && state.daycare.eggProgress / d.killsPerEgg > 0.8 && (
               <span className="yard-egg">
                 <EggSprite crack={0} size={20} />

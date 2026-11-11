@@ -59,7 +59,11 @@ import type { GameEvent, GameState } from '../../../core/game';
 import { ItemIcon, Money, PixelIcon, PokemonSprite, Shiny, Window } from '../../components/common';
 import { SAFARI_TEXT, formatDuration, formatNumber, formatPercent, itemName, speciesName } from '../../i18n/pt-BR';
 import { useEngine, useGameEvents } from '../../useGame';
+import { Balloon } from '../../components/PixelUi';
 import { Locked } from './shared';
+
+/** O balão de cada humor: de olho (?), comendo (coração), irritado (!) e se limpando da lama (…). */
+const MOOD_BALLOON = { watching: 'question', eating: 'heart', angry: 'alert', muddy: 'dots' } as const;
 
 const MOOD_TEXT = {
   watching: { icon: '?', text: 'está de olho em você' },
@@ -152,8 +156,12 @@ function SafariScene({
           key={`${enemy.speciesId}-${enemy.ivs.hp}-${enemy.ivs.spe}`}
           className={`safari-mon mood-${enemy.mood ?? 'watching'} ${fx?.kind === 'throw' && fx.action === 'rock' ? 'bonked' : ''}`}
         >
-          <span className="safari-mood" title={MOOD_TEXT[enemy.mood ?? 'watching'].text}>
-            {MOOD_TEXT[enemy.mood ?? 'watching'].icon}
+          <span
+            key={enemy.mood ?? 'watching'}
+            className="safari-mood px"
+            title={MOOD_TEXT[enemy.mood ?? 'watching'].text}
+          >
+            <Balloon kind={MOOD_BALLOON[enemy.mood ?? 'watching']} scale={3} />
           </span>
           <PokemonSprite speciesId={enemy.speciesId} kind="front" shiny={enemy.shiny} form={enemy.form} pixelScale={2} />
           {enemy.mood === 'muddy' && <PixelArt art={SPLAT} className="safari-mud-splat" />}

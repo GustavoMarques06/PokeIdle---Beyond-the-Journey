@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import type { GameEvent } from '../../core/state';
 import { ItemIcon, PokemonSprite } from '../components/common';
 import { itemName, speciesName } from '../i18n/pt-BR';
+import { PixelFx } from '../components/PixelFx';
 
 type Win = Extract<GameEvent, { type: 'raidDefeated' }> & { id: number };
 
@@ -18,6 +19,12 @@ export function RaidVictory({ win }: { win: Win }) {
         {Array.from({ length: 18 }, (_, i) => (
           <i key={i} style={{ '--i': i, '--a': `${i * 20}deg` } as CSSProperties} />
         ))}
+      </span>
+      <span className="raid-fireworks" aria-hidden>
+        <PixelFx fx="firework" scale={3} x="18%" y="34%" />
+        <PixelFx fx="firework" scale={3} x="82%" y="30%" speed={0.85} />
+        <PixelFx fx="firework" scale={2} x="50%" y="16%" speed={1.2} />
+        <PixelFx fx="coins" scale={3} x="50%" y="62%" />
       </span>
       <span className="raid-rain" aria-hidden>
         {Array.from({ length: 22 }, (_, i) => (

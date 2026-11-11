@@ -33,6 +33,7 @@ import { pokemonName, potential } from '../../../core/pokemon';
 import { ItemIcon, Money, PokemonSprite, Shiny, TrainerSprite, Window } from '../../components/common';
 import { formatDuration, formatNumber, moveName, speciesName } from '../../i18n/pt-BR';
 import { audio } from '../../audio';
+import { Award } from '../../components/PixelUi';
 import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
 
@@ -602,7 +603,7 @@ function DuelSeasonBoard({ state }: { state: GameState }) {
         <ul className="duel-trophies">
           {season.trophies.map((m) => (
             <li key={m} title={`Campeão de ${m}`}>
-              <span aria-hidden>🏆</span>
+              <Award kind="cup" metal="gold" scale={2} />
               <small>{m.split('-').reverse().join('/')}</small>
             </li>
           ))}

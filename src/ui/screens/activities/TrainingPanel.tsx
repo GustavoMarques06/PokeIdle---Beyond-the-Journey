@@ -16,6 +16,8 @@ import {
   trainingMedals,
 } from '../../../core/training';
 import { audio } from '../../audio';
+import { PixelFx } from '../../components/PixelFx';
+import { Award } from '../../components/PixelUi';
 import {
   retarget,
   startTraining,
@@ -106,6 +108,11 @@ function DailyChallenge({ state }: { state: GameState }) {
   const ready = done >= c.goal && !claimed;
   return (
     <div className={`train-daily frame frame-dialog ${ready ? 'ready' : ''} ${claimed ? 'done' : ''}`}>
+      {claimed && (
+        <span className="train-daily-fx" aria-hidden>
+          <PixelFx fx="levelup" scale={1} x="30px" y="70%" pivot />
+        </span>
+      )}
       <span className="train-daily-coach" aria-hidden>
         <TrainerSprite id="class-battlegirl" size={48} head />
       </span>
@@ -231,8 +238,8 @@ export function TrainingPanel({ state }: { state: GameState }) {
                   <strong>
                     {speciesName(p.speciesId).toUpperCase()} Nv{p.level}
                     {trainingMedals(p).map((k) => (
-                      <span key={k} className="train-medal" title={`Medalha de ${STAT_NAMES[k]}: 252 EVs`}>
-                        ★
+                      <span key={k} className="train-medal-px" title={`Medalha de ${STAT_NAMES[k]}: 252 EVs`}>
+                        <Award kind="medal" metal="gold" scale={1} />
                       </span>
                     ))}
                   </strong>
