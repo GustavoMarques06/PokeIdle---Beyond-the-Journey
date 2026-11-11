@@ -7,7 +7,9 @@ import {
   getMove,
   getSpecies,
   hasMove,
+  isSupportMove,
   preEvolutionOf,
+  supportMoveFor,
   type AbilityDef,
   type HeldItemDef,
   type Species,
@@ -29,9 +31,9 @@ export interface PokemonInstance {
   caughtOn: string;
   /** Evolução aguardando confirmação (quando a evolução automática está desligada). */
   pendingEvolution?: number;
-  /** Golpes escolhidos pelo jogador (até 4). Vazio/ausente = automático pelo nível. */
+  /** Golpes escolhidos pelo jogador (até 4, no máximo um de apoio). Vazio/ausente = automático pelo nível. */
   moveset?: string[];
-  /** Golpe de apoio escolhido (id), ou 'none' para nenhum. Ausente = automático (o mais recente aprendido). */
+  /** Saves antigos: apoio fixado no automático (id), ou 'none'. Hoje o apoio vai entre os 4 golpes do `moveset`. */
   support?: string;
   /** Pedra Eterna: não evolui por nível. */
   evolutionLocked?: boolean;
@@ -302,8 +304,17 @@ export function knownMoves(species: Species, level: number): string[] {
 }
 
 /** Golpes usados em batalha: os escolhidos pelo jogador ou os aprendidos por nível. */
-export function movesOf(p: { speciesId: number; level: number; moveset?: string[] }): string[] {
-  return p.moveset?.length ? p.moveset : knownMoves(getSpecies(p.speciesId), p.level);
+/**
+ * Golpes de ataque do Pokémon. O apoio ocupa uma das 4 vagas: com ele, o automático leva só os 3 ataques mais
+ * recentes. Os escolhidos à mão já trazem o apoio entre os 4 (fica fora daqui, ver `supportMoveFor`).
+ */
+export function movesOf(p: { speciesId: number; level: number; moveset?: string[]; support?: string }): string[] {
+  if (p.moveset?.length) {
+    const attacks = p.moveset.filter((m) => !isSupportMove(m));
+    if (attacks.length) return attacks;
+  }
+  const known = knownMoves(getSpecies(p.speciesId), p.level);
+  return supportMoveFor(p) ? known.slice(-(BALANCE.maxMoves - 1)) : known;
 }
 
 /** Todos os golpes de dano que a espécie aprendeu por nível até `level` (sem limite de 4). */

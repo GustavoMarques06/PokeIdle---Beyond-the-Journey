@@ -123,7 +123,8 @@ export function frontsAt(now: number): WeatherFront[] {
     const last = until >= (block + 1) * FRONT_BLOCK_MS;
     fronts.push({
       routeId: path[index],
-      weather,
+      // A frente chega a cada rota com o clima que faz lá (o granizo vira chuva na selva, por exemplo).
+      weather: byAltitude(getRoute(path[index]).scene, weather),
       until,
       ...(last ? {} : { next: path[(index + 1) % path.length] }),
     });
@@ -166,14 +167,24 @@ export function skyEvent(route: Route, env: Environment): SkyEvent | undefined {
   return weather === 'clear' || weather === 'sun' ? env.sky : undefined;
 }
 
+/** Lugares quentes, onde não cai granizo. */
+const WARM = new Set(['beach', 'jungle', 'swamp']);
+
+/** Granizo só onde faz frio: na praia, na selva e no pântano (quentes) vira chuva; no alto (Dragonspiral), a chuva
+ * cai como neve. */
+function byAltitude(scene: string, weather: Weather): Weather {
+  if (weather === 'hail' && WARM.has(scene)) return 'rain';
+  if (weather === 'rain' && scene === 'summit') return 'hail';
+  return weather;
+}
+
 /** Clima efetivo numa rota: cavernas e salas não têm clima; o deserto vive em tempestade de areia. */
 export function routeWeather(route: Route, env: Environment): Weather {
   if (INDOOR.has(route.scene)) return 'clear';
   // Uma frente sobre a rota troca o clima dela (e segue as mesmas regras de praia e afins).
   const here = frontOn(env, route.id)?.weather ?? env.weather;
   if (route.scene === 'desert') return here === 'rain' ? 'clear' : 'sand';
-  // Granizo só onde faz frio ou em áreas abertas altas; na praia e no deserto vira chuva/areia.
-  if (here === 'hail' && route.scene === 'beach') return 'rain';
+  if (WARM.has(route.scene) || route.scene === 'summit') return byAltitude(route.scene, here);
   // Nos campos de neve neva quase sempre (como na Rota 217): só o sol, a névoa e a noite limpa (com a aurora)
   // abrem uma brecha.
   if (route.scene === 'snowfield') {

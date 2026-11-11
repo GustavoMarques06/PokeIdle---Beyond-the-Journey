@@ -2472,31 +2472,26 @@ html.reduced-motion .menu-label {
   background: #d8e8ff;
 }
 
-/* Golpe de apoio e Relembrador: blocos separados dentro do editor de golpes. */
-.support-picker,
+.move-source.src-support {
+  margin-left: 0;
+  background: #e0f8d0;
+}
+
+/* Relembrador: bloco separado dentro do editor de golpes. */
 .relearner {
   margin-top: 8px;
   padding-top: 6px;
   border-top: 2px dashed var(--menu-blue-light);
 }
 
-.support-picker h4,
 .relearner h4 {
   margin: 0 0 6px;
   font: 700 14px var(--font-label);
 }
 
-.support-picker h4 small,
 .relearner h4 small {
   font: 400 13px var(--font-text);
   color: var(--ink-muted);
-}
-
-.support-picker-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
 }
 
 /* Repelente ou incenso ativo, no canto da cena. */

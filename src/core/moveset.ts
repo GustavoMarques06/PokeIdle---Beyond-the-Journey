@@ -2,14 +2,14 @@
 // aprendeu por nível, dos TMs liberados que a espécie consegue aprender, dos golpes de ovo
 // herdados e dos golpes da pré-evolução lembrados no Relembrador.
 
-import { BALANCE, NO_SUPPORT, SPECIES, getSpecies, hasMove, learnedSupportMoves } from '../game-data';
+import { BALANCE, SPECIES, getSpecies, hasMove, isSupportMove, learnedSupportMoves } from '../game-data';
 import { findPokemon } from './collection';
 import type { GameState } from './game';
 import { levelUpMoves, type PokemonInstance } from './pokemon';
 
 export interface LearnableMove {
   move: string;
-  source: 'level' | 'tm' | 'egg' | 'relearn';
+  source: 'level' | 'tm' | 'egg' | 'relearn' | 'support';
 }
 
 /** Pré-evoluções da espécie, da mais próxima à primeira. */
@@ -61,9 +61,12 @@ export function learnableMoves(state: GameState, p: PokemonInstance): LearnableM
   ] as const)
     for (const move of list ?? [])
       if (!out.some((m) => m.move === move) && hasMove(move)) out.push({ move, source });
+  // Golpes de apoio aprendidos por nível: cabem numa das 4 vagas, como nos jogos.
+  for (const s of learnedSupportMoves(p.speciesId, p.level)) out.push({ move: s.id, source: 'support' });
   // Golpes já escolhidos continuam disponíveis mesmo depois de evoluir.
   for (const move of p.moveset ?? [])
-    if (!out.some((m) => m.move === move)) out.push({ move, source: 'level' });
+    if (!out.some((m) => m.move === move))
+      out.push({ move, source: isSupportMove(move) ? 'support' : 'level' });
   return out;
 }
 
@@ -73,25 +76,14 @@ export function setMoveset(state: GameState, uid: number, moves: string[]): bool
   if (!p) return false;
   const unique = [...new Set(moves)];
   if (unique.length > BALANCE.maxMoves) return false;
+  // No máximo um apoio (é usado uma vez por luta) e pelo menos um ataque.
+  const supports = unique.filter(isSupportMove).length;
+  if (unique.length && (supports > 1 || supports === unique.length)) return false;
   const allowed = new Set(learnableMoves(state, p).map((m) => m.move));
   if (unique.some((m) => !allowed.has(m))) return false;
   p.moveset = unique.length ? unique : undefined;
+  // O apoio agora mora entre os 4 golpes; a escolha antiga, fora deles, deixa de valer.
+  delete p.support;
   return true;
 }
 
-/** Golpes de apoio que o Pokémon pode levar: os que já aprendeu por nível e o que já estava escolhido. */
-export function supportOptions(p: PokemonInstance): string[] {
-  const out = learnedSupportMoves(p.speciesId, p.level).map((m) => m.id);
-  if (p.support && p.support !== NO_SUPPORT && !out.includes(p.support)) out.push(p.support);
-  return out;
-}
-
-/** Escolhe o golpe de apoio: um id da lista, `'none'` para nenhum, ou `undefined` para voltar ao automático. */
-export function setSupport(state: GameState, uid: number, move: string | undefined): boolean {
-  const p = findPokemon(state, uid);
-  if (!p) return false;
-  if (move !== undefined && move !== NO_SUPPORT && !supportOptions(p).includes(move)) return false;
-  if (move === undefined) delete p.support;
-  else p.support = move;
-  return true;
-}

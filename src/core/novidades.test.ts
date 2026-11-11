@@ -219,7 +219,7 @@ describe('clima: frentes e eventos do céu', () => {
         expect(f.until).toBeGreaterThan(now);
         const env = { period: 'day' as const, weather: weatherAt(now), fronts };
         expect(frontOn(env, f.routeId)).toBe(f);
-        if (route.scene !== 'beach') expect(routeWeather(route, env)).toBe(f.weather);
+        expect(routeWeather(route, env)).toBe(f.weather);
       }
     }
   });

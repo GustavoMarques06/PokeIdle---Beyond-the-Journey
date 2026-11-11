@@ -15,6 +15,8 @@ import {
   hasMove,
   hasSpecies,
   isHeldItem,
+  isSupportMove,
+  learnedSupportMoves,
   speciesId as speciesBySlug,
   cleanOutfit,
   type PlayerAvatar,
@@ -544,6 +546,7 @@ function possibleMoves(speciesId: number): Set<string> {
     const s = getSpecies(id);
     for (const e of s.learnset) out.add(e.move);
     for (const m of [...s.tmMoves, ...s.eggMoves]) out.add(m);
+    for (const m of learnedSupportMoves(id, BALANCE.maxLevel)) out.add(m.id);
   }
   return out;
 }
@@ -552,7 +555,7 @@ function parseMoves(v: unknown, speciesId: number): string[] | undefined | null 
   if (v === undefined) return undefined;
   if (!Array.isArray(v) || v.length > BALANCE.maxMoves) return null;
   const allowed = possibleMoves(speciesId);
-  return v.every((m) => typeof m === 'string' && hasMove(m) && allowed.has(m))
+  return v.every((m) => typeof m === 'string' && (hasMove(m) || isSupportMove(m)) && allowed.has(m))
     ? [...new Set(v as string[])]
     : null;
 }

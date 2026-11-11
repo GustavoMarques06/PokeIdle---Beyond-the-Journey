@@ -1,6 +1,6 @@
-// Golpes de apoio: sem dano, causam status, aumentam atributos ou curam. Cada Pokémon leva no máximo um, fora dos 4
-// golpes de ataque, e usa uma vez por luta: o mais recente que aprendeu por nível (de scripts/fetch-support-moves.mjs),
-// ou outro que já aprendeu, escolhido pelo jogador na ficha (ou nenhum).
+// Golpes de apoio: sem dano, causam status, aumentam atributos ou curam. Como nos jogos, o apoio ocupa uma das 4
+// vagas de golpe: no automático são os 3 ataques mais recentes e o apoio mais recente que aprendeu por nível (de
+// scripts/fetch-support-moves.mjs); na ficha o jogador põe um apoio entre os 4 golpes (ou nenhum). Usa uma vez por luta.
 
 import supportJson from './generated/support-moves.json';
 import type { Ailment, StatKey, TypeName } from './types';
@@ -109,14 +109,26 @@ export function learnedSupportMoves(speciesId: number, level: number): SupportMo
   return out;
 }
 
-/** Escolha do jogador para o golpe de apoio: ausente = automático (o mais recente), 'none' = nenhum. */
+/** Saves antigos: `support: 'none'` desligava o apoio do automático. */
 export const NO_SUPPORT = 'none';
 
+export const isSupportMove = (id: string): boolean => id in SUPPORT_MOVES;
+
 /**
- * O golpe de apoio de um Pokémon: o escolhido pelo jogador (continua valendo depois de evoluir, como os golpes de
- * ataque escolhidos), nenhum, ou o automático. Inimigos não escolhem: sempre o automático.
+ * O golpe de apoio de um Pokémon. Com golpes escolhidos, é o apoio que está entre os 4 (ou nenhum; continua valendo
+ * depois de evoluir). No automático, o mais recente que aprendeu (saves antigos podiam fixar outro, ou 'none').
+ * Inimigos não escolhem: sempre o automático.
  */
-export function supportMoveFor(p: { speciesId: number; level: number; support?: string }): SupportMove | undefined {
+export function supportMoveFor(p: {
+  speciesId: number;
+  level: number;
+  moveset?: string[];
+  support?: string;
+}): SupportMove | undefined {
+  if (p.moveset?.length) {
+    const id = p.moveset.find(isSupportMove);
+    return id ? SUPPORT_MOVES[id] : undefined;
+  }
   if (p.support === NO_SUPPORT) return undefined;
   return (p.support && SUPPORT_MOVES[p.support]) || supportMoveOf(p.speciesId, p.level);
 }

@@ -13,7 +13,8 @@ nova em `src/core/`:
   depois ₽8.000) e Museu (`state.fossilsRevived`). As classes da máquina usam o prefixo `fl-` (`lab-` já existe na
   abertura do jogo).
 - **Game Corner:** gabinete com alavanca, aposta ×1/×2/×5 (`SLOT_MULTS`), Voltorb Flip (`core/voltorb.ts`, níveis 1–8 como
-  em HGSS, entrada de 10 fichas, teto de 5.000 por rodada), fichas no chão por dia e prêmio da semana −30%.
+  em HGSS, entrada por nível em `voltorbEntry`: grátis no 1–2, 10 fichas do 3 ao 5 e 20 do 6 ao 8, teto de 5.000 por
+  rodada), fichas no chão por dia e prêmio da semana −30%.
 - **Torneio:** chave em árvore, narrador, patrocinador da semana (`SPONSORS` em `core/tournament.ts`, dá um item extra ao
   campeão) e sala de troféus. O outro jogo de cada lado da chave é só visual.
 - **Troca Surpresa:** `surpriseTrade` em `core/link.ts` (5 por dia, um terço das vezes uma espécie que falta, shiny 8×).
@@ -23,7 +24,7 @@ nova em `src/core/`:
   Em 10/11: HP (3× a 6×), tempo (150 a 220 s), sorteios de item (2 a 4) e IVs perfeitos (3 a 6) pelas estrelas
   (`hpByStars` etc. em `balance.ts`), melhor tempo por chefe (`state.raidBest`) e animações: toca com runas, brasas,
   raios, cor por estrela, entrada e rugido do chefe; na batalha chefe gigante, aura, vinheta, fúria com tremor, tique
-  nos últimos 10 s e cartão de vitória (`RaidVictory.tsx`). Compila; não conferido no navegador.
+  nos últimos 10 s e cartão de vitória (`RaidVictory.tsx`). Conferido em print (11/11).
 - **Treino:** estações animadas por atributo, hexágono de EVs e planos (`TRAINING_PLANS`, troca de atributo sozinho).
 - **Expedições:** trilha, diário de viagem (só texto, sorteado pela semente) e cartão-postal.
 - **Torre e Lendários:** prédio com os andares; previsão de 12 h com os lendários de cada faixa (clima de `weatherAt`).
@@ -31,10 +32,10 @@ nova em `src/core/`:
   certa na virada dia/noite e sem os em espera (`legendaryWindowOpen`), "aparece em ~X" nos cartões
   (`legendaryNextWindow`), anel da espera, boato em manchete, Santuário como templo com barra do próximo título
   (`nextLegendTitle`), história com números e bola favorita, céu animado na previsão, progresso e portão por região,
-  regras recolhidas e filtro dos cartões. Compila; não conferido no navegador.
+  regras recolhidas e filtro dos cartões. Conferido em print (11/11).
 
-**Mecânicas novas (10/11):** tudo compila (`tsc`) e os testes de `src/core` passam, mas nada foi visto no navegador
-nem medido com jogo de verdade.
+**Mecânicas novas (10/11):** testes em `src/core` e telas conferidas em print (11/11). O equilíbrio foi medido com
+jogadores simulados (raide 5★, coração do Safari, Voltorb Flip, Escavação; ver abaixo), não com jogo de verdade.
 - **Raides:** escudo (`BALANCE.raid.shield`: os tipos super efetivos de `raidBreakers` quebram em 2 acertos e batem
   cheio; os outros batem 40% e levam 6), atordoamento ao quebrar, golpe gigante carregado a cada fúria (`charging`,
   2,5×, cancelado se o escudo cair) e regra da semana (`RAID_MODS`: Tempestade, Frenesi, Tesouro, Relâmpago; fica
@@ -132,8 +133,11 @@ pedidos do Guarda, Pontos e loja, Pokédex das zonas, recordes e resumo da visit
 - As Colinas de Flores davam 214 pontos na grama alta (Kalos tem raros fáceis de pegar); os pesos foram ajustados e
   agora dão ~98, como a Montanha.
 
-**Ainda vale decidir:**
-- Se os passos devem limitar a visita: com ~350 passos a grama alta passaria a gastar os passos antes das bolas.
+**Passos (resolvido em 10/11):** em vez de cortar os 600 passos, as camadas do Safari dão peso a eles: entrar na mata
+e no coração custa passos e as caminhadas lá gastam mais, então no coração a visita acaba pelos passos em 1 de 4 vezes.
+Na borda as bolas continuam acabando antes, como antes.
+
+**Ainda vale conferir:**
 - Não conferido em print: Pokébloco em uso, resumo do fim da visita e o aviso de Pokédex de zona completa.
 
 ## Cenários de batalha (resolvido em 5/11)
@@ -168,20 +172,27 @@ lotes 5…10. Cortados em `art/maps/novos/cortes/` e comparados com os atuais nu
   ícone 1024 × 1024). Depois de gerar, trocar em `public/icons/`, `public/brand/logo.png` e `src-tauri/icons/`.
 - **16 cenários da 2ª rodada:** prompts em `art/maps/PROMPTS-cenarios-v2.md` (lotes A–D, salvar em `art/maps/novos2/`).
 - **Build do Windows (Tauri):** os ícones novos entraram, mas o build ainda não foi rodado para conferir.
-- **Combate:** golpes de apoio (status, atributos e cura) entraram como um 5º golpe, uma vez por luta (`supportMoves.ts`). Não são 4 golpes escolhíveis como nos jogos. O progresso offline conta com eles (`duelWithSupport`).
+- **Combate (11/11):** golpes de apoio (status, atributos e cura; `supportMoves.ts`) ocupam uma das 4 vagas, como nos
+  jogos, e são usados uma vez por luta. No automático: os 3 ataques mais recentes e o apoio mais recente. Na ficha, o
+  editor de golpes lista os apoios junto dos ataques (no máximo um apoio e pelo menos um ataque; `setMoveset`). Saves
+  antigos: o apoio fixado fora dos 4 (`support`) só vale no automático e some ao escolher golpes. Nas raides e no duelo
+  fantasma o apoio não é usado. Ovos com golpe de ovo guardam o apoio numa das vagas; trocas aceitam apoio na lista.
+  O progresso offline conta com ele (`duelWithSupport`).
 - **Progresso offline corrigido (9/11):** a estimativa contava a espera de entrada (1,6 s) em toda luta e o 1º golpe com o
   intervalo inteiro, e dava ~35% menos vitórias que a batalha real. Agora fica a menos de 15% (teste em `offline.test.ts`),
   então o offline rende de fato os 70% da eficiência pensada (antes rendia ~45%). Em 7.200 lutas simuladas, as vitórias mudaram até 1,4 ponto e cada luta durou ~1 s a mais.
 - **Modo Desempenho:** sprites parados (primeiro quadro do GIF num canvas), sem efeitos, animações e números de dano, batalha redesenhada ~3x por segundo. Com CPU simulada 8x mais lenta: de 16 para 49 FPS. Falta testar em um PC fraco de verdade (a simulação não inclui a placa de vídeo).
 - **Formas fora de batalha (9/11):** Unown da expedição das ruínas, ovos e prêmios do Game Corner vinham sem forma, e a
   conquista das 28 formas de Unown era impossível. Agora ganham forma (`giveForm`), e saves antigos são corrigidos ao
-  carregar. Ainda pesa: na média são 44 expedições de 8 h (só uma de ruínas por vez), umas 3 semanas.
+  carregar. Desde 10/11 há outros caminhos (`core/unown.ts`): tabuletas na Escavação e a palavra da semana das Ruínas
+  de Alph, que dão letras que faltam. As expedições deixaram de ser o único jeito.
 - **Pokédex completa:** as 721 espécies das Gerações I–VI estão no jogo e todas têm caminho (teste em
   `obtainable.test.ts`). Algumas evoluções especiais viraram regras simples do motor: Shedinja e Mothim pela Shiny Stone,
   Ambipom, Sudowoodo e Mantine no nível 30, Wormadam e Mothim sem exigir gênero.
 - **CSS:** declarações sempre sobrescritas pela mesma regra saíram e blocos repetidos foram juntados onde isso não muda
-  nada (conferido elemento por elemento em 8 tamanhos e 7 telas). O `mobile.css` ainda tem muitos blocos por ordem de
-  chegada: reorganizar o resto exige reescrever à mão.
+  nada (conferido elemento por elemento em 8 tamanhos e 7 telas). O `mobile.css` foi reescrito em 9/11 em 8 seções
+  na ordem da cascata (sempre, layout base, toque, cena pequena, em pé, menores aparelhos, deitado, `@container`; o
+  índice está no topo do arquivo). Ajuste novo entra na seção do caso dele.
 - **Cópia do save:** no celular, o menu de compartilhar do sistema; no Chrome/Edge do computador, cópia automática num
   arquivo escolhido (File System Access).
 - **Save na nuvem:** não vai ser feito. O jogo não terá servidor de nenhum tipo (decisão confirmada em 10/11). O save fica só no aparelho; há lembrete semanal de backup e aviso para instalar no iPhone.
@@ -213,12 +224,12 @@ baixa sprites (frente, costas, shiny, ícone) e as pedras. Cada Mega Stone custa
 - Preço por força da Mega (`megaStonePrice`): 80 mil (< 600), 120 mil (600–699), 200 mil (700), 300 mil (Primais,
   Mewtwo, Rayquaza). Sem bônus, o jogador junta ~15 mil moedas/h no fim de Kanto e ~43 mil em Kalos.
 - Fiéis aos jogos: Mandíbula Forte (mordidas ×1,5), Força Bruta (golpes com status ×1,3, sem o status), Destemido
-  (Normal e Lutador acertam Fantasma), Sem Guarda (ninguém erra). Mega Lançador, Elo de Habilidade e Garras Duras seguem
-  aproximadas: o Blastoise não aprende golpes de pulso nos dados, os de vários acertos do Heracross são fracos e o jogo
-  não sabe quais golpes são de contato.
+  (Normal e Lutador acertam Fantasma), Sem Guarda (ninguém erra), Mega Lançador (golpes de pulso ×1,5: a linha do
+  Squirtle aprende Water Pulse por nível, como desde a 6ª geração, e o Blastoise usa os TMs de Dark Pulse e Dragon
+  Pulse; `TUTOR_LEVEL_MOVES`/`EXTRA_TM_MOVES` em `fetch-pokeapi.mjs`). Elo de Habilidade e Garras Duras seguem
+  aproximadas: os golpes de vários acertos do Heracross são fracos e o jogo não sabe quais golpes são de contato.
 
-**Falta (opcional):**
-- Ensinar golpes de pulso ao Blastoise (ORAS) para o Mega Lançador poder ser fiel.
+**Ao regerar os dados:**
 - Se rodar `npm run data:fetch --fresh`, rode `node scripts/fetch-megas.mjs` e `python scripts/sprite-feet.py` depois.
 - Se rodar `npm run data:fetch`, os times de chefe com Mega já saem certos (o script lê o terceiro item).
 
@@ -238,5 +249,7 @@ ficar torto. Aço, veneno, inseto e dragão (9/11) usam efeitos parecidos do PVF
 
 **Climas novos (5/11):** chuva, neve (para o granizo) e tempestade (chuva à noite) são WebP animados do pixelfx
 (`scripts/build-weather.py`); areia, névoa e sol são desenhados em CSS (`WeatherLayer` em `effects.tsx`). Os antigos saíram.
-Sobram do pixelfx, ainda não usados: folhas de outono, pétalas, vaga-lumes, aurora, estrelas cadentes, nevasca e raios de sol
-(alguns escurecem a cena inteira). O clima segue o relógio do jogo; ligar neve às rotas frias seria uma melhoria separada.
+Folhas, pétalas, vaga-lumes, aurora e estrelas cadentes entraram em 11/11 (Jardim, Safari e céu da batalha); sobram
+só a nevasca e os raios de sol (escurecem a cena inteira). O clima segue o relógio do jogo, com o lugar por cima
+(`routeWeather` em `env.ts`): nos campos de neve neva quase sempre (9/11); na praia, na selva e no pântano o granizo
+vira chuva, e no alto (Dragonspiral) a chuva cai como neve (11/11). As frentes chegam a cada rota com o clima de lá.

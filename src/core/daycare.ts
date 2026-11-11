@@ -2,7 +2,7 @@
 // levados na equipe) com vitórias e com o tempo real, e chocam quando o jogador toca neles (ou sozinhos, nas Opções).
 // Itens dos pais mudam a herança (Destiny Knot, Power Items, Everstone), e o Diário libera mais chocadeiras.
 
-import { BALANCE, abilitiesOf, getSpecies, hasMove, lineRoot, speciesId } from '../game-data';
+import { BALANCE, abilitiesOf, getSpecies, hasMove, lineRoot, speciesId, supportMoveFor } from '../game-data';
 import { computeModifiers } from './bonuses';
 import { activityUnlocked, addToCollection, busyUids, findPokemon } from './collection';
 import type { GameEvent, GameState } from './game';
@@ -384,7 +384,10 @@ export function hatchEgg(state: GameState, id: number, now: number, events: Game
   // Nasce sabendo os golpes de ovo (o resto da lista vem dos golpes de nível).
   const teach = (moves: string[]) => {
     p.eggMoves = [...new Set([...(p.eggMoves ?? []), ...moves])];
-    p.moveset = [...new Set([...p.eggMoves, ...movesOf(p)])].slice(0, BALANCE.maxMoves);
+    // O apoio do automático continua numa das 4 vagas.
+    const support = supportMoveFor(p);
+    const attacks = [...new Set([...p.eggMoves, ...movesOf(p)])].slice(0, BALANCE.maxMoves - (support ? 1 : 0));
+    p.moveset = support ? [...attacks, support.id] : attacks;
   };
   if (egg.eggMoves?.length) teach(egg.eggMoves);
 

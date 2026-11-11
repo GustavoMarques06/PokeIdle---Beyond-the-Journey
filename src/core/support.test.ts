@@ -14,8 +14,8 @@ import {
 import { moveName } from '../ui/i18n/pt-BR';
 import type { GameEvent } from './game';
 import { advance, newGame, selectMove, supportOf, supportReady } from './game';
-import { setSupport, supportOptions } from './moveset';
-import { randomIvs, statsOf } from './pokemon';
+import { learnableMoves, setMoveset } from './moveset';
+import { movesOf, randomIvs, statsOf } from './pokemon';
 import { parseSave, serialize } from './save';
 import { seededRng } from './rng';
 import type { GameState } from './state';
@@ -90,52 +90,63 @@ describe('golpes de apoio', () => {
   });
 });
 
-describe('escolha do golpe de apoio', () => {
-  it('lista os que já aprendeu e troca o usado na batalha; nenhum desliga; sem escolha é o automático', () => {
+describe('o apoio ocupa uma das 4 vagas', () => {
+  it('no automático são 3 ataques e o apoio mais recente; dá para pôr outro apoio entre os 4', () => {
     // Scyther (123): Agility no 17, Swords Dance no 25.
     const s = fight(1, 123, 100);
     const p = s.collection[0];
-    expect(supportOptions(p)).toEqual(['agility', 'swords-dance']);
     expect(supportOf(s, p)?.id).toBe('swords-dance');
+    expect(movesOf(p)).toHaveLength(3);
+    const supports = learnableMoves(s, p).filter((m) => m.source === 'support').map((m) => m.move);
+    expect(supports).toEqual(['agility', 'swords-dance']);
 
-    expect(setSupport(s, p.uid, 'agility')).toBe(true);
+    const attack = movesOf(p)[0];
+    expect(setMoveset(s, p.uid, [attack, 'agility'])).toBe(true);
+    expect(movesOf(p)).toEqual([attack]);
     expect(supportOf(s, p)?.id).toBe('agility');
     const used = collect(s, 40_000).filter((e) => e.type === 'supportMove' && e.side === 'player');
     expect(used.map((e) => e.type === 'supportMove' && e.move)).toEqual(['agility']);
 
-    expect(setSupport(s, p.uid, NO_SUPPORT)).toBe(true);
+    // Só ataques escolhidos: nenhum apoio.
+    expect(setMoveset(s, p.uid, [attack])).toBe(true);
     expect(supportOf(s, p)).toBeUndefined();
-    expect(setSupport(s, p.uid, undefined)).toBe(true);
-    expect(p.support).toBeUndefined();
+    // Voltar ao automático devolve o apoio.
+    expect(setMoveset(s, p.uid, [])).toBe(true);
     expect(supportOf(s, p)?.id).toBe('swords-dance');
   });
 
-  it('não aceita um golpe que ainda não aprendeu nem um de outra espécie', () => {
-    const s = fight(1, 123, 20);
+  it('no máximo um apoio, pelo menos um ataque, e só o que já aprendeu', () => {
+    const s = fight(1, 123, 100);
     const p = s.collection[0];
-    expect(setSupport(s, p.uid, 'swords-dance')).toBe(false); // só no nível 25
-    expect(setSupport(s, p.uid, 'spore')).toBe(false);
-    expect(p.support).toBeUndefined();
+    const attack = movesOf(p)[0];
+    expect(setMoveset(s, p.uid, [attack, 'agility', 'swords-dance'])).toBe(false);
+    expect(setMoveset(s, p.uid, ['agility'])).toBe(false);
+    expect(setMoveset(s, p.uid, [attack, 'spore'])).toBe(false);
+    p.level = 20;
+    expect(setMoveset(s, p.uid, [attack, 'swords-dance'])).toBe(false); // só no nível 25
+    expect(p.moveset).toBeUndefined();
   });
 
   it('o escolhido continua depois de evoluir e sobrevive ao save; lixo no save some', () => {
     const s = fight(1, 64, 30); // Kadabra: Hypnosis, Calm Mind, Recover
     const p = s.collection[0];
-    expect(setSupport(s, p.uid, 'hypnosis')).toBe(true);
+    const attack = movesOf(p)[0];
+    expect(setMoveset(s, p.uid, [attack, 'hypnosis'])).toBe(true);
     p.speciesId = 65;
     expect(supportMoveFor(p)?.id).toBe('hypnosis');
     const back = parseSave(serialize(s, 0));
-    expect(back.ok && back.file.state.collection[0].support).toBe('hypnosis');
+    expect(back.ok && back.file.state.collection[0].moveset).toEqual([attack, 'hypnosis']);
     s.collection[0].support = 'nao-existe';
     const bad = parseSave(serialize(s, 0));
     expect(bad.ok && bad.file.state.collection[0].support).toBeUndefined();
   });
 
-  it('o progresso offline usa o golpe escolhido (ou nenhum)', () => {
+  it("saves antigos: 'none' no automático luta com 4 ataques e sem apoio", () => {
     const s = fight(1, 123, 100);
     const p = s.collection[0];
-    setSupport(s, p.uid, NO_SUPPORT);
+    p.support = NO_SUPPORT;
     expect(supportMoveFor(p)).toBeUndefined();
+    expect(movesOf(p)).toHaveLength(4);
   });
 });
 

@@ -79,6 +79,16 @@ describe('climas novos', () => {
     expect(routeWeather(snow, { period: 'night', weather: 'rain' })).toBe('hail');
     expect(routeWeather(meadow, { period: 'day', weather: 'clear' })).toBe('clear');
   });
+
+  it('nos lugares quentes o granizo vira chuva; no alto a chuva vira neve', () => {
+    const jungle = ROUTES.find((r) => r.scene === 'jungle')!;
+    const meadow = ROUTES.find((r) => r.scene === 'meadow')!;
+    const summit = ROUTES.find((r) => r.scene === 'summit')!;
+    expect(routeWeather(jungle, { period: 'day', weather: 'hail' })).toBe('rain');
+    expect(routeWeather(meadow, { period: 'day', weather: 'hail' })).toBe('hail');
+    expect(routeWeather(summit, { period: 'day', weather: 'rain' })).toBe('hail');
+    expect(routeWeather(summit, { period: 'day', weather: 'sun' })).toBe('sun');
+  });
 });
 
 describe('formas', () => {

@@ -15,7 +15,7 @@ import {
   formName,
   getRoute,
   getSpecies,
-  NO_SUPPORT,
+  isSupportMove,
   SUPPORT_MOVES,
   describeSupport,
   supportMoveFor,
@@ -50,8 +50,6 @@ import {
   relearnMove,
   relearnableMoves,
   setMoveset,
-  setSupport,
-  supportOptions,
 } from '../../core/moveset';
 import { genderOf } from '../../core/gender';
 import {
@@ -692,7 +690,7 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
             <li className={`move type-bg-${support.type}`}>
               <span className="move-name">{support.name.toUpperCase()}</span>
               <span className="move-meta">
-                <TypeBadge type={support.type} /> APOIO{p.support ? '' : ' (AUTOMÁTICO)'} · 1 vez por luta ·{' '}
+                <TypeBadge type={support.type} /> APOIO · 1 vez por luta ·{' '}
                 {describeSupport(support)}
               </span>
             </li>
@@ -864,21 +862,43 @@ const SOURCE_TAG = { egg: 'OVO', relearn: 'LEMBRADO' } as const;
 function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
   const engine = useEngine();
   const options = learnableMoves(state, p);
-  const chosen = p.moveset?.length ? p.moveset : movesOf(p);
+  const support = supportMoveFor(p);
+  const chosen = p.moveset?.length ? p.moveset : [...movesOf(p), ...(support ? [support.id] : [])];
   const toggle = (move: string) => {
-    const next = chosen.includes(move) ? chosen.filter((m) => m !== move) : [...chosen, move].slice(-4);
-    if (next.length) engine.dispatch((s) => setMoveset(s, p.uid, next));
+    // Um apoio só: escolher outro troca o anterior. Sempre fica ao menos um ataque.
+    const base = isSupportMove(move) ? chosen.filter((m) => !isSupportMove(m)) : chosen;
+    const next = chosen.includes(move) ? chosen.filter((m) => m !== move) : [...base, move].slice(-4);
+    if (next.some((m) => !isSupportMove(m))) engine.dispatch((s) => setMoveset(s, p.uid, next));
   };
   return (
     <div className="move-editor frame frame-dialog">
       <p className="hint">
-        Escolha até 4 golpes. Golpes de TM vêm dos líderes de ginásio, da Torre, do Game Corner, das
+        Escolha até 4 golpes; um deles pode ser de apoio (usado 1 vez por luta). Golpes de TM vêm dos líderes de ginásio, da Torre, do Game Corner, das
         expedições e da Loja de Departamentos ({state.tms.length} TMs; veja o estojo na MOCHILA).
       </p>
       <ul className="move-options">
         {options.map(({ move, source }) => {
-          const mv = getMove(move);
           const on = chosen.includes(move);
+          if (source === 'support') {
+            const sm = SUPPORT_MOVES[move];
+            return (
+              <li key={move}>
+                <button
+                  className={`move-option type-bg-${sm.type} ${on ? 'on' : ''}`}
+                  onClick={() => toggle(move)}
+                >
+                  <span className="move-name">
+                    {on && <PixelIcon name="check" scale={1} />} {sm.name.toUpperCase()}
+                  </span>
+                  <span className="move-meta">
+                    <TypeBadge type={sm.type} /> <span className="move-source src-support">APOIO</span>{' '}
+                    {describeSupport(sm)}
+                  </span>
+                </button>
+              </li>
+            );
+          }
+          const mv = getMove(move);
           return (
             <li key={move}>
               <button
@@ -903,54 +923,7 @@ function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
       <button className="pbtn small" onClick={() => engine.dispatch((s) => setMoveset(s, p.uid, []))}>
         Voltar ao automático
       </button>
-      <SupportPicker p={p} />
       <Relearner state={state} p={p} />
-    </div>
-  );
-}
-
-/** Golpe de apoio: qualquer um que o Pokémon já aprendeu, o automático (o mais recente) ou nenhum. */
-function SupportPicker({ p }: { p: PokemonInstance }) {
-  const engine = useEngine();
-  const options = supportOptions(p);
-  if (!options.length) return null;
-  const pick = (move: string | undefined) => engine.dispatch((s) => void setSupport(s, p.uid, move));
-  const current = p.support;
-  return (
-    <div className="support-picker">
-      <h4>
-        GOLPE DE APOIO <small>1 vez por luta, além dos 4 golpes</small>
-      </h4>
-      <ul className="move-options">
-        {options.map((id) => {
-          const mv = SUPPORT_MOVES[id];
-          const on = current === id;
-          return (
-            <li key={id}>
-              <button className={`move-option type-bg-${mv.type} ${on ? 'on' : ''}`} onClick={() => pick(id)}>
-                <span className="move-name">
-                  {on && <PixelIcon name="check" scale={1} />} {mv.name.toUpperCase()}
-                </span>
-                <span className="move-meta">
-                  <TypeBadge type={mv.type} /> {describeSupport(mv)}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="support-picker-actions">
-        <button className={`pbtn small ${current === undefined ? 'primary' : ''}`} onClick={() => pick(undefined)}>
-          Automático
-        </button>
-        <button
-          className={`pbtn small ${current === NO_SUPPORT ? 'primary' : ''}`}
-          title="Luta só com os 4 golpes de ataque"
-          onClick={() => pick(NO_SUPPORT)}
-        >
-          Nenhum
-        </button>
-      </div>
     </div>
   );
 }
