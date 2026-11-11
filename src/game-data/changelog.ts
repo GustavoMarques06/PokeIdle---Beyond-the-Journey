@@ -13,6 +13,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-11-raides-safari-clima',
+    date: '11/11/2026',
+    title: 'Raides com escudo, Safari profundo e o céu vivo',
+    items: [
+      { tag: 'novo', text: 'Raides: o chefe tem um escudo que só os tipos super efetivos quebram (a toca mostra quais). Quebrou, ele fica atordoado.' },
+      { tag: 'novo', text: 'Raides: a cada fúria o chefe carrega um golpe gigante. Quebre o escudo a tempo ou troque para quem resiste.' },
+      { tag: 'novo', text: 'Raides: uma regra por semana (Tempestade, Frenesi, Tesouro ou Relâmpago), cartão de vitória e recorde de tempo por chefe.' },
+      { tag: 'novo', text: 'Safari: entre mais fundo na zona (Mata e Coração) para achar raros e shinies, e siga os rastros que aparecem no chão.' },
+      { tag: 'novo', text: 'Ruínas de Alph (aba Fósseis): forme a palavra da semana com seus Unown. A Escavação às vezes esconde tabuletas que viram Unown.' },
+      { tag: 'novo', text: 'Clima: frentes cruzam cada região (veja no mapa; shiny mais provável na rota delas), e às vezes há aurora, arco-íris ou chuva de meteoros.' },
+      { tag: 'novo', text: 'Lendários: boato em manchete, Santuário como templo, quando cada um volta a aparecer e filtro dos cartões.' },
+      { tag: 'melhoria', text: 'O chefe das raides acompanha o seu progresso: não aparece mais chefe fraco numa rota do começo.' },
+      { tag: 'correção', text: 'A previsão dos lendários acerta na virada do dia e da noite e não mostra quem ainda está em espera.' },
+      { tag: 'correção', text: 'O boato do dia não troca mais no meio do dia, e o Kyurem aceita o Reshiram ou o Zekrom.' },
+    ],
+  },
+  {
     id: '2026-11-10-atividades-vivas',
     date: '10/11/2026',
     title: 'Atividades vivas',
