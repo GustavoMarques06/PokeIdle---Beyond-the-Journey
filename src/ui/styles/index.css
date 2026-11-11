@@ -23,6 +23,7 @@
 @import './expeditions.css'; /* Expedições: trilha com o grupo andando, diário de viagem e cartão-postal */
 @import './tower-legends.css'; /* Torre (prédio com os andares) e previsão dos lendários */
 @import './daycare-pc.css'; /* PC da Creche: escolher o hóspede numa janela no visual do PC */
+@import './polish.css'; /* polimento visual: fundo do lugar, menu, HUD, comandos, Loja, Mochila, Cartão, Missões, Lab, Mapa, janelas */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */
 @import './help.css'; /* página de ajuda (ajuda.html) */

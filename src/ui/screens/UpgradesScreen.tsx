@@ -1,6 +1,6 @@
 // MELHORIAS: laboratório (pesquisa com duplicatas) e nova jornada (prestígio).
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CHALLENGES, PRESTIGE_UPGRADES, RESEARCH, type ChallengeId } from '../../game-data';
 import { prestigeLevel, researchLevel } from '../../core/bonuses';
 import type { GameState } from '../../core/game';
@@ -17,7 +17,8 @@ import {
   transferValue,
   upgradeCost,
 } from '../../core/meta';
-import { ItemIcon, PokemonSprite, Window } from '../components/common';
+import { ItemIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
+import { PixelFx } from '../components/PixelFx';
 import { T, formatPercent } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 
@@ -59,8 +60,16 @@ function UpgradeRow({
   currencyIcon: string;
   onBuy: () => void;
 }) {
+  // Subiu de nível: a linha brilha e o pip novo entra pulando.
+  const prev = useRef(level);
+  const [flash, setFlash] = useState(0);
+  useEffect(() => {
+    if (level > prev.current) setFlash((n) => n + 1);
+    prev.current = level;
+  }, [level]);
   return (
     <li className="upgrade-row">
+      {flash > 0 && <span key={flash} className="upgrade-flash" aria-hidden />}
       <ItemIcon id={icon} size={30} />
       <div className="upgrade-info">
         <span className="item-name">
@@ -72,7 +81,7 @@ function UpgradeRow({
         <small>{description}</small>
         <span className="pips" aria-hidden>
           {Array.from({ length: maxLevel }, (_, i) => (
-            <span key={i} className={i < level ? 'on' : ''} />
+            <span key={i} className={`${i < level ? 'on' : ''} ${flash && i === level - 1 ? 'new' : ''}`} />
           ))}
         </span>
       </div>
@@ -88,6 +97,37 @@ function UpgradeRow({
   );
 }
 
+/** Máquina do laboratório: o cientista, o tubo borbulhante e o contador de pontos. */
+function LabMachine({ points, absorbing }: { points: number; absorbing: { n: number; icons: number[] } | null }) {
+  return (
+    <div className="lab-machine" aria-hidden>
+      <span className="lab-scientist">
+        <TrainerSprite id="class-scientist" size={72} />
+      </span>
+      <span className={`lab-tube ${absorbing ? 'zap' : ''}`} key={`tube-${absorbing?.n ?? 0}`}>
+        <i className="lab-liquid" />
+        <i className="lab-bubble" />
+        <i className="lab-bubble" />
+        <i className="lab-bubble" />
+      </span>
+      {absorbing && (
+        <span key={`in-${absorbing.n}`} className="lab-incoming">
+          {absorbing.icons.map((id, i) => (
+            <span key={i} style={{ ['--i' as string]: i }}>
+              <PokemonSprite speciesId={id} kind="icon" />
+            </span>
+          ))}
+          <PixelFx fx="levelup" scale={1} x="62%" y="55%" />
+        </span>
+      )}
+      <span className="lab-panel">
+        <small>PONTOS</small>
+        <b key={points}>{points}</b>
+      </span>
+    </div>
+  );
+}
+
 export function UpgradesScreen({ state }: { state: GameState }) {
   const engine = useEngine();
   const surplus = surplusDuplicates(state);
@@ -95,6 +135,8 @@ export function UpgradesScreen({ state }: { state: GameState }) {
   const preview = prestigePreview(state);
   const [nextChallenge, setNextChallenge] = useState<ChallengeId | null>(null);
   const current = CHALLENGES.find((c) => c.id === state.challenge);
+  // Os Pokémon transferidos entram voando na máquina.
+  const [absorbing, setAbsorbing] = useState<{ n: number; icons: number[] } | null>(null);
 
   return (
     <div className="upgrades-screen">
@@ -102,16 +144,25 @@ export function UpgradesScreen({ state }: { state: GameState }) {
         title={`LABORATÓRIO · ${state.research.points} PONTOS`}
         icon={<ItemIcon id="up-grade" size={24} />}
       >
+        <LabMachine points={state.research.points} absorbing={absorbing} />
         <p className="hint">{T.lab.hint}</p>
         {surplus.length > 0 ? (
           <div className="transfer-box frame frame-dialog">
             <span className="transfer-icons">
-              {surplus.slice(0, 8).map((p) => (
-                <PokemonSprite key={p.uid} speciesId={p.speciesId} kind="icon" />
+              {surplus.slice(0, 8).map((p, i) => (
+                <span key={p.uid} style={{ ['--i' as string]: i }}>
+                  <PokemonSprite speciesId={p.speciesId} kind="icon" />
+                </span>
               ))}
               {surplus.length > 8 && <small>+{surplus.length - 8}</small>}
             </span>
-            <button className="pbtn small" onClick={() => engine.dispatch((s) => void transferDuplicates(s))}>
+            <button
+              className="pbtn small"
+              onClick={() => {
+                setAbsorbing({ n: (absorbing?.n ?? 0) + 1, icons: surplus.slice(0, 6).map((p) => p.speciesId) });
+                engine.dispatch((s) => void transferDuplicates(s));
+              }}
+            >
               {T.lab.transferAll(surplus.length, surplusPoints)}
             </button>
           </div>

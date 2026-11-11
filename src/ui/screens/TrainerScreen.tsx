@@ -39,6 +39,7 @@ import {
 import { decodeTransferCode, encodeTransferCode, TRANSFER_EXTENSION } from '../../core/transfer';
 import { Bar, ItemIcon, Money, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
 import { Badges } from '../components/Hud';
+import { teamPokemon } from '../../core/team';
 import { StatsPanel } from '../components/StatsPanel';
 import { Automation } from './trainer/Automation';
 import { HOTKEY_HELP } from '../hotkeys';
@@ -122,6 +123,72 @@ function legendCardTitle(state: GameState): string | undefined {
   return [story, legend].filter(Boolean).join(' · ') || undefined;
 }
 
+/** As 5 estrelas do cartão, como nos jogos: cada uma por um grande feito. */
+function cardStars(state: GameState, caught: number, medals: number) {
+  const champions = new Set(state.hallOfFame.map((h) => h.regionId));
+  return [
+    { label: 'Campeão de uma região', on: champions.size > 0 },
+    { label: 'Metade da Pokédex', on: caught >= SPECIES.length / 2 },
+    { label: 'Andar 50 da Torre de Batalha', on: state.tower.best >= 50 },
+    { label: 'Metade das medalhas', on: medals >= ACHIEVEMENTS.length / 2 },
+    { label: 'Campeão de todas as regiões', on: champions.size >= REGIONS.length },
+  ];
+}
+
+/** O cartão inclina um pouco seguindo o mouse (só com mouse e sem movimento reduzido). */
+function useCardTilt() {
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse' || document.documentElement.classList.contains('reduced-motion')) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    e.currentTarget.style.setProperty('--rx', `${(-y * 6).toFixed(2)}deg`);
+    e.currentTarget.style.setProperty('--ry', `${(x * 8).toFixed(2)}deg`);
+    e.currentTarget.style.setProperty('--hx', `${Math.round((x + 0.5) * 100)}%`);
+  };
+  const onPointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.style.removeProperty('--rx');
+    e.currentTarget.style.removeProperty('--ry');
+    e.currentTarget.style.removeProperty('--hx');
+  };
+  return { onPointerMove, onPointerLeave };
+}
+
+/** Verso do cartão: a equipe, as estrelas explicadas e os números da jornada. */
+function CardBack({ state, stars }: { state: GameState; stars: { label: string; on: boolean }[] }) {
+  const team = teamPokemon(state);
+  const shinies = state.collection.filter((p) => p.shiny).length;
+  return (
+    <div className="card-back-body">
+      <div className="card-team">
+        {team.map((p) => (
+          <span key={p.uid} className="card-team-mon">
+            <PokemonSprite speciesId={p.speciesId} kind="front" shiny={p.shiny} form={p.form} />
+            <small>Nv{p.level}</small>
+          </span>
+        ))}
+      </div>
+      <ul className="card-star-list">
+        {stars.map((st) => (
+          <li key={st.label} className={st.on ? 'on' : ''}>
+            <PixelIcon name="star" scale={2} /> {st.label}
+          </li>
+        ))}
+      </ul>
+      <dl className="card-grid card-back-grid">
+        <dt>SHINIES</dt>
+        <dd>{shinies}</dd>
+        <dt>HALL DA FAMA</dt>
+        <dd>{state.hallOfFame.length}</dd>
+        <dt>TORRE</dt>
+        <dd>andar {state.tower.best}</dd>
+        <dt>DESDE</dt>
+        <dd>{new Date(state.createdAt).toLocaleDateString('pt-BR')}</dd>
+      </dl>
+    </div>
+  );
+}
+
 export function TrainerScreen({ state }: { state: GameState }) {
   const engine = useEngine();
   const [tab, setTab] = useState<(typeof TRAINER_TABS)[number]['id']>('card');
@@ -140,6 +207,9 @@ export function TrainerScreen({ state }: { state: GameState }) {
   const companion = state.companion
     ? state.collection.find((p) => p.uid === state.companion!.uid)
     : undefined;
+  const [back, setBack] = useState(false);
+  const stars = cardStars(state, caught, done.size);
+  const tilt = useCardTilt();
 
   return (
     <div className="trainer-screen">
@@ -163,7 +233,12 @@ export function TrainerScreen({ state }: { state: GameState }) {
 
       {tab === 'card' && (
         <>
-          <div className={`trainer-card frame frame-card card-frame-${state.cardFrame}`}>
+          <div
+            key={back ? 'back' : 'front'}
+            className={`trainer-card frame frame-card card-frame-${state.cardFrame} stars-${stars.filter((x) => x.on).length} ${back ? 'card-back' : ''}`}
+            {...tilt}
+          >
+            <span className="card-holo" aria-hidden />
             {state.cardFrame !== 'basic' &&
               // Ornamento de canto desenhado (public/sprites/frames/<moldura>.png, o canto de cima à
               // esquerda), espelhado nos outros três. Sem o arquivo, ficam os cantos feitos em CSS.
@@ -179,8 +254,22 @@ export function TrainerScreen({ state }: { state: GameState }) {
               ))}
             <div className="card-head">
               <span>CARTÃO DE TREINADOR</span>
+              <span className="card-stars">
+                {stars.map((st) => (
+                  <span key={st.label} className={st.on ? 'on' : ''} title={`${st.label}${st.on ? ' ✓' : ''}`}>
+                    <PixelIcon name="star" scale={2} />
+                  </span>
+                ))}
+              </span>
               <span>ID Nº{String(state.createdAt % 65536).padStart(5, '0')}</span>
+              <button className="pbtn small card-flip" onClick={() => setBack((v) => !v)}>
+                {back ? 'Frente' : 'Virar'}
+              </button>
             </div>
+            {back ? (
+              <CardBack state={state} stars={stars} />
+            ) : (
+            <>
             <div className="card-body">
               <dl className="card-grid">
                 <dt>NOME</dt>
@@ -263,6 +352,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
                     className="showcase-slot"
                     title="Escolha uma medalha abaixo para expor aqui"
                   >
+                    <PixelIcon name="trophyEmpty" scale={3} />
                     <small>vazio</small>
                   </span>
                 ),
@@ -277,6 +367,8 @@ export function TrainerScreen({ state }: { state: GameState }) {
                 </span>
               ))}
             </div>
+            </>
+            )}
           </div>
 
           {/* O visual muda pouco: fica recolhido, e o cartão aparece inteiro de cara. */}

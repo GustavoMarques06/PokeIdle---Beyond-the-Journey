@@ -2,7 +2,7 @@
 // que vende todos os itens mas só para quem está na área dela, e o mercador viajante, que
 // aparece de tempos em tempos com itens raros em promoção.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BALANCE,
   DEPT_STORE,
@@ -28,7 +28,8 @@ import {
   shopEntries,
   type GameState,
 } from '../../core/game';
-import { ItemIcon, Money, TypeBadge, Window } from '../components/common';
+import { ItemIcon, Money, TrainerSprite, TypeBadge, Window } from '../components/common';
+import { PixelFx } from '../components/PixelFx';
 import {
   UPGRADE_TEXT,
   formatDuration,
@@ -42,11 +43,84 @@ import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { Countdown, Locked } from './activities/shared';
 
+/** Quem compra avisa o balcão: o vendedor agradece e o item sobe. */
+let notifyBuy: ((id: string) => void) | null = null;
+
 /** Jingle de item recebido quando a compra deu certo (sem dinheiro ou estoque, nada toca). */
-function gotItem<T>(result: T): T {
-  if (result) audio.sfx('itemGet');
+function gotItem<T>(result: T, id: string): T {
+  if (result) {
+    audio.sfx('itemGet');
+    notifyBuy?.(id);
+  }
   return result;
 }
+
+const SHELF: Record<Store, string[]> = {
+  mart: ['poke-ball', 'great-ball', 'ultra-ball', 'potion', 'net-ball', 'heal-ball'],
+  dept: ['thunder-stone', 'fire-stone', 'water-stone', 'rare-candy', 'luxury-ball', 'timer-ball'],
+  merchant: ['amulet-coin', 'star-piece', 'shiny-charm', 'nugget'],
+};
+
+const GREETINGS: Record<Store, string[]> = {
+  mart: ['Bem-vindo ao POKé MART!', 'Poké Balls fresquinhas hoje!', 'Precisa de algo para a jornada?'],
+  dept: ['Bem-vindo! Aqui tem de tudo.', 'Pedras de evolução logo ali!', 'TMs novos na prateleira!'],
+  merchant: ['Coisas raras, preço de amigo!', 'Corre que o estoque acaba!', 'Vim de longe só pra você!'],
+};
+
+/** Balcão no alto da loja: prateleira, o vendedor (ou o mercador) e o balão de fala. */
+function ShopCounter({ store, away }: { store: Store; away: boolean }) {
+  const [sale, setSale] = useState<{ id: string; n: number } | null>(null);
+  const [line, setLine] = useState(0);
+  useEffect(() => {
+    notifyBuy = (id) => setSale((v) => ({ id, n: (v?.n ?? 0) + 1 }));
+    return () => {
+      notifyBuy = null;
+    };
+  }, []);
+  useEffect(() => {
+    const timer = setInterval(() => setLine((n) => n + 1), 7000);
+    return () => clearInterval(timer);
+  }, []);
+  const thanks = !!sale;
+  // Depois de um tempo o "Obrigado!" volta às falas de sempre.
+  useEffect(() => {
+    if (!sale) return;
+    const timer = setTimeout(() => setSale((v) => (v === sale ? null : v)), 2600);
+    return () => clearTimeout(timer);
+  }, [sale]);
+  const say = away
+    ? 'VOLTO LOGO! (o mercador está na estrada)'
+    : thanks
+      ? `Obrigado! ${itemName(sale!.id)} já está na sua mochila.`
+      : GREETINGS[store][line % GREETINGS[store].length];
+  return (
+    <div className={`shop-counter store-${store} ${away ? 'away' : ''}`}>
+      <span className="shop-shelf" aria-hidden>
+        {SHELF[store].map((id, i) => (
+          <span key={id} style={{ ['--i' as string]: i }}>
+            <ItemIcon id={id} size={24} />
+          </span>
+        ))}
+      </span>
+      {!away && (
+        <span key={`clerk-${sale?.n ?? 0}`} className={`shop-clerk ${thanks ? 'thanks' : ''}`} aria-hidden>
+          <TrainerSprite id={store === 'merchant' ? 'class-backpacker' : 'class-clerk'} size={80} />
+        </span>
+      )}
+      <span key={`say-${sale?.n ?? 0}-${line}-${store}`} className="shop-say">
+        {say}
+      </span>
+      {sale && (
+        <span key={`sold-${sale.n}`} className="shop-sold" aria-hidden>
+          <ItemIcon id={sale.id} size={32} />
+          <PixelFx fx="coins" scale={2} x="50%" y="60%" />
+        </span>
+      )}
+      <span className="shop-desk" aria-hidden />
+    </div>
+  );
+}
+
 
 type Store = 'mart' | 'dept' | 'merchant';
 
@@ -182,6 +256,10 @@ export function ShopScreen({ state }: { state: GameState }) {
   const [query, setQuery] = useState('');
   return (
     <div className="bag-screen shop-screen">
+      <ShopCounter
+        store={store}
+        away={store === 'merchant' && (!merchantUnlocked(state) || !state.merchant)}
+      />
       <div className="bag-pockets">
         <button className={`pocket ${store === 'mart' ? 'active' : ''}`} onClick={() => setStore('mart')}>
           <ItemIcon id="coin-case" size={30} /> POKé MART
@@ -270,7 +348,7 @@ function Mart({ state, income, query }: { state: GameState; income: number; quer
                     <button
                       className="pbtn small"
                       disabled={state.coins < entry.price}
-                      onClick={() => engine.dispatch((s) => gotItem(buy(s, entry.id)))}
+                      onClick={() => engine.dispatch((s) => gotItem(buy(s, entry.id), entry.id))}
                     >
                       <Money value={entry.price} />
                     </button>
@@ -278,7 +356,7 @@ function Mart({ state, income, query }: { state: GameState; income: number; quer
                       <button
                         className="pbtn small"
                         disabled={state.coins < entry.price * 10}
-                        onClick={() => engine.dispatch((s) => gotItem(buy(s, entry.id, 10)))}
+                        onClick={() => engine.dispatch((s) => gotItem(buy(s, entry.id, 10), entry.id))}
                       >
                         ×10
                       </button>
@@ -381,7 +459,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
                     <button
                       className="pbtn small"
                       disabled={!here || state.coins < entry.price}
-                      onClick={() => engine.dispatch((s) => gotItem(buyAtDeptStore(s, entry.id)))}
+                      onClick={() => engine.dispatch((s) => gotItem(buyAtDeptStore(s, entry.id), entry.id))}
                     >
                       <Money value={entry.price} />
                     </button>
@@ -389,7 +467,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
                       <button
                         className="pbtn small"
                         disabled={!here || state.coins < entry.price * 10}
-                        onClick={() => engine.dispatch((s) => gotItem(buyAtDeptStore(s, entry.id, 10)))}
+                        onClick={() => engine.dispatch((s) => gotItem(buyAtDeptStore(s, entry.id, 10), entry.id))}
                       >
                         ×10
                       </button>
@@ -452,7 +530,7 @@ function TmShelf({
                 <button
                   className="pbtn small"
                   disabled={!here || have || state.coins < entry.price}
-                  onClick={() => engine.dispatch((s) => gotItem(buyTm(s, entry.move)))}
+                  onClick={() => engine.dispatch((s) => gotItem(buyTm(s, entry.move), 'tm'))}
                 >
                   {have ? 'TEM' : <Money value={entry.price} />}
                 </button>
@@ -521,7 +599,7 @@ function Merchant({ state, income }: { state: GameState; income: number }) {
                     className="pbtn small"
                     disabled={o.stock <= 0 || state.coins < o.price}
                     onClick={() => {
-                      engine.dispatch((s, t) => gotItem(buyFromMerchant(s, o.id, t)));
+                      engine.dispatch((s, t) => gotItem(buyFromMerchant(s, o.id, t), o.id));
                     }}
                   >
                     <Money value={o.price} />

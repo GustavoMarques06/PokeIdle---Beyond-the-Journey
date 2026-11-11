@@ -155,7 +155,14 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
             className="hud-route-bar"
             title={`${Math.min(prog.kills, route.killsRequired)} de ${route.killsRequired} vitórias`}
           >
-            <Bar value={prog.kills} max={route.killsRequired} tone="grass" />
+            <span className="hud-route-track">
+              <Bar value={prog.kills} max={route.killsRequired} tone="grass" />
+              <span className="hud-route-ticks" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
+            </span>
             <small className="hud-goal">
               {prog.kills < route.killsRequired
                 ? `faltam ${route.killsRequired - prog.kills}`
@@ -202,7 +209,9 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
 
       <div className="hud-seg hud-pop hud-money" tabIndex={0} aria-label={`${fmt(state.coins)} Pokédólares`}>
         <span className="money">
-          <PixelIcon name="pokedollar" scale={2} title="Pokédólares" />
+          <span key={money.gain?.id ?? 0} className={`hud-coin ${money.gain ? 'bump' : ''}`}>
+            <PixelIcon name="pokedollar" scale={2} title="Pokédólares" />
+          </span>
           {fmt(money.shown)}
         </span>
         {money.gain && (

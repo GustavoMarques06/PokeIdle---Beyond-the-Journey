@@ -14,6 +14,7 @@ import { claimableMissions } from '../../core/missions';
 import type { ScreenId } from '../battle/BattleDialog';
 import { unseenTabs } from '../screens/activities/tabs';
 import { ItemIcon, PixelIcon } from './common';
+import { Balloon } from './PixelUi';
 
 export const MENU_ITEMS: {
   id: ScreenId;
@@ -176,7 +177,11 @@ export function GameMenu({
             {fresh ? (
               <span className="new-badge menu-new">NOVO</span>
             ) : (
-              alerts[item.id] && <span className="menu-alert" title="Há algo esperando por você aqui" />
+              alerts[item.id] && (
+                <span className="menu-alert" title="Há algo esperando por você aqui">
+                  <Balloon kind="alert" scale={1} />
+                </span>
+              )
             )}
           </button>
         );

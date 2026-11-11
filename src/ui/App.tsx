@@ -9,6 +9,7 @@ import {
   type ComponentType,
   type RefObject,
 } from 'react';
+import { WorldBackdrop, backdropAttrs } from './components/WorldBackdrop';
 import type { GameEvent, GameState } from '../core/game';
 import { pokemonName } from '../core/pokemon';
 import { audio } from './audio';
@@ -263,10 +264,13 @@ function GameScreen({ state }: { state: GameState }) {
     });
   }, [engine, onboarded]);
 
+  const { scene, ...backdrop } = backdropAttrs(state);
   return (
     <div
       className={`game game-enter ${idle ? 'idle' : ''} ${screen !== 'party' || detail !== null ? 'window-open' : ''}`}
+      {...backdrop}
     >
+      <WorldBackdrop scene={scene} phase={backdrop['data-phase']} />
       <nav className="skip-links" aria-label="Atalhos de navegação">
         <a href="#game-menu">Pular para o menu</a>
         <a href="#screen-area">Pular para a tela aberta</a>

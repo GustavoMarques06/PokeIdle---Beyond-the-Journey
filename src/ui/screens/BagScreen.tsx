@@ -28,7 +28,8 @@ import { activeLure, applyLure } from '../../core/lures';
 import { itemEvolution } from '../../core/progression';
 import { movesOf, pokemonName } from '../../core/pokemon';
 import { TM_CATALOG, canLearnTm, teachTm, tmLabel, tmSources } from '../../core/tms';
-import { ItemIcon, Money, PokemonSprite, TypeBadge, Window } from '../components/common';
+import { ItemIcon, Money, PixelIcon, PokemonSprite, TypeBadge, Window } from '../components/common';
+import { PixelFx } from '../components/PixelFx';
 import {
   formatDuration,
   formatNumber,
@@ -62,6 +63,9 @@ export function BagScreen({ state }: { state: GameState }) {
   return (
     <div className="bag-screen">
       <div className="bag-pockets">
+        <span key={pocket} className={`bag-art pocket-${pocket}`} aria-hidden>
+          <PixelIcon name="bag" scale={5} palette={pocket === 'tms' ? { c: '#e8a040' } : undefined} />
+        </span>
         <button className={`pocket ${pocket === 'items' ? 'active' : ''}`} onClick={() => setPocket('items')}>
           <ItemIcon id="explorer-kit" size={30} /> ITENS
         </button>
@@ -76,9 +80,9 @@ export function BagScreen({ state }: { state: GameState }) {
       {pocket === 'items' ? (
         <>
           <Window frame="menu">
-            <ul className="item-list">
-              {owned.map(([id, n]) => (
-                <li key={id}>
+            <ul className="item-list bag-list">
+              {owned.map(([id, n], i) => (
+                <li key={id} style={{ ['--i' as string]: Math.min(i, 12) }}>
                   <button
                     className={`item-row ${selected === id ? 'selected' : ''}`}
                     onClick={() => setSelected(id)}
@@ -93,8 +97,10 @@ export function BagScreen({ state }: { state: GameState }) {
             </ul>
           </Window>
           {selected && (
-            <div className="item-desc frame frame-dialog">
-              <ItemIcon id={selected} size={48} />
+            <div className="item-desc frame frame-dialog" key={selected}>
+              <span className="item-desc-art">
+                <ItemIcon id={selected} size={48} />
+              </span>
               <div>
                 <p>{itemDescription(selected) || itemName(selected)}</p>
                 {berry && (state.items[selected] ?? 0) > 0 && (
@@ -183,6 +189,8 @@ function SellBox({ state, id }: { state: GameState; id: string }) {
   const engine = useEngine();
   const have = state.items[id] ?? 0;
   const unit = sellPrice(id);
+  // Moedas que sobem da venda (a chave reinicia a animação a cada venda).
+  const [sold, setSold] = useState<{ n: number; amount: number } | null>(null);
   if (have <= 0) return null;
   if (unit <= 0) return <p className="hint">Este item não tem valor de venda.</p>;
   const sell = (qty: number) => {
@@ -194,9 +202,16 @@ function SellBox({ state, id }: { state: GameState; id: string }) {
       return;
     engine.dispatch((s) => sellItem(s, id, qty));
     audio.sfx('coin');
+    setSold((v) => ({ n: (v?.n ?? 0) + 1, amount: unit * qty }));
   };
   return (
     <div className="sell-box">
+      {sold && (
+        <span key={sold.n} className="sell-fx" aria-hidden>
+          <PixelFx fx="coins" scale={2} x="50%" y="50%" />
+          <b>+₽{formatNumber(sold.amount)}</b>
+        </span>
+      )}
       <span>
         Vender por <Money value={unit} /> cada
       </span>

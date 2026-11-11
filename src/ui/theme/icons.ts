@@ -270,6 +270,31 @@ export const ICONS = {
     ],
     palette: { k: K, b: '#4888e0', w: '#ffffff' },
   },
+  // Botões de batalha e marcadores do mapa (polimento de 11/11).
+  shoe: {
+    rows: ['.....kkk.', '....krrk.', '...krrrk.', '.kkrwrrkk', 'krrrrrrrk', 'kwwwwwwwk', '.kkkkkkk.'],
+    palette: { k: K, r: '#e04838', w: '#f8f8f8' },
+  },
+  fist: {
+    rows: ['..kkkkkk.', '.kskskskk', '.kskskssk', 'kkkkkkssk', 'ksssssssk', 'ksssssssk', '.kssssssk', '..kkkkkk.'],
+    palette: { k: '#603020', s: '#f8c890' },
+  },
+  wave: {
+    rows: ['..kk.....', '.kwbk..kk', 'kwbbbkkbk', 'kbbbbbbbk', '.kkkkkkk.'],
+    palette: { k: '#204878', b: '#4898e8', w: '#c8f0ff' },
+  },
+  rock: {
+    rows: ['...kkk...', '..kgggk..', '.kgkkkgk.', 'kgkdddkgk', 'kgkdddkgk', 'kkkkkkkkk'],
+    palette: { k: '#403020', g: '#a08060', d: '#201810' },
+  },
+  house: {
+    rows: ['....k....', '...krk...', '..krrrk..', '.krrrrrk.', 'kkkkkkkkk', '.kwbwwwk.', '.kwbwkwk.', '.kkkkkkk.'],
+    palette: { k: K, r: '#d84838', w: '#f8f0d8', b: '#5880c8' },
+  },
+  flame: {
+    rows: ['...k...', '..kok..', '..koyk.', '.kooyk.', '.koyyok', 'koyywok', 'koywwok', '.koook.', '..kkk..'],
+    palette: { k: '#802010', o: '#f06020', y: '#f8c830', w: '#fff8c0' },
+  },
 } satisfies Record<string, PixelIconDef>;
 
 export type IconName = keyof typeof ICONS;

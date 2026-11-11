@@ -109,11 +109,54 @@ function grassTile(): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" shape-rendering="crispEdges">${rects}</svg>`;
 }
 
+/** Ladrilhos do fundo da página, um por tipo de lugar (32×32, salpicados de forma fixa). */
+const BIOME_TILES: Record<string, { base: [string, string]; speck: string[]; dots: [string, number][] }> = {
+  grass: { base: ['#78b858', '#72b054'], speck: ['#5c9a44', '#90c868'], dots: [['#f8f8f0', 3], ['#f8d848', 2], ['#e86858', 1]] },
+  forest: { base: ['#4f8a3c', '#4a8238'], speck: ['#3c6e30', '#62a04a'], dots: [['#2c5a26', 4], ['#88c060', 2]] },
+  sand: { base: ['#e8d098', '#e2c88e'], speck: ['#c8a868', '#f4e0b0'], dots: [['#a88850', 3], ['#fff0c8', 2]] },
+  snow: { base: ['#e8f0f8', '#e0eaf4'], speck: ['#c0d0e8', '#ffffff'], dots: [['#a8c0e0', 3], ['#ffffff', 3]] },
+  rock: { base: ['#8a7a68', '#827260'], speck: ['#6a5a4a', '#a09080'], dots: [['#584838', 4], ['#b8a890', 2]] },
+  water: { base: ['#5898d8', '#5090d0'], speck: ['#78b8f0', '#4080c0'], dots: [['#c8ecff', 3], ['#3870b0', 2]] },
+  city: { base: ['#c8c0b0', '#c0b8a8'], speck: ['#a8a090', '#d8d0c0'], dots: [['#988f80', 3]] },
+  lava: { base: ['#6a4a40', '#62443a'], speck: ['#4a3028', '#845a4a'], dots: [['#e06030', 3], ['#f8b040', 1]] },
+  league: { base: ['#8878b0', '#8070a8'], speck: ['#6a5a98', '#a898c8'], dots: [['#f8e078', 2], ['#584888', 3]] },
+};
+
+function biomeTile(kind: string): string {
+  const t = BIOME_TILES[kind];
+  // Hash fixo: o mesmo ladrilho sempre, sem padrão de xadrez aparente.
+  const h = (x: number, y: number, k: number) => {
+    const v = Math.sin(x * 12.9898 + y * 78.233 + k * 37.719) * 43758.5453;
+    return v - Math.floor(v);
+  };
+  let rects = `<rect width="32" height="32" fill="${t.base[0]}"/>`;
+  for (let y = 0; y < 32; y += 4)
+    for (let x = 0; x < 32; x += 4)
+      if (h(x, y, 1) < 0.5) rects += `<rect x="${x}" y="${y}" width="4" height="4" fill="${t.base[1]}"/>`;
+  for (let i = 0; i < 26; i++) {
+    const x = Math.floor(h(i, 3, 2) * 32);
+    const y = Math.floor(h(i, 7, 3) * 32);
+    rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${t.speck[i % t.speck.length]}"/>`;
+  }
+  let n = 0;
+  for (const [color, count] of t.dots)
+    for (let i = 0; i < count; i++, n++) {
+      const x = 2 + Math.floor(h(n, 11, 5) * 27);
+      const y = 2 + Math.floor(h(n, 13, 6) * 27);
+      // Florzinha, pedrinha ou brilho: uma cruz de 3 px.
+      rects += `<rect x="${x}" y="${y - 1}" width="1" height="3" fill="${color}"/><rect x="${x - 1}" y="${y}" width="3" height="1" fill="${color}"/>`;
+    }
+  if (kind === 'city')
+    rects += '<rect x="0" y="15" width="32" height="1" fill="#a8a090"/><rect x="15" y="0" width="1" height="15" fill="#a8a090"/><rect x="7" y="16" width="1" height="16" fill="#a8a090"/><rect x="23" y="16" width="1" height="16" fill="#a8a090"/>';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" shape-rendering="crispEdges">${rects}</svg>`;
+}
+
 /** Registra as molduras como variáveis CSS (`--frame-<nome>`). Chamar uma vez na inicialização. */
 export function installFrames(root: HTMLElement = document.documentElement): void {
   for (const [name, palette] of Object.entries(FRAMES)) {
     root.style.setProperty(`--frame-${name}`, svgUrl(frameSvg(palette)));
   }
   root.style.setProperty('--tile-grass', svgUrl(grassTile()));
+  for (const kind of Object.keys(BIOME_TILES)) root.style.setProperty(`--tile-${kind}`, svgUrl(biomeTile(kind)));
   root.style.setProperty('--icon-cursor', svgUrl(iconSvg(ICONS.cursor)));
 }

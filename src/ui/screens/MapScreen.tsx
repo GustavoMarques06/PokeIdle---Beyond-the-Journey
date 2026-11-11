@@ -22,6 +22,7 @@ import {
 import { bossLook } from '../../core/rival';
 import { Badges } from '../components/Hud';
 import { Bar, ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, Window } from '../components/common';
+import type { IconName } from '../theme/icons';
 import { useHotkeys } from '../hotkeys';
 import { WEATHER_NAMES, formatDuration, itemName, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
@@ -54,6 +55,18 @@ const MAP_ART: Record<string, { w: number; h: number; game: string }> = {
 
 function regionUnlocked(state: GameState, regionId: string): boolean {
   return REGIONS.find((r) => r.id === regionId)!.routes.some((id) => state.routes[id]?.unlocked);
+}
+
+/** Ícone do tipo de lugar no marcador do mapa. */
+function placeGlyph(scene: string): IconName {
+  if (scene.startsWith('league')) return 'medal';
+  if (['beach', 'river', 'sea', 'seafloor'].includes(scene)) return 'wave';
+  if (['snowfield', 'icecave'].includes(scene)) return 'hail';
+  if (scene === 'volcano') return 'flame';
+  if (scene === 'desert') return 'sand';
+  if (['cave', 'dampcave', 'mountain', 'summit', 'ruins'].includes(scene)) return 'rock';
+  if (['city', 'street', 'lab', 'tower', 'powerplant', 'rocket-base'].includes(scene)) return 'house';
+  return 'tree';
 }
 
 export function MapScreen({ state }: { state: GameState }) {
@@ -243,7 +256,16 @@ function RegionMap({
             title={r.name}
             aria-label={`${r.name}${here ? ' (você está aqui)' : ''}`}
           >
-            {here && <PixelIcon name="miniBall" scale={2} className="node-here" />}
+            {r.kind !== 'trial' && (
+              <span className="node-glyph" aria-hidden>
+                <PixelIcon name={placeGlyph(r.scene)} scale={1} />
+              </span>
+            )}
+            {here && (
+              <span className="node-here node-here-trainer" aria-hidden>
+                <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={26} head />
+              </span>
+            )}
             {ready && <span className="node-flag" aria-hidden />}
             {roamer && (
               <span className="node-roamer" title={`${speciesName(state.roamer!.speciesId)} está aqui!`}>

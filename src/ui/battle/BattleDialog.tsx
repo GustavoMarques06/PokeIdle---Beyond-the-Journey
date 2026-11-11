@@ -436,6 +436,9 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
                 onClick={() => setView('fight')}
                 style={{ ['--charge' as string]: `${Math.round(charge * 100)}%` }}
               >
+                <span className="bc-icon" aria-hidden>
+                  <PixelIcon name="fist" scale={3} />
+                </span>
                 <strong>LUTAR</strong>
                 <small>
                   {b.pendingMove
@@ -448,6 +451,9 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
               </button>
             )}
             <button className="bc-big bc-bag" onClick={() => setView('bag')}>
+              <span className="bc-icon" aria-hidden>
+                <PixelIcon name="bag" scale={3} />
+              </span>
               <strong>MOCHILA</strong>
               <small>
                 {!usable
@@ -458,10 +464,16 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
               </small>
             </button>
             <button className="bc-big bc-party" onClick={() => setView('party')}>
+              <span className="bc-icon" aria-hidden>
+                <PixelIcon name="miniBall" scale={4} />
+              </span>
               <strong>POKéMON</strong>
               <small>{reserves.length ? `equipe de ${reserves.length + 1}` : 'ver equipe'}</small>
             </button>
             <button className="bc-big bc-run" disabled={!fighting} onClick={run} title="Tecla F">
+              <span className="bc-icon" aria-hidden>
+                <PixelIcon name="shoe" scale={3} />
+              </span>
               <strong>{runLabel}</strong>
               <small>{runHint}</small>
             </button>
