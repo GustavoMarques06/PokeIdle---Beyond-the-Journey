@@ -451,10 +451,10 @@ function ScientistRequest({ state }: { state: GameState }) {
   return (
     <div className={`lab-request frame frame-dialog ${done ? 'done' : ready ? 'ready' : ''}`}>
       <span className="lab-scientist" aria-hidden>
-        <TrainerSprite id="kanto-blaine" size={48} head />
+        <TrainerSprite id="class-scientist" size={48} head />
       </span>
       <div>
-        <strong>PEDIDO DO BLAINE · CIENTISTA</strong>
+        <strong>PEDIDO DO CIENTISTA</strong>
         <p>{done ? 'Obrigado! Isso vai ajudar muito a pesquisa. Volte amanhã, que eu terei outro pedido.' : req.line}</p>
         {!done && (
           <span className="lab-request-items">

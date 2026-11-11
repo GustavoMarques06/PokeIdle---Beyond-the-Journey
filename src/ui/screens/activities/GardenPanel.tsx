@@ -3,7 +3,7 @@
 // (toque para espantar), berries pulando na colheita e o caderno de mutações descobertas.
 
 import { useCallback, useRef, useState, type CSSProperties } from 'react';
-import { BALANCE, BERRIES } from '../../../game-data';
+import { BALANCE, BERRIES, assetUrl } from '../../../game-data';
 import {
   MAX_WATER,
   buffValue,
@@ -245,6 +245,15 @@ export function GardenPanel({ state }: { state: GameState }) {
   const season = gardenSeason(now);
   const bees = beesVisiting(now);
   const guardian = gardenGuardian(state);
+  const seasonAnim = night
+    ? 'fireflies'
+    : season === 'spring'
+      ? 'blossoms'
+      : season === 'autumn'
+        ? 'leaves'
+        : season === 'winter'
+          ? 'snow'
+          : undefined;
 
   const doHarvest = (i: number) => {
     const berry = state.garden[i]?.berry;
@@ -285,12 +294,25 @@ export function GardenPanel({ state }: { state: GameState }) {
         <div className={`garden-scene ${night ? 'night' : ''} ${raining ? 'raining' : ''} season-${season}`}>
           <span className="garden-sky" aria-hidden />
           {raining && <span className="garden-raindrops" aria-hidden />}
-          {/* A estação cai do céu: pétalas, folhas, neve ou o brilho do verão. */}
-          <span className={`garden-season-fx s-${season}`} aria-hidden>
-            {Array.from({ length: 9 }, (_, k) => (
-              <i key={k} style={{ '--i': k } as CSSProperties} />
-            ))}
-          </span>
+          {/* A estação no céu do jardim: pétalas na primavera, folhas no outono, neve no inverno (pixel art do pixelfx) e,
+              à noite, vaga-lumes. No verão, um brilho de calor em CSS. Com chuva, só a chuva. */}
+          {!raining && seasonAnim ? (
+            <img
+              className="garden-anim"
+              src={assetUrl(`sprites/weather/${seasonAnim}.webp`)}
+              alt=""
+              aria-hidden
+              draggable={false}
+            />
+          ) : (
+            !raining && (
+              <span className={`garden-season-fx s-${season}`} aria-hidden>
+                {Array.from({ length: 9 }, (_, k) => (
+                  <i key={k} style={{ '--i': k } as CSSProperties} />
+                ))}
+              </span>
+            )
+          )}
           {bees && (
             <span className="garden-bees" aria-hidden>
               {[0, 1, 2].map((k) => (

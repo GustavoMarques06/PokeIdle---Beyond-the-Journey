@@ -163,6 +163,16 @@ const UI_TRAINERS = {
   oak: ['oak-gen3'],
   rocket: ['teamrocketgruntm-gen3', 'rocketgrunt'],
   rocketf: ['teamrocketgruntf-gen3', 'rocketgruntf'],
+  // Classes de treinador das atividades (Laboratório, Creche, Treino, Game Corner e os andares da Torre). Estilo da
+  // 3ª geração, como os de cima; a 4ª quando não houver.
+  ...Object.fromEntries(
+    [
+      'scientist', 'gambler', 'pokemonbreeder', 'blackbelt', 'battlegirl', 'psychic', 'lass', 'youngster',
+      'birdkeeper', 'hiker', 'fisherman', 'beauty', 'gentleman', 'pokemonranger', 'acetrainer', 'camper',
+      'picnicker', 'ruinmaniac', 'richboy', 'lady', 'parasollady', 'aromalady', 'supernerd', 'guitarist',
+      'swimmer', 'cyclist', 'worker', 'veteran',
+    ].map((c) => [`class-${c}`, [`${c}-gen3`, `${c}-gen4`, `${c}-gen4dp`, c]]),
+  ),
 };
 
 const UI_ITEMS = [

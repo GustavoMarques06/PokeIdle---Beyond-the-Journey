@@ -34,7 +34,7 @@ import type { GameEvent, GameState } from '../../../core/game';
 import { NICKNAME_MAX, setNickname, type PokemonInstance } from '../../../core/pokemon';
 import type { Ivs } from '../../../core/stats';
 import { reservePokemon, reserveSlotsUnlocked } from '../../../core/team';
-import { Bar, ItemIcon, PokemonSprite, Shiny, Window } from '../../components/common';
+import { Bar, ItemIcon, PokemonSprite, Shiny, TrainerSprite, Window } from '../../components/common';
 import { STAT_NAMES, formatDuration, moveName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { DaycarePc } from './DaycarePc';
@@ -751,9 +751,14 @@ export function DaycarePanel({ state }: { state: GameState }) {
             )}
           </div>
         )}
-        <p className="daycare-status caretaker">
-          <span className="caretaker-tag">DONO DA CRECHE</span> {caretakerLine(state, a, b)}
-        </p>
+        <div className="daycare-owner">
+          <span className="daycare-owner-sprite" aria-hidden>
+            <TrainerSprite id="class-pokemonbreeder" size={44} head />
+          </span>
+          <p className="daycare-status caretaker">
+            <span className="caretaker-tag">DONA DA CRECHE</span> {caretakerLine(state, a, b)}
+          </p>
+        </div>
         {a && b && ok && <BreedingNotes a={a} b={b} />}
         {ok && (
           <div className="node-progress">

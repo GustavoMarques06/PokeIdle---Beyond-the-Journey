@@ -107,7 +107,7 @@ function DailyChallenge({ state }: { state: GameState }) {
   return (
     <div className={`train-daily frame frame-dialog ${ready ? 'ready' : ''} ${claimed ? 'done' : ''}`}>
       <span className="train-daily-coach" aria-hidden>
-        <TrainerSprite id="kalos-korrina" size={48} head />
+        <TrainerSprite id="class-battlegirl" size={48} head />
       </span>
       <div>
         <strong>DESAFIO DO DIA · {STAT_NAMES[c.stat].toUpperCase()}</strong>

@@ -2279,3 +2279,69 @@
 .reduced-motion :is(.lk-received li, .duel-ranking li, .duel-trophies li, .duel-replay-log li) {
   animation: none !important;
 }
+
+/* --- Pixel art do pixelfx nas atividades: estações e vaga-lumes no Jardim, chuva e neblina no Safari ---- */
+.garden-anim,
+.safari-weather-anim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.garden-anim {
+  opacity: 0.9;
+}
+
+.safari-weather-anim {
+  z-index: 3;
+  opacity: 0.85;
+}
+
+.safari-fog {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent) 0 30% / 200% 40% no-repeat,
+    linear-gradient(rgb(240 244 255 / 0.35), rgb(240 244 255 / 0.15));
+  pointer-events: none;
+  animation: lg-drift 9s linear infinite;
+}
+
+.scene-sky-anim {
+  z-index: 2;
+}
+
+html.gfx-performance :is(.garden-anim, .safari-weather-anim, .scene-sky-anim),
+.reduced-motion :is(.garden-anim, .safari-weather-anim, .scene-sky-anim) {
+  display: none;
+}
+
+.reduced-motion .safari-fog {
+  animation: none !important;
+}
+
+/* --- Sprites de classe de treinador: o dono da Creche ao lado da fala ------------------------ */
+.daycare-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daycare-owner .daycare-status {
+  flex: 1;
+}
+
+.daycare-owner-sprite {
+  flex: none;
+  animation: guest-hop 2.4s steps(2, end) infinite;
+}
+
+.reduced-motion .daycare-owner-sprite {
+  animation: none !important;
+}

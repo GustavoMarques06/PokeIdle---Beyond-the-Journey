@@ -67,7 +67,7 @@ import { RaidVictory } from './RaidVictory';
 import { battleSpritePath, useWarmBattleSprites } from './warmSprites';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
-import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer } from './effects';
+import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer, ambientFor } from './effects';
 import { artMs, impactArt, statusArt, type FxArt } from './fxart';
 
 interface Floater {
@@ -345,6 +345,7 @@ export function BattleScene({ state }: { state: GameState }) {
   // Evento raro do céu (aurora, arco-íris, chuva de meteoros): só nas batalhas ao ar livre da própria rota.
   const sky =
     b.kind === 'tower' || b.weather ? undefined : skyEvent(route.kind === 'trial' ? encounterRoute(route) : route, state.env);
+  const skyAnim = sky === 'aurora' ? 'aurora' : sky === 'meteors' ? 'stars' : undefined;
   const night =
     state.env.period === 'night' &&
     b.kind !== 'tower' &&
@@ -737,12 +738,18 @@ export function BattleScene({ state }: { state: GameState }) {
       {!state.settings.reducedMotion && gfx !== 'performance' && (
         <WeatherLayer weather={weather} night={state.env.period === 'night'} scene={sceneKey} />
       )}
-      {sky && motionOn && (
-        <span className={`scene-sky sky-${sky}`} aria-hidden>
-          {sky === 'meteors' &&
-            Array.from({ length: 5 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}
-        </span>
+      {/* Aurora e chuva de meteoros: as animações de pixel art do pixelfx (as mesmas do céu de ambiente). Se a cena já
+          as mostra de ambiente, não repete. O arco-íris é desenhado em CSS. */}
+      {sky && motionOn && skyAnim && skyAnim !== ambientFor(sceneKey, night) && (
+        <img
+          className="scene-weather-anim scene-sky-anim"
+          src={assetUrl(`sprites/weather/${skyAnim}.webp`)}
+          alt=""
+          aria-hidden
+          draggable={false}
+        />
       )}
+      {sky === 'rainbow' && motionOn && <span className="scene-sky sky-rainbow" aria-hidden />}
 
       <div className="scene-hud">
         <EncounterModeSwitch state={state} />

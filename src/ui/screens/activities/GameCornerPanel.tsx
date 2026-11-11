@@ -376,13 +376,13 @@ function VoltorbFlip({ state }: { state: GameState }) {
 /** Os vizinhos de máquina: falam sozinhos de tempos em tempos e comemoram (ou reclamam) com você. */
 const NEIGHBORS: { sprite: string; name: string; lines: string[] }[] = [
   {
-    sprite: 'kanto-rocketgrunt',
-    name: 'Recruta',
+    sprite: 'class-gambler',
+    name: 'Apostador',
     lines: [
       'Essa máquina está quente hoje, eu sinto!',
       'Psiu… dizem que tem uma passagem secreta atrás de um pôster.',
       'Mais uma ficha e eu paro. Juro.',
-      'Ganhar? A casa sempre ganha, hehe.',
+      'Três sete seguidos… um dia eu vejo isso.',
     ],
   },
   {

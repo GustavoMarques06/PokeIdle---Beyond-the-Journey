@@ -1518,7 +1518,38 @@ function maybeAutoCapture(
   if (ball) attemptCapture(state, ball, rng, now, events, mods);
 }
 
-const TOWER_TRAINERS = ROUTES.flatMap((r) => (r.boss ? [{ sprite: r.boss.trainer, name: r.boss.name }] : []));
+/** Treinadores dos andares comuns da Torre: classes de treinador, cada uma com alguns nomes. */
+const TOWER_CLASSES: [string, string, string[]][] = [
+  ['class-acetrainer', 'Ás', ['Rafael', 'Diego', 'Murilo']],
+  ['class-blackbelt', 'Faixa-Preta', ['Kenji', 'Tadeu']],
+  ['class-battlegirl', 'Lutadora', ['Mei', 'Jéssica']],
+  ['class-psychic', 'Médium', ['Ícaro', 'Tales']],
+  ['class-lass', 'Garota', ['Ana', 'Clara']],
+  ['class-youngster', 'Garoto', ['Joey', 'Pedro']],
+  ['class-birdkeeper', 'Criador de Aves', ['Teo', 'Rubens']],
+  ['class-hiker', 'Montanhista', ['Bruno', 'Otávio']],
+  ['class-fisherman', 'Pescador', ['Zé', 'Moacir']],
+  ['class-beauty', 'Beldade', ['Valéria', 'Íris']],
+  ['class-gentleman', 'Cavalheiro', ['Afonso', 'Edgar']],
+  ['class-pokemonranger', 'Guarda Pokémon', ['Lucas', 'Sérgio']],
+  ['class-camper', 'Campista', ['Davi', 'Caio']],
+  ['class-picnicker', 'Piquenique', ['Lia', 'Nina']],
+  ['class-ruinmaniac', 'Arqueólogo', ['Hélio', 'Gil']],
+  ['class-richboy', 'Riquinho', ['Vítor', 'Cauã']],
+  ['class-lady', 'Dama', ['Celeste', 'Aurora']],
+  ['class-parasollady', 'Moça da Sombrinha', ['Marina', 'Lívia']],
+  ['class-aromalady', 'Perfumista', ['Rosa', 'Jasmim']],
+  ['class-supernerd', 'Cientista Maluco', ['Nilo', 'Bento']],
+  ['class-guitarist', 'Guitarrista', ['Jimi', 'Raul']],
+  ['class-swimmer', 'Nadador', ['Tiago', 'Marcos']],
+  ['class-cyclist', 'Ciclista', ['Leo', 'Beto']],
+  ['class-worker', 'Operário', ['Toninho', 'Ivo']],
+  ['class-veteran', 'Veterana', ['Helena', 'Vilma']],
+  ['class-gambler', 'Apostador', ['Sortudo', 'Fortunato']],
+];
+const TOWER_TRAINERS = TOWER_CLASSES.flatMap(([sprite, title, names]) =>
+  names.map((name) => ({ sprite, name: `${title} ${name}` })),
+);
 
 /** Os Cérebros da Torre: um campeão por faixa de andares (em rodízio), cada um com a sua fala. */
 export const TOWER_BRAINS: { sprite: string; name: string; line: string }[] = [

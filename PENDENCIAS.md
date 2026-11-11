@@ -80,6 +80,14 @@ Menor, mural), `link.ts` (histórico, replay, `state.duelSeason`). Testes em `co
 - **Falta medir:** Maior ou Menor (pote ×1,7 por acerto, até 8) e os aliados da raide (2,5% do HP do chefe a cada 7 s
   por amigo, metade com escudo).
 
+**Arte nova (11/11):** 28 sprites de classe de treinador do Pokémon Showdown em `public/sprites/trainers/class-*.png`
+(estilo da 3ª geração; nadador, ciclista, operário e veterana da 4ª), também listados em `UI_TRAINERS` de
+`scripts/fetch-pokeapi.mjs` para o `data:fetch` mantê-los. Usados no Laboratório, na Creche, no Treino, no Game Corner
+e nos andares comuns da Torre (`TOWER_CLASSES` em `battle.ts`; os nomes batem com o gênero do sprite). Os efeitos do
+pixelfx que sobravam entraram: pétalas, folhas, neve e vaga-lumes no Jardim, chuva no Safari, aurora e estrelas
+cadentes no céu da batalha. Cartas CC0 para o Maior ou Menor (jfredd, SpicyGame) só se baixam pela página do itch.io;
+a carta em CSS ficou. Não achei plateia de estádio livre.
+
 **Ainda dá para fazer:** a árvore genealógica dentro da cerimônia do ovo (hoje ela fica só na ficha do Pokémon).
 
 ## Safari (9/11 e 10/11)

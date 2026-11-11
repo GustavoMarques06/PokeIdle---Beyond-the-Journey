@@ -113,10 +113,31 @@ function PixelArt({ art, className }: { art: { rows: string[]; pal: Record<strin
 }
 
 /** A cena: fundo da zona, mato balançando, o Pokémon (com humor) e os efeitos da última ação. */
-function SafariScene({ zone, enemy, fx }: { zone: SafariZone; enemy: SafariEnemy | null; fx: Fx | null }) {
+function SafariScene({
+  zone,
+  enemy,
+  fx,
+  weather,
+}: {
+  zone: SafariZone;
+  enemy: SafariEnemy | null;
+  fx: Fx | null;
+  /** Clima da zona: chuva (a animação de pixel art) ou neblina. */
+  weather?: 'rain' | 'fog';
+}) {
   return (
     <div className={`safari-scene zone-${zone.id} ${enemy?.path === 'water' ? 'at-water' : ''}`}>
       <img className="safari-bg" src={assetUrl(`sprites/backgrounds/${zone.scene}.png`)} alt="" draggable={false} />
+      {weather === 'rain' && (
+        <img
+          className="safari-weather-anim"
+          src={assetUrl('sprites/weather/rain.webp')}
+          alt=""
+          aria-hidden
+          draggable={false}
+        />
+      )}
+      {weather === 'fog' && <span className="safari-fog" aria-hidden />}
       <span className="safari-grass back" aria-hidden />
       {enemy?.path === 'water' && (
         <>
@@ -567,7 +588,7 @@ export function SafariPanel({ state }: { state: GameState }) {
         <span>★ {s.points ?? 0} pontos</span>
         <span>Capturados: {s.caught.length}</span>
       </div>
-      <SafariScene zone={zone} enemy={e} fx={fx} />
+      <SafariScene zone={zone} enemy={e} fx={fx} weather={safariWeather(state)} />
       {!e ? (
         <div className="safari-paths">
           {/* Camadas da zona: mais fundo, mais raros, shinies e pontos, e tudo custa mais passos. */}

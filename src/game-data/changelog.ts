@@ -29,6 +29,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       { tag: 'novo', text: 'Torneio: a plateia torce, festeja e vai embora; rivais que voltam mais fortes e lembram de você.' },
       { tag: 'novo', text: 'Safari: álbum com a melhor foto de cada espécie; chuva traz Pokémon de água à grama e a neblina os acalma.' },
       { tag: 'novo', text: 'Game Corner: Maior ou Menor, vizinhos de máquina e o mural dos jackpots.' },
+      { tag: 'melhoria', text: 'Personagens novos em pixel art: a dona da Creche, o cientista do Laboratório, a treinadora do Treino, o apostador do Game Corner e 26 classes de treinador nos andares da Torre.' },
+      { tag: 'melhoria', text: 'Pétalas, folhas, neve e vaga-lumes animados no Jardim; chuva e neblina no Safari; aurora e chuva de meteoros em pixel art no céu da batalha.' },
       { tag: 'novo', text: 'Troca e Duelo: a chegada pelo cabo, os recebidos de outros treinadores, replay do duelo e a temporada do mês com troféu.' },
     ],
   },
