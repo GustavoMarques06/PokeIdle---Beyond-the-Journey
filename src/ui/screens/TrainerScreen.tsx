@@ -62,6 +62,8 @@ import { ChangelogList } from '../components/Changelog';
 import { Journey } from './trainer/Journey';
 import { finaleTitle } from '../components/StoryScene';
 import { askConfirm } from '../components/GameConfirm';
+import { fullscreenWanted, setFullscreenWanted } from '../appFeel';
+import { isTauri } from '../../engine/storage';
 
 type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode' | 'graphics'>;
 
@@ -187,6 +189,26 @@ function CardBack({ state, stars }: { state: GameState; stars: { label: string; 
         <dd>{new Date(state.createdAt).toLocaleDateString('pt-BR')}</dd>
       </dl>
     </div>
+  );
+}
+
+/** Tela cheia ao apertar START (guardado no aparelho, não no save: cada aparelho escolhe). */
+function FullscreenOption() {
+  const [on, setOn] = useState(fullscreenWanted);
+  if (isTauri()) return null;
+  return (
+    <label className="option-row">
+      <span>Tela cheia (esconde o navegador)</span>
+      <button
+        className={`switch ${on ? 'on' : ''}`}
+        role="switch"
+        aria-checked={on}
+        onClick={() => {
+          setFullscreenWanted(!on);
+          setOn(!on);
+        }}
+      />
+    </label>
   );
 }
 
@@ -519,6 +541,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
         <>
           <Window title="OPÇÕES" icon={<ItemIcon id="teachy-tv" size={24} />}>
             <div className="options">
+              <FullscreenOption />
               {TOGGLES.filter((t) => !t.requires || state.upgrades.includes(t.requires)).map((t) => (
                 <label key={t.key} className="option-row">
                   <span>{t.label}</span>

@@ -4,7 +4,62 @@
 //   mouse (DragGhost.tsx), o resto não mostra nada.
 // - Clique direito, Ctrl+A, Ctrl+P, Ctrl+S (salva o jogo) e zoom com Ctrl+roda ficam com o jogo.
 // - Dicas: o `title` vira um balão em pixel art (no lugar do amarelo do sistema).
+// - Teclas e botões do navegador: F5/Ctrl+R (recarregar), buscar, favoritos, histórico, ver código, voltar/avançar
+//   (teclado, botões laterais do mouse e o voltar do sistema), clique do meio e, no jogo publicado, as ferramentas
+//   do desenvolvedor. O que o navegador não deixa bloquear (Ctrl+W, Ctrl+T, Ctrl+N, Alt+F4) fica de fora.
+// - Tela cheia: ao apertar START o jogo ocupa a tela toda (dá para desligar nas Opções); F11 alterna.
 // Os campos de texto continuam funcionando como sempre (selecionar, copiar, menu do botão direito).
+
+import { isTauri } from '../engine/storage';
+
+const FULLSCREEN_KEY = 'pokeidle.fullscreen';
+
+/** Preferência de tela cheia (fica no aparelho; ligada por padrão). */
+export function fullscreenWanted(): boolean {
+  try {
+    return localStorage.getItem(FULLSCREEN_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+export function setFullscreenWanted(on: boolean): void {
+  try {
+    localStorage.setItem(FULLSCREEN_KEY, on ? '1' : '0');
+  } catch {
+    /* sem armazenamento: só não lembra */
+  }
+  if (on) void enterFullscreen();
+  else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+}
+
+/** Entra em tela cheia (precisa vir de um clique ou tecla). Prende o Esc para ele fechar as janelas do jogo. */
+export async function enterFullscreen(): Promise<void> {
+  if (isTauri() || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+  try {
+    await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    const kb = (navigator as unknown as { keyboard?: { lock?: (keys: string[]) => Promise<void> } }).keyboard;
+    await kb?.lock?.(['Escape', 'F5', 'F11']).catch(() => {});
+  } catch {
+    /* o navegador recusou (iPhone, por exemplo): segue em janela */
+  }
+}
+
+/** Teclas do navegador que o jogo segura (com Ctrl/Cmd). */
+const CTRL_BLOCK = new Set(['r', 'f', 'g', 'h', 'j', 'd', 'o', 'u', 'l', 'e', 'k', 'p', 'b', 'y', 'm']);
+const PLAIN_BLOCK = new Set([
+  'F1',
+  'F3',
+  'F5',
+  'F6',
+  'F7',
+  'BrowserBack',
+  'BrowserForward',
+  'BrowserRefresh',
+  'BrowserHome',
+  'BrowserSearch',
+  'BrowserFavorites',
+]);
 
 const editable = (el: EventTarget | null) =>
   el instanceof HTMLElement && !!el.closest('input, textarea, select, [contenteditable="true"]');
@@ -42,15 +97,57 @@ export function installAppFeel(onSave?: () => void): void {
   );
   document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-  document.addEventListener('keydown', (e) => {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const k = e.key.toLowerCase();
-    if (k === 's') {
-      e.preventDefault();
-      onSave?.();
-    } else if (k === 'p') e.preventDefault();
-    else if (k === 'a' && !editable(e.target)) e.preventDefault();
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      const k = e.key.toLowerCase();
+      const ctrl = e.ctrlKey || e.metaKey;
+      // Ferramentas do desenvolvedor: só no jogo publicado (no `npm run dev` continuam abertas).
+      const devtools =
+        e.key === 'F12' ||
+        (ctrl && e.shiftKey && ['i', 'j', 'c', 'k'].includes(k)) ||
+        (ctrl && e.altKey && ['i', 'j', 'u'].includes(k));
+      if (devtools) {
+        if (import.meta.env.PROD) e.preventDefault();
+        return;
+      }
+      if (e.key === 'F11') {
+        e.preventDefault();
+        if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+        else void enterFullscreen();
+        return;
+      }
+      if (PLAIN_BLOCK.has(e.key) || (e.altKey && ['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key))) {
+        e.preventDefault();
+        return;
+      }
+      if (e.key === 'Backspace' && !editable(e.target)) {
+        e.preventDefault();
+        return;
+      }
+      if (!ctrl || e.altKey) return;
+      if (k === 's') {
+        e.preventDefault();
+        onSave?.();
+      } else if (k === 'a') {
+        if (!editable(e.target)) e.preventDefault();
+      } else if (CTRL_BLOCK.has(k) || ['+', '-', '=', '0'].includes(e.key)) e.preventDefault();
+    },
+    { capture: true },
+  );
+
+  // Clique do meio (rolagem automática, abrir em nova aba) e os botões voltar/avançar do mouse.
+  document.addEventListener('mousedown', (e) => {
+    if (e.button === 1) e.preventDefault();
   });
+  document.addEventListener('auxclick', (e) => e.preventDefault());
+  document.addEventListener('mouseup', (e) => {
+    if (e.button === 3 || e.button === 4) e.preventDefault();
+  });
+
+  // Voltar do navegador (e o gesto de voltar do celular): o jogo segura uma página extra no histórico.
+  history.pushState({ game: true }, '');
+  window.addEventListener('popstate', () => history.pushState({ game: true }, ''));
 
   installTooltips();
 }
