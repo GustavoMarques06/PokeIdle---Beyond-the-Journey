@@ -396,7 +396,6 @@
   box-shadow:
     inset 0 2px 0 rgb(255 255 255 / 0.35),
     0 3px 0 var(--ink);
-  margin-bottom: 3px;
 }
 
 .bc-big strong,
@@ -413,6 +412,47 @@
   background: radial-gradient(circle at 40% 35%, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.12) 70%);
   border: 2px solid rgb(0 0 0 / 0.3);
   border-radius: 50%;
+}
+
+/* Quatro botões em 2×2 (modo manual) ou janela aberta (faixa de comandos baixa): disco menor, para caber inteiro. */
+.battle-cmds:not(.auto) .bc-icon,
+.game.window-open .bc-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.battle-cmds:not(.auto) .bc-icon .pixel-icon,
+.game.window-open .bc-icon .pixel-icon {
+  scale: 0.75;
+}
+
+.battle-cmds:not(.auto) .bc-big,
+.game.window-open .bc-big {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+/* As fileiras dividem a altura que há (nunca empurram a de baixo para fora da faixa). */
+.bc-main {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.battle-cmds.auto .bc-main {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.bc-big {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game.window-open .battle-cmds:not(.auto) .bc-big strong {
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.game.window-open .battle-cmds:not(.auto) .bc-big small {
+  line-height: 1.1;
 }
 
 .bc-icon .pixel-icon {
