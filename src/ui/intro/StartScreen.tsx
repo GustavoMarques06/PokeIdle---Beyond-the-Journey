@@ -7,7 +7,6 @@
 // tecla ou toque leva ao menu.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { GAME_VERSION } from '../../core/save';
 import { STARTER_GENERATIONS, assetUrl, getSpecies } from '../../game-data';
 import { audio } from '../audio';
 import { PokemonSprite } from '../components/common';
@@ -216,7 +215,6 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           <span className="start-press-key">PRESSIONE START</span>
           <span className="start-press-touch">TOQUE NA TELA</span>
         </p>
-        <p className="gba-copy">PokéIdle v{GAME_VERSION} · jogo de fã · Pokémon: Nintendo / Game Freak</p>
       </div>
     </div>
   );
