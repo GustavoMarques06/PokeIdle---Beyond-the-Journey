@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-12-energia-dos-golpes',
+    date: '12/11/2026',
+    title: 'Energia dos golpes em pixel art',
+    items: [
+      { tag: 'melhoria', text: 'Os golpes especiais agora usam efeitos de pixel art: lança-chamas e sopro de gelo em jato, raio psíquico e de dragão, corrente elétrica, bola sombria, dardo venenoso, pedra arremessada, lâmina de vento e míssil de energia nas cores de cada tipo.' },
+    ],
+  },
+  {
     id: '2026-11-12-batalha-em-movimento',
     date: '12/11/2026',
     title: 'Batalha em movimento',

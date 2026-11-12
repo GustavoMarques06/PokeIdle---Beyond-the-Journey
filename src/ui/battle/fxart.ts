@@ -28,6 +28,7 @@ const DATA = fxJson as unknown as {
   types: Record<string, { src: string; big?: string }>;
   status: Record<string, string>;
   activity?: Record<string, string>;
+  shots?: Record<string, string>;
   sheets: Record<string, Omit<FxArt, 'name' | 'boost'>>;
 };
 
@@ -41,6 +42,12 @@ export function impactArt(type: string, big: boolean): FxArt | undefined {
   const art = get((big && t.big) || t.src);
   return art && big && !t.big ? { ...art, boost: true } : art;
 }
+
+/** Energia de golpe especial (PVFX): sai do atacante e vai até o alvo. `len` = o quanto o desenho percorre. */
+export type ShotArt = FxArt & { len: number };
+
+export const shotArt = (type: string): ShotArt | undefined =>
+  DATA.shots?.[type] ? (get(DATA.shots[type]) as ShotArt | undefined) : undefined;
 
 /** O efeito em loop de um status (sono, paralisia, queimadura, congelamento, veneno). */
 export const statusArt = (kind: string): FxArt | undefined =>

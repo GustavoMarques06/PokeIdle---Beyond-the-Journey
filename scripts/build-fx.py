@@ -1,5 +1,6 @@
 # Monta as folhas de efeitos de golpe e de status (public/sprites/fx/*.png) e o arquivo de dados
-# src/game-data/generated/fx-art.json a partir de dois pacotes CC0 guardados em art/fx-packs:
+# src/game-data/generated/fx-art.json a partir de dois pacotes CC0 guardados em art/fx-packs (impactos, status,
+# efeitos das atividades e a energia dos golpes especiais, shot-<tipo>):
 #   - PVFX Foundry 1.0.0 (nerijs): https://nerijs.itch.io/pvfx-foundry  (folhas em CC0; toolkit pixelfx, MIT)
 #   - Pixel Magic Effects (Foozle): https://foozlecc.itch.io/pixel-magic-sprite-effects  (CC0)
 # Cada efeito vira uma tira horizontal de quadros do mesmo tamanho, recortada nas margens vazias e com no máximo
@@ -167,8 +168,72 @@ for key, (spec, loop) in ACTIVITY.items():
     sheets[name] = build(name, spec, 'body', 1, loop_wanted=loop, once=not loop)
     activity[key] = name
 
+# Energia dos golpes especiais: sai do atacante e viaja até o alvo. `stream` = jato contínuo (lança-chamas, sopro,
+# raio), em loop; `missile` = projétil que atravessa o quadro: os quadros vão só até ele chegar (o impacto no alvo é
+# o de IMPACTS). `tint` recolore na cor do tipo, como acima. Saem como shot-<tipo>.png, com `len` = o quanto o
+# desenho percorre (em pixels do efeito): a tela estica o efeito até a distância entre os dois Pokémon.
+SHOTS = {
+    'fire': ('pvfx:fire/flamethrower', 'stream', None),
+    'ice': ('pvfx:ice/frost-breath', 'stream', None),
+    'psychic': ('pvfx:arcane/arcane-beam', 'stream', None),
+    'dragon': ('pvfx:arcane/arcane-beam', 'stream', ((24, 8, 72), (112, 56, 248), (208, 232, 255))),
+    'electric': ('pvfx:lightning/chain-lightning', 'missile', None),
+    'ghost': ('pvfx:shadow/shadow-bolt', 'missile', None),
+    'dark': ('pvfx:shadow/shadow-bolt', 'missile', ((24, 16, 16), (112, 88, 72), (232, 208, 192))),
+    'poison': ('pvfx:projectiles/poison-dart', 'missile', ((40, 0, 56), (160, 64, 168), (244, 208, 255))),
+    'grass': ('pvfx:projectiles/poison-dart', 'missile', None),
+    'water': ('pvfx:projectiles/magic-missile', 'missile', ((8, 32, 96), (72, 144, 232), (208, 240, 255))),
+    'normal': ('pvfx:projectiles/magic-missile', 'missile', ((64, 56, 40), (200, 200, 160), (255, 255, 240))),
+    'fairy': ('pvfx:projectiles/magic-missile', 'missile', ((96, 24, 64), (238, 153, 172), (255, 236, 244))),
+    'fighting': ('pvfx:arcane/arcane-orb-projectile', 'missile', ((64, 8, 8), (208, 64, 40), (255, 224, 192))),
+    'flying': ('pvfx:wind/wind-blade', 'missile', None),
+    'bug': ('pvfx:wind/wind-blade', 'missile', ((24, 40, 0), (152, 184, 24), (248, 255, 208))),
+    'rock': ('pvfx:nature/boulder-toss', 'missile', None),
+    'ground': ('pvfx:nature/boulder-toss', 'missile', ((64, 40, 16), (224, 192, 104), (255, 244, 208))),
+    'steel': ('pvfx:projectiles/ice-shard', 'missile', ((48, 56, 80), (184, 188, 212), (255, 255, 255))),
+}
+
+
+def build_shot(name, spec, kind, tint):
+    frames, total, _pivot, _loop = load(spec)
+    if tint:
+        frames = [recolor(f, tint) for f in frames]
+    boxes = [f.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox() for f in frames]
+    per = total / len(frames)
+    if kind == 'missile':
+        # O projétil anda para a direita; para no quadro em que a frente chega perto do ponto mais longe.
+        right = max(b[2] for b in boxes if b)
+        keep = next(i for i, b in enumerate(boxes) if b and b[2] >= right * 0.9)
+        # Começa no primeiro quadro com desenho.
+        first = next(i for i, b in enumerate(boxes) if b)
+        frames, boxes = frames[first : keep + 1], boxes[first : keep + 1]
+    union = None
+    for b in boxes:
+        if b:
+            union = b if union is None else (min(union[0], b[0]), min(union[1], b[1]), max(union[2], b[2]), max(union[3], b[3]))
+    frames = [f.crop(union) for f in frames]
+    cw, ch = frames[0].size
+    n = len(frames)
+    if n > MAX_FRAMES:
+        idx = [round(i * (n - 1) / (MAX_FRAMES - 1)) for i in range(MAX_FRAMES)]
+        frames = [frames[i] for i in idx]
+    strip = Image.new('RGBA', (cw * len(frames), ch), (0, 0, 0, 0))
+    for i, f in enumerate(frames):
+        strip.paste(f, (i * cw, 0))
+    strip.save(OUT / f'{name}.png', optimize=True)
+    ms = per * n if kind == 'missile' else total
+    return dict(w=cw, h=ch, n=len(frames), ms=round(ms), ax=0, ay=round(ch / 2, 1), at='body', k=1,
+                loop=kind == 'stream', len=cw)
+
+
+shots = {}
+for t, (spec, kind, tint) in SHOTS.items():
+    name = f'shot-{t}'
+    sheets[name] = build_shot(name, spec, kind, tint)
+    shots[t] = name
+
 DATA.write_text(
-    json.dumps(dict(types=types, status=status, activity=activity, sheets=sheets), separators=(',', ':')),
+    json.dumps(dict(types=types, status=status, activity=activity, shots=shots, sheets=sheets), separators=(',', ':')),
     encoding='utf-8',
 )
 print(len(sheets), 'folhas;', sum(p.stat().st_size for p in OUT.glob('*.png')) // 1024, 'KB')

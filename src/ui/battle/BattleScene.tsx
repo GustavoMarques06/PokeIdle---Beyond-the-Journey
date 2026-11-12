@@ -2,7 +2,15 @@
 // caixas de status e efeitos (dano, impacto, captura, subida de nível).
 // Só apresentação — a simulação continua no GameEngine independentemente daqui.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type Ref,
+} from 'react';
 import { TYPE_GLOW, legendGlow } from '../i18n/legends';
 import {
   BALANCE,
@@ -69,8 +77,17 @@ import { RaidVictory } from './RaidVictory';
 import { battleSpritePath, useWarmBattleSprites } from './warmSprites';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
-import { ArtFx, MoveFx, SceneLife, SendOutBall, ShinySparkle, WeatherLayer, ambientFor } from './effects';
-import { activityArt, artMs, impactArt, statusArt, type FxArt } from './fxart';
+import {
+  ArtFx,
+  MoveFx,
+  SceneLife,
+  SendOutBall,
+  ShinySparkle,
+  ShotFx,
+  WeatherLayer,
+  ambientFor,
+} from './effects';
+import { activityArt, artMs, impactArt, shotArt, statusArt, type FxArt, type ShotArt } from './fxart';
 
 interface Floater {
   id: number;
@@ -121,6 +138,8 @@ function StatusTag({ status }: { status?: StatusState | null }) {
 /** Energia de um golpe especial viajando do atacante até o alvo (em pixels da cena). */
 interface Shot {
   id: number;
+  /** Arte do pacote (PVFX); sem ela, a energia é desenhada em CSS (`style`). */
+  art?: ShotArt;
   x: number;
   y: number;
   dx: number;
@@ -368,9 +387,9 @@ export function BattleScene({ state }: { state: GameState }) {
   // Raide vencida: o chefe se desfaz, chovem estrelas e moedas e aparece o cartão do resultado.
   // Golpe de um aliado na raide (o ícone dele pula e dispara).
   const [allyHit, setAllyHit] = useState<{ id: number; speciesId: number } | null>(null);
-  const [raidWin, setRaidWin] = useState<(Extract<GameEvent, { type: 'raidDefeated' }> & { id: number }) | null>(
-    null,
-  );
+  const [raidWin, setRaidWin] = useState<
+    (Extract<GameEvent, { type: 'raidDefeated' }> & { id: number }) | null
+  >(null);
 
   const animSpeed = state.settings.animSpeed || 1;
   const b = state.battle;
@@ -384,7 +403,9 @@ export function BattleScene({ state }: { state: GameState }) {
   const weather = b.kind === 'tower' ? 'clear' : (b.weather ?? routeWeather(route, state.env));
   // Evento raro do céu (aurora, arco-íris, chuva de meteoros): só nas batalhas ao ar livre da própria rota.
   const sky =
-    b.kind === 'tower' || b.weather ? undefined : skyEvent(route.kind === 'trial' ? encounterRoute(route) : route, state.env);
+    b.kind === 'tower' || b.weather
+      ? undefined
+      : skyEvent(route.kind === 'trial' ? encounterRoute(route) : route, state.env);
   const skyAnim = sky === 'aurora' ? 'aurora' : sky === 'meteors' ? 'stars' : undefined;
   const night =
     state.env.period === 'night' &&
@@ -419,8 +440,11 @@ export function BattleScene({ state }: { state: GameState }) {
           const target = e.side === 'player' ? 'enemy' : 'player';
           const r = e.result;
           const physical = isPhysical(r.moveId);
+          // Especial: a energia do tipo (jato contínuo ou projétil). O impacto chega quando ela alcança o alvo.
+          const shotFx = physical ? undefined : shotArt(r.moveType);
+          const flight = shotFx ? (shotFx.loop ? 280 : Math.min(shotFx.ms, 520)) : 320;
           // O impacto (faíscas, número de dano, empurrão) chega quando o golpe alcança o alvo.
-          const hitAt = motion ? (physical ? 230 : 320) / speed : 0;
+          const hitAt = motion ? (physical ? 230 : flight) / speed : 0;
           if (motion) {
             const [attackerEl, targetEl] =
               e.side === 'player'
@@ -463,12 +487,23 @@ export function BattleScene({ state }: { state: GameState }) {
                 { duration: 420 / speed, easing: 'steps(5, end)' },
               );
               const id = nextId.current++;
-              const ms = Math.round(300 / speed);
+              // Jato: fica aceso um pouco depois do impacto; projétil: some quando chega.
+              const ms = Math.round((shotFx ? (shotFx.loop ? 460 : flight) : 300) / speed);
               setShots((list) => [
                 ...list.slice(-3),
-                { id, x: from.x, y: from.y, dx, dy, color, style: SHOT_STYLE[r.moveType] ?? 'orb', ms },
+                {
+                  id,
+                  art: shotFx,
+                  x: from.x,
+                  y: from.y,
+                  dx,
+                  dy,
+                  color,
+                  style: SHOT_STYLE[r.moveType] ?? 'orb',
+                  ms,
+                },
               ]);
-              setTimeout(() => setShots((list) => list.filter((x) => x.id !== id)), ms + 400);
+              setTimeout(() => setShots((list) => list.filter((x) => x.id !== id)), ms + (shotFx ? 40 : 400));
             }
             if (r.damage > 0) {
               const big = r.effectiveness > 1 || r.crit;
@@ -535,7 +570,10 @@ export function BattleScene({ state }: { state: GameState }) {
           const aura = activityArt(e.outcome === 'heal' ? 'hearts' : 'levelup');
           if (aura) {
             const id = nextId.current++;
-            setSparks((list) => [...list.slice(-4), { id, side: e.side, type: 'normal', big: false, art: aura }]);
+            setSparks((list) => [
+              ...list.slice(-4),
+              { id, side: e.side, type: 'normal', big: false, art: aura },
+            ]);
             setTimeout(() => setSparks((list) => list.filter((x) => x.id !== id)), artMs(aura, speed));
           }
           const f: Floater = {
@@ -586,11 +624,14 @@ export function BattleScene({ state }: { state: GameState }) {
             const id = nextId.current++;
             const after = captureAnimMs(captureShakes(e.chance, e.success), e.success);
             const kind = e.success ? 'caught' : 'roar';
-            setTimeout(() => {
-              if (kind === 'roar') audio.cry(e.speciesId);
-              else audio.sfx('fanfare');
-              if (motion) setLegendFx({ id, kind });
-            }, after * (kind === 'roar' ? 0.85 : 0.7));
+            setTimeout(
+              () => {
+                if (kind === 'roar') audio.cry(e.speciesId);
+                else audio.sfx('fanfare');
+                if (motion) setLegendFx({ id, kind });
+              },
+              after * (kind === 'roar' ? 0.85 : 0.7),
+            );
             setTimeout(() => setLegendFx((cur) => (cur?.id === id ? null : cur)), after + 1400);
           }
           setCapture({
@@ -803,7 +844,11 @@ export function BattleScene({ state }: { state: GameState }) {
   return (
     <div
       className={`scene theme-${theme} ${enemy?.water ? `mode-${enemy.water}` : ''} ${legendHere ? 'legend-battle' : ''} ${legendHere && enemy?.rage ? 'legend-enraged' : ''} ${legendFx ? `legend-fx-${legendFx.kind}` : ''} ${b.kind === 'raid' ? `raid-battle raid-rage-${enemy?.rage ?? 0}` : ''}`}
-      style={legendHere && enemy ? ({ ['--glow' as string]: legendGlow(enemy.speciesId) } as CSSProperties) : undefined}
+      style={
+        legendHere && enemy
+          ? ({ ['--glow' as string]: legendGlow(enemy.speciesId) } as CSSProperties)
+          : undefined
+      }
       ref={wrapRef}
       aria-label="Campo de batalha"
     >
@@ -841,7 +886,10 @@ export function BattleScene({ state }: { state: GameState }) {
         <SceneLife
           scene={sceneKey}
           night={night}
-          open={b.kind !== 'tower' && !['cave', 'icecave', 'dampcave', 'volcano', ...INDOOR_NEW].includes(sceneKey)}
+          open={
+            b.kind !== 'tower' &&
+            !['cave', 'icecave', 'dampcave', 'volcano', ...INDOOR_NEW].includes(sceneKey)
+          }
           weather={weather}
         />
       )}
@@ -944,7 +992,9 @@ export function BattleScene({ state }: { state: GameState }) {
           </span>
           <span className="legend-intro-flash" />
           <div className="legend-intro-card frame frame-dialog">
-            <small>{legendaryDef(legendIntro.speciesId)?.tier === 'pseudo' ? 'QUASE LENDÁRIO' : 'LENDÁRIO'}</small>
+            <small>
+              {legendaryDef(legendIntro.speciesId)?.tier === 'pseudo' ? 'QUASE LENDÁRIO' : 'LENDÁRIO'}
+            </small>
             <strong>Um {speciesName(legendIntro.speciesId).toUpperCase()} apareceu!</strong>
           </div>
         </div>
@@ -1041,34 +1091,38 @@ export function BattleScene({ state }: { state: GameState }) {
           {f.text}
         </span>
       ))}
-      {shots.map((s) => (
-        <span
-          key={s.id}
-          className={`proj proj-${s.style}`}
-          style={
-            {
-              left: `calc(var(--u) * ${s.x})`,
-              top: `calc(var(--u) * ${s.y})`,
-              '--dx': `calc(var(--u) * ${s.dx})`,
-              '--dy': `calc(var(--u) * ${s.dy})`,
-              '--len': `calc(var(--u) * ${Math.hypot(s.dx, s.dy).toFixed(1)})`,
-              '--ang': `${((Math.atan2(s.dy, s.dx) * 180) / Math.PI).toFixed(1)}deg`,
-              '--c': s.color,
-              '--ms': `${s.ms}ms`,
-            } as CSSProperties
-          }
-          aria-hidden
-        >
-          {s.style === 'spray' && (
-            <>
-              <i />
-              <i />
-              <i />
-              <i />
-            </>
-          )}
-        </span>
-      ))}
+      {shots.map((s) =>
+        s.art ? (
+          <ShotFx key={s.id} art={s.art} x={s.x} y={s.y} dx={s.dx} dy={s.dy} ms={s.ms} />
+        ) : (
+          <span
+            key={s.id}
+            className={`proj proj-${s.style}`}
+            style={
+              {
+                left: `calc(var(--u) * ${s.x})`,
+                top: `calc(var(--u) * ${s.y})`,
+                '--dx': `calc(var(--u) * ${s.dx})`,
+                '--dy': `calc(var(--u) * ${s.dy})`,
+                '--len': `calc(var(--u) * ${Math.hypot(s.dx, s.dy).toFixed(1)})`,
+                '--ang': `${((Math.atan2(s.dy, s.dx) * 180) / Math.PI).toFixed(1)}deg`,
+                '--c': s.color,
+                '--ms': `${s.ms}ms`,
+              } as CSSProperties
+            }
+            aria-hidden
+          >
+            {s.style === 'spray' && (
+              <>
+                <i />
+                <i />
+                <i />
+                <i />
+              </>
+            )}
+          </span>
+        ),
+      )}
       {sparks.map((s) => {
         const base = s.side === 'enemy' ? ENEMY_BASE : PLAYER_BASE;
         const box = s.side === 'enemy' ? enemyBox : playerBox;
@@ -1117,42 +1171,51 @@ export function BattleScene({ state }: { state: GameState }) {
             />
           ) : null;
         })}
-      {raidHere && enemy && !hideEnemy && motionOn && (() => {
-        const cy = ENEMY_BASE.y - enemyBox.bodyH / 2;
-        const shield = enemy.shield ? activityArt('shield') : undefined;
-        const charge = enemy.charging ? activityArt('charge') : undefined;
-        const shatter = shieldBreak !== null ? activityArt('shatter') : undefined;
-        return (
-          <span className="raid-fx-layer">
-            {shield && (
-              <ArtFx
-                art={{ ...shield, k: (enemyBox.bodyH * 1.05) / shield.h, ax: shield.w / 2, ay: shield.h / 2 }}
-                x={ENEMY_BASE.x}
-                y={cy}
-                speed={1}
-              />
-            )}
-            {charge && (
-              <ArtFx
-                art={{ ...charge, k: (enemyBox.bodyH * 0.7) / charge.h }}
-                x={ENEMY_BASE.x}
-                y={ENEMY_BASE.y - 2}
-                speed={1}
-                low
-              />
-            )}
-            {shatter && (
-              <ArtFx
-                key={`shatter-${shieldBreak}`}
-                art={{ ...shatter, k: 1.6, ax: shatter.w / 2, ay: shatter.h / 2 }}
-                x={ENEMY_BASE.x}
-                y={cy}
-                speed={1}
-              />
-            )}
-          </span>
-        );
-      })()}
+      {raidHere &&
+        enemy &&
+        !hideEnemy &&
+        motionOn &&
+        (() => {
+          const cy = ENEMY_BASE.y - enemyBox.bodyH / 2;
+          const shield = enemy.shield ? activityArt('shield') : undefined;
+          const charge = enemy.charging ? activityArt('charge') : undefined;
+          const shatter = shieldBreak !== null ? activityArt('shatter') : undefined;
+          return (
+            <span className="raid-fx-layer">
+              {shield && (
+                <ArtFx
+                  art={{
+                    ...shield,
+                    k: (enemyBox.bodyH * 1.05) / shield.h,
+                    ax: shield.w / 2,
+                    ay: shield.h / 2,
+                  }}
+                  x={ENEMY_BASE.x}
+                  y={cy}
+                  speed={1}
+                />
+              )}
+              {charge && (
+                <ArtFx
+                  art={{ ...charge, k: (enemyBox.bodyH * 0.7) / charge.h }}
+                  x={ENEMY_BASE.x}
+                  y={ENEMY_BASE.y - 2}
+                  speed={1}
+                  low
+                />
+              )}
+              {shatter && (
+                <ArtFx
+                  key={`shatter-${shieldBreak}`}
+                  art={{ ...shatter, k: 1.6, ax: shatter.w / 2, ay: shatter.h / 2 }}
+                  x={ENEMY_BASE.x}
+                  y={cy}
+                  speed={1}
+                />
+              )}
+            </span>
+          );
+        })()}
       {shinyFx !== null && enemy?.shiny && (
         <ShinySparkle key={`shiny-${shinyFx}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - enemyBox.bodyH / 2} />
       )}

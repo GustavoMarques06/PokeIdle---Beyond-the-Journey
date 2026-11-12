@@ -5,7 +5,7 @@
 import type { CSSProperties } from 'react';
 import { assetUrl } from '../../game-data';
 import { ItemIcon, PixelIcon } from '../components/common';
-import type { FxArt } from './fxart';
+import type { FxArt, ShotArt } from './fxart';
 
 type Motion = 'burst' | 'rise' | 'fall' | 'ring' | 'slash' | 'spin' | 'bolt';
 type Shape = 'square' | 'circle' | 'ring' | 'bar' | 'diamond';
@@ -84,6 +84,49 @@ export function ArtFx({
         backgroundImage: `url(${assetUrl(`sprites/fx/${art.name}.png`)})`,
         ['--n' as string]: art.n,
         ['--fx-ms' as string]: `${Math.round(art.ms / speed)}ms`,
+      }}
+      aria-hidden
+    />
+  );
+}
+
+/**
+ * Energia de golpe especial em pixel art: sai de (x, y), vira para o alvo e estica até ele (dx, dy). Indo para a
+ * esquerda, espelha em vez de girar de cabeça para baixo. `ms`: quanto dura (o projétil chega no último quadro).
+ */
+export function ShotFx({
+  art,
+  x,
+  y,
+  dx,
+  dy,
+  ms,
+}: {
+  art: ShotArt;
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  ms: number;
+}) {
+  const k = Math.hypot(dx, dy) / art.len;
+  const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const left = dx < 0;
+  const u = (v: number) => `calc(var(--u) * ${v.toFixed(2)})`;
+  return (
+    <span
+      className={`fx-art shot-art ${art.loop ? 'loop' : ''}`}
+      style={{
+        left: u(x),
+        top: u(y),
+        width: u(art.w * k),
+        height: u(art.h * k),
+        marginTop: u(-art.ay * k),
+        transformOrigin: `0 ${u(art.ay * k)}`,
+        transform: `rotate(${(left ? ang - 180 : ang).toFixed(1)}deg)${left ? ' scaleX(-1)' : ''}`,
+        backgroundImage: `url(${assetUrl(`sprites/fx/${art.name}.png`)})`,
+        ['--n' as string]: art.n,
+        ['--fx-ms' as string]: `${Math.round(art.loop ? art.ms : ms)}ms`,
       }}
       aria-hidden
     />
@@ -177,9 +220,20 @@ const ROCKY = new Set(['cave', 'icecave', 'dampcave', 'ruins', 'mountain']);
  * Cenário vivo: nuvens andando no céu aberto, a grama da frente balançando, reflexos correndo na água, poeira e gotas
  * nas cavernas e brasas no vulcão. Fica por cima do fundo e por baixo dos Pokémon (a grama, na frente dos pés).
  */
-export function SceneLife({ scene, night, open, weather }: { scene: string; night: boolean; open: boolean; weather: string }) {
+export function SceneLife({
+  scene,
+  night,
+  open,
+  weather,
+}: {
+  scene: string;
+  night: boolean;
+  open: boolean;
+  weather: string;
+}) {
   const clouds = open && !night && (weather === 'clear' || weather === 'sun');
-  const many = (n: number) => Array.from({ length: n }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />);
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />);
   return (
     <span className={`scene-life life-${scene}`} aria-hidden>
       {clouds && (
