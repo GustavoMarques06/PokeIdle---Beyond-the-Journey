@@ -342,7 +342,7 @@ function Showcase({
                 title={p.name}
               >
                 {p.tag && <span className="niche-tag">{p.tag}</span>}
-                {!!p.have && <span className="niche-have">×{p.have}</span>}
+                {!!p.have && <span className="niche-have">tem {formatNumber(p.have)}</span>}
                 <span className="niche-icon">{p.icon}</span>
                 <span className="niche-text">
                   <span className="niche-name">{p.name}</span>
@@ -400,6 +400,13 @@ function ballTip(state: GameState): string | null {
   if (sold.has('ultra-ball')) return 'A Ultra Ball nunca decepciona.';
   return null;
 }
+
+/** Quem atende em cada loja (sprites em pose parada, sem a pose de batalha). */
+const CLERK: Record<Store, { sprite: string; name: string }> = {
+  mart: { sprite: 'class-clerk-boss', name: 'GERENTE' },
+  dept: { sprite: 'class-waitress', name: 'ATENDENTE' },
+  merchant: { sprite: 'class-backpacker', name: 'MERCADOR' },
+};
 
 /** Arte de cada loja (scripts/build-shop.py): fundo e frente, com o vendedor no meio. */
 const SCENE_ART: Record<Store, { back: string; front: string; night?: string }> = {
@@ -466,8 +473,8 @@ function ShopScene({
         )}
         {store === 'merchant' && night && (
           <>
-            <span className="ss-glow" style={{ left: 333 }} />
-            <span className="ss-glow" style={{ left: 601 }} />
+            <span className="ss-glow" style={{ left: 322 }} />
+            <span className="ss-glow" style={{ left: 564 }} />
             <span className="ss-fire">
               <PixelIcon name="flame" scale={3} />
             </span>
@@ -475,7 +482,7 @@ function ShopScene({
         )}
         {!away && (
           <span className={`ss-clerk mood-${mood}`} key={`clerk-${talk?.n ?? 0}`}>
-            <TrainerSprite id={store === 'merchant' ? 'class-backpacker' : 'class-clerk'} size={80} />
+            <TrainerSprite id={CLERK[store].sprite} size={160} />
             {idle && !talk ? (
               <span className="ss-balloon">
                 <Balloon kind="dots" scale={2} />
@@ -492,11 +499,6 @@ function ShopScene({
           </span>
         )}
         <span className="ss-front" style={{ backgroundImage: url(art.front) }} />
-        {store === 'mart' && (
-          <span className="ss-customer">
-            <TrainerSprite id="class-lass" size={80} />
-          </span>
-        )}
         <span ref={registerRef} className="ss-register" key={`reg-${sale?.n ?? 0}`}>
           <span className="ss-screen">{sale ? 'OBRIGADO!' : store === 'merchant' ? '₽ ₽ ₽' : 'CAIXA'}</span>
           <i className={`ss-drawer ${sale ? 'open' : ''}`} />
@@ -526,7 +528,9 @@ function ShopScene({
         </span>
       )}
       <span className="ss-say" key={`say-${talk?.n ?? 0}-${line}-${store}`}>
+        {!away && <b className="ss-who">{CLERK[store].name}</b>}
         {text}
+        <i className="ss-caret" />
       </span>
     </div>
   );

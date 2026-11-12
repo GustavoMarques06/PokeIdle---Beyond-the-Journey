@@ -170,7 +170,7 @@ const UI_TRAINERS = {
       'scientist', 'gambler', 'pokemonbreeder', 'blackbelt', 'battlegirl', 'psychic', 'lass', 'youngster',
       'birdkeeper', 'hiker', 'fisherman', 'beauty', 'gentleman', 'pokemonranger', 'acetrainer', 'camper',
       'picnicker', 'ruinmaniac', 'richboy', 'lady', 'parasollady', 'aromalady', 'supernerd', 'guitarist',
-      'swimmer', 'cyclist', 'worker', 'veteran', 'clerk', 'backpacker',
+      'swimmer', 'cyclist', 'worker', 'veteran', 'clerk-boss', 'waitress', 'backpacker',
     ].map((c) => [`class-${c}`, [`${c}-gen3`, `${c}-gen4`, `${c}-gen4dp`, c]]),
   ),
 };
