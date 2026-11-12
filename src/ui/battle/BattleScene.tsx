@@ -44,7 +44,7 @@ import {
 } from '../../core/game';
 import { rngFrom } from '../../core/rng';
 import { reservePokemon } from '../../core/team';
-import { isPerfect, pokemonName, statsOf } from '../../core/pokemon';
+import { isPerfect, pokemonName, statsOf, type PokemonInstance } from '../../core/pokemon';
 import type { Stats } from '../../core/stats';
 import { levelProgress } from '../../core/progression';
 import {
@@ -182,10 +182,18 @@ interface Spark {
 }
 
 /** Contador animado (o HP desce número a número, como nos jogos). */
-function useCountTo(target: number, ms = 450): number {
+function useCountTo(target: number, ms = 450, resetKey?: unknown): number {
   const [shown, setShown] = useState(target);
   const from = useRef(target);
+  const lastKey = useRef(resetKey);
   useEffect(() => {
+    // Outro Pokémon em campo: o número vai direto para o HP dele (não conta como se curasse).
+    if (lastKey.current !== resetKey) {
+      lastKey.current = resetKey;
+      from.current = target;
+      setShown(target);
+      return;
+    }
     const start = from.current;
     if (start === target) return;
     const t0 = performance.now();
@@ -199,7 +207,7 @@ function useCountTo(target: number, ms = 450): number {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, ms]);
+  }, [target, ms, resetKey]);
   return shown;
 }
 
@@ -359,6 +367,8 @@ export function BattleScene({ state }: { state: GameState }) {
   const holdTok = useRef({ enemy: 0, player: 0 });
   const [fallen, setFallen] = useState<{ id: number; enemy: NonNullable<GameState['battle']['enemy']>; down: boolean } | null>(null);
   const lastEnemy = useRef<GameState['battle']['enemy']>(null);
+  const [ghost, setGhost] = useState<{ id: number; p: PokemonInstance; down: boolean } | null>(null);
+  const lastPlayer = useRef<PokemonInstance | null>(null);
   // Animações que a cena pôs em cada Pokémon: uma nova cancela a anterior (nada de golpes empilhados).
   const running = useRef(new WeakMap<Element, Animation[]>());
   const play = (el: Element | null, frames: Keyframe[], opts: KeyframeAnimationOptions, keep = false) => {
@@ -452,6 +462,14 @@ export function BattleScene({ state }: { state: GameState }) {
       let lastHitAt = 0;
       for (const e of events) {
         if (e.type === 'enemyFainted' && motion && st.battle.kind !== 'wild') audio.cry(e.speciesId);
+        if (e.type === 'switched' && e.reason === 'fainted' && motion && lastPlayer.current) {
+          const id = nextId.current++;
+          const p = lastPlayer.current;
+          const at = lastHitAt;
+          setGhost({ id, p, down: at === 0 });
+          if (at > 0) setTimeout(() => setGhost((g) => (g?.id === id ? { ...g, down: true } : g)), at);
+          setTimeout(() => setGhost((g) => (g?.id === id ? null : g)), at + 700);
+        }
         if (e.type === 'enemyFainted' && motion && lastEnemy.current) {
           const id = nextId.current++;
           const foe = lastEnemy.current;
@@ -480,10 +498,19 @@ export function BattleScene({ state }: { state: GameState }) {
               else audio.sfx(r.effectiveness < 1 ? 'weak' : 'hit');
             }, hitAt);
             // A barra do alvo fica no valor de antes até o impacto (o jogo já descontou o dano).
-            const switched = events.some((x) => x.type === 'switched' || x.type === 'playerFainted');
-            if (r.damage > 0 && !(target === 'player' && switched)) {
-              const post = target === 'enemy' ? (st.battle.enemy?.hp ?? 0) : activePokemon(st).currentHp;
-              const max = target === 'enemy' ? (st.battle.enemy?.maxHp ?? lastEnemy.current?.maxHp ?? post) : statsOf(activePokemon(st)).hp;
+            // Desmaio do jogador: sem reserva vem `playerFainted`; com reserva, só a troca (motivo: desmaio).
+            const ko = events.some(
+              (x) => x.type === 'playerFainted' || (x.type === 'switched' && x.reason === 'fainted'),
+            );
+            const swapped = events.some((x) => x.type === 'switched' && x.reason !== 'fainted');
+            if (r.damage > 0 && !(target === 'player' && swapped)) {
+              const downMon = ko ? lastPlayer.current : null;
+              const post =
+                target === 'enemy' ? (st.battle.enemy?.hp ?? 0) : downMon ? 0 : activePokemon(st).currentHp;
+              const max =
+                target === 'enemy'
+                  ? (st.battle.enemy?.maxHp ?? lastEnemy.current?.maxHp ?? post)
+                  : statsOf(downMon ?? activePokemon(st)).hp;
               const pre = Math.min(max, post + r.damage);
               const tok = ++holdTok.current[target];
               setHold((h) => ({ ...h, [target]: pre }));
@@ -619,8 +646,10 @@ export function BattleScene({ state }: { state: GameState }) {
             e.kind === 'recoil'
               ? { id: nextId.current++, side: e.side, text: `-${e.amount}`, tone: 'status' }
               : { id: nextId.current++, side: e.side, text: `+${e.amount}`, tone: 'heal' };
-          setFloaters((list) => [...list.slice(-6), f]);
-          setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+          setTimeout(() => {
+            setFloaters((list) => [...list.slice(-6), f]);
+            setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+          }, lastHitAt);
         } else if (e.type === 'statusDamage' && motion && st.settings.showDamageNumbers) {
           const f: Floater = { id: nextId.current++, side: e.side, text: `-${e.damage}`, tone: 'status' };
           setFloaters((list) => [...list.slice(-6), f]);
@@ -816,7 +845,9 @@ export function BattleScene({ state }: { state: GameState }) {
     return () => clearTimeout(t);
   }, [b.routeId, animSpeed]);
 
-  const player = useShownPokemon(activePokemon(state));
+  const live = useShownPokemon(activePokemon(state));
+  lastPlayer.current = live;
+  const player = ghost?.p ?? live;
   const pStats = statsOf(player);
   // Alarme de HP baixo (barra vermelha) enquanto o ativo luta.
   const lowHp = b.phase === 'fighting' && player.currentHp > 0 && player.currentHp / pStats.hp <= 0.2;
@@ -832,7 +863,17 @@ export function BattleScene({ state }: { state: GameState }) {
     b.kind === 'tower' ||
     b.kind === 'tournament' ||
     b.kind === 'ghost';
-  const shownHp = useCountTo(hold.player ?? player.currentHp);
+  const shownHp = useCountTo(hold.player ?? player.currentHp, 450, player.uid);
+  useEffect(() => {
+    holdTok.current.player++;
+    setHold((h) => (h.player === undefined ? h : { ...h, player: undefined }));
+  }, [player.uid]);
+  const enemyKey = keyOf(b.enemy);
+  useEffect(() => {
+    if (!enemyKey) return;
+    holdTok.current.enemy++;
+    setHold((h) => (h.enemy === undefined ? h : { ...h, enemy: undefined }));
+  }, [enemyKey]);
   // Entardecer e amanhecer (só visual; o jogo conta dia e noite).
   const hour = new Date(state.lastTimerAt).getHours();
   const skyTint =
@@ -1078,7 +1119,7 @@ export function BattleScene({ state }: { state: GameState }) {
         scale={PLAYER_SCALE}
         maxH={PLAYER_MAX_H}
         innerRef={playerRef}
-        className={`idle-b ${mega ? 'mega-flash' : ''} ${b.phase === 'defeat' ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
+        className={`idle-b ${mega ? 'mega-flash' : ''} ${(ghost ? ghost.down : b.phase === 'defeat' && hold.player === undefined) ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
       />
 
       {foe && (
@@ -1125,14 +1166,14 @@ export function BattleScene({ state }: { state: GameState }) {
         </div>
         {reserves.length > 0 && (
           <div className="party-balls" title="Equipe (o 1º luta)">
-            {[player, ...reserves].map((p) => (
+            {[live, ...reserves.filter((r) => r.uid !== live.uid)].map((p) => (
               <span key={p.uid} className={p.currentHp > 0 ? '' : 'fainted'}>
                 <PixelIcon name="miniBall" scale={2} />
               </span>
             ))}
           </div>
         )}
-        <HpBar value={hold.player ?? player.currentHp} max={pStats.hp} />
+        <HpBar key={`hp-${player.uid}`} value={hold.player ?? player.currentHp} max={pStats.hp} />
         <div className="status-hp">
           <span className="hp-now">{shownHp}</span>
           <span className="hp-max">/{pStats.hp}</span>
