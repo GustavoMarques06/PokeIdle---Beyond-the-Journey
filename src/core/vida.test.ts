@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE, BERRIES, EXPEDITIONS, ROUTES, SEASONS } from '../game-data';
 import { addToCollection } from './collection';
-import { DIG_LANTERNS, digState, startDig, useLantern } from './dig';
+import { DIG_LANTERNS, digState, startDig, lightLantern } from './dig';
 import { EXPEDITION_FRIENDSHIP, chooseFork, claimExpedition, forkOpen, riskyLucky, startExpedition } from './expeditions';
 import { berryInSeason, beesNext, beesVisiting, gardenGuardian, gardenSeason, gardenTimers, plantBerry } from './garden';
 import { HILO_ENTRY, cashHiLo, guessHiLo, spinSlots, startHiLo } from './gamecorner';
@@ -98,11 +98,11 @@ describe('Fósseis: lanterna e pedido do cientista', () => {
     const run = digState(s).run!;
     const t = run.treasures[0];
     const depth = [...run.depth];
-    expect(useLantern(s, t.x, t.y)).toBeGreaterThan(0);
+    expect(lightLantern(s, t.x, t.y)).toBeGreaterThan(0);
     expect(run.depth).toEqual(depth);
     expect(run.glints!.length).toBeGreaterThan(0);
-    for (let i = 1; i < DIG_LANTERNS; i++) useLantern(s, 0, 0);
-    expect(useLantern(s, 0, 0)).toBe(-1);
+    for (let i = 1; i < DIG_LANTERNS; i++) lightLantern(s, 0, 0);
+    expect(lightLantern(s, 0, 0)).toBe(-1);
   });
 
   it('o pedido do dia consome os itens e paga uma vez', () => {

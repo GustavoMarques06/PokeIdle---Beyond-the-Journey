@@ -564,16 +564,20 @@ export function ShopScreen({ state }: { state: GameState }) {
     return () => clearTimeout(timer);
   }, [talk]);
   useEffect(() => {
-    setIdle(false);
     const timer = setTimeout(() => setIdle(true), 14_000);
     return () => clearTimeout(timer);
   }, [lastAction]);
+  /** O jogador fez algo: o vendedor sai do "…" e o relógio do tédio recomeça. */
+  const touch = useCallback(() => {
+    setIdle(false);
+    setLastAction(Date.now());
+  }, []);
 
   const say = useCallback((text: string, mood: Mood = 'say') => {
     counter.current++;
     setTalk({ text, mood, n: counter.current });
-    setLastAction(Date.now());
-  }, []);
+    touch();
+  }, [touch]);
 
   const bought = useCallback(
     (id: string, qty: number, cost: number, from: Element | null) => {
@@ -582,7 +586,7 @@ export function ShopScreen({ state }: { state: GameState }) {
       setSale({ id, n });
       setVisit((v) => ({ spent: v.spent + cost, items: v.items + qty }));
       setTalk({ text: `Obrigado! ${qty > 1 ? `${qty}× ` : ''}${itemName(id)} na sua mochila.`, mood: 'thanks', n });
-      setLastAction(Date.now());
+      touch();
       // O item voa do nicho até o caixa (em pixels da tela, descontando o zoom da interface).
       const box = root.current;
       const to = register.current;
@@ -604,7 +608,7 @@ export function ShopScreen({ state }: { state: GameState }) {
       }
       setTimeout(() => setSale((s) => (s?.n === n ? null : s)), 1600);
     },
-    [],
+    [touch],
   );
 
   const setFloor = useCallback((n: number, label: string) => setFloorState({ n, label }), []);
@@ -646,7 +650,7 @@ export function ShopScreen({ state }: { state: GameState }) {
             className={`pocket ${store === 'mart' ? 'active' : ''}`}
             onClick={() => {
               setStore('mart');
-              setLastAction(Date.now());
+              touch();
             }}
           >
             <ItemIcon id="coin-case" size={30} /> POKé MART
@@ -655,7 +659,7 @@ export function ShopScreen({ state }: { state: GameState }) {
             className={`pocket ${store === 'dept' ? 'active' : ''}`}
             onClick={() => {
               setStore('dept');
-              setLastAction(Date.now());
+              touch();
             }}
             title={DEPT_STORE.name}
           >
@@ -665,7 +669,7 @@ export function ShopScreen({ state }: { state: GameState }) {
             className={`pocket ${store === 'merchant' ? 'active' : ''} ${state.merchant ? 'pocket-alert' : ''}`}
             onClick={() => {
               setStore('merchant');
-              setLastAction(Date.now());
+              touch();
             }}
           >
             <ItemIcon id="vs-seeker" size={30} /> MERCADOR{state.merchant ? ' !' : ''}

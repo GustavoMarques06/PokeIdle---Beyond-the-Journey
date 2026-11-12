@@ -51,7 +51,8 @@ export function PartnerQuip({ state, x, y }: { state: GameState; x: number; y: n
   const engine = useEngine();
   const [quip, setQuip] = useState<{ id: number; text: string; who: string } | null>(null);
   const n = useRef(0);
-  const lastAt = useRef(Date.now());
+  // Quando falou pela última vez (0 = ainda não: a primeira fala espera o intervalo inteiro).
+  const lastAt = useRef(0);
 
   const say = useCallback((text: string) => {
     const st = engine.state;
@@ -78,6 +79,7 @@ export function PartnerQuip({ state, x, y }: { state: GameState; x: number; y: n
   useGameEvents(onEvents);
 
   useEffect(() => {
+    if (!lastAt.current) lastAt.current = Date.now();
     const t = setInterval(() => {
       const st = engine.state;
       if (!st || st.settings.graphics === 'performance' || document.hidden) return;

@@ -1,0 +1,79 @@
+# Verificação automática: a cada push e pull request, confere tipos, lint, testes e as telas do jogo.
+# Na main, se tudo passar e o segredo CLOUDFLARE_API_TOKEN estiver configurado no GitHub, publica o site.
+#
+# Para ligar o deploy automático (uma vez só):
+#   1. Na Cloudflare: My Profile → API Tokens → Create Token → modelo "Edit Cloudflare Workers".
+#   2. No GitHub: Settings → Secrets and variables → Actions → New repository secret:
+#      CLOUDFLARE_API_TOKEN = o token criado e CLOUDFLARE_ACCOUNT_ID = o ID da conta (aparece no painel da Cloudflare).
+# Sem os segredos, a verificação roda normalmente e o deploy é pulado.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tipos, lint e testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  e2e:
+    name: Telas do jogo (Playwright)
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
+
+  deploy:
+    name: Publicar (Cloudflare)
+    runs-on: ubuntu-latest
+    needs: [check, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Sem token, sem deploy
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "Segredo CLOUDFLARE_API_TOKEN não configurado; deploy pulado (veja o topo deste arquivo)."
+      - uses: actions/checkout@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+        if: env.CLOUDFLARE_API_TOKEN != ''
+      - run: npm run deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''

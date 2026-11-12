@@ -8,11 +8,9 @@ import { diaryLine } from '../i18n/story';
 /** Número que rola de 0 até o valor (com movimento reduzido, aparece direto). */
 function Roll({ value, delay = 0 }: { value: number; delay?: number }) {
   const [shown, setShown] = useState(0);
+  const still = document.documentElement.classList.contains('reduced-motion');
   useEffect(() => {
-    if (document.documentElement.classList.contains('reduced-motion')) {
-      setShown(value);
-      return;
-    }
+    if (still) return;
     let raf = 0;
     const start = performance.now() + delay;
     const step = (t: number) => {
@@ -22,8 +20,8 @@ function Roll({ value, delay = 0 }: { value: number; delay?: number }) {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [value, delay]);
-  return <>{formatNumber(shown)}</>;
+  }, [value, delay, still]);
+  return <>{formatNumber(still ? value : shown)}</>;
 }
 
 export function OfflineReport({

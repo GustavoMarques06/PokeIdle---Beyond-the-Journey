@@ -27,7 +27,7 @@ import {
   hitArea,
   startDig,
   treasureUncovered,
-  useLantern,
+  lightLantern,
   type DigTool,
 } from '../../../core/dig';
 import { claimFossil, startRevive } from '../../../core/fossils';
@@ -158,7 +158,7 @@ function DigSite({ state }: { state: GameState }) {
   const hit = (x: number, y: number) => {
     if (tool === 'lantern') {
       let found = -1;
-      engine.dispatch((s) => void (found = useLantern(s, x, y)));
+      engine.dispatch((s) => void (found = lightLantern(s, x, y)));
       audio.sfx(found > 0 ? 'shutter' : 'cursor');
       setDust({ id: Date.now(), x, y });
       if (!run || (run.lanterns ?? DIG_LANTERNS) <= 1) setTool('pick');
@@ -498,10 +498,10 @@ function ScientistRequest({ state }: { state: GameState }) {
 export function FossilPanel({ state }: { state: GameState }) {
   const engine = useEngine();
   const [reveal, setReveal] = useState<{ speciesId: number; shiny: boolean } | null>(null);
+  const [living, setLiving] = useState<number | null>(null);
   if (!activityUnlocked(state, 'fossils')) return <Locked routeId={BALANCE.fossils.unlock} />;
   const busy = state.fossils.length >= BALANCE.fossils.slots;
   const museum = state.fossilsRevived ?? {};
-  const [living, setLiving] = useState<number | null>(null);
   const revivedKinds = FOSSILS.filter((f) => museum[f.speciesId]).length;
 
   const open = (i: number) => {

@@ -47,7 +47,7 @@ export const DIG_LANTERNS = 2;
 const LANTERN_RADIUS = 2;
 
 /** Usa a lanterna na casa (x, y). Devolve quantas casas com tesouro ela revelou (ou -1 se não deu). */
-export function useLantern(state: GameState, x: number, y: number): number {
+export function lightLantern(state: GameState, x: number, y: number): number {
   const run = digState(state).run;
   const left = run?.lanterns ?? DIG_LANTERNS;
   if (!run || left <= 0 || run.stability <= 0) return -1;

@@ -58,6 +58,6 @@ export function Markup({ text, names }: { text: string; names: string[] }) {
     else out.push(<b key={k++} className="hl-name">{word}</b>);
     last = at + word.length;
   }
-  if (last < text.length) out.push(<Fragment key={k++}>{text.slice(last)}</Fragment>);
+  if (last < text.length) out.push(<Fragment key={k}>{text.slice(last)}</Fragment>);
   return <>{out}</>;
 }

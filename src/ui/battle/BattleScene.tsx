@@ -364,7 +364,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const [shots, setShots] = useState<Shot[]>([]);
   // O golpe viaja antes de acertar: até o impacto, a barra de HP mostra o valor de antes, e o inimigo derrotado
   // continua na cena (o jogo já o tirou) para cair quando o golpe chega.
-  const [hold, setHold] = useState<{ enemy?: number; player?: number }>({});
+  const [hold, setHold] = useState<{ enemy?: { v: number; key: string }; player?: { v: number; uid: number } }>({});
   const holdTok = useRef({ enemy: 0, player: 0 });
   const [fallen, setFallen] = useState<{ id: number; enemy: NonNullable<GameState['battle']['enemy']>; down: boolean } | null>(null);
   const lastEnemy = useRef<GameState['battle']['enemy']>(null);
@@ -514,7 +514,11 @@ export function BattleScene({ state }: { state: GameState }) {
                   : statsOf(downMon ?? activePokemon(st)).hp;
               const pre = Math.min(max, post + r.damage);
               const tok = ++holdTok.current[target];
-              setHold((h) => ({ ...h, [target]: pre }));
+              const who =
+                target === 'enemy'
+                  ? { v: pre, key: keyOf(st.battle.enemy ?? lastEnemy.current) }
+                  : { v: pre, uid: (downMon ?? activePokemon(st)).uid };
+              setHold((h) => ({ ...h, [target]: who }));
               setTimeout(() => {
                 if (holdTok.current[target] !== tok) return;
                 setHold((h) => {
@@ -847,7 +851,6 @@ export function BattleScene({ state }: { state: GameState }) {
   }, [b.routeId, animSpeed]);
 
   const live = useShownPokemon(activePokemon(state));
-  lastPlayer.current = live;
   const player = ghost?.p ?? live;
   const pStats = statsOf(player);
   // Alarme de HP baixo (barra vermelha) enquanto o ativo luta.
@@ -864,17 +867,9 @@ export function BattleScene({ state }: { state: GameState }) {
     b.kind === 'tower' ||
     b.kind === 'tournament' ||
     b.kind === 'ghost';
-  const shownHp = useCountTo(hold.player ?? player.currentHp, 450, player.uid);
-  useEffect(() => {
-    holdTok.current.player++;
-    setHold((h) => (h.player === undefined ? h : { ...h, player: undefined }));
-  }, [player.uid]);
-  const enemyKey = keyOf(b.enemy);
-  useEffect(() => {
-    if (!enemyKey) return;
-    holdTok.current.enemy++;
-    setHold((h) => (h.enemy === undefined ? h : { ...h, enemy: undefined }));
-  }, [enemyKey]);
+  // HP segurado até o golpe chegar: só vale para o mesmo Pokémon (quem entra depois mostra o próprio HP).
+  const heldPlayer = hold.player?.uid === player.uid ? hold.player.v : undefined;
+  const shownHp = useCountTo(heldPlayer ?? player.currentHp, 450, player.uid);
   // Entardecer e amanhecer (só visual; o jogo conta dia e noite).
   const hour = new Date(state.lastTimerAt).getHours();
   const skyTint =
@@ -887,9 +882,9 @@ export function BattleScene({ state }: { state: GameState }) {
           : null;
   const reserves = reservePokemon(state);
   const enemy = b.enemy;
-  if (enemy) lastEnemy.current = enemy;
   // Na cena: o inimigo, ou o que acabou de cair (até o golpe chegar e ele afundar).
   const foe = enemy ?? fallen?.enemy ?? null;
+  const heldEnemy = foe && hold.enemy?.key === keyOf(foe) ? hold.enemy.v : undefined;
   // Uma tentativa que falhou só é mostrada enquanto o mesmo inimigo está em campo.
   const staleEscape = capture !== null && !capture.success && keyOf(enemy) !== capture.enemyKey;
   // Só some o Pokémon que está dentro da bola: quem entra depois da captura aparece normalmente.
@@ -915,7 +910,14 @@ export function BattleScene({ state }: { state: GameState }) {
   const enemyBox = foe
     ? spriteBox(foe.speciesId, 'front', enemyScale, enemyMaxH, enemyForm)
     : { w: 40, h: 40, bodyH: 40 };
-  geo.current = { player: PLAYER_BASE, enemy: ENEMY_BASE, pH: playerBox.bodyH, eH: enemyBox.bodyH };
+  // O que os eventos precisam saber da tela (quem está em campo e onde): guardado depois de desenhar.
+  const pH = playerBox.bodyH;
+  const eH = enemyBox.bodyH;
+  useLayoutEffect(() => {
+    lastPlayer.current = live;
+    if (enemy) lastEnemy.current = enemy;
+    geo.current = { player: PLAYER_BASE, enemy: ENEMY_BASE, pH, eH };
+  });
 
   // Árvore de berry da rota e foto da cena.
   const treeRouteId = route.kind === 'trial' && route.farm ? route.farm : route.id;
@@ -1120,7 +1122,7 @@ export function BattleScene({ state }: { state: GameState }) {
         scale={PLAYER_SCALE}
         maxH={PLAYER_MAX_H}
         innerRef={playerRef}
-        className={`idle-b ${mega ? 'mega-flash' : ''} ${(ghost ? ghost.down : b.phase === 'defeat' && hold.player === undefined) ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
+        className={`idle-b ${mega ? 'mega-flash' : ''} ${(ghost ? ghost.down : b.phase === 'defeat' && heldPlayer === undefined) ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
       />
 
       {foe && (
@@ -1147,7 +1149,7 @@ export function BattleScene({ state }: { state: GameState }) {
             ) : (
               <span className="status-ball-gap" />
             )}
-            <HpBar value={hold.enemy ?? (enemy ? foe.hp : 0)} max={foe.maxHp} />
+            <HpBar value={heldEnemy ?? (enemy ? foe.hp : 0)} max={foe.maxHp} />
           </div>
           <MatchupRow speciesId={foe.speciesId} />
         </div>
@@ -1174,7 +1176,7 @@ export function BattleScene({ state }: { state: GameState }) {
             ))}
           </div>
         )}
-        <HpBar key={`hp-${player.uid}`} value={hold.player ?? player.currentHp} max={pStats.hp} />
+        <HpBar key={`hp-${player.uid}`} value={heldPlayer ?? player.currentHp} max={pStats.hp} />
         <div className="status-hp">
           <span className="hp-now">{shownHp}</span>
           <span className="hp-max">/{pStats.hp}</span>

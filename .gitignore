@@ -11,3 +11,7 @@ prints/
 art/**/_backup*/
 .wrangler/
 art/maps/novos/cortes/
+
+# Testes de tela (Playwright)
+playwright-report/
+test-results/
