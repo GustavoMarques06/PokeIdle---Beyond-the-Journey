@@ -69,8 +69,10 @@ export function installAppFeel(onSave?: () => void): void {
       // Ferramentas do desenvolvedor: só no jogo publicado (no `npm run dev` continuam abertas).
       const devtools =
         e.key === 'F12' ||
-        (ctrl && e.shiftKey && ['i', 'j', 'c', 'k'].includes(k)) ||
-        (ctrl && e.altKey && ['i', 'j', 'u'].includes(k));
+        (ctrl && e.shiftKey && ['i', 'j', 'c', 'k', 'e', 'm', 's', 'delete'].includes(k)) ||
+        (ctrl && e.altKey && ['i', 'j', 'c', 'u'].includes(k)) ||
+        (e.shiftKey && e.key === 'F7') ||
+        (e.shiftKey && e.key === 'F5');
       if (devtools) {
         if (import.meta.env.PROD) e.preventDefault();
         return;
@@ -106,6 +108,36 @@ export function installAppFeel(onSave?: () => void): void {
   // Voltar do navegador (e o gesto de voltar do celular): o jogo segura uma página extra no histórico.
   history.pushState({ game: true }, '');
   window.addEventListener('popstate', () => history.pushState({ game: true }, ''));
+
+  // Soltar um arquivo ou texto na janela faz o navegador abrir o arquivo e sair do jogo: arquivos nunca entram, e
+  // o resto só nas áreas do jogo que aceitam soltar (PC, equipe).
+  for (const type of ['dragover', 'drop'] as const)
+    window.addEventListener(type, (e) => {
+      const files = !!e.dataTransfer?.types.includes('Files');
+      const zone = (e.target as HTMLElement | null)?.closest?.('[data-drop], .pcs, .party-board, .pcs-boxes');
+      if (files || !zone) {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+      }
+    });
+
+  // Copiar, recortar e selecionar só nos campos de texto.
+  for (const type of ['copy', 'cut', 'selectstart'] as const)
+    document.addEventListener(type, (e) => {
+      if (!editable(e.target)) e.preventDefault();
+    });
+
+  // Quem abrir as ferramentas pelo menu do navegador vê um aviso (no jogo publicado).
+  if (import.meta.env.PROD) {
+    console.log(
+      '%cPARE!',
+      'color:#e83838;font:bold 42px sans-serif;-webkit-text-stroke:1px #283050',
+    );
+    console.log(
+      '%cEsta área é para desenvolvedores. Se alguém pediu para você colar algo aqui, é golpe: pode apagar o seu save ou roubar os seus Pokémon.',
+      'font:16px sans-serif',
+    );
+  }
 
   installTooltips();
 }
