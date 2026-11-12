@@ -3,13 +3,14 @@
 // Só apresentação — a simulação continua no GameEngine independentemente daqui.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
-import { legendGlow } from '../i18n/legends';
+import { TYPE_GLOW, legendGlow } from '../i18n/legends';
 import {
   BALANCE,
   assetUrl,
   formSet,
   formSprite,
   getItem,
+  getMove,
   getRoute,
   getSpecies,
   isMegaForm,
@@ -48,6 +49,7 @@ import {
   PokemonSprite,
   Shiny,
   TrainerImage,
+  TrainerSprite,
   TypeBadge,
 } from '../components/common';
 import { raidAllies, raidBreakers } from '../../core/raids';
@@ -67,7 +69,7 @@ import { RaidVictory } from './RaidVictory';
 import { battleSpritePath, useWarmBattleSprites } from './warmSprites';
 import { EvolutionOverlay } from './EvolutionOverlay';
 import { captureAnimMs, captureShakes } from '../../core/capture';
-import { ArtFx, MoveFx, SendOutBall, ShinySparkle, WeatherLayer, ambientFor } from './effects';
+import { ArtFx, MoveFx, SceneLife, SendOutBall, ShinySparkle, WeatherLayer, ambientFor } from './effects';
 import { activityArt, artMs, impactArt, statusArt, type FxArt } from './fxart';
 
 interface Floater {
@@ -115,6 +117,40 @@ function StatusTag({ status }: { status?: StatusState | null }) {
     </span>
   );
 }
+
+/** Energia de um golpe especial viajando do atacante até o alvo (em pixels da cena). */
+interface Shot {
+  id: number;
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  color: string;
+  style: 'orb' | 'beam' | 'spray';
+  ms: number;
+}
+
+/** Forma da energia de cada tipo: bola (fogo, sombra…), raio (gelo, psíquico…) ou jato de gotas (água, pedra…). */
+const SHOT_STYLE: Record<string, Shot['style']> = {
+  ice: 'beam',
+  psychic: 'beam',
+  dragon: 'beam',
+  electric: 'beam',
+  steel: 'beam',
+  flying: 'beam',
+  water: 'spray',
+  ground: 'spray',
+  rock: 'spray',
+  bug: 'spray',
+};
+
+const isPhysical = (moveId: string) => {
+  try {
+    return getMove(moveId).category === 'physical';
+  } catch {
+    return true;
+  }
+};
 
 interface Spark {
   id: number;
@@ -297,6 +333,9 @@ export function BattleScene({ state }: { state: GameState }) {
   const nextId = useRef(1);
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [sparks, setSparks] = useState<Spark[]>([]);
+  const [shots, setShots] = useState<Shot[]>([]);
+  // Onde estão os dois Pokémon (pés e altura do corpo), atualizado a cada desenho.
+  const geo = useRef({ player: { x: 66, y: 138 }, enemy: { x: 184, y: 78 }, pH: 40, eH: 40 });
   const [capture, setCapture] = useState<CaptureAnim | null>(null);
   // Lendário: entrada de cinema, fúria e o resultado da bola (rugido ou explosão de estrelas).
   const [legendIntro, setLegendIntro] = useState<{ id: number; speciesId: number } | null>(null);
@@ -375,42 +414,89 @@ export function BattleScene({ state }: { state: GameState }) {
       const motion = !st.settings.reducedMotion && st.settings.graphics !== 'performance';
       const speed = st.settings.animSpeed || 1;
       for (const e of events) {
+        if (e.type === 'enemyFainted' && motion && st.battle.kind !== 'wild') audio.cry(e.speciesId);
         if (e.type === 'attack') {
           const target = e.side === 'player' ? 'enemy' : 'player';
           const r = e.result;
+          const physical = isPhysical(r.moveId);
+          // O impacto (faíscas, número de dano, empurrão) chega quando o golpe alcança o alvo.
+          const hitAt = motion ? (physical ? 230 : 320) / speed : 0;
           if (motion) {
             const [attackerEl, targetEl] =
               e.side === 'player'
                 ? [playerRef.current, enemyRef.current]
                 : [enemyRef.current, playerRef.current];
             const dir = e.side === 'player' ? 1 : -1;
-            attackerEl?.animate(
-              [
-                { transform: 'translate(0, 0)' },
-                { transform: `translate(calc(var(--u) * ${dir * 10}), calc(var(--u) * ${-dir * 5}))` },
-                { transform: 'translate(0, 0)' },
-              ],
-              { duration: 240 / speed, easing: 'steps(3, end)' },
-            );
+            const g = geo.current;
+            const mine = e.side === 'player' ? { b: g.player, h: g.pH } : { b: g.enemy, h: g.eH };
+            const theirs = e.side === 'player' ? { b: g.enemy, h: g.eH } : { b: g.player, h: g.pH };
+            const from = { x: mine.b.x, y: mine.b.y - mine.h / 2 };
+            const to = { x: theirs.b.x, y: theirs.b.y - theirs.h / 2 };
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const u = (n: number) => `calc(var(--u) * ${n.toFixed(1)})`;
+            const color = TYPE_GLOW[r.moveType] ?? '#f8f8f8';
+            if (physical) {
+              // Recua, corre até perto do alvo, bate e volta.
+              attackerEl?.animate(
+                [
+                  { transform: 'translate(0, 0)' },
+                  { transform: `translate(${u(-dir * 6)}, ${u(dir * 2)})`, offset: 0.2 },
+                  { transform: `translate(${u(dx * 0.55)}, ${u(dy * 0.55)})`, offset: 0.48 },
+                  { transform: `translate(${u(dx * 0.5)}, ${u(dy * 0.5)})`, offset: 0.62 },
+                  { transform: 'translate(0, 0)' },
+                ],
+                { duration: 500 / speed, easing: 'steps(10, end)' },
+              );
+            } else {
+              // Carrega a energia na cor do tipo e solta.
+              attackerEl?.animate(
+                [
+                  { filter: 'none', transform: 'translate(0, 0)' },
+                  {
+                    filter: `brightness(1.6) drop-shadow(0 0 6px ${color})`,
+                    transform: `translate(0, ${u(-2)})`,
+                    offset: 0.45,
+                  },
+                  { filter: 'none', transform: 'translate(0, 0)' },
+                ],
+                { duration: 420 / speed, easing: 'steps(5, end)' },
+              );
+              const id = nextId.current++;
+              const ms = Math.round(300 / speed);
+              setShots((list) => [
+                ...list.slice(-3),
+                { id, x: from.x, y: from.y, dx, dy, color, style: SHOT_STYLE[r.moveType] ?? 'orb', ms },
+              ]);
+              setTimeout(() => setShots((list) => list.filter((x) => x.id !== id)), ms + 400);
+            }
             if (r.damage > 0) {
+              const big = r.effectiveness > 1 || r.crit;
+              // Empurrão para trás (mais forte no super efetivo e no crítico) e o pisca-pisca do dano.
+              const kb = big ? 12 : 5;
+              targetEl?.animate(
+                [
+                  { transform: 'translate(0, 0)' },
+                  { transform: `translate(${u(dir * kb)}, ${u(-dir * kb * 0.4)})`, offset: 0.3 },
+                  { transform: 'translate(0, 0)' },
+                ],
+                { duration: 340 / speed, delay: hitAt, easing: 'steps(5, end)' },
+              );
               targetEl?.animate(
                 [{ opacity: 1 }, { opacity: 0 }, { opacity: 1 }, { opacity: 0 }, { opacity: 1 }],
-                {
-                  duration: 320 / speed,
-                  delay: 140 / speed,
-                  easing: 'steps(1, end)',
-                },
+                { duration: 320 / speed, delay: hitAt + 20, easing: 'steps(1, end)' },
               );
               const id = nextId.current++;
               const type = r.moveType;
-              const big = r.effectiveness > 1 || r.crit;
               const art = impactArt(type, big);
-              setSparks((list) => [...list.slice(-4), { id, side: target, type, big, art }]);
-              setTimeout(
-                () => setSparks((list) => list.filter((x) => x.id !== id)),
-                art ? artMs(art, speed) : 700 / speed,
-              );
-              if (r.effectiveness > 1 || r.crit) setShake((n) => n + 1);
+              setTimeout(() => {
+                setSparks((list) => [...list.slice(-4), { id, side: target, type, big, art }]);
+                setTimeout(
+                  () => setSparks((list) => list.filter((x) => x.id !== id)),
+                  art ? artMs(art, speed) : 700 / speed,
+                );
+                if (big) setShake((n) => n + 1);
+              }, hitAt);
             }
           }
           if (st.settings.showDamageNumbers && st.settings.graphics !== 'performance') {
@@ -429,8 +515,10 @@ export function BattleScene({ state }: { state: GameState }) {
               text: r.missed ? 'ERROU' : `-${r.damage}`,
               tone,
             };
-            setFloaters((list) => [...list.slice(-6), f]);
-            setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+            setTimeout(() => {
+              setFloaters((list) => [...list.slice(-6), f]);
+              setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
+            }, hitAt);
           }
         } else if (motion && e.type === 'effect' && e.amount && st.settings.showDamageNumbers) {
           const f: Floater =
@@ -444,6 +532,12 @@ export function BattleScene({ state }: { state: GameState }) {
           setFloaters((list) => [...list.slice(-6), f]);
           setTimeout(() => setFloaters((list) => list.filter((x) => x.id !== f.id)), 800);
         } else if (motion && e.type === 'supportMove' && (e.outcome === 'heal' || e.outcome === 'boost')) {
+          const aura = activityArt(e.outcome === 'heal' ? 'hearts' : 'levelup');
+          if (aura) {
+            const id = nextId.current++;
+            setSparks((list) => [...list.slice(-4), { id, side: e.side, type: 'normal', big: false, art: aura }]);
+            setTimeout(() => setSparks((list) => list.filter((x) => x.id !== id)), artMs(aura, speed));
+          }
           const f: Floater = {
             id: nextId.current++,
             side: e.side,
@@ -670,6 +764,7 @@ export function BattleScene({ state }: { state: GameState }) {
   const enemyBox = enemy
     ? spriteBox(enemy.speciesId, 'front', enemyScale, enemyMaxH, enemyForm)
     : { w: 40, h: 40, bodyH: 40 };
+  geo.current = { player: PLAYER_BASE, enemy: ENEMY_BASE, pH: playerBox.bodyH, eH: enemyBox.bodyH };
 
   // Árvore de berry da rota e foto da cena.
   const treeRouteId = route.kind === 'trial' && route.farm ? route.farm : route.id;
@@ -741,6 +836,14 @@ export function BattleScene({ state }: { state: GameState }) {
       )}
       {!state.settings.reducedMotion && gfx !== 'performance' && (
         <WeatherLayer weather={weather} night={state.env.period === 'night'} scene={sceneKey} />
+      )}
+      {motionOn && (
+        <SceneLife
+          scene={sceneKey}
+          night={night}
+          open={b.kind !== 'tower' && !['cave', 'icecave', 'dampcave', 'volcano', ...INDOOR_NEW].includes(sceneKey)}
+          weather={weather}
+        />
       )}
       {/* Aurora e chuva de meteoros: as animações de pixel art do pixelfx (as mesmas do céu de ambiente). Se a cena já
           as mostra de ambiente, não repete. O arco-íris é desenhado em CSS. */}
@@ -938,6 +1041,34 @@ export function BattleScene({ state }: { state: GameState }) {
           {f.text}
         </span>
       ))}
+      {shots.map((s) => (
+        <span
+          key={s.id}
+          className={`proj proj-${s.style}`}
+          style={
+            {
+              left: `calc(var(--u) * ${s.x})`,
+              top: `calc(var(--u) * ${s.y})`,
+              '--dx': `calc(var(--u) * ${s.dx})`,
+              '--dy': `calc(var(--u) * ${s.dy})`,
+              '--len': `calc(var(--u) * ${Math.hypot(s.dx, s.dy).toFixed(1)})`,
+              '--ang': `${((Math.atan2(s.dy, s.dx) * 180) / Math.PI).toFixed(1)}deg`,
+              '--c': s.color,
+              '--ms': `${s.ms}ms`,
+            } as CSSProperties
+          }
+          aria-hidden
+        >
+          {s.style === 'spray' && (
+            <>
+              <i />
+              <i />
+              <i />
+              <i />
+            </>
+          )}
+        </span>
+      ))}
       {sparks.map((s) => {
         const base = s.side === 'enemy' ? ENEMY_BASE : PLAYER_BASE;
         const box = s.side === 'enemy' ? enemyBox : playerBox;
@@ -1035,6 +1166,11 @@ export function BattleScene({ state }: { state: GameState }) {
           }}
           aria-hidden
         />
+      )}
+      {motionOn && (
+        <span key={`throw-${player.uid}`} className="trainer-throw" aria-hidden>
+          <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={80} />
+        </span>
       )}
       <SendOutBall key={`p-${player.uid}`} x={PLAYER_BASE.x} y={PLAYER_BASE.y - 12} />
       {trainerFoe && enemy && <SendOutBall key={`e-${keyOf(enemy)}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - 8} />}

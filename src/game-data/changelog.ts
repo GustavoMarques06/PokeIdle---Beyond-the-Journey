@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-12-batalha-em-movimento',
+    date: '12/11/2026',
+    title: 'Batalha em movimento',
+    items: [
+      { tag: 'novo', text: 'Golpes físicos: o Pokémon recua, corre até o alvo, bate e volta; o alvo é empurrado para trás (mais forte no super efetivo e no crítico).' },
+      { tag: 'novo', text: 'Golpes especiais: o Pokémon carrega a energia na cor do tipo e solta uma bola (fogo, sombra…), um raio (gelo, psíquico, elétrico…) ou um jato de gotas e pedras (água, terra…).' },
+      { tag: 'novo', text: 'Golpes de apoio com corações (cura) ou brilho subindo (aumento de atributo).' },
+      { tag: 'novo', text: 'Ao trocar de Pokémon, o seu treinador aparece e arremessa a Poké Ball.' },
+      { tag: 'melhoria', text: 'Cenário vivo: nuvens atravessando o céu, a grama da frente balançando, reflexos na água, poeira e gotas nas cavernas e brasas no vulcão.' },
+      { tag: 'melhoria', text: 'Ícones da equipe em 2 quadros, como no menu dos portáteis, e o grito do Pokémon do treinador ao desmaiar.' },
+    ],
+  },
+  {
     id: '2026-11-12-grandes-momentos',
     date: '12/11/2026',
     title: 'Grandes momentos',

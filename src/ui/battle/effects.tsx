@@ -169,6 +169,35 @@ export function SendOutBall({ x, y, ball = 'poke-ball' }: { x: number; y: number
   );
 }
 
+const GRASSY = new Set(['meadow', 'route', 'forest', 'plains', 'jungle', 'swamp']);
+const WATERY = new Set(['river', 'beach', 'sea', 'swamp']);
+const ROCKY = new Set(['cave', 'icecave', 'dampcave', 'ruins', 'mountain']);
+
+/**
+ * Cenário vivo: nuvens andando no céu aberto, a grama da frente balançando, reflexos correndo na água, poeira e gotas
+ * nas cavernas e brasas no vulcão. Fica por cima do fundo e por baixo dos Pokémon (a grama, na frente dos pés).
+ */
+export function SceneLife({ scene, night, open, weather }: { scene: string; night: boolean; open: boolean; weather: string }) {
+  const clouds = open && !night && (weather === 'clear' || weather === 'sun');
+  const many = (n: number) => Array.from({ length: n }, (_, i) => <i key={i} style={{ ['--i' as string]: i }} />);
+  return (
+    <span className={`scene-life life-${scene}`} aria-hidden>
+      {clouds && (
+        <span className="life-clouds">
+          <i className="c1" />
+          <i className="c2" />
+          <i className="c3" />
+        </span>
+      )}
+      {WATERY.has(scene) && <span className="life-water">{many(6)}</span>}
+      {ROCKY.has(scene) && !open && <span className="life-motes">{many(8)}</span>}
+      {ROCKY.has(scene) && !open && <span className="life-drips">{many(3)}</span>}
+      {scene === 'volcano' && <span className="life-embers">{many(8)}</span>}
+      {GRASSY.has(scene) && <span className="life-grass" />}
+    </span>
+  );
+}
+
 /** Ambiente de céu limpo, só enfeite: depende do lugar e da hora (folhas na mata, vaga-lumes à noite, aurora no gelo). */
 const AMBIENT: Record<string, { day?: string; night?: string }> = {
   forest: { day: 'leaves', night: 'fireflies' },

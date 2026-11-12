@@ -108,8 +108,8 @@ export function whenText(speciesId: number): string {
   return parts.join(', ou ');
 }
 
-/** Cor da aura de um lendário: a do tipo principal. */
-const TYPE_GLOW: Record<string, string> = {
+/** Cor de cada tipo (aura de lendário, energia dos golpes especiais). */
+export const TYPE_GLOW: Record<string, string> = {
   fire: '#f08030',
   water: '#6890f0',
   grass: '#78c850',
