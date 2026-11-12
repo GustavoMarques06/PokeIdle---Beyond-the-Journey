@@ -31,7 +31,11 @@ export function Markup({ text, names }: { text: string; names: string[] }) {
     const parts = [
       ...FIXED.map(([r]) => r.source),
       'usou ([^!\\n]+)!',
-      ...[...new Set(names)].filter((n) => n.length > 2).map(escape),
+      // Os mais longos primeiro: "Mewtwo" não pode virar "Mew" + "two".
+      ...[...new Set(names)]
+        .filter((n) => n.length > 2)
+        .sort((x, y) => y.length - x.length)
+        .map(escape),
       '\\d[\\d.]*',
     ];
     return new RegExp(`(${parts.join('|')})`, 'g');
