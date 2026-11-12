@@ -21,6 +21,7 @@ import { ItemIcon, PokemonSprite, TrainerSprite, Window } from '../components/co
 import { PixelFx } from '../components/PixelFx';
 import { T, formatPercent } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
+import { askConfirm } from '../components/GameConfirm';
 
 const RESEARCH_ICONS: Record<string, string> = {
   exp: 'exp-share',
@@ -218,8 +219,8 @@ export function UpgradesScreen({ state }: { state: GameState }) {
             )}
             <button
               className="pbtn small danger"
-              onClick={() => {
-                if (window.confirm('Desistir do desafio? As regras normais voltam e o bônus se perde.'))
+              onClick={async () => {
+                if (await askConfirm('Desistir do desafio? As regras normais voltam e o bônus se perde.'))
                   engine.dispatch(abandonChallenge);
               }}
             >
@@ -259,8 +260,8 @@ export function UpgradesScreen({ state }: { state: GameState }) {
             </fieldset>
             <button
               className="pbtn primary"
-              onClick={() => {
-                if (window.confirm(T.prestige.confirm(preview)))
+              onClick={async () => {
+                if (await askConfirm(T.prestige.confirm(preview)))
                   engine.dispatch((s) => void prestigeReset(s, nextChallenge));
               }}
             >

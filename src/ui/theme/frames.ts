@@ -159,4 +159,8 @@ export function installFrames(root: HTMLElement = document.documentElement): voi
   root.style.setProperty('--tile-grass', svgUrl(grassTile()));
   for (const kind of Object.keys(BIOME_TILES)) root.style.setProperty(`--tile-${kind}`, svgUrl(biomeTile(kind)));
   root.style.setProperty('--icon-cursor', svgUrl(iconSvg(ICONS.cursor)));
+  // Cursores do mouse em pixel art, ampliados 2× (o ponto ativo fica na ponta: 0 0 na seta, 9 0 na mão).
+  const big = (svg: string) => svg.replace(/width="(\d+)" height="(\d+)"/, (_m, w, h) => `width="${w * 2}" height="${h * 2}"`);
+  root.style.setProperty('--cursor-arrow', `${svgUrl(big(iconSvg(ICONS.cursorArrow)))} 0 0`);
+  root.style.setProperty('--cursor-hand', `${svgUrl(big(iconSvg(ICONS.cursorHand)))} 9 0`);
 }

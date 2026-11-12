@@ -18,6 +18,7 @@ import { usePreloadStatus } from '../preload';
 import { openHelp } from '../help/open';
 import { useEngine } from '../useGame';
 import { MusicToggle } from './MusicToggle';
+import { askConfirm } from '../components/GameConfirm';
 
 export function TitleScreen({
   save,
@@ -41,8 +42,8 @@ export function TitleScreen({
   const [message, setMessage] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const newGame = () => {
-    if (save && !window.confirm(T.intro.newGameConfirm(save.trainerName))) return;
+  const newGame = async () => {
+    if (save && !(await askConfirm(T.intro.newGameConfirm(save.trainerName)))) return;
     onNewGame();
   };
   const primary = save ? onContinue : newGame;
@@ -59,7 +60,7 @@ export function TitleScreen({
       if (loading) return;
       if (e.key === 'Enter' && !e.repeat && (e.target as HTMLElement).tagName !== 'BUTTON') {
         e.preventDefault();
-        primary();
+        void primary();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -70,7 +71,7 @@ export function TitleScreen({
     const result = await decodeTransferCode(code);
     if (!result.ok) return setMessage(`Erro: ${result.error}`);
     const incoming = result.file.state;
-    if (save && !window.confirm(T.intro.loadConfirm(incoming.trainerName, save.trainerName))) return;
+    if (save && !(await askConfirm(T.intro.loadConfirm(incoming.trainerName, save.trainerName)))) return;
     engine.replaceState(incoming);
     onContinue();
   };

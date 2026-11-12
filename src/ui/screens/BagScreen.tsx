@@ -41,6 +41,7 @@ import {
 import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { Empty } from '../components/Dynamic';
+import { askConfirm } from '../components/GameConfirm';
 
 type Pocket = 'items' | 'tms';
 
@@ -198,11 +199,11 @@ function SellBox({ state, id }: { state: GameState; id: string }) {
   const [sold, setSold] = useState<{ n: number; amount: number } | null>(null);
   if (have <= 0) return null;
   if (unit <= 0) return <p className="hint">Este item não tem valor de venda.</p>;
-  const sell = (qty: number) => {
+  const sell = async (qty: number) => {
     if (
       qty > 1 &&
       unit * qty >= 20_000 &&
-      !window.confirm(`Vender ${qty}× ${itemName(id)} por ${unit * qty} moedas?`)
+      !(await askConfirm(`Vender ${qty}× ${itemName(id)} por ${unit * qty} moedas?`))
     )
       return;
     engine.dispatch((s) => sellItem(s, id, qty));

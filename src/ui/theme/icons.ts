@@ -295,6 +295,47 @@ export const ICONS = {
     rows: ['...k...', '..kok..', '..koyk.', '.kooyk.', '.koyyok', 'koyywok', 'koywwok', '.koook.', '..kkk..'],
     palette: { k: '#802010', o: '#f06020', y: '#f8c830', w: '#fff8c0' },
   },
+  // Cursores do mouse (theme/frames.ts os amplia 2×): a seta e a mão que aponta (no que dá para clicar).
+  cursorArrow: {
+    rows: [
+      'k.........',
+      'kk........',
+      'kwk.......',
+      'kwwk......',
+      'kwwwk.....',
+      'kwwwwk....',
+      'kwwwwwk...',
+      'kwwwwwwk..',
+      'kwwwwwwwk.',
+      'kwwwwkkkkk',
+      'kwwkwk....',
+      'kwk.kwk...',
+      'kk..kwk...',
+      'k....kwk..',
+      '.....kwk..',
+      '......kk..',
+    ],
+    palette: { k: K, w: '#f8f8f8' },
+  },
+  cursorHand: {
+    rows: [
+      '....kk......',
+      '...kwwk.....',
+      '...kwwk.....',
+      '...kwwk.....',
+      '...kwwkkk...',
+      '...kwwkwwkk.',
+      '.kkkwwkwwkwk',
+      'kwwkwwwwwwwk',
+      'kwwkwwwwwwwk',
+      '.kwwwwwwwwwk',
+      '..kwwwwwwwwk',
+      '..kwwwwwwwk.',
+      '...kwwwwwwk.',
+      '...kkkkkkkk.',
+    ],
+    palette: { k: K, w: '#f8f8f8' },
+  },
 } satisfies Record<string, PixelIconDef>;
 
 export type IconName = keyof typeof ICONS;

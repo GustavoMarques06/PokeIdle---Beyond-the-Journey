@@ -45,6 +45,7 @@ import { TYPE_NAMES, speciesName } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 import { Summary, busyLabel } from './PartyScreen';
 import { PC_DRAG, TEAM_DRAG, teamDropProps } from './teamDrag';
+import { askConfirm } from '../components/GameConfirm';
 
 const SORTS: { id: PcSort; label: string }[] = [
   { id: 'dex', label: 'Nº da Pokédex' },
@@ -197,6 +198,8 @@ export function PcScreen({ state }: { state: GameState }) {
                 className={`pcs-team-mon ${selected === uid ? 'selected' : ''}`}
                 onClick={() => onTeamClick(uid)}
                 draggable={team.length > 1}
+                data-drag-sprite={p.speciesId}
+                data-drag-shiny={p.shiny ? '1' : undefined}
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = 'move';
                   e.dataTransfer.setData(TEAM_DRAG, String(uid));
@@ -295,6 +298,8 @@ export function PcScreen({ state }: { state: GameState }) {
                   <button
                     className={`pcs-cell ${p ? '' : 'empty'} ${on ? 'selected' : ''} ${isHeld ? 'held' : ''} ${p && filtering && !matches.has(uid) ? 'dim' : ''} ${p && busyLabel(state, uid) ? 'away' : ''}`}
                     draggable={!!p}
+                    data-drag-sprite={p?.speciesId}
+                    data-drag-shiny={p?.shiny ? '1' : undefined}
                     onDragStart={(e) => {
                       e.dataTransfer.effectAllowed = 'move';
                       e.dataTransfer.setData('text/plain', `${box}:${slot}`);
@@ -488,10 +493,10 @@ export function PcScreen({ state }: { state: GameState }) {
         <select
           value=""
           aria-label="Organizar as caixas"
-          onChange={(e) => {
+          onChange={async (e) => {
             const by = e.target.value as PcSort;
             const name = SORTS.find((x) => x.id === by)?.label;
-            if (by && window.confirm(`Organizar todas as caixas por ${name}? Os Pokémon mudam de lugar.`))
+            if (by && (await askConfirm(`Organizar todas as caixas por ${name}? Os Pokémon mudam de lugar.`)))
               engine.dispatch((s) => sortPc(s, by));
           }}
         >
@@ -615,9 +620,9 @@ export function PcScreen({ state }: { state: GameState }) {
             className="pbtn small danger"
             disabled={!plan.length}
             title="Só duplicatas livres e que não são favoritas; sempre fica ao menos um de cada espécie."
-            onClick={() => {
+            onClick={async () => {
               const ask = `Transferir ${plan.length} Pokémon para o Laboratório por ${planPoints} pontos de pesquisa?`;
-              if (!window.confirm(ask)) return;
+              if (!(await askConfirm(ask))) return;
               engine.dispatch((s) => void transferMany(s, picked));
               setPicked([]);
             }}

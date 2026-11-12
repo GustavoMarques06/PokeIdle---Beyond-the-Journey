@@ -21,6 +21,7 @@ import {
 import { ItemIcon, PokemonSprite, Window } from '../../components/common';
 import { itemName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
+import { askConfirm } from '../../components/GameConfirm';
 
 export const PRESET_USE_NAMES: Record<PresetUse, string> = {
   boss: 'Ginásios e treinadores',
@@ -136,8 +137,8 @@ function PresetRow({ state, preset }: { state: GameState; preset: TeamPreset }) 
         </label>
         <button
           className="pbtn small danger"
-          onClick={() => {
-            if (window.confirm(`Apagar a equipe “${preset.name}”? Os Pokémon continuam na coleção.`))
+          onClick={async () => {
+            if (await askConfirm(`Apagar a equipe “${preset.name}”? Os Pokémon continuam na coleção.`))
               engine.dispatch((s) => deletePreset(s, preset.id));
           }}
         >

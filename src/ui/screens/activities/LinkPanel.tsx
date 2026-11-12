@@ -37,6 +37,7 @@ import { Award } from '../../components/PixelUi';
 import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
 import { Empty } from '../../components/Dynamic';
+import { askConfirm } from '../../components/GameConfirm';
 
 async function copy(text: string): Promise<boolean> {
   try {
@@ -409,7 +410,7 @@ export function TradePanel({ state }: { state: GameState }) {
   const send = async () => {
     if (!picked) return;
     const name = pokemonName(picked).toUpperCase();
-    if (!window.confirm(`Enviar ${name}? Ele sai do seu jogo agora; o amigo recebe ao colar o código.`))
+    if (!(await askConfirm(`Enviar ${name}? Ele sai do seu jogo agora; o amigo recebe ao colar o código.`)))
       return;
     const packet = tradePacket(state, picked.uid, state.lastTimerAt);
     if (!packet) return;
@@ -496,9 +497,9 @@ export function TradePanel({ state }: { state: GameState }) {
                 </button>
                 <button
                   className="pbtn small danger"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm(
+                      await askConfirm(
                         `Cancelar o envio de ${speciesName(t.pokemon.speciesId)}? Ele volta para o seu PC.`,
                       )
                     )
@@ -695,8 +696,8 @@ export function DuelPanel({ state }: { state: GameState }) {
                     )}
                     <button
                       className="pbtn small danger"
-                      onClick={() => {
-                        if (window.confirm(`Apagar a equipe de ${g.name}?`))
+                      onClick={async () => {
+                        if (await askConfirm(`Apagar a equipe de ${g.name}?`))
                           engine.dispatch((s) => deleteGhost(s, g.id));
                       }}
                     >

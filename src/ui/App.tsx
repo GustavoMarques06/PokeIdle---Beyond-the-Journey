@@ -11,6 +11,8 @@ import {
 } from 'react';
 import { WorldBackdrop, backdropAttrs } from './components/WorldBackdrop';
 import { Ceremonies } from './components/Ceremonies';
+import { GameConfirmHost } from './components/GameConfirm';
+import { DragGhost } from './components/DragGhost';
 import { teamPokemon } from '../core/team';
 import type { GameEvent, GameState } from '../core/game';
 import { pokemonName } from '../core/pokemon';
@@ -152,6 +154,8 @@ export function App() {
         />
       )}
       {inGame && <Toasts />}
+      <GameConfirmHost />
+      <DragGhost />
       {inGame && !engine.offlineReport && <Ceremonies state={state} />}
       {inGame && <SafetyNotice />}
       {inGame && <PerfSuggest />}

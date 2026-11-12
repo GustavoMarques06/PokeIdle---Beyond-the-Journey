@@ -61,6 +61,7 @@ import { legendTitle } from '../i18n/legends';
 import { ChangelogList } from '../components/Changelog';
 import { Journey } from './trainer/Journey';
 import { finaleTitle } from '../components/StoryScene';
+import { askConfirm } from '../components/GameConfirm';
 
 type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode' | 'graphics'>;
 
@@ -680,9 +681,9 @@ function SaveTools({ state }: { state: GameState }) {
     const incoming = result.file.state;
     const summary = `${incoming.trainerName}: ${incoming.collection.length} Pokémon, salvo em ${new Date(result.file.meta.savedAt).toLocaleString('pt-BR')}`;
     if (
-      !window.confirm(`Carregar o jogo de ${summary}?
+      !(await askConfirm(`Carregar o jogo de ${summary}?
 
-O jogo atual neste aparelho será substituído.`)
+O jogo atual neste aparelho será substituído.`))
     )
       return;
     engine.replaceState(incoming);
@@ -755,8 +756,8 @@ O jogo atual neste aparelho será substituído.`)
           )}
           <button
             className="pbtn small danger"
-            onClick={() => {
-              if (window.confirm(T.settings.resetConfirm)) engine.resetSave();
+            onClick={async () => {
+              if (await askConfirm(T.settings.resetConfirm)) engine.resetSave();
             }}
           >
             {T.settings.reset}

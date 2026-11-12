@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-12-cara-de-jogo',
+    date: '12/11/2026',
+    title: 'Cara de jogo, não de site',
+    items: [
+      { tag: 'melhoria', text: 'Arrastar um Pokémon no PC leva o sprite dele junto, e as imagens não saem mais "voando" ao arrastar.' },
+      { tag: 'melhoria', text: 'Cursor do mouse e barras de rolagem em pixel art, dicas em balão e as perguntas de confirmação numa janela do jogo (SIM / NÃO).' },
+      { tag: 'melhoria', text: 'Sem seleção de texto, sem o menu do botão direito e sem o zoom do navegador com Ctrl+roda; Ctrl+S salva o jogo.' },
+    ],
+  },
+  {
     id: '2026-11-12-textos-vivos',
     date: '12/11/2026',
     title: 'Textos e telas mais vivos',
