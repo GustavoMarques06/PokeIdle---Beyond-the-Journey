@@ -20,7 +20,6 @@ export const CHANGELOG: ChangelogEntry[] = [
       { tag: 'melhoria', text: 'Arrastar um Pokémon no PC leva o sprite dele junto, e as imagens não saem mais "voando" ao arrastar.' },
       { tag: 'melhoria', text: 'Cursor do mouse e barras de rolagem em pixel art, dicas em balão e as perguntas de confirmação numa janela do jogo (SIM / NÃO).' },
       { tag: 'melhoria', text: 'Sem seleção de texto, sem o menu do botão direito e sem o zoom do navegador com Ctrl+roda; Ctrl+S salva o jogo.' },
-      { tag: 'novo', text: 'Tela cheia ao apertar START (dá para desligar em TREINADOR → OPÇÕES; F11 alterna), e o Esc continua fechando as janelas do jogo.' },
       { tag: 'melhoria', text: 'As teclas e botões do navegador ficam com o jogo: F5 e Ctrl+R não recarregam, voltar/avançar (teclado, mouse e celular) não saem do jogo, e buscar, favoritos e histórico não abrem. Ao abrir, uma Poké Ball gira no lugar da página branca.' },
     ],
   },

@@ -7,43 +7,7 @@
 // - Teclas e botões do navegador: F5/Ctrl+R (recarregar), buscar, favoritos, histórico, ver código, voltar/avançar
 //   (teclado, botões laterais do mouse e o voltar do sistema), clique do meio e, no jogo publicado, as ferramentas
 //   do desenvolvedor. O que o navegador não deixa bloquear (Ctrl+W, Ctrl+T, Ctrl+N, Alt+F4) fica de fora.
-// - Tela cheia: ao apertar START o jogo ocupa a tela toda (dá para desligar nas Opções); F11 alterna.
 // Os campos de texto continuam funcionando como sempre (selecionar, copiar, menu do botão direito).
-
-import { isTauri } from '../engine/storage';
-
-const FULLSCREEN_KEY = 'pokeidle.fullscreen';
-
-/** Preferência de tela cheia (fica no aparelho; ligada por padrão). */
-export function fullscreenWanted(): boolean {
-  try {
-    return localStorage.getItem(FULLSCREEN_KEY) !== '0';
-  } catch {
-    return true;
-  }
-}
-
-export function setFullscreenWanted(on: boolean): void {
-  try {
-    localStorage.setItem(FULLSCREEN_KEY, on ? '1' : '0');
-  } catch {
-    /* sem armazenamento: só não lembra */
-  }
-  if (on) void enterFullscreen();
-  else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-}
-
-/** Entra em tela cheia (precisa vir de um clique ou tecla). Prende o Esc para ele fechar as janelas do jogo. */
-export async function enterFullscreen(): Promise<void> {
-  if (isTauri() || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
-  try {
-    await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-    const kb = (navigator as unknown as { keyboard?: { lock?: (keys: string[]) => Promise<void> } }).keyboard;
-    await kb?.lock?.(['Escape', 'F5', 'F11']).catch(() => {});
-  } catch {
-    /* o navegador recusou (iPhone, por exemplo): segue em janela */
-  }
-}
 
 /** Teclas do navegador que o jogo segura (com Ctrl/Cmd). */
 const CTRL_BLOCK = new Set(['r', 'f', 'g', 'h', 'j', 'd', 'o', 'u', 'l', 'e', 'k', 'p', 'b', 'y', 'm']);
@@ -109,12 +73,6 @@ export function installAppFeel(onSave?: () => void): void {
         (ctrl && e.altKey && ['i', 'j', 'u'].includes(k));
       if (devtools) {
         if (import.meta.env.PROD) e.preventDefault();
-        return;
-      }
-      if (e.key === 'F11') {
-        e.preventDefault();
-        if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-        else void enterFullscreen();
         return;
       }
       if (PLAIN_BLOCK.has(e.key) || (e.altKey && ['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key))) {

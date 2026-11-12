@@ -22,7 +22,6 @@ import {
   startSparkles,
   type StartLayout,
 } from './startScene';
-import { enterFullscreen, fullscreenWanted } from '../appFeel';
 
 /** O lendário da vez troca a cada poucos segundos, uma região por vez. */
 const FEATURED = REGION_LEGENDS;
@@ -100,8 +99,6 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
   const start = () => {
     audio.unlock();
     audio.sfx('click');
-    // START é o clique que o navegador exige para a tela cheia.
-    if (fullscreenWanted()) void enterFullscreen();
     onStart();
   };
 
