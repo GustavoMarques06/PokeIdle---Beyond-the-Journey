@@ -161,10 +161,10 @@ export function DexScreen({ state }: { state: GameState }) {
           <strong className="dex-brand">POKéDEX</strong>
           <span className="dex-totals">
             <span>
-              VISTOS <b>{seen}</b>
+              VISTOS <b key={`s-${seen}`}>{seen}</b>
             </span>
             <span>
-              CAPT. <b>{caught}</b>/{SPECIES.length}
+              CAPT. <b key={`c-${caught}`}>{caught}</b>/{SPECIES.length}
             </span>
           </span>
         </div>
@@ -173,10 +173,11 @@ export function DexScreen({ state }: { state: GameState }) {
           {/* Tela principal, na moldura cinza com o ponto vermelho e o alto-falante. */}
           <div className="dex-bezel">
             <div className="dex-lcd dex-main">
-              <div className="dex-portrait">
+              <div className="dex-portrait" key={selected}>
                 <PokemonSprite speciesId={selected} kind="front" silhouette={!known} pixelScale={2} />
+                <span className="dex-scan" aria-hidden />
               </div>
-              <div className="dex-facts">
+              <div className="dex-facts" key={`facts-${selected}`}>
                 <span className="dex-no">Nº{num(sp.id)}</span>
                 <strong className="dex-title">
                   {known ? sp.name.toUpperCase() : '?????'}
@@ -262,7 +263,7 @@ export function DexScreen({ state }: { state: GameState }) {
             {!known ? (
               <p className="dex-unknown">Sem dados. Encontre esta espécie para registrá-la.</p>
             ) : tab === 'stats' ? (
-              <table className="dex-stats">
+              <table className="dex-stats" key={`stats-${selected}`}>
                 <tbody>
                   {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => (
                     <tr key={k}>

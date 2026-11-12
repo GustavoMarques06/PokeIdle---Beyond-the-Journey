@@ -71,6 +71,9 @@ export function PcScreen({ state }: { state: GameState }) {
   const [selected, setSelected] = useState(() => boxes[0].slots.find((u) => u) ?? state.activeUid);
   const [box, setBox] = useState(() => findInPc(boxes, selected)?.box ?? 0);
   const [holding, setHolding] = useState<PcSpot | null>(null);
+  // Troca de caixa desliza para o lado certo; o Pokémon solto quica no lugar novo ("ploc").
+  const [slideDir, setSlideDir] = useState<'prev' | 'next' | null>(null);
+  const [dropped, setDropped] = useState<(PcSpot & { n: number }) | null>(null);
   const [dragFrom, setDragFrom] = useState<PcSpot | null>(null);
   const [notice, setNotice] = useState('');
   const [renaming, setRenaming] = useState(false);
@@ -103,6 +106,7 @@ export function PcScreen({ state }: { state: GameState }) {
   useEffect(() => () => clearTimeout(flipTimer.current), []);
 
   const goBox = (i: number) => {
+    setSlideDir(i < box ? 'prev' : 'next');
     setBox((i + boxes.length) % boxes.length);
     setRenaming(false);
     audio.sfx('cursor');
@@ -113,6 +117,7 @@ export function PcScreen({ state }: { state: GameState }) {
     const uid = boxes[from.box].slots[from.slot];
     engine.dispatch((s) => void movePc(s, from, to));
     setSelected(uid);
+    setDropped((d) => ({ ...to, n: (d?.n ?? 0) + 1 }));
     audio.sfx('click');
   };
 
@@ -275,14 +280,18 @@ export function PcScreen({ state }: { state: GameState }) {
             />
           </div>
 
-          <ul className={`pcs-grid wp-${boxWallpaper(current, box)} ${holding ? 'holding' : ''}`}>
+          <ul
+            key={`grid-${box}`}
+            className={`pcs-grid wp-${boxWallpaper(current, box)} ${holding ? 'holding' : ''} ${slideDir ? `slide-${slideDir}` : ''}`}
+          >
             {current.slots.map((uid, slot) => {
               const p = uid ? byUid.get(uid) : undefined;
               const spot = { box, slot };
               const on = multi ? pickedSet.has(uid) : uid === selected;
               const isHeld = holding?.box === box && holding.slot === slot;
+              const justDropped = dropped?.box === box && dropped.slot === slot;
               return (
-                <li key={slot}>
+                <li key={justDropped ? `drop-${dropped.n}` : slot} className={justDropped ? 'pcs-dropped' : undefined}>
                   <button
                     className={`pcs-cell ${p ? '' : 'empty'} ${on ? 'selected' : ''} ${isHeld ? 'held' : ''} ${p && filtering && !matches.has(uid) ? 'dim' : ''} ${p && busyLabel(state, uid) ? 'away' : ''}`}
                     draggable={!!p}

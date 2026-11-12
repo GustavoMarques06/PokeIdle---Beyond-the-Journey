@@ -20,6 +20,8 @@ async function boot(): Promise<void> {
   engine.load();
   engine.start();
   installNotifications(engine);
+  // Só no `npm run dev` (some do build): o motor no console, para testar cerimônias e eventos à mão.
+  if (import.meta.env.DEV) (window as unknown as { __engine: GameEngine }).__engine = engine;
 
   // Salva ao esconder a janela ou fechar o jogo.
   document.addEventListener('visibilitychange', () => {

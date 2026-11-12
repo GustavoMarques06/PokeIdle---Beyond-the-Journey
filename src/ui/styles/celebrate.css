@@ -1,0 +1,891 @@
+/* =============================================================================
+   GRANDES MOMENTOS E TELAS VIVAS (12/11)
+     1. Cerimônias: insígnia, Hall da Fama e as faixas (medalha, nível de treinador, Pokédex)
+     2. "Enquanto você estava fora…"
+     3. Ficha do Pokémon e cartões da equipe
+     4. Pokédex
+     5. PC
+     6. Movimento reduzido
+   ============================================================================= */
+
+/* --- 1. Cerimônias --------------------------------------------------------------------------- */
+.cer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(12 16 40 / 0.72);
+  animation: cer-fade 0.3s steps(4, end);
+  cursor: pointer;
+}
+
+@keyframes cer-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.cer-badge {
+  background: radial-gradient(ellipse at 50% 45%, #3a4898, #141c48 72%);
+  border: 4px solid #f8d030;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 4px #283878,
+    0 0 40px rgb(248 208 48 / 0.5);
+}
+
+.cer-badge .cer-tap {
+  color: #c8d0f0;
+}
+
+.cer-leader-sprite {
+  display: grid;
+  flex: none;
+  margin: -24px 0 -8px -8px;
+}
+
+@media (max-height: 700px) {
+  .cer-leader-sprite .trainer-sprite {
+    width: 80px !important;
+    height: 80px !important;
+  }
+}
+
+.cer-badge,
+.cer-hof {
+  position: relative;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, 100%);
+  padding: 18px 18px 12px;
+  overflow: hidden;
+  animation: cer-pop 0.35s steps(5, end);
+}
+
+@keyframes cer-pop {
+  from {
+    scale: 0.6;
+    opacity: 0;
+  }
+}
+
+/* Raios de luz girando atrás de tudo. */
+.cer-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 900px;
+  height: 900px;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(rgb(255 240 160 / 0.22) 0 10deg, transparent 10deg 20deg);
+  animation: cer-spin 14s linear infinite;
+  pointer-events: none;
+}
+
+.cer-badge > :not(.cer-rays),
+.cer-hof > :not(.cer-rays) {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes cer-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.cer-leader {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+  animation: row-in 0.4s steps(4, end) both;
+}
+
+.cer-quote {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 3px solid #283878;
+  border-radius: 8px;
+  font: 700 13px/1.35 var(--font-label);
+}
+
+.cer-quote b {
+  color: var(--red-dark);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+/* A insígnia: entra girando, brilha e depois cai no estojo. */
+.cer-big-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 4px;
+  animation: cer-badge-in 1.4s steps(14, end) both;
+  filter: drop-shadow(0 0 12px rgb(255 240 160 / 0.8));
+}
+
+/* Depois de entrar, a insígnia fica balançando devagar, com um brilho passando. */
+.cer-big-badge .badge-icon {
+  animation: cer-badge-float 2.4s steps(4, end) 1.4s infinite;
+}
+
+@keyframes cer-badge-float {
+  50% {
+    translate: 0 -4px;
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes cer-badge-in {
+  0% {
+    scale: 0.2;
+    rotate: -540deg;
+    opacity: 0;
+  }
+  40% {
+    scale: 1.2;
+    rotate: 0deg;
+    opacity: 1;
+    filter: brightness(2) drop-shadow(0 0 16px #fff);
+  }
+  55%,
+  100% {
+    scale: 1;
+  }
+}
+
+.cer-title {
+  margin: 0;
+  color: #f8d030;
+  font: 700 24px var(--font-label);
+  letter-spacing: 2px;
+  text-shadow:
+    2px 2px 0 #283878,
+    -1px -1px 0 #283878;
+  animation: say-pop 0.4s steps(4, end) 0.5s both;
+}
+
+.cer-sub {
+  margin: 0;
+  color: #fff;
+  font: 700 13px var(--font-label);
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 0 #283878;
+}
+
+/* Estojo da região: tampa de couro, e o lugar da insígnia nova acende quando ela cai. */
+.cer-case {
+  display: grid;
+  grid-template-columns: repeat(4, 48px);
+  gap: 6px;
+  padding: 10px 12px;
+  background: linear-gradient(#5a3820, #3a2414);
+  border: 3px solid #201008;
+  border-radius: 8px;
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.15);
+  animation: cer-case-open 0.5s steps(5, end) 0.3s both;
+  transform-origin: 50% 0;
+}
+
+@keyframes cer-case-open {
+  from {
+    scale: 1 0.1;
+    opacity: 0;
+  }
+}
+
+.cer-slot {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  background: radial-gradient(circle, #7a5030 0 55%, #4a2c18 56%);
+  border-radius: 50%;
+}
+
+.cer-slot.new .badge-icon {
+  animation: cer-slot-in 2.4s steps(24, end) both;
+}
+
+@keyframes cer-slot-in {
+  0%,
+  55% {
+    scale: 0;
+    opacity: 0;
+  }
+  75% {
+    scale: 1.4;
+    opacity: 1;
+    filter: brightness(1.8) drop-shadow(0 0 8px #fff);
+  }
+  100% {
+    scale: 1;
+    filter: drop-shadow(0 0 6px #f8e070);
+  }
+}
+
+.cer-tap {
+  color: var(--ink-muted);
+  font: 700 11px var(--font-label);
+  animation: blink 1.2s steps(1, end) infinite;
+}
+
+/* Hall da Fama: fundo noturno dourado e a equipe entrando um a um. */
+.cer-hof {
+  width: min(760px, 100%);
+  padding-top: 22px;
+  background: radial-gradient(ellipse at 50% 30%, #3a4898, #141c48 70%);
+  border: 4px solid #f8d030;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 4px #283878,
+    0 0 40px rgb(248 208 48 / 0.5);
+}
+
+.cer-hof .cer-tap {
+  color: #c8d0f0;
+}
+
+.cer-fireworks {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0 !important;
+  pointer-events: none;
+}
+
+.hof-parade {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 10px;
+  margin: 8px 0;
+}
+
+.hof-member {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 104px;
+  color: #fff;
+  font: 700 11px var(--font-label);
+  text-shadow: 1px 1px 0 #141c48;
+  animation: hof-in 0.5s steps(5, end) both;
+  animation-delay: calc(0.6s + var(--i) * 0.55s);
+}
+
+.hof-member .sprite {
+  position: relative;
+  z-index: 1;
+  animation: card-idle 2s steps(2, end) infinite;
+  animation-delay: calc(var(--i) * -0.3s);
+}
+
+.hof-member small {
+  color: #f8d030;
+}
+
+@keyframes hof-in {
+  0% {
+    opacity: 0;
+    translate: 0 -30px;
+    filter: brightness(3);
+  }
+  60% {
+    opacity: 1;
+    filter: brightness(2);
+  }
+}
+
+/* Holofote embaixo de cada um. */
+.hof-light {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  translate: -50% 0;
+  background: radial-gradient(circle, rgb(255 248 200 / 0.5) 0 30%, transparent 70%);
+  animation: hof-flash 0.8s steps(4, end) both;
+  animation-delay: calc(0.6s + var(--i) * 0.55s);
+}
+
+@keyframes hof-flash {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+  }
+  40% {
+    opacity: 1;
+    scale: 1.6;
+  }
+}
+
+/* Faixas no alto: medalha, nível de treinador e Pokédex (não travam o jogo). */
+.cer-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  max-width: calc(100% - 24px);
+  padding: 8px 18px 8px 10px;
+  translate: -50% 0;
+  background: linear-gradient(#fff 0 55%, #eef3fb 55%);
+  border: 3px solid #283878;
+  border-radius: 10px;
+  box-shadow:
+    0 4px 0 rgb(0 0 0 / 0.25),
+    inset 0 0 0 2px #fff;
+  pointer-events: none;
+  animation: cer-banner 2.8s steps(28, end) both;
+}
+
+@keyframes cer-banner {
+  0% {
+    translate: -50% -120%;
+  }
+  10%,
+  88% {
+    translate: -50% 0;
+  }
+  100% {
+    translate: -50% -140%;
+  }
+}
+
+.cer-banner.tier-gold,
+.cer-banner.tier-platinum,
+.cer-banner.trainer {
+  border-color: #a07010;
+  background: linear-gradient(#fff8d8 0 55%, #f8e8a8 55%);
+}
+
+.cer-banner.tier-platinum {
+  border-color: #3898a8;
+  background: linear-gradient(#f0ffff 0 55%, #c8f0f0 55%);
+}
+
+.cer-banner.dex {
+  border-color: #a82020;
+  background: linear-gradient(#fff 0 55%, #fde8e8 55%);
+}
+
+.cer-medal {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  animation: cer-medal-spin 1s steps(10, end) 0.2s both;
+}
+
+@keyframes cer-medal-spin {
+  0% {
+    transform: perspective(200px) rotateY(0deg) scale(0.4);
+  }
+  70% {
+    transform: perspective(200px) rotateY(720deg) scale(1.2);
+  }
+  100% {
+    transform: perspective(200px) rotateY(720deg) scale(1);
+  }
+}
+
+.cer-banner-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.cer-banner-text small {
+  color: var(--ink-muted);
+  font: 700 10px var(--font-label);
+  letter-spacing: 1px;
+}
+
+.cer-banner-text b {
+  font: 700 15px var(--font-label);
+}
+
+/* Pokédex: a silhueta se revela em cor. */
+.cer-dex-mon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle, #fff 0 50%, #f8d0d0 51%);
+  border: 2px solid #a82020;
+  border-radius: 50%;
+}
+
+.cer-dex-mon .sprite {
+  animation: cer-reveal 1.2s steps(6, end) both;
+}
+
+@keyframes cer-reveal {
+  0%,
+  40% {
+    filter: brightness(0);
+  }
+  60% {
+    filter: brightness(2.5);
+  }
+}
+
+/* --- 2. "Enquanto você estava fora…" ------------------------------------------------------- */
+.offline-run {
+  position: relative;
+  height: 54px;
+  margin: 0 0 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(transparent 0 62%, #d8b880 62% 80%, #78c058 80%),
+    linear-gradient(#a8d8f8, #c8e8ff);
+  border: 3px solid #283878;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}
+
+.offline-route {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  color: #283878;
+  font: 700 10px var(--font-label);
+  letter-spacing: 1px;
+}
+
+.offline-runners {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  display: flex;
+  gap: 4px;
+  animation: offline-run 7s linear infinite;
+}
+
+.offline-runner {
+  display: inline-grid;
+  scale: -1 1;
+  animation: offline-hop 0.4s steps(2, end) infinite;
+  animation-delay: calc(var(--i) * -0.13s);
+}
+
+@keyframes offline-run {
+  from {
+    translate: -260px 0;
+  }
+  to {
+    translate: calc(100cqw + 100%) 0;
+  }
+}
+
+.offline-run {
+  container-type: inline-size;
+}
+
+@keyframes offline-hop {
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+.report-line {
+  animation: row-in 0.3s steps(3, end) both;
+  animation-delay: calc(0.9s + var(--i, 0) * 0.18s);
+}
+
+.report-hero dd {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 3. Ficha do Pokémon e cartões da equipe ----------------------------------------------- */
+.summary {
+  animation: summary-in 0.3s steps(4, end);
+}
+
+@keyframes summary-in {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+/* O Pokémon num pedestal com luz, respirando; o shiny ganha brilhos. */
+.summary-portrait {
+  position: relative;
+  isolation: isolate;
+  background: radial-gradient(circle at 50% 40%, rgb(255 255 255 / 0.85) 0 34%, transparent 62%);
+}
+
+.summary-pedestal {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  z-index: -1;
+  width: 70%;
+  height: 16px;
+  translate: -50% 0;
+  background: radial-gradient(ellipse, #b8c8e0 0 55%, #8898b8 56% 70%, transparent 71%);
+}
+
+.summary-portrait > .sprite {
+  animation: card-idle 2.2s steps(2, end) infinite;
+}
+
+.summary-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.summary-sparkles i {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background:
+    linear-gradient(#fff8a0, #fff8a0) center / 9px 1px no-repeat,
+    linear-gradient(#fff8a0, #fff8a0) center / 1px 9px no-repeat;
+  filter: drop-shadow(0 0 3px #f8e070);
+  animation: summary-twinkle 1.6s steps(2, end) infinite;
+}
+
+.summary-sparkles i:nth-child(1) {
+  top: 14%;
+  left: 18%;
+}
+
+.summary-sparkles i:nth-child(2) {
+  top: 30%;
+  right: 16%;
+  animation-delay: -0.5s;
+}
+
+.summary-sparkles i:nth-child(3) {
+  bottom: 22%;
+  left: 30%;
+  animation-delay: -1.1s;
+}
+
+@keyframes summary-twinkle {
+  50% {
+    scale: 0.3;
+    opacity: 0.3;
+  }
+}
+
+/* Barras de atributo: crescem ao abrir, uma depois da outra. */
+.stat-table td:nth-child(2) {
+  position: relative;
+}
+
+.stat-grow {
+  display: block;
+  width: var(--w, 0%);
+  height: 4px;
+  margin-top: 1px;
+  background: linear-gradient(90deg, #58b0f0, #3878d0);
+  border-radius: 2px;
+  transform-origin: left;
+  animation: stat-grow 0.5s steps(8, end) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.nat-up .stat-grow {
+  background: linear-gradient(90deg, #f88870, #e04838);
+}
+
+.nat-down .stat-grow {
+  background: linear-gradient(90deg, #98a8c0, #687890);
+}
+
+@keyframes stat-grow {
+  from {
+    scale: 0 1;
+  }
+}
+
+.iv-max {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--gold-dark);
+}
+
+.iv-max .pixel-icon {
+  animation: iv-star 1.6s steps(2, end) infinite;
+}
+
+@keyframes iv-star {
+  50% {
+    scale: 1.4;
+  }
+}
+
+/* Equipe: quem luta pula, HP baixo pisca, desmaiado fica cinza e quem sobe de nível brilha. */
+.party-slot {
+  position: relative;
+}
+
+.party-slot-active .party-icon {
+  animation: party-hop 0.8s steps(2, end) infinite;
+}
+
+@keyframes party-hop {
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+.party-slot.low-hp {
+  animation: low-hp 1s steps(2, end) infinite;
+}
+
+@keyframes low-hp {
+  50% {
+    box-shadow: inset 0 0 0 3px rgb(232 72 56 / 0.7);
+  }
+}
+
+.party-slot.fainted .party-icon {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.party-levelup {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  z-index: 3;
+  padding: 0 6px;
+  background: #f8d030;
+  border: 2px solid #a07010;
+  border-radius: 4px;
+  color: #503800;
+  font: 700 11px var(--font-label);
+  pointer-events: none;
+  animation: party-levelup 1.4s steps(14, end) forwards;
+}
+
+@keyframes party-levelup {
+  0% {
+    translate: -50% 10px;
+    opacity: 0;
+  }
+  20% {
+    translate: -50% -4px;
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    translate: -50% -14px;
+    opacity: 0;
+  }
+}
+
+.party-slot:has(.party-levelup) {
+  animation: party-glow 1.4s steps(7, end);
+}
+
+@keyframes party-glow {
+  20%,
+  60% {
+    filter: brightness(1.2) drop-shadow(0 0 6px #f8e070);
+  }
+}
+
+/* --- 4. Pokédex ------------------------------------------------------------------------------- */
+.dex-portrait {
+  position: relative;
+  overflow: hidden;
+}
+
+.dex-portrait > .sprite {
+  animation: dex-pop 0.35s steps(4, end);
+}
+
+@keyframes dex-pop {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+/* Linha de leitura passando sobre a espécie nova. */
+.dex-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 6px;
+  background: linear-gradient(rgb(120 240 160 / 0), rgb(120 240 160 / 0.85), rgb(120 240 160 / 0));
+  box-shadow: 0 0 8px rgb(120 240 160 / 0.8);
+  pointer-events: none;
+  animation: dex-scan 0.7s steps(10, end) forwards;
+}
+
+@keyframes dex-scan {
+  from {
+    top: 0;
+  }
+  to {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.dex-facts {
+  animation: row-in 0.3s steps(3, end);
+}
+
+.dex-totals b {
+  display: inline-block;
+  animation: say-pop 0.4s steps(4, end);
+}
+
+.dex-stats .dex-stat-fill {
+  transform-origin: left;
+  animation: stat-grow 0.5s steps(8, end) both;
+}
+
+.dex-stats tr:nth-child(2) .dex-stat-fill {
+  animation-delay: 60ms;
+}
+
+.dex-stats tr:nth-child(3) .dex-stat-fill {
+  animation-delay: 120ms;
+}
+
+.dex-stats tr:nth-child(4) .dex-stat-fill {
+  animation-delay: 180ms;
+}
+
+.dex-stats tr:nth-child(5) .dex-stat-fill {
+  animation-delay: 240ms;
+}
+
+.dex-stats tr:nth-child(6) .dex-stat-fill {
+  animation-delay: 300ms;
+}
+
+/* --- 5. PC ------------------------------------------------------------------------------------ */
+.pcs-grid.slide-next {
+  animation: pcs-next 0.25s steps(4, end);
+}
+
+.pcs-grid.slide-prev {
+  animation: pcs-prev 0.25s steps(4, end);
+}
+
+@keyframes pcs-next {
+  from {
+    translate: 40px 0;
+    opacity: 0;
+  }
+}
+
+@keyframes pcs-prev {
+  from {
+    translate: -40px 0;
+    opacity: 0;
+  }
+}
+
+.pcs-dropped .sprite,
+.pcs-dropped img {
+  animation: pcs-plop 0.45s steps(5, end);
+}
+
+@keyframes pcs-plop {
+  0% {
+    translate: 0 -14px;
+  }
+  50% {
+    translate: 0 0;
+    scale: 1.25 0.75;
+  }
+  75% {
+    scale: 0.9 1.1;
+  }
+}
+
+/* --- 6. Movimento reduzido -------------------------------------------------------------------- */
+html.reduced-motion :is(
+    .cer-backdrop,
+    .cer-badge,
+    .cer-hof,
+    .cer-rays,
+    .cer-leader,
+    .cer-title,
+    .cer-case,
+    .cer-tap,
+    .hof-member,
+    .hof-member .sprite,
+    .hof-light,
+    .cer-medal,
+    .cer-dex-mon .sprite,
+    .offline-runners,
+    .offline-runner,
+    .report-line,
+    .summary,
+    .summary-portrait > .sprite,
+    .summary-sparkles i,
+    .stat-grow,
+    .iv-max .pixel-icon,
+    .party-slot-active .party-icon,
+    .party-slot.low-hp,
+    .party-slot:has(.party-levelup),
+    .dex-portrait > .sprite,
+    .dex-facts,
+    .dex-totals b,
+    .dex-stats .dex-stat-fill,
+    .pcs-grid,
+    .pcs-dropped .sprite,
+    .pcs-dropped img
+  ) {
+  animation: none;
+}
+
+/* Sem animação, a insígnia grande some e o estojo já mostra a nova. */
+html.reduced-motion .cer-big-badge {
+  animation: none;
+}
+
+html.reduced-motion .cer-slot.new .badge-icon {
+  animation: none;
+  filter: drop-shadow(0 0 6px #f8e070);
+}
+
+html.reduced-motion .cer-banner {
+  animation: none;
+}
+
+html.reduced-motion .dex-scan,
+html.reduced-motion .party-levelup {
+  display: none;
+}
+
+html.gfx-performance :is(.cer-rays, .summary-sparkles, .offline-runner) {
+  animation: none;
+}

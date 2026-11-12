@@ -13,6 +13,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-12-grandes-momentos',
+    date: '12/11/2026',
+    title: 'Grandes momentos',
+    items: [
+      { tag: 'novo', text: 'Insígnia ganha: o líder entrega, a insígnia gira no meio da tela e acende o lugar dela no estojo da região.' },
+      { tag: 'novo', text: 'Hall da Fama: ao vencer o Campeão, a equipe campeã desfila um por um, com holofote e fogos.' },
+      { tag: 'novo', text: 'Faixas no alto da tela para medalhas conquistadas (girando, na cor do nível), para o nível de treinador e para cada espécie nova registrada na Pokédex.' },
+      { tag: 'melhoria', text: '"Enquanto você estava fora": a equipe corre pela rota e os números rolam até o total.' },
+      { tag: 'melhoria', text: 'Ficha do Pokémon com pedestal, barras de atributo que crescem e estrelas nos IVs perfeitos; o shiny brilha.' },
+      { tag: 'melhoria', text: 'Pokédex com a linha de leitura passando a cada espécie; PC com a troca de caixa deslizando e o Pokémon quicando ao ser solto.' },
+      { tag: 'melhoria', text: 'Equipe na lateral: quem luta pula, o HP baixo pisca e o cartão brilha com "NV ↑" ao subir de nível.' },
+    ],
+  },
+  {
     id: '2026-11-11-visual',
     date: '11/11/2026',
     title: 'Um jogo mais bonito por toda parte',

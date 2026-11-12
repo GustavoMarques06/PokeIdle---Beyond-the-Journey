@@ -59,7 +59,8 @@ export function Toasts() {
     (events: GameEvent[]) => {
       const fresh: Toast[] = [];
       for (const e of events) {
-        if (!TOAST_EVENTS.has(e.type) || e.type === 'levelUp') continue;
+        // Conquistas ganham a faixa da medalha (Ceremonies.tsx), não um aviso.
+        if (!TOAST_EVENTS.has(e.type) || e.type === 'levelUp' || e.type === 'achievement') continue;
         const text = describeEvent(e);
         if (!text) continue;
         const rare = RARE.has(e.type) || (e.type === 'captured' && (e.shiny || !!e.perfect));
@@ -68,7 +69,7 @@ export function Toasts() {
           text,
           speciesId: speciesOf(e),
           rare,
-          trophy: e.type === 'achievement',
+          trophy: false,
         };
         if (e.type === 'evolved') {
           held.current.push(toast);

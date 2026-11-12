@@ -10,6 +10,8 @@ import {
   type RefObject,
 } from 'react';
 import { WorldBackdrop, backdropAttrs } from './components/WorldBackdrop';
+import { Ceremonies } from './components/Ceremonies';
+import { teamPokemon } from '../core/team';
 import type { GameEvent, GameState } from '../core/game';
 import { pokemonName } from '../core/pokemon';
 import { audio } from './audio';
@@ -143,11 +145,13 @@ export function App() {
       {inGame && engine.offlineReport && (
         <OfflineReport
           report={engine.offlineReport}
+          team={teamPokemon(state).map((p) => ({ speciesId: p.speciesId, shiny: p.shiny, form: p.form }))}
           partner={storyCtx(state).p}
           onClose={() => engine.dismissOfflineReport()}
         />
       )}
       {inGame && <Toasts />}
+      {inGame && !engine.offlineReport && <Ceremonies state={state} />}
       {inGame && <SafetyNotice />}
       {inGame && <PerfSuggest />}
       {inGame && <SaveIndicator />}

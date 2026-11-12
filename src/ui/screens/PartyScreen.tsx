@@ -2,7 +2,7 @@
 // coleção fica no PC (PcScreen), que reaproveita a ficha daqui.
 
 import { teamDropProps } from './teamDrag';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio';
 import {
   BALANCE,
@@ -122,11 +122,24 @@ function PartySlot({
   const p = useShownPokemon(real);
   const stats = statsOf(p);
   const fainted = p.currentHp <= 0;
+  const low = !fainted && p.currentHp / stats.hp <= 0.25;
+  // Subiu de nível: o cartão brilha e aparece "NV ↑" (a chave reinicia a animação).
+  const lastLevel = useRef(p.level);
+  const [leveled, setLeveled] = useState(0);
+  useEffect(() => {
+    if (p.level > lastLevel.current) setLeveled((n) => n + 1);
+    lastLevel.current = p.level;
+  }, [p.level]);
   return (
     <button
-      className={`party-slot frame ${lead ? 'frame-slotActive party-slot-active' : 'frame-slot'} ${selected ? 'selected' : ''}`}
+      className={`party-slot frame ${lead ? 'frame-slotActive party-slot-active' : 'frame-slot'} ${selected ? 'selected' : ''} ${low ? 'low-hp' : ''} ${fainted ? 'fainted' : ''}`}
       onClick={onClick}
     >
+      {leveled > 0 && (
+        <span key={leveled} className="party-levelup" aria-hidden>
+          NV ↑
+        </span>
+      )}
       <PokemonSprite speciesId={p.speciesId} kind="icon" form={mega} className="party-icon" />
       <span className="party-name">
         {pokemonName(p).toUpperCase()}
@@ -556,8 +569,16 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
       className="summary"
     >
       <div className="summary-top">
-        <div className="summary-portrait">
+        <div className={`summary-portrait ${p.shiny ? 'shiny' : ''}`}>
+          <span className="summary-pedestal" aria-hidden />
           <PokemonSprite speciesId={p.speciesId} kind="front" shiny={p.shiny} form={p.form} pixelScale={2} />
+          {p.shiny && (
+            <span className="summary-sparkles" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+          )}
           {mvp?.uid === p.uid && <span className="mvp-tag">MVP DA SEMANA</span>}
           {state.companion?.uid === p.uid && <span className="companion-tag">ACOMPANHANTE</span>}
         </div>
@@ -626,9 +647,13 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
       <div className="summary-cols">
         <table className="stat-table">
           <tbody>
-            {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => (
+            {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k, i) => (
               <tr
                 key={k}
+                style={{
+                  ['--i' as string]: i,
+                  ['--w' as string]: `${Math.round((stats[k] / Math.max(...Object.values(stats))) * 100)}%`,
+                }}
                 className={k === nature?.up ? 'nat-up' : k === nature?.down ? 'nat-down' : ''}
                 title={
                   k === nature?.up
@@ -639,9 +664,16 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
                 }
               >
                 <th>{STAT_NAMES[k].toUpperCase()}</th>
-                <td>{k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}</td>
+                <td>
+                  {k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}
+                  <span className="stat-grow" aria-hidden />
+                </td>
                 <td className="iv" title={`Juiz: ${ivJudge(p.ivs[k])}`}>
-                  IV{p.ivs[k]} · EV{evs[k]}
+                  <span className={p.ivs[k] === 31 ? 'iv-max' : ''}>
+                    IV{p.ivs[k]}
+                    {p.ivs[k] === 31 && <PixelIcon name="star" scale={1} />}
+                  </span>{' '}
+                  · EV{evs[k]}
                 </td>
               </tr>
             ))}
