@@ -126,6 +126,8 @@ function readIntroMusic(): boolean {
 }
 
 class AudioManager {
+  /** A cena de batalha toca o som do golpe no impacto (o golpe viaja antes de acertar). */
+  deferHits = false;
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private settings: Pick<Settings, 'volume' | 'sfx' | 'cries' | 'music'> = {
@@ -455,6 +457,7 @@ class AudioManager {
           break;
         case 'attack': {
           const r = e.result;
+          if (this.deferHits) break;
           if (r.missed) this.sfx('miss');
           else if (r.crit) this.sfx('crit');
           else if (r.effectiveness > 1) this.sfx('super');

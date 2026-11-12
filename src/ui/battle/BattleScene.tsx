@@ -353,6 +353,21 @@ export function BattleScene({ state }: { state: GameState }) {
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [sparks, setSparks] = useState<Spark[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
+  // O golpe viaja antes de acertar: até o impacto, a barra de HP mostra o valor de antes, e o inimigo derrotado
+  // continua na cena (o jogo já o tirou) para cair quando o golpe chega.
+  const [hold, setHold] = useState<{ enemy?: number; player?: number }>({});
+  const holdTok = useRef({ enemy: 0, player: 0 });
+  const [fallen, setFallen] = useState<{ id: number; enemy: NonNullable<GameState['battle']['enemy']>; down: boolean } | null>(null);
+  const lastEnemy = useRef<GameState['battle']['enemy']>(null);
+  // Animações que a cena pôs em cada Pokémon: uma nova cancela a anterior (nada de golpes empilhados).
+  const running = useRef(new WeakMap<Element, Animation[]>());
+  const play = (el: Element | null, frames: Keyframe[], opts: KeyframeAnimationOptions, keep = false) => {
+    if (!el) return;
+    const list = keep ? (running.current.get(el) ?? []) : [];
+    if (!keep) for (const a of running.current.get(el) ?? []) a.cancel();
+    list.push(el.animate(frames, opts));
+    running.current.set(el, list);
+  };
   // Onde estão os dois Pokémon (pés e altura do corpo), atualizado a cada desenho.
   const geo = useRef({ player: { x: 66, y: 138 }, enemy: { x: 184, y: 78 }, pH: 40, eH: 40 });
   const [capture, setCapture] = useState<CaptureAnim | null>(null);
@@ -434,17 +449,54 @@ export function BattleScene({ state }: { state: GameState }) {
       if (!st) return;
       const motion = !st.settings.reducedMotion && st.settings.graphics !== 'performance';
       const speed = st.settings.animSpeed || 1;
+      let lastHitAt = 0;
       for (const e of events) {
         if (e.type === 'enemyFainted' && motion && st.battle.kind !== 'wild') audio.cry(e.speciesId);
+        if (e.type === 'enemyFainted' && motion && lastEnemy.current) {
+          const id = nextId.current++;
+          const foe = lastEnemy.current;
+          const at = lastHitAt;
+          setFallen({ id, enemy: foe, down: at === 0 });
+          if (at > 0) setTimeout(() => setFallen((f) => (f?.id === id ? { ...f, down: true } : f)), at);
+          setTimeout(() => setFallen((f) => (f?.id === id ? null : f)), at + 650);
+        }
         if (e.type === 'attack') {
           const target = e.side === 'player' ? 'enemy' : 'player';
           const r = e.result;
           const physical = isPhysical(r.moveId);
           // Especial: a energia do tipo (jato contínuo ou projétil). O impacto chega quando ela alcança o alvo.
           const shotFx = physical ? undefined : shotArt(r.moveType);
-          const flight = shotFx ? (shotFx.loop ? 280 : Math.min(shotFx.ms, 520)) : 320;
-          // O impacto (faíscas, número de dano, empurrão) chega quando o golpe alcança o alvo.
-          const hitAt = motion ? (physical ? 230 : flight) / speed : 0;
+          const flight = shotFx ? (shotFx.loop ? 240 : Math.min(shotFx.ms, 420)) : 300;
+          // O impacto (faíscas, número de dano, empurrão, som, barra de HP) chega quando o golpe alcança o alvo.
+          const hitAt = motion ? (physical ? 200 : flight) / speed : 0;
+          lastHitAt = hitAt;
+          if (motion) {
+            const mute = !r.missed && r.damage <= 0;
+            setTimeout(() => {
+              if (r.missed) audio.sfx('miss');
+              else if (mute) return;
+              else if (r.crit) audio.sfx('crit');
+              else if (r.effectiveness > 1) audio.sfx('super');
+              else audio.sfx(r.effectiveness < 1 ? 'weak' : 'hit');
+            }, hitAt);
+            // A barra do alvo fica no valor de antes até o impacto (o jogo já descontou o dano).
+            const switched = events.some((x) => x.type === 'switched' || x.type === 'playerFainted');
+            if (r.damage > 0 && !(target === 'player' && switched)) {
+              const post = target === 'enemy' ? (st.battle.enemy?.hp ?? 0) : activePokemon(st).currentHp;
+              const max = target === 'enemy' ? (st.battle.enemy?.maxHp ?? lastEnemy.current?.maxHp ?? post) : statsOf(activePokemon(st)).hp;
+              const pre = Math.min(max, post + r.damage);
+              const tok = ++holdTok.current[target];
+              setHold((h) => ({ ...h, [target]: pre }));
+              setTimeout(() => {
+                if (holdTok.current[target] !== tok) return;
+                setHold((h) => {
+                  const next = { ...h };
+                  delete next[target];
+                  return next;
+                });
+              }, hitAt);
+            }
+          }
           if (motion) {
             const [attackerEl, targetEl] =
               e.side === 'player'
@@ -462,19 +514,21 @@ export function BattleScene({ state }: { state: GameState }) {
             const color = TYPE_GLOW[r.moveType] ?? '#f8f8f8';
             if (physical) {
               // Recua, corre até perto do alvo, bate e volta.
-              attackerEl?.animate(
+              play(
+                attackerEl,
                 [
                   { transform: 'translate(0, 0)' },
                   { transform: `translate(${u(-dir * 6)}, ${u(dir * 2)})`, offset: 0.2 },
-                  { transform: `translate(${u(dx * 0.55)}, ${u(dy * 0.55)})`, offset: 0.48 },
-                  { transform: `translate(${u(dx * 0.5)}, ${u(dy * 0.5)})`, offset: 0.62 },
+                  { transform: `translate(${u(dx * 0.55)}, ${u(dy * 0.55)})`, offset: 0.45 },
+                  { transform: `translate(${u(dx * 0.5)}, ${u(dy * 0.5)})`, offset: 0.6 },
                   { transform: 'translate(0, 0)' },
                 ],
-                { duration: 500 / speed, easing: 'steps(10, end)' },
+                { duration: 440 / speed, easing: 'steps(10, end)' },
               );
             } else {
               // Carrega a energia na cor do tipo e solta.
-              attackerEl?.animate(
+              play(
+                attackerEl,
                 [
                   { filter: 'none', transform: 'translate(0, 0)' },
                   {
@@ -484,11 +538,11 @@ export function BattleScene({ state }: { state: GameState }) {
                   },
                   { filter: 'none', transform: 'translate(0, 0)' },
                 ],
-                { duration: 420 / speed, easing: 'steps(5, end)' },
+                { duration: 380 / speed, easing: 'steps(5, end)' },
               );
               const id = nextId.current++;
               // Jato: fica aceso um pouco depois do impacto; projétil: some quando chega.
-              const ms = Math.round((shotFx ? (shotFx.loop ? 460 : flight) : 300) / speed);
+              const ms = Math.round((shotFx ? (shotFx.loop ? 400 : flight) : 300) / speed);
               setShots((list) => [
                 ...list.slice(-3),
                 {
@@ -509,17 +563,22 @@ export function BattleScene({ state }: { state: GameState }) {
               const big = r.effectiveness > 1 || r.crit;
               // Empurrão para trás (mais forte no super efetivo e no crítico) e o pisca-pisca do dano.
               const kb = big ? 12 : 5;
-              targetEl?.animate(
+              play(
+                targetEl,
                 [
                   { transform: 'translate(0, 0)' },
                   { transform: `translate(${u(dir * kb)}, ${u(-dir * kb * 0.4)})`, offset: 0.3 },
                   { transform: 'translate(0, 0)' },
                 ],
                 { duration: 340 / speed, delay: hitAt, easing: 'steps(5, end)' },
+                // Sem cancelar o que o alvo já está fazendo (a corrida do golpe dele, se atacou junto).
+                true,
               );
-              targetEl?.animate(
+              play(
+                targetEl,
                 [{ opacity: 1 }, { opacity: 0 }, { opacity: 1 }, { opacity: 0 }, { opacity: 1 }],
                 { duration: 320 / speed, delay: hitAt + 20, easing: 'steps(1, end)' },
+                true,
               );
               const id = nextId.current++;
               const type = r.moveType;
@@ -773,7 +832,7 @@ export function BattleScene({ state }: { state: GameState }) {
     b.kind === 'tower' ||
     b.kind === 'tournament' ||
     b.kind === 'ghost';
-  const shownHp = useCountTo(player.currentHp);
+  const shownHp = useCountTo(hold.player ?? player.currentHp);
   // Entardecer e amanhecer (só visual; o jogo conta dia e noite).
   const hour = new Date(state.lastTimerAt).getHours();
   const skyTint =
@@ -786,6 +845,9 @@ export function BattleScene({ state }: { state: GameState }) {
           : null;
   const reserves = reservePokemon(state);
   const enemy = b.enemy;
+  if (enemy) lastEnemy.current = enemy;
+  // Na cena: o inimigo, ou o que acabou de cair (até o golpe chegar e ele afundar).
+  const foe = enemy ?? fallen?.enemy ?? null;
   // Uma tentativa que falhou só é mostrada enquanto o mesmo inimigo está em campo.
   const staleEscape = capture !== null && !capture.success && keyOf(enemy) !== capture.enemyKey;
   // Só some o Pokémon que está dentro da bola: quem entra depois da captura aparece normalmente.
@@ -793,17 +855,23 @@ export function BattleScene({ state }: { state: GameState }) {
   // Lendário em campo (desafio ou errante): aura, partículas, moldura dourada e efeitos.
   const legendHere = !!enemy && (b.kind === 'legendary' || !!legendaryDef(enemy.speciesId));
   const motionOn = !state.settings.reducedMotion && gfx !== 'performance';
+  useEffect(() => {
+    audio.deferHits = motionOn;
+    return () => {
+      audio.deferHits = false;
+    };
+  }, [motionOn]);
   // Castform muda com o clima; Unown, Deerling e Spinda mostram a forma deles.
   const mega = megaActive(state, player);
   const playerForm = mega?.form ?? battleForm(player.speciesId, player.form, weather);
-  const enemyForm = enemy ? battleForm(enemy.speciesId, enemy.form, weather) : undefined;
+  const enemyForm = foe ? battleForm(foe.speciesId, foe.form, weather) : undefined;
   const playerBox = spriteBox(player.speciesId, 'back', PLAYER_SCALE, PLAYER_MAX_H, playerForm);
   // Chefe de raide: gigante (maior que o normal, com teto mais alto).
   const raidHere = b.kind === 'raid';
   const enemyScale = raidHere ? ENEMY_SCALE * 1.1 : ENEMY_SCALE;
   const enemyMaxH = raidHere ? RAID_MAX_H : ENEMY_MAX_H;
-  const enemyBox = enemy
-    ? spriteBox(enemy.speciesId, 'front', enemyScale, enemyMaxH, enemyForm)
+  const enemyBox = foe
+    ? spriteBox(foe.speciesId, 'front', enemyScale, enemyMaxH, enemyForm)
     : { w: 40, h: 40, bodyH: 40 };
   geo.current = { player: PLAYER_BASE, enemy: ENEMY_BASE, pH: playerBox.bodyH, eH: enemyBox.bodyH };
 
@@ -956,17 +1024,17 @@ export function BattleScene({ state }: { state: GameState }) {
         </span>
       )}
 
-      {enemy && !hideEnemy && (
+      {foe && !hideEnemy && (
         <BattleSprite
-          speciesId={enemy.speciesId}
+          speciesId={foe.speciesId}
           form={enemyForm}
           kind="front"
-          shiny={enemy.shiny}
+          shiny={foe.shiny}
           base={ENEMY_BASE}
           scale={enemyScale}
           maxH={enemyMaxH}
           innerRef={enemyRef}
-          className={`idle-a ${raidHere ? 'raid-giant' : ''} ${enemy.shield ? 'raid-shielded' : ''} ${enemy.charging ? 'raid-charging' : ''} ${enemy.stunMs ? 'raid-stunned' : ''} ${enemy.rage ? `rage-${enemy.rage}` : ''} ${enemy.status ? `st-${enemy.status.kind}` : ''} ${trainerFoe ? 'sending-out' : ''}`}
+          className={`idle-a ${raidHere ? 'raid-giant' : ''} ${foe.shield ? 'raid-shielded' : ''} ${foe.charging ? 'raid-charging' : ''} ${foe.stunMs ? 'raid-stunned' : ''} ${foe.rage ? `rage-${foe.rage}` : ''} ${foe.status ? `st-${foe.status.kind}` : ''} ${trainerFoe ? 'sending-out' : ''} ${!enemy && fallen?.down ? 'fainted' : ''}`}
         />
       )}
       {capture && !staleEscape && <CaptureGhost anim={capture} base={ENEMY_BASE} />}
@@ -1013,33 +1081,33 @@ export function BattleScene({ state }: { state: GameState }) {
         className={`idle-b ${mega ? 'mega-flash' : ''} ${b.phase === 'defeat' ? 'fainted' : ''} ${b.playerStatus ? `st-${b.playerStatus.kind}` : ''} sending-out`}
       />
 
-      {enemy && (
+      {foe && (
         <div className={`status-box status-enemy frame frame-status ${legendHere ? 'legend' : ''}`}>
           <div className="status-name">
             <span>
-              {isMegaForm(enemy.speciesId, enemy.form) && (
-                <b className="mega-tag">{megaLabel(enemy.form)} </b>
+              {isMegaForm(foe.speciesId, foe.form) && (
+                <b className="mega-tag">{megaLabel(foe.form)} </b>
               )}
-              {(enemy.nickname ?? getSpecies(enemy.speciesId).name).toUpperCase()}
-              <GenderMark gender={genderOf(enemy)} />
-              {enemy.shiny && <Shiny />}
-              <StatusTag status={enemy.status} />
-              {enemy.held && <ItemIcon id={enemy.held} size={14} className="held-mark" />}
-              {isPerfect(enemy.ivs) && !enemy.boost && b.kind === 'wild' && (
+              {(foe.nickname ?? getSpecies(foe.speciesId).name).toUpperCase()}
+              <GenderMark gender={genderOf(foe)} />
+              {foe.shiny && <Shiny />}
+              <StatusTag status={foe.status} />
+              {foe.held && <ItemIcon id={foe.held} size={14} className="held-mark" />}
+              {isPerfect(foe.ivs) && !foe.boost && b.kind === 'wild' && (
                 <span className="perfect-tag">PERFEITO</span>
               )}
             </span>
-            <span className="status-level">Nv{enemy.level}</span>
+            <span className="status-level">Nv{foe.level}</span>
           </div>
           <div className="status-row">
-            {state.pokedex[enemy.speciesId]?.caught ? (
+            {state.pokedex[foe.speciesId]?.caught ? (
               <PixelIcon name="miniBall" scale={2} title="Já capturado" />
             ) : (
               <span className="status-ball-gap" />
             )}
-            <HpBar value={enemy.hp} max={enemy.maxHp} />
+            <HpBar value={hold.enemy ?? (enemy ? foe.hp : 0)} max={foe.maxHp} />
           </div>
-          <MatchupRow speciesId={enemy.speciesId} />
+          <MatchupRow speciesId={foe.speciesId} />
         </div>
       )}
 
@@ -1064,7 +1132,7 @@ export function BattleScene({ state }: { state: GameState }) {
             ))}
           </div>
         )}
-        <HpBar value={player.currentHp} max={pStats.hp} />
+        <HpBar value={hold.player ?? player.currentHp} max={pStats.hp} />
         <div className="status-hp">
           <span className="hp-now">{shownHp}</span>
           <span className="hp-max">/{pStats.hp}</span>
