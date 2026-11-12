@@ -18,7 +18,8 @@ function SectionIcon({ icon }: { icon: string }) {
   return icon === 'help' ? <PixelIcon name="help" scale={2} /> : <ItemIcon id={icon} size={26} />;
 }
 
-export function HelpPage() {
+/** `onClose`: aberta dentro do jogo (o botão volta ao jogo em vez de trocar de página). */
+export function HelpPage({ onClose }: { onClose?: () => void } = {}) {
   const [query, setQuery] = useState('');
 
   // Todos os termos digitados precisam aparecer na pergunta ou na resposta.
@@ -40,13 +41,17 @@ export function HelpPage() {
         <img className="help-logo" src={`${import.meta.env.BASE_URL}brand/logo.png`} alt="PokéIdle" />
         <div className="help-head-text">
           <h1>Como jogar</h1>
-          <p>
-            Tudo sobre o jogo explicado do zero, sem termos difíceis. Pode ler com o jogo aberto em outra aba.
-          </p>
+          <p>Tudo sobre o jogo explicado do zero, sem termos difíceis.</p>
         </div>
-        <a className="pbtn primary help-back" href="./">
-          ← Voltar ao jogo
-        </a>
+        {onClose ? (
+          <button className="pbtn primary help-back" onClick={onClose}>
+            ← Voltar ao jogo
+          </button>
+        ) : (
+          <a className="pbtn primary help-back" href="./">
+            ← Voltar ao jogo
+          </a>
+        )}
       </header>
 
       <div className="help-layout">

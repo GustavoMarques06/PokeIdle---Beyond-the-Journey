@@ -65,14 +65,19 @@ describe('interface', () => {
 
     // Com todas liberadas (uma nova jornada libera tudo), cada uma abre pela sua tecla.
     await act(async () => engine.dispatch((s) => void (s.prestige.count = 1)));
-    // A AJUDA abre uma página à parte (outra aba) em vez de uma tela do jogo.
+    // A AJUDA abre por cima do jogo (sem outra aba) e fecha com Esc.
     const opened = vi.spyOn(window, 'open').mockReturnValue(null);
     for (const [i, item] of MENU_ITEMS.entries()) {
       if (item.id === 'help') {
         await act(async () => {
           fireEvent.keyDown(window, { key: menuKey(i) });
         });
-        expect(opened).toHaveBeenCalledWith(expect.stringContaining('ajuda.html'), '_blank', 'noopener');
+        expect(opened).not.toHaveBeenCalled();
+        expect(document.querySelector('.help-overlay')).not.toBeNull();
+        await act(async () => {
+          fireEvent.keyDown(window, { key: 'Escape' });
+        });
+        expect(document.querySelector('.help-overlay')).toBeNull();
         continue;
       }
       await act(async () => {

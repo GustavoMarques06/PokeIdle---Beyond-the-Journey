@@ -62,11 +62,11 @@ export function UpdateNotice() {
   return (
     <div className="update-notice frame frame-dialog" role="alert">
       <p>
-        <strong>Nova versão do jogo!</strong> Seu progresso fica salvo.
+        <strong>Atualização disponível!</strong> O seu progresso fica salvo ao reiniciar.
       </p>
       <span className="update-notice-actions">
         <button className="pbtn small primary" onClick={update}>
-          Atualizar
+          REINICIAR
         </button>
         <button className="pbtn small" onClick={() => setDismissed(version)}>
           Depois

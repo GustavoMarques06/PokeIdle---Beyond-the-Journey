@@ -12,6 +12,7 @@ import {
 import { WorldBackdrop, backdropAttrs } from './components/WorldBackdrop';
 import { Ceremonies } from './components/Ceremonies';
 import { GameConfirmHost } from './components/GameConfirm';
+import { HelpOverlay } from './help/HelpOverlay';
 import { DragGhost } from './components/DragGhost';
 import { teamPokemon } from '../core/team';
 import type { GameEvent, GameState } from '../core/game';
@@ -154,6 +155,7 @@ export function App() {
         />
       )}
       {inGame && <Toasts />}
+      <HelpOverlay />
       <GameConfirmHost />
       <DragGhost />
       {inGame && !engine.offlineReport && <Ceremonies state={state} />}
@@ -455,8 +457,11 @@ const LiveWindow = memo(function LiveWindow({
             </small>
           )}
         </h2>
-        <button className="pbtn small" onClick={onClose} title="Fechar (Esc)">
-          ✕ Fechar
+        <button className="pbtn small window-back" onClick={onClose} title="Voltar (Esc / B no controle)">
+          <span className="window-back-key" aria-hidden>
+            B
+          </span>
+          VOLTAR
         </button>
       </header>
       {/* key: ao trocar de tela o conteúdo entra com uma cortina rápida (effects.css). */}

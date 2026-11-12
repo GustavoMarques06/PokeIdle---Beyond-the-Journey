@@ -230,7 +230,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
       </div>
 
       <button className="pbtn small trainer-help" onClick={openHelp}>
-        <PixelIcon name="help" scale={2} /> Como jogar (abre em outra aba)
+        <PixelIcon name="help" scale={2} /> Como jogar
       </button>
 
       {tab === 'card' && (

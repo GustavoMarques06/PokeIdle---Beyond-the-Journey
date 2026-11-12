@@ -101,7 +101,7 @@ export function TitleScreen({
           </div>
           <button className="title-option frame frame-menu" onClick={openHelp}>
             <span className="title-option-label">COMO JOGAR</span>
-            <small>Guia explicado do zero (abre em outra aba)</small>
+            <small>Guia explicado do zero</small>
           </button>
           <p className="title-hint">ENTER: CONFIRMAR · ESC: VOLTAR</p>
           <FilesHint />

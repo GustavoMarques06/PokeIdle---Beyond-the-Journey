@@ -139,6 +139,8 @@ class AudioManager {
   private cries = new Map<number, HTMLAudioElement>();
   private lastCry = 0;
   private lastHit = 0;
+  /** Quando tocou o último som de efeito (a navegação não toca outro por cima). */
+  lastSfxAt = 0;
   private lowHpTimer: ReturnType<typeof setInterval> | null = null;
   private musicTimer: ReturnType<typeof setInterval> | null = null;
   private musicStep = 0;
@@ -259,6 +261,7 @@ class AudioManager {
   }
 
   sfx(name: Sfx): void {
+    this.lastSfxAt = performance.now();
     if (!this.settings.sfx || !this.audible) return;
     const t = this.ctx!.currentTime + 0.01;
     switch (name) {

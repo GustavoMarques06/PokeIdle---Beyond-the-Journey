@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-12-controle',
+    date: '12/11/2026',
+    title: 'Jogue com o teclado ou com um controle',
+    items: [
+      { tag: 'novo', text: 'Setas movem uma setinha ▶ pelos botões da tela, como nos portáteis; Enter confirma e Esc volta.' },
+      { tag: 'novo', text: 'Controle de videogame (Xbox, PlayStation e outros): D-pad ou analógico andam, A confirma, B volta, Start vai ao menu, LB/RB trocam de aba, X lança Poké Ball e Y a melhor bola.' },
+      { tag: 'melhoria', text: 'Listas de escolha, caixas de marcar, campos de texto e o volume (com uma Poké Ball) no visual do jogo; as janelas ganharam o botão VOLTAR e perderam o canto de redimensionar.' },
+      { tag: 'melhoria', text: 'A AJUDA abre dentro do jogo, sem sair para outra aba; um erro inesperado mostra uma tela do jogo com o Professor e o botão de reiniciar.' },
+      { tag: 'melhoria', text: 'Som de cursor e de confirmação em todos os botões, e escala sempre inteira em monitores grandes (os pixels não ficam mais de tamanhos diferentes).' },
+    ],
+  },
+  {
     id: '2026-11-12-cara-de-jogo',
     date: '12/11/2026',
     title: 'Cara de jogo, não de site',

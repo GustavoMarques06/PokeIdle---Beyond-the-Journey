@@ -13,6 +13,8 @@ import { startPreload } from './ui/preload';
 import { EngineContext } from './ui/useGame';
 import { installFrames } from './ui/theme/frames';
 import { installAppFeel } from './ui/appFeel';
+import { installGameNav } from './ui/navigation';
+import { GameErrorBoundary } from './ui/components/GameError';
 
 installFrames();
 
@@ -25,6 +27,7 @@ async function boot(): Promise<void> {
   if (import.meta.env.DEV) (window as unknown as { __engine: GameEngine }).__engine = engine;
   // Jogo, não site: sem arrastar imagens, menu do botão direito, zoom do navegador; Ctrl+S salva o jogo.
   installAppFeel(() => engine.save());
+  installGameNav();
 
   // Salva ao esconder a janela ou fechar o jogo.
   document.addEventListener('visibilitychange', () => {
@@ -35,7 +38,9 @@ async function boot(): Promise<void> {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <EngineContext.Provider value={engine}>
-        <App />
+        <GameErrorBoundary>
+          <App />
+        </GameErrorBoundary>
       </EngineContext.Provider>
     </StrictMode>,
   );

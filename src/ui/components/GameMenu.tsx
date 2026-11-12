@@ -35,13 +35,12 @@ export const MENU_ITEMS: {
   { id: 'trainer', label: 'TREINADOR', icon: <ItemIcon id="vs-seeker" size={28} /> },
   { id: 'upgrades', label: 'MELHORIAS', icon: <ItemIcon id="up-grade" size={28} /> },
   { id: 'pc', label: 'PC', icon: <ItemIcon id="pokemon-box" size={28} /> },
-  // Fora da barra: abre em outra aba, e um toque errado tiraria o jogador do jogo. Fica na tela TREINADOR e na tecla H.
+  // Fora da barra: abre por cima do jogo (HelpOverlay). Fica na tela TREINADOR, no título e na tecla H.
   {
     id: 'help',
     label: 'AJUDA',
     icon: <PixelIcon name="help" scale={3} />,
     key: 'h',
-    external: true,
     hidden: true,
   },
 ];
