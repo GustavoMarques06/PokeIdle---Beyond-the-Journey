@@ -62,6 +62,7 @@ import { ChangelogList } from '../components/Changelog';
 import { Journey } from './trainer/Journey';
 import { finaleTitle } from '../components/StoryScene';
 import { askConfirm } from '../components/GameConfirm';
+import { MODIFIED_FLAG } from '../../core/save';
 
 type Toggle = Exclude<keyof Settings, 'volume' | 'animSpeed' | 'notifyOff' | 'battleMode' | 'graphics'>;
 
@@ -284,6 +285,19 @@ export function TrainerScreen({ state }: { state: GameState }) {
                     aria-label="Nome do treinador"
                   />
                 </dd>
+                {state.flags.includes(MODIFIED_FLAG) && (
+                  <>
+                    <dt>SAVE</dt>
+                    <dd>
+                      <span
+                        className="tag tag-modified"
+                        title="Este save foi editado fora do jogo. Trocas e equipes de duelo levam o aviso."
+                      >
+                        MODIFICADO
+                      </span>
+                    </dd>
+                  </>
+                )}
                 {legendCardTitle(state) && (
                   <>
                     <dt>TÍTULO</dt>

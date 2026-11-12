@@ -653,7 +653,14 @@ export function DuelPanel({ state }: { state: GameState }) {
                 <li key={g.id} className="ghost-row frame frame-slot">
                   <TrainerSprite id={g.avatar} outfit={g.outfit} size={40} head />
                   <div className="ghost-info">
-                    <strong>{g.name.toUpperCase()}</strong>
+                    <strong>
+                      {g.name.toUpperCase()}
+                      {g.mod && (
+                        <span className="tag tag-modified" title="Esta equipe veio de um save editado fora do jogo.">
+                          SAVE MODIFICADO
+                        </span>
+                      )}
+                    </strong>
                     <small>
                       {badgesText(g.badges)} · Nv. médio {ghostAverageLevel(g)} · {g.wins}V {g.losses}D
                     </small>

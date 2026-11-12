@@ -146,3 +146,16 @@ html.reduced-motion .game-confirm,
 html.reduced-motion .drag-ghost .sprite {
   animation: none;
 }
+
+/* --- Save editado fora do jogo ----------------------------------------------------------------- */
+.tag-modified {
+  margin-left: 6px;
+  padding: 0 6px;
+  background: #fde0d8;
+  border: 2px solid #c03030;
+  border-radius: 3px;
+  color: #a02020;
+  font: 700 10px var(--font-label);
+  letter-spacing: 1px;
+  vertical-align: 1px;
+}

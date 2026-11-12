@@ -69,6 +69,8 @@ export interface PokemonInstance {
   relearned?: string[];
   /** Treinador original, quando veio de uma troca pelo Cabo Link. */
   ot?: string;
+  /** Veio de uma troca com um save editado fora do jogo. */
+  fromModified?: boolean;
   /** Pais (e avós), quando nasceu de um ovo da Creche. */
   parents?: EggParent[];
 }

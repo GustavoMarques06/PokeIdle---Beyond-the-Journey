@@ -622,7 +622,14 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
             </>
           )}
           <dt>ORIGEM</dt>
-          <dd>{p.caughtOn}</dd>
+          <dd>
+            {p.caughtOn}
+            {p.fromModified && (
+              <span className="tag tag-modified" title="Chegou de uma troca com um save editado fora do jogo.">
+                SAVE MODIFICADO
+              </span>
+            )}
+          </dd>
           {p.ball && (
             <>
               <dt>BOLA</dt>

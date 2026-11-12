@@ -33,7 +33,7 @@ import { setAutomation } from './automation';
 import { PRESET_USES, type TeamSnapshot } from './presets';
 import { emptyTraining } from './training';
 
-export const SAVE_FORMAT_VERSION = 6;
+export const SAVE_FORMAT_VERSION = 7;
 export const GAME_VERSION = '0.9.0';
 export const SAVE_KEY = 'pokeidle.save';
 export const BACKUP_KEY = 'pokeidle.save.backup';
@@ -42,6 +42,28 @@ export interface SaveMetadata {
   formatVersion: number;
   gameVersion: string;
   savedAt: number;
+  /** Selo do jogo sobre o estado (desde o formato 7): editar o save à mão quebra o selo. */
+  seal?: string;
+}
+
+/** Marca do save que já foi editado fora do jogo (fica para sempre; trocas e duelos levam o aviso). */
+export const MODIFIED_FLAG = 'save-modified';
+
+/**
+ * Selo do save: dois FNV-1a de 32 bits sobre o estado com sementes diferentes. Não é segurança de verdade (o jogo
+ * roda inteiro no aparelho), mas quem edita o save à mão quebra o selo e o jogo percebe.
+ */
+export function sealOf(stateJson: string): string {
+  const pass = (seed: number, salt: string) => {
+    let h = seed >>> 0;
+    const text = salt + stateJson;
+    for (let i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(36).padStart(7, '0');
+  };
+  return pass(0x811c9dc5, 'pokeidle:beyond:') + pass(0x9e3779b9, ':journey:selo');
 }
 
 export interface SaveFile {
@@ -127,6 +149,8 @@ const MIGRATIONS: Record<number, Migration> = {
   // Formato 5 → 6 (jogo 0.5): treino, raides, revanches, itens seguráveis e amizade.
   // Os campos novos dos Pokémon são opcionais e os do estado são criados em `normalize`.
   5: () => {},
+  // 0.9 → selo do save: nada a converter (os saves antigos ganham o selo ao salvar).
+  6: () => {},
 };
 
 /** Linhas iniciais removidas (Gen VI–IX) → espécie de Kanto equivalente (planta 1, fogo 4, água 7). */
@@ -150,11 +174,15 @@ const REMOVED_STARTERS: Record<number, number> = Object.fromEntries(
 );
 
 export function serialize(state: GameState, now: number): string {
-  const file: SaveFile = {
-    meta: { formatVersion: SAVE_FORMAT_VERSION, gameVersion: GAME_VERSION, savedAt: now },
-    state,
+  const stateJson = JSON.stringify(state);
+  const meta: SaveMetadata = {
+    formatVersion: SAVE_FORMAT_VERSION,
+    gameVersion: GAME_VERSION,
+    savedAt: now,
+    seal: sealOf(stateJson),
   };
-  return JSON.stringify(file);
+  // Montado à mão para o selo valer exatamente sobre o texto gravado do estado.
+  return `{"meta":${JSON.stringify(meta)},"state":${stateJson}}`;
 }
 
 export type ParseResult = { ok: true; file: SaveFile } | { ok: false; error: string };
@@ -174,6 +202,10 @@ export function parseSave(raw: string | null): ParseResult {
   if (typeof file.meta.formatVersion !== 'number' || file.meta.formatVersion > SAVE_FORMAT_VERSION) {
     return { ok: false, error: `versão de save não suportada (${String(file.meta.formatVersion)})` };
   }
+  // Selo: a partir do formato 7 todo save gravado pelo jogo tem um, e ele tem de bater com o estado.
+  const sealed = file.meta.formatVersion >= 7;
+  const modified =
+    (sealed || typeof file.meta.seal === 'string') && file.meta.seal !== sealOf(JSON.stringify(file.state));
   for (let v = file.meta.formatVersion; v < SAVE_FORMAT_VERSION; v++) {
     const migrate = MIGRATIONS[v];
     if (!migrate) return { ok: false, error: `sem migração da versão ${v}` };
@@ -185,6 +217,7 @@ export function parseSave(raw: string | null): ParseResult {
   if (error) return { ok: false, error };
   const state = file.state as unknown as GameState;
   normalize(state);
+  if (modified && !state.flags.includes(MODIFIED_FLAG)) state.flags.push(MODIFIED_FLAG);
   return { ok: true, file: { meta: file.meta, state } };
 }
 

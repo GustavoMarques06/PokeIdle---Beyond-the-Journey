@@ -32,6 +32,7 @@ import { evolutionBlocked, evolve, itemEvolution } from './progression';
 import { abilitySlotOf, movesOf, statsOf, type PokemonInstance } from './pokemon';
 import { healTeam, reservePokemon } from './team';
 import { checksum, packCode, unpackCode } from './transfer';
+import { MODIFIED_FLAG } from './save';
 import { recordEvolution } from './battle';
 import { freshBattle, type DuelMove } from './state';
 import type { Evs, Ivs } from './stats';
@@ -94,7 +95,13 @@ interface PacketBase {
   id: string;
   from: LinkTrainer;
   at: number;
+  /** Veio de um save editado fora do jogo: quem recebe vê o aviso. */
+  mod?: true;
 }
+
+/** Marca dos códigos que saem de um save editado fora do jogo. */
+const modMark = (state: GameState): { mod?: true } =>
+  state.flags.includes(MODIFIED_FLAG) ? { mod: true } : {};
 
 export interface TradePacket extends PacketBase {
   kind: 'trade';
@@ -132,6 +139,8 @@ export interface GhostRecord {
   losses: number;
   /** Já pagou a recompensa da primeira vitória. */
   rewarded: boolean;
+  /** A equipe veio de um save editado fora do jogo. */
+  mod?: true;
   /** Os últimos duelos contra esta equipe (o mais novo primeiro), com o lance a lance do último. */
   duels?: { at: number; won: boolean }[];
   lastDuel?: { at: number; won: boolean; log: DuelMove[] };
@@ -296,6 +305,7 @@ export function tradePacket(state: GameState, uid: number, now: number): TradePa
     id: packetId(state, now, `t${uid}`),
     from: trainerOf(state),
     at: now,
+    ...modMark(state),
     pokemon: tradedPokemon(state, p),
   };
 }
@@ -307,6 +317,7 @@ export function ghostPacket(state: GameState, now: number): GhostPacket {
     kind: 'ghost',
     id: packetId(state, now, `g${team.map((m) => m.speciesId).join('-')}`),
     from: trainerOf(state),
+    ...modMark(state),
     at: now,
     badges: badgeCount(state),
     team,
@@ -467,6 +478,7 @@ export function receiveTrade(
   }
   if (link.received.includes(packet.id)) return { ok: false, error: 'Este código já foi recebido.' };
   const p = materialize(state, packet.pokemon, now, `Troca com ${packet.from.name}`, now);
+  if (packet.mod) p.fromModified = true;
   link.received = [...link.received, packet.id].slice(-BALANCE.link.rememberCodes);
   state.stats.tradesReceived++;
   const arrived = p.speciesId;
@@ -632,7 +644,7 @@ export function parsePacket(v: unknown): LinkPacket | null {
   if (!isObj(v) || v.v !== 1 || !isStr(v.id, 16) || typeof v.at !== 'number') return null;
   const from = parseTrainer(v.from);
   if (!from) return null;
-  const base = { v: 1 as const, id: v.id, from, at: v.at };
+  const base = { v: 1 as const, id: v.id, from, at: v.at, ...(v.mod === true ? { mod: true as const } : {}) };
   if (v.kind === 'trade') {
     const pokemon = parseTraded(v.pokemon);
     return pokemon ? { ...base, kind: 'trade', pokemon } : null;
@@ -681,6 +693,7 @@ export function importGhost(
     wins: old?.wins ?? 0,
     losses: old?.losses ?? 0,
     rewarded: false,
+    ...(packet.mod ? { mod: true as const } : {}),
   };
   link.ghosts = old ? link.ghosts.map((g) => (g === old ? record : g)) : [...link.ghosts, record];
   return { ok: true, id: record.id };
