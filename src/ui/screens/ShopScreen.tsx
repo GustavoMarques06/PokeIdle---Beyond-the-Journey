@@ -60,6 +60,7 @@ import {
 import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { Countdown, Locked } from './activities/shared';
+import { Empty } from '../components/Dynamic';
 
 type Store = 'mart' | 'dept' | 'merchant';
 
@@ -743,7 +744,7 @@ function Mart({ state, income, query }: { state: GameState; income: number; quer
       )}
       {!searching && aisles.length > 1 && <AisleSigns aisles={aisles} current={current} onPick={setGroup} />}
       {products.length === 0 && lockedShown.length === 0 && (
-        <p className="hint">Nada encontrado aqui. Tente outra palavra ou a Loja de Departamentos.</p>
+        <Empty icon="dowsing-machine">Nada encontrado aqui. Tente outra palavra ou a Loja de Departamentos.</Empty>
       )}
       <Showcase state={state} income={income} products={products} locked={lockedShown} />
     </Window>
@@ -843,7 +844,9 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
         <p className="hint">Desafio “Mochila vazia”: só a Master Ball continua à venda entre as bolas.</p>
       )}
       {!searching && <AisleSigns aisles={aisles} current={openSection} onPick={setSection} />}
-      {searching && !items.length && !tms.length && <p className="hint">Nada encontrado. Tente outra palavra.</p>}
+      {searching && !items.length && !tms.length && (
+        <Empty icon="dowsing-machine">Nada encontrado. Tente outra palavra.</Empty>
+      )}
       <Showcase state={state} income={income} products={[...items, ...tms]} />
       {openSection === 'tms' && !searching && lockedTms > 0 && (
         <p className="hint">

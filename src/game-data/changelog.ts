@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-12-textos-vivos',
+    date: '12/11/2026',
+    title: 'Textos e telas mais vivos',
+    items: [
+      { tag: 'melhoria', text: 'A caixa da batalha varia as falas com o lugar e a hora ("O mato se mexeu…", "Algo puxou a linha…", "Olhos brilham no escuro…") e mostra o efeito do golpe numa segunda linha, como nos jogos.' },
+      { tag: 'melhoria', text: 'Palavras em destaque na caixa da batalha: os nomes dos Pokémon, o golpe na cor do tipo, os números e o "É super efetivo!" em vermelho.' },
+      { tag: 'novo', text: 'O seu parceiro comenta a batalha de vez em quando: o clima, a noite, um shiny, o HP baixo, um nível novo.' },
+      { tag: 'melhoria', text: 'As explicações longas das telas ficam numa linha só, com um "?" para abrir; ao lado do título de cada janela, um resumo do que importa agora.' },
+      { tag: 'melhoria', text: 'Abas que deslizam, a equipe que se reorganiza deslizando, telas vazias com desenho e uma Poké Ball girando no carregamento.' },
+      { tag: 'correção', text: 'Quando o seu Pokémon desmaia e entra o próximo, quem desmaiou cai só quando o golpe chega, e o HP do novo não "conta" a partir do anterior.' },
+    ],
+  },
+  {
     id: '2026-11-12-energia-dos-golpes',
     date: '12/11/2026',
     title: 'Energia dos golpes em pixel art',

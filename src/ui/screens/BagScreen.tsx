@@ -40,6 +40,7 @@ import {
 } from '../i18n/pt-BR';
 import { audio } from '../audio';
 import { useEngine } from '../useGame';
+import { Empty } from '../components/Dynamic';
 
 type Pocket = 'items' | 'tms';
 
@@ -89,11 +90,15 @@ export function BagScreen({ state }: { state: GameState }) {
                   >
                     <ItemIcon id={id} size={30} />
                     <span className="item-name">{itemName(id).toUpperCase()}</span>
-                    <span className="item-qty">×{n}</span>
+                    <span key={n} className="item-qty">×{n}</span>
                   </button>
                 </li>
               ))}
-              {!owned.length && <li className="hint">A mochila está vazia. Compre itens na LOJA.</li>}
+              {!owned.length && (
+                <li>
+                  <Empty icon="explorer-kit">A mochila está vazia. Compre itens na LOJA.</Empty>
+                </li>
+              )}
             </ul>
           </Window>
           {selected && (
@@ -247,7 +252,7 @@ function TmPocket({ state }: { state: GameState }) {
         <input type="checkbox" checked={onlyOwned} onChange={(e) => setOnlyOwned(e.target.checked)} /> Só os
         que eu tenho
       </label>
-      {!list.length && <p className="hint">Nenhum TM ainda.</p>}
+      {!list.length && <Empty icon="tm-case">Nenhum TM ainda. Os líderes de ginásio dão os primeiros.</Empty>}
       <ul className="item-list tm-list">
         {list.map(({ move }) => {
           const mv = getMove(move);

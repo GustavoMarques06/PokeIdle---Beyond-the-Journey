@@ -45,7 +45,8 @@ import { HpBar, ItemIcon, PixelIcon, PokemonSprite, TypeBadge } from '../compone
 import { Coach } from '../components/Coach';
 import { useHotkeys } from '../hotkeys';
 import { battleText } from '../i18n/battleText';
-import { ENCOUNTER_MODE_NAMES, STATUS_TEXT, itemName, moveName } from '../i18n/pt-BR';
+import { ENCOUNTER_MODE_NAMES, STATUS_TEXT, itemName, moveName, speciesName } from '../i18n/pt-BR';
+import { Markup } from './Markup';
 import { useEngine, useGameEvents } from '../useGame';
 
 const MULTIPLIER = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
@@ -172,6 +173,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
         bossBattle: st.battle.kind !== 'wild' && st.battle.kind !== 'legendary',
         playerName: pokemonName(activePokemon(st)),
         trainerName: st.battle.trainer?.name,
+        night: st.env.period === 'night',
         nicknames: new Map(
           [activePokemon(st), ...reservePokemon(st)]
             .filter((p) => p.nickname)
@@ -181,7 +183,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
       const lines = events.map((e) => battleText(e, ctx)).filter((l) => l !== null);
       if (!lines.length) return;
       setLog((l) =>
-        [...lines.map((x) => ({ id: nextId.current++, text: x.text })).reverse(), ...l].slice(0, 30),
+        [...lines.map((x) => ({ id: nextId.current++, text: x.text.replace(/\n/g, ' ') })).reverse(), ...l].slice(0, 30),
       );
       // A evolução tem cena própria (que termina com a mesma frase): vai só para o REGISTRO.
       const live = events
@@ -210,6 +212,12 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   }, [typed, message, state.settings.animSpeed]);
 
   const b = state.battle;
+  // Nomes que ficam em destaque na caixa: os da equipe e o do adversário.
+  const dialogNames = [
+    pokemonName(activePokemon(state)),
+    ...reservePokemon(state).map((p) => pokemonName(p)),
+    ...(b.enemy ? [speciesName(b.enemy.speciesId)] : []),
+  ];
   const route = getRoute(b.routeId);
   const encounterId = route.kind === 'trial' && route.farm ? route.farm : route.id;
   const modes = modesAt(state, encounterId);
@@ -233,7 +241,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
   const text = message ? message.slice(0, typed) : idleText;
   // As duas mensagens anteriores ficam acima da atual, mais apagadas (a mais antiga em cima).
   const history = log
-    .filter((l) => l.text !== message)
+    .filter((l) => l.text !== message.replace(/\n/g, ' '))
     .slice(0, 2)
     .reverse();
 
@@ -359,7 +367,7 @@ export function BattleDialog({ state, onOpen }: { state: GameState; onOpen: (s: 
           ))}
         </ol>
         <p className="dialog-text">
-          {text}
+          {message ? <Markup text={text} names={dialogNames} /> : text}
           {message && typed >= message.length && <span className="dialog-caret" />}
         </p>
         <div className="dialog-foot">

@@ -49,7 +49,13 @@ const GROUPS: { label: string; tabs: Tab[] }[] = [
 export function ActivitiesScreen({ state, initialTab }: { state: GameState; initialTab?: Tab }) {
   const engine = useEngine();
   // Abre na aba pedida (painel de próximos passos), na primeira atividade nova ou na creche.
-  const [tab, setTab] = useState<Tab>(() => initialTab ?? unseenTabs(state)[0] ?? 'daycare');
+  const [tab, setTabState] = useState<Tab>(() => initialTab ?? unseenTabs(state)[0] ?? 'daycare');
+  const [dir, setDir] = useState<'left' | 'right' | null>(null);
+  const setTab = (next: Tab) => {
+    const order = GROUPS.flatMap((g) => g.tabs);
+    setDir(order.indexOf(next) < order.indexOf(tab) ? 'left' : 'right');
+    setTabState(next);
+  };
   const now = state.lastTimerAt;
   const unseen = new Set(unseenTabs(state));
   const firstUnseen = unseenTabs(state)[0];
@@ -105,6 +111,7 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
           </button>
         </div>
       )}
+      <div key={tab} className={`tab-panel ${dir ? `from-${dir}` : ''}`}>
       {tab === 'daycare' && <DaycarePanel state={state} />}
       {tab === 'expeditions' && <ExpeditionsPanel state={state} />}
       {tab === 'garden' && <GardenPanel state={state} />}
@@ -119,6 +126,7 @@ export function ActivitiesScreen({ state, initialTab }: { state: GameState; init
       {tab === 'gamecorner' && <GameCornerPanel state={state} />}
       {tab === 'trade' && <TradePanel state={state} />}
       {tab === 'duel' && <DuelPanel state={state} />}
+      </div>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import { Bar, ItemIcon, PokemonSprite, TypeBadge, Window } from '../../component
 import { itemName, moveName, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Countdown, Locked, PokemonPicker } from './shared';
+import { Empty } from '../../components/Dynamic';
 
 function LootSummary({ loot }: { loot: ExpeditionLoot }) {
   return (
@@ -311,7 +312,9 @@ export function ExpeditionsPanel({ state }: { state: GameState }) {
         title={`EM ANDAMENTO · ${state.expeditions.length}/${slots}`}
         icon={<ItemIcon id="explorer-kit" size={24} />}
       >
-        {state.expeditions.length === 0 && <p className="hint">Nenhuma expedição em andamento.</p>}
+        {state.expeditions.length === 0 && (
+          <Empty icon="explorer-kit">Nenhuma expedição em andamento. Mande um grupo explorar!</Empty>
+        )}
         <ul className="expedition-runs">
           {state.expeditions.map((run) => {
             const d = EXPEDITIONS.find((e) => e.id === run.id)!;

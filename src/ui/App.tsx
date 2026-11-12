@@ -40,6 +40,7 @@ import { seenFlag, tipFlag, unseenTabs, type Tab } from './screens/activities/ta
 import { NextSteps } from './components/NextSteps';
 import { useEngine, useGameEvents, useGameState } from './useGame';
 import { useWarmBattleSprites } from './battle/warmSprites';
+import { Loading, useHintFold, windowSummary } from './components/Dynamic';
 
 // A tela de equipe abre primeiro; as demais vêm em pedaços separados, baixados em segundo
 // plano logo depois que o jogo abre (preloadScreens). Sem isso, a primeira abertura de cada
@@ -389,6 +390,7 @@ const LiveWindow = memo(function LiveWindow({
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const monUid = typeof detail === 'number' ? detail : null;
   const mon = monUid === null ? undefined : state.collection.find((p) => p.uid === monUid);
+  useHintFold(area);
   const title =
     detail === 'team'
       ? 'BÔNUS E EQUIPES SALVAS'
@@ -441,7 +443,14 @@ const LiveWindow = memo(function LiveWindow({
           drag.current = null;
         }}
       >
-        <h2>{title}</h2>
+        <h2>
+          {title}
+          {!detail && windowSummary(state, screen) && (
+            <small className="window-summary" key={windowSummary(state, screen)!}>
+              {windowSummary(state, screen)}
+            </small>
+          )}
+        </h2>
         <button className="pbtn small" onClick={onClose} title="Fechar (Esc)">
           ✕ Fechar
         </button>
@@ -454,7 +463,7 @@ const LiveWindow = memo(function LiveWindow({
         id="screen-area"
         tabIndex={-1}
       >
-        <Suspense fallback={<p className="screen-loading">Carregando…</p>}>
+        <Suspense fallback={<Loading />}>
           {detail === 'team' && <TeamDetails state={state} />}
           {monUid !== null && <MonSheet state={state} uid={monUid} />}
           {screen === 'dex' && <DexScreen state={state} />}

@@ -102,6 +102,7 @@ import {
 } from '../i18n/pt-BR';
 import { useEngine } from '../useGame';
 import { useShownPokemon } from '../evolutionView';
+import { Empty, useFlip } from '../components/Dynamic';
 
 function PartySlot({
   p: real,
@@ -208,7 +209,7 @@ function TeamPicker({
         autoFocus
       />
       {all.length === 0 ? (
-        <p className="hint">Nenhum Pokémon livre{q ? ' com esse nome' : ''}.</p>
+        <Empty speciesId={132}>Nenhum Pokémon livre{q ? ' com esse nome' : ''}.</Empty>
       ) : (
         <ul className="team-picker-list">
           {all.slice(0, limit).map((p) => (
@@ -277,10 +278,12 @@ export function PartyScreen({
   const free = slots - team.length;
   const bonusOf = new Map(passiveContributions(state).map((c) => [c.uid, c]));
   const nextLock = state.challenge === 'solo' ? undefined : TEAM_SLOTS[slots - 1];
+  const board = useRef<HTMLDivElement>(null);
+  useFlip(board);
 
   return (
     <div className="party-screen">
-      <div className="party-board">
+      <div className="party-board" ref={board}>
         <h3 className="party-group">
           EQUIPE {team.length}/{TEAM_SIZE}
           <small>o 1º luta; se desmaiar, entra o próximo</small>
@@ -288,6 +291,7 @@ export function PartyScreen({
         {team.map((p, i) => (
           <div
             key={p.uid}
+            data-flip={p.uid}
             className={`team-row ${i === 0 ? 'lead' : ''}`}
             {...teamDropProps((uid) => {
               let placed = false;

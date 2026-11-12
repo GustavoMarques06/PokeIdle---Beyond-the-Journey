@@ -33,6 +33,7 @@ import { ItemIcon, PixelIcon, PokemonSprite, Shiny, Window } from '../../compone
 import { WEATHER_NAMES, formatDuration, itemName, speciesName } from '../../i18n/pt-BR';
 import { LEGEND_LORE, legendGlow, legendTitle, nextLegendTitle, whenText } from '../../i18n/legends';
 import { useEngine } from '../../useGame';
+import { Empty } from '../../components/Dynamic';
 
 const BALLS = [
   'poke-ball',
@@ -633,7 +634,7 @@ export function LegendaryPanel({ state }: { state: GameState }) {
           </button>
         ))}
       </div>
-      {!anyShown && <p className="hint">Nenhum lendário neste filtro agora.</p>}
+      {!anyShown && <Empty icon="master-ball">Nenhum lendário neste filtro agora.</Empty>}
       {REGIONS.map((region) => {
         const all = LEGENDARIES.filter((l) => l.regionId === region.id);
         if (!all.length) return null;

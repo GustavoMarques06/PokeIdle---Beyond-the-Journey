@@ -36,6 +36,7 @@ import { audio } from '../../audio';
 import { Award } from '../../components/PixelUi';
 import { useEngine } from '../../useGame';
 import { Locked, PokemonPicker } from './shared';
+import { Empty } from '../../components/Dynamic';
 
 async function copy(text: string): Promise<boolean> {
   try {
@@ -642,7 +643,7 @@ export function DuelPanel({ state }: { state: GameState }) {
       <Window title="EQUIPES DE AMIGOS" icon={<ItemIcon id="vs-recorder" size={24} />}>
         <Receive expect="ghost" />
         {ghosts.length === 0 ? (
-          <p className="hint">Nenhuma equipe ainda. Cole acima o código que um amigo mandar.</p>
+          <Empty icon="linking-cord">Nenhuma equipe ainda. Cole acima o código que um amigo mandar.</Empty>
         ) : (
           <ul className="ghost-list">
             {ghosts.map((g) => {

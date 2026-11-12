@@ -87,6 +87,7 @@ import {
   WeatherLayer,
   ambientFor,
 } from './effects';
+import { PartnerQuip } from './PartnerQuip';
 import { activityArt, artMs, impactArt, shotArt, statusArt, type FxArt, type ShotArt } from './fxart';
 
 interface Floater {
@@ -1345,6 +1346,7 @@ export function BattleScene({ state }: { state: GameState }) {
         </span>
       )}
       <SendOutBall key={`p-${player.uid}`} x={PLAYER_BASE.x} y={PLAYER_BASE.y - 12} />
+      <PartnerQuip state={state} x={PLAYER_BASE.x + 6} y={PLAYER_BASE.y - playerBox.bodyH - 6} />
       {trainerFoe && enemy && <SendOutBall key={`e-${keyOf(enemy)}`} x={ENEMY_BASE.x} y={ENEMY_BASE.y - 8} />}
 
       {levelUp && (

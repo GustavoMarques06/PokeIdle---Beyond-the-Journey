@@ -19,6 +19,44 @@ export interface BattleTextContext {
   trainerName?: string;
   /** Apelidos da equipe de batalha (ativo + reservas), por espécie: os eventos só trazem a espécie. */
   nicknames?: ReadonlyMap<number, string>;
+  /** Noite no jogo (muda as falas de encontro). */
+  night?: boolean;
+}
+
+/**
+ * Escolhe uma das frases pelo conteúdo do evento: o mesmo evento sempre dá a mesma frase (a caixa e o REGISTRO
+ * concordam), e eventos diferentes variam.
+ */
+function vary(e: GameEvent, options: string[]): string {
+  const key = JSON.stringify(e);
+  let h = 7;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return options[h % options.length];
+}
+
+const CAVE = new Set(['cave', 'dampcave', 'icecave', 'ruins', 'volcano']);
+const WOODS = new Set(['forest', 'jungle', 'swamp']);
+
+/** Frases de encontro de um selvagem em terra, pelo lugar e pela hora. `X` = nome (com "brilhante"). */
+function wildLines(scene: string, night: boolean): ((x: string) => string)[] {
+  const base = [
+    (x: string) => `Um ${x} selvagem apareceu!`,
+    (x: string) => `O mato se mexeu… é um ${x} selvagem!`,
+    (x: string) => `Um ${x} selvagem pulou na sua frente!`,
+    (x: string) => `Um ${x} selvagem bloqueia o caminho!`,
+  ];
+  if (CAVE.has(scene))
+    return [
+      (x) => `Um ${x} selvagem saiu das sombras!`,
+      (x) => `Algo se mexe entre as pedras… é um ${x} selvagem!`,
+      (x) => `Um ${x} selvagem apareceu na escuridão!`,
+    ];
+  if (scene === 'desert') return [(x) => `Um ${x} selvagem surgiu da areia!`, base[0], base[2]];
+  if (scene === 'snowfield') return [(x) => `Um ${x} selvagem surgiu da neve!`, base[0], base[2]];
+  if (scene === 'city' || scene === 'street') return [(x) => `Um ${x} selvagem apareceu no meio da rua!`, base[0], base[2]];
+  if (WOODS.has(scene)) return [(x) => `As folhas balançam… um ${x} selvagem apareceu!`, ...base];
+  if (night) return [(x) => `Olhos brilham no escuro… é um ${x} selvagem!`, ...base];
+  return base;
 }
 
 /** Nome de um Pokémon do jogador: o apelido, se houver, ou o nome da espécie. */
@@ -48,36 +86,51 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
         text: e.raid
           ? `RAIDE! ${speciesName(e.speciesId)} gigante${e.shiny ? ' brilhante' : ''} bloqueia o caminho!`
           : e.boss
-            ? `${ctx.trainerName ?? boss?.name ?? 'O treinador'} enviou ${speciesName(e.speciesId)}!`
+            ? vary(e, [
+                `${ctx.trainerName ?? boss?.name ?? 'O treinador'} enviou ${speciesName(e.speciesId)}!`,
+                `${ctx.trainerName ?? boss?.name ?? 'O treinador'}: "Vai, ${speciesName(e.speciesId)}!"`,
+              ])
             : e.legendary
               ? `${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''} apareceu! Enfraqueça-o e lance as bolas à mão!`
               : e.roamer
                 ? `O raro ${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''} apareceu! Capture-o antes que fuja!`
-                : e.water === 'fish'
-                  ? `Fisgou! Um ${speciesName(e.speciesId)} selvagem${e.shiny ? ' brilhante' : ''} mordeu a isca!${e.perfect ? ' Ele parece PERFEITO!' : ''}`
-                  : e.water === 'surf'
-                    ? `Um ${speciesName(e.speciesId)} selvagem${e.shiny ? ' brilhante' : ''} surgiu das águas!${e.perfect ? ' Ele parece PERFEITO!' : ''}`
-                    : `Um ${speciesName(e.speciesId)} selvagem${e.shiny ? ' brilhante' : ''} apareceu!${e.perfect ? ' Ele parece PERFEITO!' : ''}`,
+                : `${vary(
+                    e,
+                    (e.water === 'fish'
+                      ? [
+                          (x: string) => `Fisgou! Um ${x} selvagem mordeu a isca!`,
+                          (x: string) => `Algo puxou a linha… é um ${x} selvagem!`,
+                          (x: string) => `A boia afundou! Um ${x} selvagem!`,
+                        ]
+                      : e.water === 'surf'
+                        ? [
+                            (x: string) => `Um ${x} selvagem surgiu das águas!`,
+                            (x: string) => `Bolhas na água… é um ${x} selvagem!`,
+                          ]
+                        : wildLines(getRoute(ctx.routeId).scene, !!ctx.night)
+                    ).map((f) => f(`${speciesName(e.speciesId)}${e.shiny ? ' brilhante' : ''}`)),
+                  )}${e.perfect ? '\nEle parece PERFEITO!' : ''}`,
         important: e.shiny || e.boss || !!e.raid || !!e.roamer || !!e.perfect || !!e.legendary,
       };
     case 'attack': {
       const who = e.side === 'player' ? mine(e.attacker, ctx) : foeLabel(e.attacker, ctx);
       const r = e.result;
-      let text = `${who} usou ${moveName(r.moveId)}!`;
-      if (r.missed) text += ' Mas errou!';
+      const lines = [`${who} usou ${moveName(r.moveId)}!`];
+      if (r.missed) lines.push('Mas errou!');
       else if (r.effectiveness === 0)
-        text += ` Não afeta ${e.side === 'player' ? speciesName(e.target) : mine(e.target, ctx)}…`;
+        lines.push(`Não afeta ${e.side === 'player' ? speciesName(e.target) : mine(e.target, ctx)}…`);
       else {
-        if (r.hits) text += ` Acertou ${r.hits} vezes!`;
-        if (r.crit) text += ' Um golpe crítico!';
-        if (r.effectiveness > 1) text += ' É super efetivo!';
-        else if (r.effectiveness < 1) text += ' Não é muito efetivo…';
+        if (r.hits) lines.push(`Acertou ${r.hits} vezes!`);
+        if (r.crit) lines.push('Um golpe crítico!');
+        if (r.effectiveness > 1) lines.push('É super efetivo!');
+        else if (r.effectiveness < 1) lines.push('Não é muito efetivo…');
       }
       if (r.status) {
         const target = e.side === 'player' ? foeLabel(e.target, ctx) : mine(e.target, ctx);
-        text += ` ${target} ${STATUS_TEXT[r.status].inflicted}!`;
+        lines.push(`${target} ${STATUS_TEXT[r.status].inflicted}!`);
       }
-      return { text, important: false };
+      // A segunda linha (efeito do golpe) vai embaixo da primeira, como nos portáteis.
+      return { text: [lines[0], lines.slice(1).join(' ')].filter(Boolean).join('\n'), important: false };
     }
     case 'ranAway':
       return { text: 'Fugiu em segurança!', important: true };
@@ -122,7 +175,11 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
       return {
         text:
           e.exp || e.coins
-            ? `${foeLabel(e.speciesId, ctx)} desmaiou! ${ctx.playerName} ganhou ${plural(e.exp, 'ponto', 'pontos')} de EXP e ${plural(e.coins, 'moeda', 'moedas')}.`
+            ? `${vary(e, [
+                `${foeLabel(e.speciesId, ctx)} desmaiou!`,
+                `${foeLabel(e.speciesId, ctx)} não aguentou!`,
+                `${foeLabel(e.speciesId, ctx)} caiu!`,
+              ])}\n${ctx.playerName} ganhou ${plural(e.exp, 'ponto', 'pontos')} de EXP e ${plural(e.coins, 'moeda', 'moedas')}.`
             : `${foeLabel(e.speciesId, ctx)} desmaiou!`,
         important: false,
       };

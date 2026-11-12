@@ -41,6 +41,7 @@ import { STAT_NAMES, formatDuration, moveName, speciesName } from '../../i18n/pt
 import { useEngine } from '../../useGame';
 import { DaycarePc } from './DaycarePc';
 import { Locked } from './shared';
+import { Empty } from '../../components/Dynamic';
 
 // --- Ovo em pixel art -------------------------------------------------------------------------
 
@@ -793,7 +794,7 @@ export function DaycarePanel({ state }: { state: GameState }) {
           )
         }
       >
-        {state.eggs.length === 0 && <p className="hint">Nenhum ovo ainda.</p>}
+        {state.eggs.length === 0 && <Empty icon="mystery-egg">Nenhum ovo ainda. Deixe um casal na Creche.</Empty>}
         {warmth > 1 && <p className="egg-warm">Tem um Pokémon quentinho na equipe: os ovos andam {warmth}× mais rápido!</p>}
         <Nest state={state} fresh={fresh} selected={selected} onPick={pick} />
         {state.eggs.length > 0 && <p className="hint nest-tip">Toque num ovo para ver os detalhes dele.</p>}

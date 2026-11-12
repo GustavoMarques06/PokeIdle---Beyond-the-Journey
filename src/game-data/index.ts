@@ -147,6 +147,9 @@ export function getMove(id: string): Move {
   return m;
 }
 
+/** Todos os golpes de dano do jogo (ids). */
+export const MOVE_IDS: readonly string[] = Object.keys(moves);
+
 export function hasMove(id: string): boolean {
   return id in moves;
 }

@@ -15,6 +15,7 @@ import { ItemIcon, PixelIcon, PokemonSprite, TrainerSprite, TypeBadge, Window } 
 import { TYPE_NAMES, formatDuration, speciesName } from '../../i18n/pt-BR';
 import { useEngine } from '../../useGame';
 import { Locked } from './shared';
+import { Empty } from '../../components/Dynamic';
 
 const SHOP_ICONS: Record<string, string> = {
   tm: 'tm',
@@ -141,7 +142,7 @@ export function TowerPanel({ state }: { state: GameState }) {
       <WeeklyTower state={state} />
 
       <Window title="RANKING" icon={<ItemIcon id="rainbow-pass" size={24} />}>
-        {t.runs.length === 0 && <p className="hint">Nenhuma subida registrada.</p>}
+        {t.runs.length === 0 && <Empty icon="rainbow-pass">Nenhuma subida registrada.</Empty>}
         <ol className="ranking">
           {t.runs.map((r, i) => (
             <li key={`${r.at}-${i}`}>

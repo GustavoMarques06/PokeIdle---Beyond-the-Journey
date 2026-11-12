@@ -8,6 +8,7 @@ import { MISSION_TEXT, formatDuration, formatNumber, itemName } from '../i18n/pt
 import { useEngine } from '../useGame';
 import { audio } from '../audio';
 import { PixelFx } from '../components/PixelFx';
+import { Empty } from '../components/Dynamic';
 
 /** Ícone de cada tipo de missão: o que ela pede. */
 const KIND_ICON: Record<string, string> = {
@@ -48,7 +49,7 @@ function MissionList({ state, scope }: { state: GameState; scope: MissionScope }
       icon={<ItemIcon id={scope === 'daily' ? 'fame-checker' : 'teachy-tv'} size={24} />}
       actions={<small>novas em {formatDuration(nextReset(now, scope) - now)}</small>}
     >
-      {list.length === 0 && <p className="hint">Nenhuma missão disponível.</p>}
+      {list.length === 0 && <Empty icon="fame-checker">Nenhuma missão disponível agora.</Empty>}
       <ul className="mission-list">
         {list.map((m) => {
           const done = m.progress >= m.target;

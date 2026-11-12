@@ -1,0 +1,351 @@
+/* =============================================================================
+   TEXTOS E TELAS DINÂMICOS (12/11)
+     1. Caixa de batalha: duas linhas e palavras em destaque
+     2. O parceiro comentando
+     3. Telas vazias e carregamento
+     4. Abas que deslizam e listas que se mexem
+     5. Explicações dobradas e resumo no título da janela
+   ============================================================================= */
+
+/* --- 1. Caixa de batalha ---------------------------------------------------------------------- */
+.dialog-text {
+  white-space: pre-line;
+}
+
+.hl-name {
+  font-weight: 700;
+  color: #283878;
+}
+
+.hl-move {
+  font-weight: 700;
+}
+
+.hl-num {
+  font-weight: 700;
+  color: #a06010;
+}
+
+.hl-super {
+  color: #d02828;
+}
+
+.hl-crit {
+  color: #d86810;
+}
+
+.hl-weak {
+  color: var(--ink-muted);
+}
+
+.type-text-fire {
+  color: #bb6325;
+}
+
+.type-text-water {
+  color: #5170bb;
+}
+
+.type-text-grass {
+  color: #5d9c3e;
+}
+
+.type-text-electric {
+  color: #88721a;
+}
+
+.type-text-ice {
+  color: #537676;
+}
+
+.type-text-fighting {
+  color: #95251f;
+}
+
+.type-text-poison {
+  color: #7c317c;
+}
+
+.type-text-ground {
+  color: #7b6939;
+}
+
+.type-text-flying {
+  color: #8370bb;
+}
+
+.type-text-psychic {
+  color: #c1446a;
+}
+
+.type-text-bug {
+  color: #838f18;
+}
+
+.type-text-rock {
+  color: #8f7c2b;
+}
+
+.type-text-ghost {
+  color: #574476;
+}
+
+.type-text-dragon {
+  color: #572bc1;
+}
+
+.type-text-dark {
+  color: #574438;
+}
+
+.type-text-steel {
+  color: #656572;
+}
+
+.type-text-fairy {
+  color: #82545e;
+}
+
+.type-text-normal {
+  color: #6e6e58;
+}
+
+/* --- 2. O parceiro comentando ----------------------------------------------------------------- */
+.partner-quip {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(var(--u) * 90);
+  padding: calc(var(--u) * 1.5) calc(var(--u) * 3);
+  translate: 0 -100%;
+  background: #fff;
+  border: calc(var(--u) * 0.8) solid #283878;
+  border-radius: calc(var(--u) * 3);
+  box-shadow: 0 calc(var(--u) * 0.8) 0 rgb(0 0 0 / 0.2);
+  font: 700 calc(var(--u) * 4.4) / 1.25 var(--font-label);
+  pointer-events: none;
+  animation: quip-in 3.6s steps(36, end) both;
+}
+
+.partner-quip b {
+  color: var(--red-dark);
+  font-size: calc(var(--u) * 3.2);
+  letter-spacing: 1px;
+}
+
+.partner-quip::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--u) * -3.4);
+  left: calc(var(--u) * 6);
+  border: calc(var(--u) * 1.8) solid transparent;
+  border-top: calc(var(--u) * 2.4) solid #283878;
+}
+
+@keyframes quip-in {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  6%,
+  90% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- 3. Telas vazias e carregamento ------------------------------------------------------------ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 14px 10px;
+  background: repeating-linear-gradient(45deg, #f4f7fc 0 10px, #eef2fa 10px 20px);
+  border: 2px dashed #b8c8e4;
+  border-radius: 8px;
+  text-align: center;
+  list-style: none;
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 340px;
+  color: var(--ink-muted);
+  font: 700 13px var(--font-label);
+}
+
+.empty-art {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle, #fff 0 55%, transparent 56%);
+  animation: item-bob 1.6s steps(2, end) infinite;
+}
+
+.empty-art > * {
+  scale: 1.6;
+  opacity: 0.85;
+}
+
+.screen-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px 0;
+  font: 700 14px var(--font-label);
+  color: var(--ink-muted);
+}
+
+.loading-ball {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #283050;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #fff 0 22%, #283050 23% 34%, transparent 35%),
+    linear-gradient(#e83838 0 46%, #283050 46% 54%, #f8f8f8 54%);
+  animation: loading-spin 0.8s steps(8, end) infinite;
+}
+
+@keyframes loading-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* --- 4. Abas que deslizam e listas que se mexem ----------------------------------------------- */
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  animation: tab-fade 0.22s steps(4, end);
+}
+
+.tab-panel.from-right {
+  animation-name: tab-from-right;
+}
+
+.tab-panel.from-left {
+  animation-name: tab-from-left;
+}
+
+@keyframes tab-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tab-from-right {
+  from {
+    opacity: 0;
+    translate: 28px 0;
+  }
+}
+
+@keyframes tab-from-left {
+  from {
+    opacity: 0;
+    translate: -28px 0;
+  }
+}
+
+/* Treinador e Mochila: cada aba monta o conteúdo de novo, que entra deslizando. */
+.trainer-screen > :not(.trainer-tabs):not(.trainer-help),
+.bag-screen:not(.shop-screen) > .window,
+.bag-screen:not(.shop-screen) > .item-desc {
+  animation: tab-from-right 0.22s steps(4, end);
+}
+
+/* Quantidade que muda na Mochila: pula. */
+.item-qty {
+  display: inline-block;
+  animation: qty-pop 0.35s steps(3, end);
+}
+
+@keyframes qty-pop {
+  40% {
+    scale: 1.5;
+    color: var(--gold-dark);
+  }
+}
+
+/* --- 5. Explicações dobradas e resumo no título --------------------------------------------- */
+.hint.hint-fold {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.hint[data-more] {
+  position: relative;
+  padding-right: 22px;
+  cursor: pointer;
+}
+
+.hint[data-more]::after,
+.hint.hint-open::after {
+  content: '?';
+  position: absolute;
+  top: 0;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  background: #4888e0;
+  border: 2px solid #283878;
+  border-radius: 50%;
+  color: #fff;
+  font: 700 10px/1 var(--font-label);
+}
+
+.hint.hint-open {
+  position: relative;
+  padding-right: 22px;
+  cursor: pointer;
+}
+
+.hint.hint-open::after {
+  content: '×';
+}
+
+.hint[data-more]:hover {
+  color: var(--ink);
+}
+
+.window-summary {
+  margin-left: 10px;
+  padding: 1px 8px;
+  background: #fff;
+  border: 2px solid #283878;
+  border-radius: 10px;
+  color: #283878;
+  font: 700 11px var(--font-label);
+  letter-spacing: 0;
+  vertical-align: 2px;
+  animation: say-pop 0.3s steps(3, end);
+}
+
+/* --- Movimento reduzido ----------------------------------------------------------------------- */
+html.reduced-motion :is(
+    .partner-quip,
+    .empty-art,
+    .loading-ball,
+    .tab-panel,
+    .trainer-screen > *,
+    .bag-screen > .window,
+    .bag-screen > .item-desc,
+    .item-qty,
+    .window-summary
+  ) {
+  animation: none;
+}
