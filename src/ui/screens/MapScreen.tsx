@@ -3,7 +3,7 @@
 // pesca/surf e o acompanhante na sua área) e o painel da área escolhida. O botão Ampliar abre o
 // mapa grande numa janela.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { DEPT_STORE, REGIONS, WATER_SPOTS, assetUrl, getRoute, type Route } from '../../game-data';
 import {
@@ -40,18 +40,18 @@ const FRONT_ICON = {
 } as const;
 
 /**
- * Arte oficial de cada região (public/maps/<id>.webp) e seu tamanho, para manter a proporção.
- * Fontes: FireRed/LeafGreen, HeartGold/SoulSilver, Omega Ruby/Alpha Sapphire, Platinum,
- * Black 2/White 2, X/Y e Ultra Sun/Ultra Moon (via Bulbapedia). As posições das áreas (Route.map) são % desta imagem.
+ * Arte de cada região (public/maps/<id>.webp) e o seu tamanho, para manter a proporção. Todas desenhadas para o jogo
+ * (originais em art/maps/novos).
+ * As posições das áreas (Route.map) são % desta imagem.
  */
 const MAP_ART: Record<string, { w: number; h: number; game: string }> = {
-  kanto: { w: 1000, h: 750, game: 'FireRed/LeafGreen' },
-  johto: { w: 1400, h: 750, game: 'HeartGold/SoulSilver' },
-  hoenn: { w: 1250, h: 884, game: 'Omega Ruby/Alpha Sapphire' },
-  sinnoh: { w: 1024, h: 724, game: 'Platinum' },
-  unova: { w: 1280, h: 837, game: 'Black 2/White 2' },
-  kalos: { w: 1032, h: 676, game: 'X/Y' },
-  alola: { w: 1280, h: 905, game: 'Ultra Sun/Ultra Moon' },
+  kanto: { w: 1491, h: 1055, game: 'PokéIdle' },
+  johto: { w: 1536, h: 1024, game: 'PokéIdle' },
+  hoenn: { w: 1491, h: 1055, game: 'PokéIdle' },
+  sinnoh: { w: 1536, h: 1024, game: 'PokéIdle' },
+  unova: { w: 1491, h: 1055, game: 'PokéIdle' },
+  kalos: { w: 1491, h: 1055, game: 'PokéIdle' },
+  alola: { w: 1491, h: 1055, game: 'PokéIdle' },
 };
 
 function regionUnlocked(state: GameState, regionId: string): boolean {
@@ -131,6 +131,7 @@ export function MapScreen({ state }: { state: GameState }) {
       </div>
 
       <RegionMap
+        key={region.id}
         state={state}
         regionId={region.id}
         routes={routes}
@@ -140,7 +141,10 @@ export function MapScreen({ state }: { state: GameState }) {
       />
 
       {regionFront && (
-        <button className={`map-front w-${regionFront.weather}`} onClick={() => setSelectedId(regionFront.routeId)}>
+        <button
+          className={`map-front w-${regionFront.weather}`}
+          onClick={() => setSelectedId(regionFront.routeId)}
+        >
           <PixelIcon name={FRONT_ICON[regionFront.weather]} scale={2} />
           <span>
             <strong>
@@ -148,8 +152,8 @@ export function MapScreen({ state }: { state: GameState }) {
             </strong>
             <small>
               Fica mais {formatDuration(regionFront.until - state.lastTimerAt)}
-              {regionFront.next ? ` e segue para ${getRoute(regionFront.next).name}` : ' e se desfaz'}. Na rota
-              dela o shiny é 1,5× mais provável.
+              {regionFront.next ? ` e segue para ${getRoute(regionFront.next).name}` : ' e se desfaz'}. Na
+              rota dela o shiny é 1,5× mais provável.
             </small>
           </span>
         </button>
@@ -183,6 +187,7 @@ export function MapScreen({ state }: { state: GameState }) {
                 routes={routes}
                 selectedId={selected.id}
                 onSelect={setSelectedId}
+                wheelZoom
               />
               {details}
             </div>
@@ -193,6 +198,100 @@ export function MapScreen({ state }: { state: GameState }) {
   );
 }
 
+/**
+ * Nome curto do lugar para escrever no mapa: a cidade ("Rotas 4 e Cerulean" → "Cerulean"), sem o "(Hoenn)" das
+ * Estradas da Vitória. As salas da Liga ganham um nome só, no Campeão.
+ */
+export function placeLabel(r: Route): string | null {
+  if (r.kind === 'trial') return r.boss?.champion ? 'LIGA' : null;
+  const name = r.name.replace(/\s*\(.*\)$/, '');
+  const at = name.lastIndexOf(' e ');
+  if (at < 0) return name;
+  const tail = name.slice(at + 3);
+  return tail.startsWith('a ') ? name.slice(0, at) : tail;
+}
+
+/** Níveis de zoom do mapa. Os marcadores mantêm o tamanho: aproximar afasta um do outro. */
+// Até 2×: a arte oficial tem de 1000 a 1400 px de largura, e acima disso ela começaria a borrar.
+const ZOOMS = [1, 1.5, 2];
+
+/**
+ * Zoom do mapa: botões + e − (e a roda do mouse no mapa ampliado), mantendo o mesmo ponto no meio ao trocar.
+ * Com zoom, dá para arrastar o mapa com o mouse; no toque, o dedo rola a área como qualquer lista.
+ */
+function useMapZoom(wheel: boolean) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const [level, setLevel] = useState(1);
+  const zoom = ZOOMS[level - 1];
+  const prev = useRef(zoom);
+  // O meio da vista continua no meio depois do zoom.
+  useEffect(() => {
+    const el = viewport.current;
+    const from = prev.current;
+    prev.current = zoom;
+    if (!el || from === zoom) return;
+    const cx = (el.scrollLeft + el.clientWidth / 2) / from;
+    const cy = (el.scrollTop + el.clientHeight / 2) / from;
+    el.scrollLeft = cx * zoom - el.clientWidth / 2;
+    el.scrollTop = cy * zoom - el.clientHeight / 2;
+  }, [zoom]);
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el || !wheel) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setLevel((l) => Math.max(1, Math.min(ZOOMS.length, l + (e.deltaY < 0 ? 1 : -1))));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [wheel]);
+  // Arrastar com o mouse (só com zoom; um clique sem arrastar continua escolhendo a área).
+  const drag = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+  const dragProps = {
+    onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
+      const el = viewport.current;
+      if (!el || zoom <= 1 || e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag.current = { x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop, moved: false };
+    },
+    onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => {
+      const d = drag.current;
+      const el = viewport.current;
+      if (!d || !el) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (!d.moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+      d.moved = true;
+      el.classList.add('dragging');
+      el.scrollLeft = d.left - dx;
+      el.scrollTop = d.top - dy;
+    },
+    onPointerUp: () => {
+      viewport.current?.classList.remove('dragging');
+      // Depois de arrastar, o clique que vem junto não escolhe a área embaixo do cursor.
+      if (drag.current?.moved) {
+        const swallow = (ev: Event) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+        };
+        window.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0);
+      }
+      drag.current = null;
+    },
+    onPointerLeave: () => {
+      viewport.current?.classList.remove('dragging');
+      drag.current = null;
+    },
+  };
+  return {
+    viewport,
+    zoom,
+    setZoom: (l: number) => setLevel(Math.max(1, Math.min(ZOOMS.length, l))),
+    level,
+    dragProps,
+  };
+}
+
 function RegionMap({
   state,
   regionId,
@@ -200,6 +299,7 @@ function RegionMap({
   selectedId,
   onSelect,
   onEnlarge,
+  wheelZoom = false,
 }: {
   state: GameState;
   regionId: string;
@@ -207,127 +307,173 @@ function RegionMap({
   selectedId: string;
   onSelect: (id: string) => void;
   onEnlarge?: () => void;
+  /** Roda do mouse aproxima (no mapa ampliado; na coluna, a roda continua rolando a janela). */
+  wheelZoom?: boolean;
 }) {
   const art = MAP_ART[regionId];
+  const { viewport, zoom, level, setZoom, dragProps } = useMapZoom(wheelZoom);
   return (
     <div
-      className="region-map"
+      className={`region-map ${zoom > 1 ? 'zoomed' : ''}`}
       role="group"
       aria-label="Mapa da região"
       style={
         art ? { aspectRatio: `${art.w} / ${art.h}`, ['--map-ratio' as string]: art.w / art.h } : undefined
       }
     >
-      <img
-        className="region-art"
-        src={assetUrl(`maps/${regionId}.webp`)}
-        alt=""
-        draggable={false}
-        title={art ? `Mapa de ${art.game}` : undefined}
-      />
+      <div className="map-viewport" ref={viewport} {...dragProps}>
+        <div className="map-canvas" style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}>
+          <img
+            className="region-art"
+            src={assetUrl(`maps/${regionId}.webp`)}
+            alt=""
+            draggable={false}
+            title={art ? `Mapa de ${art.game}` : undefined}
+          />
 
-      {routes.map((r) => {
-        const prog = state.routes[r.id];
-        const here = state.currentRouteId === r.id;
-        const cleared = routeCleared(state, r.id);
-        const ready = canChallengeBoss(state, r.id) && r.kind === 'wild';
-        const roamer = state.roamer && state.roamer.routeId === encounterRoute(r).id && r.kind === 'wild';
-        const rocket = state.rocket?.routeId === r.id;
-        const raid = state.raid?.routeId === r.id;
-        // Frente de clima: onde ela está agora e a rota para onde vai em seguida.
-        const front = frontOn(state.env, r.id);
-        const frontNext = !front && state.env.fronts?.some((f) => f.next === r.id);
-        const water = WATER_SPOTS[r.id];
-        const tree = prog.unlocked && treeBerry(r.id) && treeReady(state, r.id, state.lastTimerAt);
-        const companion =
-          here && state.companion ? state.collection.find((p) => p.uid === state.companion!.uid) : undefined;
-        return (
-          <button
-            key={r.id}
-            className={[
-              'map-node',
-              r.kind === 'trial' ? 'trial' : r.boss ? 'gym' : 'wild',
-              prog.unlocked ? '' : 'locked',
-              cleared ? 'cleared' : '',
-              here ? 'here' : '',
-              r.id === selectedId ? 'selected' : '',
-            ].join(' ')}
-            style={{ left: `${r.map[0]}%`, top: `${r.map[1]}%` }}
-            onClick={() => onSelect(r.id)}
-            title={r.name}
-            aria-label={`${r.name}${here ? ' (você está aqui)' : ''}`}
-          >
-            {r.kind !== 'trial' && (
-              <span className="node-glyph" aria-hidden>
-                <PixelIcon name={placeGlyph(r.scene)} scale={1} />
-              </span>
-            )}
-            {here && (
-              <span className="node-here node-here-trainer" aria-hidden>
-                <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={26} head />
-              </span>
-            )}
-            {ready && <span className="node-flag" aria-hidden />}
-            {roamer && (
-              <span className="node-roamer" title={`${speciesName(state.roamer!.speciesId)} está aqui!`}>
-                <PokemonSprite speciesId={state.roamer!.speciesId} kind="icon" />
-              </span>
-            )}
-            {r.id === DEPT_STORE.routeId && (
-              <span className="node-shop" title={DEPT_STORE.name}>
-                <ItemIcon id="dowsing-machine" size={18} />
-              </span>
-            )}
-            {rocket && (
-              <span className="node-rocket" title="Equipe Rocket!">
-                <PixelIcon name="rocket" scale={1} />
-              </span>
-            )}
-            {companion && (
-              <span className="node-companion" title={`${speciesName(companion.speciesId)} acompanha você`}>
-                <PokemonSprite speciesId={companion.speciesId} kind="icon" />
-              </span>
-            )}
-            {front && prog.unlocked && (
-              <span
-                className={`node-front w-${front.weather}`}
-                title={`Frente de ${WEATHER_NAMES[front.weather]} por mais ${formatDuration(front.until - state.lastTimerAt)}: shiny 1,5× mais provável`}
+          {routes.map((r) => {
+            const prog = state.routes[r.id];
+            const here = state.currentRouteId === r.id;
+            const cleared = routeCleared(state, r.id);
+            const ready = canChallengeBoss(state, r.id) && r.kind === 'wild';
+            const roamer = state.roamer && state.roamer.routeId === encounterRoute(r).id && r.kind === 'wild';
+            const rocket = state.rocket?.routeId === r.id;
+            const raid = state.raid?.routeId === r.id;
+            // Frente de clima: onde ela está agora e a rota para onde vai em seguida.
+            const front = frontOn(state.env, r.id);
+            const frontNext = !front && state.env.fronts?.some((f) => f.next === r.id);
+            const water = WATER_SPOTS[r.id];
+            const tree = prog.unlocked && treeBerry(r.id) && treeReady(state, r.id, state.lastTimerAt);
+            const companion =
+              here && state.companion
+                ? state.collection.find((p) => p.uid === state.companion!.uid)
+                : undefined;
+            return (
+              <button
+                key={r.id}
+                className={[
+                  'map-node',
+                  r.kind === 'trial' ? 'trial' : r.boss ? 'gym' : 'wild',
+                  prog.unlocked ? '' : 'locked',
+                  cleared ? 'cleared' : '',
+                  here ? 'here' : '',
+                  r.id === selectedId ? 'selected' : '',
+                ].join(' ')}
+                style={{ left: `${r.map[0]}%`, top: `${r.map[1]}%` }}
+                onClick={() => onSelect(r.id)}
+                title={r.name}
+                aria-label={`${r.name}${here ? ' (você está aqui)' : ''}`}
               >
-                <PixelIcon name={FRONT_ICON[front.weather]} scale={2} />
-              </span>
-            )}
-            {frontNext && prog.unlocked && <span className="node-front-next" title="A frente vem para cá" aria-hidden />}
-            {(raid || tree || (water && prog.unlocked)) && (
-              <span className="node-marks">
-                {raid && (
-                  <span className="mark-raid" title={`Raide: ${speciesName(state.raid!.speciesId)}`}>
-                    <ItemIcon id="dynamax-band" size={18} />
+                {placeLabel(r) && (
+                  <span className={`node-name ${r.kind === 'trial' ? 'league' : ''}`} aria-hidden>
+                    {placeLabel(r)}
                   </span>
                 )}
-                {tree && (
+                {r.kind !== 'trial' && (
+                  <span className="node-glyph" aria-hidden>
+                    <PixelIcon name={placeGlyph(r.scene)} scale={1} />
+                  </span>
+                )}
+                {here && (
+                  <span className="node-here node-here-trainer" aria-hidden>
+                    <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={26} head />
+                  </span>
+                )}
+                {ready && <span className="node-flag" aria-hidden />}
+                {roamer && (
+                  <span className="node-roamer" title={`${speciesName(state.roamer!.speciesId)} está aqui!`}>
+                    <PokemonSprite speciesId={state.roamer!.speciesId} kind="icon" />
+                  </span>
+                )}
+                {r.id === DEPT_STORE.routeId && (
+                  <span className="node-shop" title={DEPT_STORE.name}>
+                    <ItemIcon id="dowsing-machine" size={18} />
+                  </span>
+                )}
+                {rocket && (
+                  <span className="node-rocket" title="Equipe Rocket!">
+                    <PixelIcon name="rocket" scale={1} />
+                  </span>
+                )}
+                {companion && (
                   <span
-                    className="mark-tree"
-                    title={`Árvore de ${itemName(treeBerry(r.id)!)} pronta para colher`}
+                    className="node-companion"
+                    title={`${speciesName(companion.speciesId)} acompanha você`}
                   >
-                    <PixelIcon name="tree" scale={2} />
+                    <PokemonSprite speciesId={companion.speciesId} kind="icon" />
                   </span>
                 )}
-                {water?.fish && prog.unlocked && (
-                  <span title="Dá para pescar aqui" className={`mark-water ${bestRod(state) ? '' : 'off'}`}>
-                    <ItemIcon id="old-rod" size={16} />
+                {front && prog.unlocked && (
+                  <span
+                    className={`node-front w-${front.weather}`}
+                    title={`Frente de ${WEATHER_NAMES[front.weather]} por mais ${formatDuration(front.until - state.lastTimerAt)}: shiny 1,5× mais provável`}
+                  >
+                    <PixelIcon name={FRONT_ICON[front.weather]} scale={2} />
                   </span>
                 )}
-                {water?.surf && prog.unlocked && (
-                  <span title="Dá para surfar aqui" className={`mark-water ${canSurf(state) ? '' : 'off'}`}>
-                    <ItemIcon id="surf" size={16} />
+                {frontNext && prog.unlocked && (
+                  <span className="node-front-next" title="A frente vem para cá" aria-hidden />
+                )}
+                {(raid || tree || (water && prog.unlocked)) && (
+                  <span className="node-marks">
+                    {raid && (
+                      <span className="mark-raid" title={`Raide: ${speciesName(state.raid!.speciesId)}`}>
+                        <ItemIcon id="dynamax-band" size={18} />
+                      </span>
+                    )}
+                    {tree && (
+                      <span
+                        className="mark-tree"
+                        title={`Árvore de ${itemName(treeBerry(r.id)!)} pronta para colher`}
+                      >
+                        <PixelIcon name="tree" scale={2} />
+                      </span>
+                    )}
+                    {water?.fish && prog.unlocked && (
+                      <span
+                        title="Dá para pescar aqui"
+                        className={`mark-water ${bestRod(state) ? '' : 'off'}`}
+                      >
+                        <ItemIcon id="old-rod" size={16} />
+                      </span>
+                    )}
+                    {water?.surf && prog.unlocked && (
+                      <span
+                        title="Dá para surfar aqui"
+                        className={`mark-water ${canSurf(state) ? '' : 'off'}`}
+                      >
+                        <ItemIcon id="surf" size={16} />
+                      </span>
+                    )}
                   </span>
                 )}
-              </span>
-            )}
-          </button>
-        );
-      })}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <span className="map-label">{routes.find((r) => r.id === selectedId)?.name.toUpperCase()}</span>
+      <span className="map-zoom" role="group" aria-label="Zoom do mapa">
+        <button
+          className="pbtn small"
+          onClick={() => setZoom(level - 1)}
+          disabled={level <= 1}
+          aria-label="Afastar o mapa"
+          title="Afastar"
+        >
+          −
+        </button>
+        <b>{String(zoom).replace('.', ',')}×</b>
+        <button
+          className="pbtn small"
+          onClick={() => setZoom(level + 1)}
+          disabled={level >= ZOOMS.length}
+          aria-label="Aproximar o mapa"
+          title="Aproximar"
+        >
+          +
+        </button>
+      </span>
       {onEnlarge && (
         <button className="pbtn small map-enlarge" onClick={onEnlarge} title="Ver o mapa grande">
           Ampliar
@@ -424,7 +570,11 @@ function RouteDetails({
           )}
           <div className="node-encounters">
             {encounters.slice(0, MAX_ICONS).map((e) => (
-              <span key={e.speciesId} className={`enc ${e.time ? `enc-${e.time}` : ''}`}>
+              // A mesma espécie pode vir de dia e de noite (Clefairy no Mt. Moon): a chave leva o período.
+              <span
+                key={`${e.speciesId}-${e.time ?? 'any'}`}
+                className={`enc ${e.time ? `enc-${e.time}` : ''}`}
+              >
                 <PokemonSprite
                   speciesId={e.speciesId}
                   kind="icon"

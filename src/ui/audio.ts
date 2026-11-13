@@ -6,6 +6,7 @@ import { captureRevealMs, captureShakes } from '../core/capture';
 import type { GameEvent, Settings } from '../core/game';
 
 export type Sfx =
+  | 'zipper'
   | 'hit'
   | 'crit'
   | 'super'
@@ -384,6 +385,11 @@ class AudioManager {
       }
       case 'item':
         this.arpeggio([79, 84], t, 0.05, 'triangle', 0.08);
+        return;
+      case 'zipper':
+        // Zíper da mochila: estalinhos subindo depressa e um puxão no fim.
+        for (let i = 0; i < 7; i++) this.noise(t + i * 0.018, 0.012, 0.05 + i * 0.01);
+        this.tone(700, t + 0.13, 0.05, 'square', 0.025, 1100);
         return;
       case 'raid':
         this.arpeggio([48, 55, 48, 55, 60], t, 0.12, 'sawtooth', 0.06);

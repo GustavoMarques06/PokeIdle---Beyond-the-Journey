@@ -1,0 +1,395 @@
+/* =============================================================================
+   EQUIPE E TREINADOR COMO NOS PORTÁTEIS (13/11)
+     1. Equipe: fundo de Poké Balls, ícone sobre a bola aberta, menu FICHA / TROCAR / LUTAR / TIRAR e a troca
+     2. Ficha em páginas (INFO, ATRIBUTOS, GOLPES, HABILIDADE)
+     3. Treinador: abas com ícone, cartão na cor das estrelas, estojo de insígnias e opções ◀ ▶
+   ============================================================================= */
+
+/* --- 1. Equipe ------------------------------------------------------------------------------- */
+.party-board {
+  padding: 6px;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.1) 0 5px, transparent 6px) 0 0 / 28px 28px,
+    linear-gradient(#2a7a78, #1f5c62);
+  box-shadow: inset 0 0 0 2px rgb(0 0 0 / 0.25);
+}
+
+/* Sem as setinhas ao lado: a linha é só o Pokémon (o menu abre embaixo dele). */
+.team-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A Poké Ball aberta atrás do ícone, como na tela de equipe de FireRed. */
+.party-ball {
+  grid-row: 1 / span 3;
+  grid-column: 1;
+  align-self: center;
+  justify-self: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #fff 0 4px, var(--ink) 5px 6px, transparent 7px),
+    linear-gradient(#e84838 0 46%, var(--ink) 46% 54%, #f4f4f4 54%);
+  opacity: 0.55;
+}
+
+.party-slot-active .party-ball {
+  width: 54px;
+  height: 54px;
+  opacity: 0.7;
+}
+
+.party-slot .party-icon {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  position: relative;
+  z-index: 1;
+}
+
+/* Selecionado (menu aberto ou ficha aberta): borda laranja, como o cursor dos portáteis. */
+.party-slot.selected {
+  outline: 3px solid #f8a030;
+  outline-offset: -3px;
+}
+
+.party-slot.selected .party-icon {
+  animation: party-hop 0.5s steps(2, end) infinite;
+}
+
+/* Desmaiado: o espaço fica avermelhado. */
+.party-slot.fainted {
+  filter: none;
+  background-color: #b84848;
+}
+
+.party-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 2px 0 2px auto;
+  padding: 4px;
+  animation: say-pop 0.16s steps(3, end);
+}
+
+.party-menu button {
+  position: relative;
+  flex: 1 1 auto;
+  padding: 4px 8px 4px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--ink);
+  font: 700 12px var(--font-label);
+  text-align: left;
+}
+
+.party-menu button:hover:not(:disabled),
+.party-menu button:focus-visible {
+  background: var(--menu-select);
+}
+
+.party-menu button:hover:not(:disabled)::before,
+.party-menu button:focus-visible::before {
+  content: '▶';
+  position: absolute;
+  left: 4px;
+  font-size: 9px;
+}
+
+.party-menu button:disabled {
+  opacity: 0.45;
+}
+
+/* TROCAR: quem vai trocar pisca; os outros mostram que podem ser tocados. */
+.team-row.swap-from .party-slot {
+  animation: swap-blink 0.6s steps(1, end) infinite;
+}
+
+@keyframes swap-blink {
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+.team-row.swap-target .party-slot {
+  cursor: pointer;
+  outline: 2px dashed #fff8b0;
+  outline-offset: -4px;
+}
+
+/* --- 2. Ficha em páginas ----------------------------------------------------------------------- */
+.summary-headinfo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.summary-types {
+  display: flex;
+  gap: 4px;
+}
+
+.summary-hp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  font: 700 12px var(--font-label);
+}
+
+.summary-pages {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  margin: 8px 0 0;
+}
+
+.summary-page-arrow {
+  flex: none;
+  width: 26px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff8e0;
+  font: 700 11px var(--font-label);
+}
+
+.summary-page-tab {
+  --pg: #4878d0;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 2px;
+  border: 2px solid color-mix(in srgb, var(--pg) 55%, var(--ink));
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: color-mix(in srgb, var(--pg) 25%, #fff);
+  color: var(--ink);
+  font: 700 11px var(--font-label);
+  white-space: nowrap;
+}
+
+.summary-page-tab.page-stats {
+  --pg: #e05040;
+}
+
+.summary-page-tab.page-moves {
+  --pg: #48a848;
+}
+
+.summary-page-tab.page-extra {
+  --pg: #9060c8;
+}
+
+.summary-page-tab.active {
+  background: var(--pg);
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+  translate: 0 -2px;
+}
+
+.summary-page {
+  --pg: #4878d0;
+  padding: 8px;
+  border: 3px solid var(--pg);
+  border-radius: 0 0 8px 8px;
+  background: color-mix(in srgb, var(--pg) 8%, #fff);
+  animation: tab-from-right 0.2s steps(4, end);
+}
+
+.summary-page.page-stats {
+  --pg: #e05040;
+}
+
+.summary-page.page-moves {
+  --pg: #48a848;
+}
+
+.summary-page.page-extra {
+  --pg: #9060c8;
+}
+
+.summary-page .stat-table {
+  width: 100%;
+}
+
+/* --- 3. Treinador ---------------------------------------------------------------------------- */
+.trainer-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.trainer-tab .item-icon {
+  image-rendering: pixelated;
+}
+
+.trainer-tab.active .item-icon {
+  animation: item-bob 0.6s steps(2, end) infinite;
+}
+
+/* Cartão na cor das estrelas, como nos portáteis: azul, verde, bronze, prata, ouro e preto. */
+.trainer-screen .trainer-card {
+  --card: #d8e8ff;
+  --card-edge: #88b0e8;
+  --card-ink: var(--menu-blue-dark);
+  /* A moldura pixel fica só na borda (sem pintar o miolo): o fundo é a cor das estrelas. */
+  border-image-slice: 4;
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / 0.45), transparent 45%),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgb(255 255 255 / 0.12) 3px 4px), var(--card);
+}
+
+.trainer-screen .trainer-card.stars-1 {
+  --card: #d8f0d0;
+  --card-edge: #70b860;
+  --card-ink: #2c6a2c;
+}
+
+.trainer-screen .trainer-card.stars-2 {
+  --card: #f0d8c0;
+  --card-edge: #c08850;
+  --card-ink: #7a4a1c;
+}
+
+.trainer-screen .trainer-card.stars-3 {
+  --card: #e4e8ee;
+  --card-edge: #9aa4b4;
+  --card-ink: #4a5468;
+}
+
+.trainer-screen .trainer-card.stars-4 {
+  --card: #fbecb0;
+  --card-edge: #d8a828;
+  --card-ink: #806010;
+}
+
+.trainer-screen .trainer-card.stars-5 {
+  --card: #303648;
+  --card-edge: #f0c840;
+  --card-ink: #f8d860;
+  color: #f4f4f8;
+}
+
+.trainer-screen .trainer-card .card-head {
+  border-bottom-color: var(--card-edge);
+  color: var(--card-ink);
+}
+
+.trainer-screen .trainer-card .card-grid dt {
+  color: var(--card-ink);
+}
+
+/* Dados em linhas pontilhadas, como no cartão de FireRed. */
+.trainer-screen .card-grid {
+  row-gap: 0;
+}
+
+.trainer-screen .card-grid dt,
+.trainer-screen .card-grid dd {
+  padding: 3px 0;
+  border-bottom: 2px dotted color-mix(in srgb, var(--card-edge) 70%, transparent);
+}
+
+/* Estojo de insígnias: caixa forrada de veludo, uma região por vez. */
+.badge-case {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.badge-case-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--card-ink, var(--menu-blue-dark));
+  font: 700 12px var(--font-label);
+}
+
+.badge-case-head strong {
+  flex: 1;
+  text-align: center;
+}
+
+.badge-case-arrow {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff8e0;
+  color: var(--ink);
+  font: 700 10px var(--font-label);
+}
+
+.badge-case-box {
+  display: flex;
+  justify-content: center;
+  padding: 10px 8px;
+  border: 3px solid #5a3a1c;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 30% 20%, rgb(255 255 255 / 0.12), transparent 60%),
+    repeating-linear-gradient(45deg, #8a2838 0 3px, #7a2030 3px 6px);
+  box-shadow:
+    inset 0 0 0 2px #c89048,
+    inset 0 4px 10px rgb(0 0 0 / 0.4);
+  animation: tab-from-right 0.2s steps(4, end);
+}
+
+.badge-case-box .badges {
+  padding: 0;
+  background: none;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 8px 14px;
+}
+
+.badge-case-box .badges > * {
+  filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.45));
+}
+
+/* Opção ◀ VALOR ▶. */
+.option-cycler {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cycler {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cycler button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff8e0;
+  color: var(--ink);
+  font: 700 10px var(--font-label);
+}
+
+.cycler b {
+  min-width: 112px;
+  padding: 3px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  font: 700 12px var(--font-label);
+  text-align: center;
+}
+
+html.reduced-motion :is(.party-menu, .summary-page, .badge-case-box, .team-row.swap-from .party-slot) {
+  animation: none;
+}

@@ -61,6 +61,19 @@ export function placeInTeam(state: GameState, uid: number, targetUid?: number): 
   return true;
 }
 
+/** TROCAR, como nos portáteis: dois Pokémon da equipe trocam de lugar (com o 1º, o outro entra em campo). */
+export function swapInTeam(state: GameState, a: number, b: number): boolean {
+  const order = teamPokemon(state).map((p) => p.uid);
+  const ia = order.indexOf(a);
+  const ib = order.indexOf(b);
+  if (ia < 0 || ib < 0 || ia === ib) return false;
+  [order[ia], order[ib]] = [order[ib], order[ia]];
+  if (ia === 0 || ib === 0) state.battle.playerStatus = null;
+  state.activeUid = order[0];
+  state.battleTeam = order.slice(1);
+  return true;
+}
+
 /** Tira da equipe. Quem luta só sai se houver outro para assumir (o próximo da fila). */
 export function removeFromTeam(state: GameState, uid: number): boolean {
   if (uid === state.activeUid) {

@@ -1,16 +1,19 @@
-// MOCHILA: bolsos de itens e de TMs, no estilo da mochila do FRLG. As compras ficam na
-// tela LOJA (ShopScreen).
+// MOCHILA, como nos portáteis: bolsos (itens, Poké Balls, berries e remédios, pedras e Megas, itens de segurar, TMs
+// e itens-chave), a mochila em pixel art que balança ao trocar de bolso, a lista com a setinha e a caixa de texto
+// fixa embaixo. Escolher um item abre o menu USAR / DAR / VENDER / CANCELAR; USAR e DAR mostram a equipe com quem
+// PODE e quem NÃO PODE. As compras ficam na LOJA (ShopScreen).
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   BALANCE,
   BERRIES,
   FOSSILS,
+  assetUrl,
   getLure,
   getMove,
   getRoute,
-  getSpecies,
   isHeldItem,
+  speciesOf,
   vitaminStat,
 } from '../../game-data';
 import {
@@ -21,6 +24,7 @@ import {
   sellPrice,
   type GameState,
 } from '../../core/game';
+import type { PokemonInstance } from '../../core/pokemon';
 import { teamPokemon } from '../../core/team';
 import { eatBerry } from '../../core/garden';
 import { bossLook } from '../../core/rival';
@@ -28,7 +32,7 @@ import { activeLure, applyLure } from '../../core/lures';
 import { itemEvolution } from '../../core/progression';
 import { movesOf, pokemonName } from '../../core/pokemon';
 import { TM_CATALOG, canLearnTm, teachTm, tmLabel, tmSources } from '../../core/tms';
-import { ItemIcon, Money, PixelIcon, PokemonSprite, TypeBadge, Window } from '../components/common';
+import { ItemIcon, Money, PokemonSprite, TypeBadge, Window } from '../components/common';
 import { PixelFx } from '../components/PixelFx';
 import {
   formatDuration,
@@ -42,156 +46,397 @@ import { audio } from '../audio';
 import { useEngine } from '../useGame';
 import { Empty } from '../components/Dynamic';
 import { askConfirm } from '../components/GameConfirm';
+import {
+  POCKETS,
+  SORT_LABEL,
+  itemPocket,
+  keyItems,
+  loadSeen,
+  loadSort,
+  nextSort,
+  saveSeen,
+  saveSort,
+  type PocketId,
+  type SortMode,
+} from './bag/pockets';
 
-type Pocket = 'items' | 'tms';
+type Action = 'menu' | 'use' | 'give' | 'sell' | null;
 
 export function BagScreen({ state }: { state: GameState }) {
-  const engine = useEngine();
-  const [pocket, setPocket] = useState<Pocket>('items');
-  const owned = Object.entries(state.items).filter(([, n]) => n > 0);
-  const [selected, setSelected] = useState<string | null>(owned[0]?.[0] ?? null);
-  const eligible = selected
-    ? state.collection.filter((p) => itemEvolution(p, selected, state.env.period) !== undefined)
-    : [];
-  const berry = selected ? BERRIES.find((b) => b.id === selected) : undefined;
-  const fossil = selected ? FOSSILS.find((f) => f.item === selected) : undefined;
-  // Itens seguráveis e vitaminas podem ser usados direto na equipe.
-  const team = teamPokemon(state);
-  const holdable = !!selected && isHeldItem(selected);
-  const vitamin = !!selected && !!vitaminStat(selected);
-  const lure = selected ? getLure(selected) : undefined;
-  const lureNow = lure ? activeLure(state, lure.kind) : null;
+  const [pocket, setPocket] = useState<PocketId>('items');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [action, setAction] = useState<Action>(null);
+  const [sort, setSort] = useState<SortMode>(loadSort);
+  const owned = useMemo(() => Object.entries(state.items).filter(([, n]) => n > 0), [state.items]);
+  const [seen, setSeen] = useState(() => loadSeen(owned.map(([id]) => id)));
+
+  // Itens de cada bolso, na ordem escolhida (TIPO é a ordem em que o jogo guarda).
+  const byPocket = useMemo(() => {
+    const map = new Map<PocketId, [string, number][]>(POCKETS.map((p) => [p.id, []]));
+    for (const entry of owned) map.get(itemPocket(entry[0]))!.push(entry);
+    for (const list of map.values()) {
+      if (sort === 'name') list.sort((a, b) => itemName(a[0]).localeCompare(itemName(b[0])));
+      if (sort === 'count') list.sort((a, b) => b[1] - a[1]);
+    }
+    map.set(
+      'key',
+      keyItems(state.upgrades).map((id) => [id, 1]),
+    );
+    return map;
+  }, [owned, sort, state.upgrades]);
+  const list = byPocket.get(pocket) ?? [];
+  const current = selected && list.some(([id]) => id === selected) ? selected : (list[0]?.[0] ?? null);
+  const index = POCKETS.findIndex((p) => p.id === pocket);
+  const def = POCKETS[index];
+
+  const goPocket = (id: PocketId) => {
+    if (id === pocket) return;
+    setPocket(id);
+    setSelected(null);
+    setAction(null);
+    audio.sfx('zipper');
+  };
+  const step = (d: 1 | -1) => goPocket(POCKETS[(index + d + POCKETS.length) % POCKETS.length].id);
+  const choose = (id: string) => {
+    setSelected(id);
+    setAction(pocket === 'key' ? null : 'menu');
+    audio.sfx('cursor');
+    if (!seen.has(id)) {
+      const next = new Set(seen).add(id);
+      setSeen(next);
+      saveSeen(next);
+    }
+  };
+  const newIn = (id: PocketId) => (byPocket.get(id) ?? []).some(([item]) => !seen.has(item));
 
   return (
-    <div className="bag-screen">
-      <div className="bag-pockets">
-        <span key={pocket} className={`bag-art pocket-${pocket}`} aria-hidden>
-          <PixelIcon name="bag" scale={5} palette={pocket === 'tms' ? { c: '#e8a040' } : undefined} />
-        </span>
-        <button className={`pocket ${pocket === 'items' ? 'active' : ''}`} onClick={() => setPocket('items')}>
-          <ItemIcon id="explorer-kit" size={30} /> ITENS
-        </button>
-        <button className={`pocket ${pocket === 'tms' ? 'active' : ''}`} onClick={() => setPocket('tms')}>
-          <ItemIcon id="tm-case" size={30} /> TMs · {state.tms.length}
-        </button>
+    <div className="bag-screen bag2">
+      <aside className="bag-side">
+        <div className="bag-figure">
+          <button className="bag-arrow" onClick={() => step(-1)} aria-label="Bolso anterior">
+            ◀
+          </button>
+          <span
+            key={pocket}
+            className="bag-sprite"
+            style={
+              {
+                ['--f' as string]: def.frame,
+                backgroundImage: `url(${assetUrl('sprites/ui/bag.png')})`,
+              } as CSSProperties
+            }
+            aria-hidden
+          />
+          <button className="bag-arrow" onClick={() => step(1)} aria-label="Próximo bolso">
+            ▶
+          </button>
+        </div>
+        <h3 className="bag-pocket-name">{def.label}</h3>
+        <div className="bag-tabs" role="tablist" aria-label="Bolsos da mochila">
+          {POCKETS.map((p) => {
+            const count = p.id === 'tms' ? state.tms.length : (byPocket.get(p.id)?.length ?? 0);
+            return (
+              <button
+                key={p.id}
+                role="tab"
+                aria-selected={p.id === pocket}
+                className={`bag-tab ${p.id === pocket ? 'active' : ''}`}
+                style={{ ['--f' as string]: p.frame } as CSSProperties}
+                onClick={() => goPocket(p.id)}
+                title={`${p.label} · ${count}`}
+              >
+                <ItemIcon id={p.icon} size={26} />
+                {p.id !== 'tms' && p.id !== 'key' && newIn(p.id) && <i className="bag-tab-new" aria-hidden />}
+              </button>
+            );
+          })}
+        </div>
         <span className="bag-money frame frame-menu">
           <Money value={state.coins} />
         </span>
-      </div>
+      </aside>
 
-      {pocket === 'items' ? (
-        <>
-          <Window frame="menu">
-            <ul className="item-list bag-list">
-              {owned.map(([id, n], i) => (
-                <li key={id} style={{ ['--i' as string]: Math.min(i, 12) }}>
+      <section className="bag-main">
+        {pocket === 'tms' ? (
+          <TmPocket state={state} />
+        ) : (
+          <>
+            <div className="bag-list-head">
+              <span>
+                {list.length} {list.length === 1 ? 'item' : 'itens'}
+              </span>
+              {pocket !== 'key' && (
+                <button
+                  className="pbtn small"
+                  onClick={() => {
+                    const m = nextSort(sort);
+                    setSort(m);
+                    saveSort(m);
+                  }}
+                >
+                  ORGANIZAR: {SORT_LABEL[sort]}
+                </button>
+              )}
+            </div>
+            <ScrollList>
+              {list.map(([id, n]) => (
+                <li key={id}>
                   <button
-                    className={`item-row ${selected === id ? 'selected' : ''}`}
-                    onClick={() => setSelected(id)}
+                    className={`item-row ${current === id ? 'selected' : ''}`}
+                    onClick={() => choose(id)}
+                    aria-haspopup={pocket === 'key' ? undefined : 'menu'}
                   >
                     <ItemIcon id={id} size={30} />
-                    <span className="item-name">{itemName(id).toUpperCase()}</span>
-                    <span key={n} className="item-qty">×{n}</span>
+                    <span className="item-name">
+                      {(id === 'tm-case' ? 'Estojo de TMs' : itemName(id)).toUpperCase()}
+                    </span>
+                    {!seen.has(id) && pocket !== 'key' && <span className="bag-new">NOVO</span>}
+                    {pocket !== 'key' && (
+                      <span key={n} className="item-qty">
+                        ×{n}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}
-              {!owned.length && (
+              {!list.length && (
                 <li>
-                  <Empty icon="explorer-kit">A mochila está vazia. Compre itens na LOJA.</Empty>
+                  <Empty icon={def.icon}>
+                    Nada neste bolso. Os itens chegam pelas lutas, pela LOJA e pelas atividades.
+                  </Empty>
                 </li>
               )}
-            </ul>
-          </Window>
-          {selected && (
-            <div className="item-desc frame frame-dialog" key={selected}>
-              <span className="item-desc-art">
-                <ItemIcon id={selected} size={48} />
-              </span>
-              <div>
-                <p>{itemDescription(selected) || itemName(selected)}</p>
-                {berry && (state.items[selected] ?? 0) > 0 && (
-                  <button
-                    className="pbtn small"
-                    onClick={() => engine.dispatch((s) => eatBerry(s, selected))}
-                  >
-                    Comer agora
-                  </button>
-                )}
-                {lure && (state.items[selected] ?? 0) > 0 && (
-                  <div className="item-use">
-                    <button
-                      className="pbtn small primary"
-                      onClick={() => {
-                        engine.dispatch((s) => applyLure(s, selected));
-                        audio.sfx('click');
-                      }}
-                    >
-                      Usar ({lure.minutes} min)
-                    </button>
-                    {lureNow && (
-                      <span className="hint">
-                        Ativo: {itemName(lureNow.item)}, {formatDuration(lureNow.ms)} restantes
-                        {lure.kind === 'incense' && lureNow.item !== selected
-                          ? ' (usar troca o incenso)'
-                          : ''}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {(holdable || vitamin) && (
-                  <div className="item-use">
-                    {team.map((p) => (
-                      <button
-                        key={p.uid}
-                        className="pbtn small"
-                        disabled={holdable && p.held === selected}
-                        onClick={() =>
-                          engine.dispatch((s) =>
-                            holdable ? equipItem(s, p.uid, selected!) : giveVitamin(s, p.uid, selected!),
-                          )
-                        }
-                      >
-                        <PokemonSprite speciesId={p.speciesId} kind="icon" />{' '}
-                        {holdable ? 'Equipar em' : 'Dar a'} {speciesName(p.speciesId)}
-                        {holdable && p.held ? ` (troca ${itemName(p.held)})` : ''}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {fossil && (
-                  <p className="hint">
-                    Revive: {speciesName(fossil.speciesId)} em {fossil.hours} h.
-                  </p>
-                )}
-                {eligible.length > 0 && (
-                  <div className="item-use">
-                    {eligible.map((p) => (
-                      <button
-                        key={p.uid}
-                        className="pbtn evolve"
-                        onClick={() => engine.dispatch((s) => applyEvolutionItem(s, p.uid, selected))}
-                      >
-                        <PokemonSprite speciesId={p.speciesId} kind="icon" /> Usar em{' '}
-                        {speciesName(p.speciesId)} Nv
-                        {p.level}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <SellBox state={state} id={selected} />
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <TmPocket state={state} />
+            </ScrollList>
+          </>
+        )}
+      </section>
+
+      {pocket !== 'tms' && current && (
+        <ItemBox
+          key={current}
+          state={state}
+          id={current}
+          keyItem={pocket === 'key'}
+          action={selected === current ? action : null}
+          setAction={setAction}
+        />
       )}
     </div>
   );
 }
 
+/** Lista com as setas ▲▼ piscando quando há mais itens para cima ou para baixo. */
+function ScrollList({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [edges, setEdges] = useState({ up: false, down: false });
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const up = el.scrollTop > 2;
+    const down = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+    setEdges((e) => (e.up === up && e.down === down ? e : { up, down }));
+  }, []);
+  // A cada desenho (a lista muda de tamanho ao trocar de bolso ou de ordem) e quando a caixa muda de tamanho.
+  useEffect(() => measure());
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure]);
+  return (
+    <div className="bag-list-wrap frame frame-menu">
+      {edges.up && (
+        <span className="bag-scroll up" aria-hidden>
+          ▲
+        </span>
+      )}
+      <ul ref={ref} className="item-list bag-list" onScroll={measure}>
+        {children}
+      </ul>
+      {edges.down && (
+        <span className="bag-scroll down" aria-hidden>
+          ▼
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Caixa de texto do item (sempre à vista) com o menu de ação e a escolha do Pokémon. */
+function ItemBox({
+  state,
+  id,
+  keyItem,
+  action,
+  setAction,
+}: {
+  state: GameState;
+  id: string;
+  keyItem: boolean;
+  action: Action;
+  setAction: (a: Action) => void;
+}) {
+  const engine = useEngine();
+  const have = state.items[id] ?? 0;
+  const team = teamPokemon(state);
+  const berry = BERRIES.some((b) => b.id === id);
+  const lure = getLure(id);
+  const lureNow = lure ? activeLure(state, lure.kind) : null;
+  const fossil = FOSSILS.find((f) => f.item === id);
+  const vitamin = !!vitaminStat(id);
+  const evolvers = state.collection.filter((p) => itemEvolution(p, id, state.env.period) !== undefined);
+  const evolutionItem = evolvers.length > 0 || itemPocket(id) === 'stones';
+  const canUse = !keyItem && have > 0 && (berry || !!lure || vitamin || evolutionItem);
+  const canGive = !keyItem && have > 0 && isHeldItem(id);
+  const canSell = !keyItem && have > 0 && sellPrice(id) > 0;
+  // Ao abrir o menu ou a escolha do Pokémon, a caixa vem para a vista (no celular ela fica abaixo da lista).
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (action) box.current?.scrollIntoView({ block: 'nearest' });
+  }, [action]);
+
+  const use = () => {
+    if (berry) {
+      engine.dispatch((s) => eatBerry(s, id));
+      audio.sfx('munch');
+      setAction(null);
+    } else if (lure) {
+      engine.dispatch((s) => applyLure(s, id));
+      audio.sfx('item');
+      setAction(null);
+    } else setAction('use');
+  };
+
+  return (
+    <footer ref={box} className="bag-desc frame frame-dialog">
+      <span className="item-desc-art">
+        <ItemIcon id={id} size={48} />
+      </span>
+      <div className="bag-desc-text">
+        <p>{itemDescription(id) || itemName(id)}</p>
+        {fossil && (
+          <p className="hint">
+            Revive: {speciesName(fossil.speciesId)} em {fossil.hours} h.
+          </p>
+        )}
+        {lureNow && (
+          <p className="hint">
+            Ativo: {itemName(lureNow.item)}, {formatDuration(lureNow.ms)} restantes
+            {lure?.kind === 'incense' && lureNow.item !== id ? ' (usar troca o incenso)' : ''}
+          </p>
+        )}
+        {action === 'use' && (vitamin || evolutionItem) && (
+          <PartyPicker
+            title={vitamin ? `Dar ${itemName(id)} a quem?` : `Usar ${itemName(id)} em quem?`}
+            list={vitamin ? team : uniqueBy([...evolvers, ...team])}
+            can={(p) => (vitamin ? true : evolvers.includes(p))}
+            onPick={(p) => {
+              engine.dispatch((s) =>
+                vitamin ? giveVitamin(s, p.uid, id) : applyEvolutionItem(s, p.uid, id),
+              );
+              audio.sfx(vitamin ? 'item' : 'evolve');
+              setAction(null);
+            }}
+            onCancel={() => setAction('menu')}
+          />
+        )}
+        {action === 'give' && (
+          <PartyPicker
+            title={`Dar ${itemName(id)} para segurar?`}
+            list={team}
+            can={(p) => p.held !== id}
+            note={(p) => (p.held ? `segura ${itemName(p.held)}` : undefined)}
+            onPick={(p) => {
+              engine.dispatch((s) => equipItem(s, p.uid, id));
+              audio.sfx('item');
+              setAction(null);
+            }}
+            onCancel={() => setAction('menu')}
+          />
+        )}
+        {action === 'sell' && <SellBox state={state} id={id} onBack={() => setAction('menu')} />}
+      </div>
+      {action === 'menu' && (
+        <ul className="bag-menu frame frame-menu" role="menu">
+          <li>
+            <button role="menuitem" disabled={!canUse} onClick={use}>
+              {berry ? 'COMER' : 'USAR'}
+            </button>
+          </li>
+          <li>
+            <button role="menuitem" disabled={!canGive} onClick={() => setAction('give')}>
+              DAR
+            </button>
+          </li>
+          <li>
+            <button role="menuitem" disabled={!canSell} onClick={() => setAction('sell')}>
+              VENDER
+            </button>
+          </li>
+          <li>
+            <button role="menuitem" onClick={() => setAction(null)}>
+              CANCELAR
+            </button>
+          </li>
+        </ul>
+      )}
+    </footer>
+  );
+}
+
+const uniqueBy = (list: PokemonInstance[]) => [...new Map(list.map((p) => [p.uid, p])).values()];
+
+/** Escolha do Pokémon, como nos jogos: os ícones da equipe com PODE ou NÃO PODE. */
+function PartyPicker({
+  title,
+  list,
+  can,
+  note,
+  onPick,
+  onCancel,
+}: {
+  title: string;
+  list: PokemonInstance[];
+  can: (p: PokemonInstance) => boolean;
+  note?: (p: PokemonInstance) => string | undefined;
+  onPick: (p: PokemonInstance) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="bag-picker">
+      <p className="bag-picker-title">{title}</p>
+      <ul>
+        {list.slice(0, 12).map((p) => {
+          const ok = can(p);
+          return (
+            <li key={p.uid}>
+              <button
+                className={`bag-pick ${ok ? 'can' : 'cannot'}`}
+                disabled={!ok}
+                onClick={() => onPick(p)}
+              >
+                <PokemonSprite speciesId={p.speciesId} kind="icon" form={p.form} shiny={p.shiny} />
+                <span className="bag-pick-name">
+                  {pokemonName(p)} <small>Nv{p.level}</small>
+                </span>
+                <span className="bag-pick-tag">{ok ? 'PODE' : 'NÃO PODE'}</span>
+                {note?.(p) && <small className="bag-pick-note">{note(p)}</small>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <button className="pbtn small" onClick={onCancel}>
+        VOLTAR
+      </button>
+    </div>
+  );
+}
+
 /** Venda pela metade do preço de loja; vender tudo de um item caro pede confirmação. */
-function SellBox({ state, id }: { state: GameState; id: string }) {
+function SellBox({ state, id, onBack }: { state: GameState; id: string; onBack?: () => void }) {
   const engine = useEngine();
   const have = state.items[id] ?? 0;
   const unit = sellPrice(id);
@@ -229,6 +474,11 @@ function SellBox({ state, id }: { state: GameState; id: string }) {
           Vender todos ({have}) · <Money value={unit * have} />
         </button>
       )}
+      {onBack && (
+        <button className="pbtn small" onClick={onBack}>
+          VOLTAR
+        </button>
+      )}
     </div>
   );
 }
@@ -258,7 +508,9 @@ function TmPocket({ state }: { state: GameState }) {
         {list.map(({ move }) => {
           const mv = getMove(move);
           const have = owned.has(move);
-          const learners = state.collection.filter((p) => getSpecies(p.speciesId).tmMoves.includes(move));
+          const learners = state.collection.filter((p) =>
+            speciesOf(p.speciesId, p.form).tmMoves.includes(move),
+          );
           return (
             <li key={move} className={`tm-entry ${have ? '' : 'missing'}`}>
               <button
@@ -329,7 +581,7 @@ function TmTeach({ state, move }: { state: GameState; move: string }) {
   const engine = useEngine();
   const [uid, setUid] = useState<number | null>(null);
   const learners = state.collection
-    .filter((p) => canLearnTm(state, p.speciesId, move))
+    .filter((p) => canLearnTm(state, p.speciesId, move, p.form))
     .sort(
       (a, b) => Number(b.uid === state.activeUid) - Number(a.uid === state.activeUid) || b.level - a.level,
     );

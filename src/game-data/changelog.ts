@@ -13,6 +13,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-13-mochila',
+    date: '13/11/2026',
+    title: 'Mochila, equipe, cartão e missões como nos portáteis',
+    items: [
+      { tag: 'novo', text: 'Missões no quadro de avisos do Centro Pokémon: a enfermeira comenta os pedidos, cada missão é um bilhete preso por um alfinete de Poké Ball, com o prêmio desenhado, o progresso em Poké Balls e o carimbo FEITO! ao receber.' },
+      { tag: 'novo', text: 'Mapas novos de Kanto, Johto, Hoenn, Sinnoh, Unova, Kalos e Alola, desenhados para o jogo e em resolução maior (o zoom fica nítido).' },
+      { tag: 'novo', text: 'Zoom no mapa (até 2×): os botões + e − (e a roda do mouse no mapa ampliado) aproximam a arte, e os marcadores ficam do mesmo tamanho, mais fáceis de acertar. Com zoom (e no mapa ampliado) aparece o nome de cada lugar; dá para arrastar o mapa.' },
+      { tag: 'novo', text: 'Equipe: cada Pokémon sobre uma Poké Ball aberta, e tocar abre FICHA / TROCAR / LUTAR / TIRAR. Em TROCAR, é só tocar no outro Pokémon para os dois trocarem de lugar.' },
+      { tag: 'novo', text: 'Ficha em páginas, como o Resumo dos jogos: INFO, ATRIBUTOS, GOLPES e HABILIDADE, com ◀ ▶ (a página fica a mesma ao passar de um Pokémon para outro).' },
+      { tag: 'melhoria', text: 'Treinador: abas com ícones, o cartão muda de cor com as estrelas (azul, verde, bronze, prata, ouro e preto), estojo de insígnias forrado de veludo com uma região por vez, e as opções com ◀ VALOR ▶.' },
+      { tag: 'novo', text: 'Sete bolsos: Itens, Poké Balls, Berries e Remédios, Pedras e Megas, Itens de Segurar, Estojo de TMs e Itens-Chave (varas, Surf). A mochila em pixel art muda de cor e balança ao trocar de bolso, com o som do zíper.' },
+      { tag: 'novo', text: 'Escolher um item abre o menu USAR / DAR / VENDER / CANCELAR. USAR e DAR mostram a equipe com quem PODE e quem NÃO PODE.' },
+      { tag: 'melhoria', text: 'A caixa de texto do item fica sempre à vista embaixo, setas ▲▼ mostram que há mais itens, a etiqueta NOVO marca o que acabou de chegar e ORGANIZAR ordena por tipo, nome ou quantidade.' },
+    ],
+  },
+  {
     id: '2026-11-13-ajustes-alola',
     date: '13/11/2026',
     title: 'Ajustes de Alola e do celular',

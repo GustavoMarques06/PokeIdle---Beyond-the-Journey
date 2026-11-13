@@ -47,12 +47,7 @@ import { rngFrom } from '../../core/rng';
 import { TAG_IDS, setTag, tagName, toggleFavorite, type TagId } from '../../core/boxes';
 import { busyUids } from '../../core/collection';
 import { canTransfer, transferPokemon, transferValue } from '../../core/meta';
-import {
-  learnableMoves,
-  relearnMove,
-  relearnableMoves,
-  setMoveset,
-} from '../../core/moveset';
+import { learnableMoves, relearnMove, relearnableMoves, setMoveset } from '../../core/moveset';
 import { genderOf } from '../../core/gender';
 import {
   NICKNAME_MAX,
@@ -68,9 +63,9 @@ import {
 import { levelProgress } from '../../core/progression';
 import {
   addToTeam,
-  moveInTeam,
   placeInTeam,
   removeFromTeam,
+  swapInTeam,
   reservePokemon,
   reserveSlotsUnlocked,
   teamPokemon,
@@ -143,7 +138,8 @@ function PartySlot({
           NV ↑
         </span>
       )}
-      <PokemonSprite speciesId={p.speciesId} kind="icon" form={mega} className="party-icon" />
+      <span className="party-ball" aria-hidden />
+      <PokemonSprite speciesId={p.speciesId} kind="icon" form={mega ?? p.form} className="party-icon" />
       <span className="party-name">
         {pokemonName(p).toUpperCase()}
         <GenderMark gender={genderOf(p)} />
@@ -275,7 +271,20 @@ export function PartyScreen({
 }) {
   const engine = useEngine();
   const [picking, setPicking] = useState(false);
+  // Menu do Pokémon tocado (FICHA / TROCAR / LUTAR / TIRAR) e quem está esperando a troca de lugar.
+  const [menuFor, setMenuFor] = useState<number | null>(null);
+  const [swapFrom, setSwapFrom] = useState<number | null>(null);
   const team = teamPokemon(state);
+  const tap = (uid: number) => {
+    if (swapFrom !== null) {
+      if (swapFrom !== uid) engine.dispatch((s) => void swapInTeam(s, swapFrom, uid));
+      audio.sfx(swapFrom !== uid ? 'click' : 'cursor');
+      setSwapFrom(null);
+      return;
+    }
+    setMenuFor(menuFor === uid ? null : uid);
+    audio.sfx('cursor');
+  };
   const slots = teamSlotsUnlocked(state);
   const free = slots - team.length;
   const bonusOf = new Map(passiveContributions(state).map((c) => [c.uid, c]));
@@ -288,13 +297,17 @@ export function PartyScreen({
       <div className="party-board" ref={board}>
         <h3 className="party-group">
           EQUIPE {team.length}/{TEAM_SIZE}
-          <small>o 1º luta; se desmaiar, entra o próximo</small>
+          <small>
+            {swapFrom !== null
+              ? `Trocar ${pokemonName(team.find((x) => x.uid === swapFrom) ?? team[0]).toUpperCase()} com quem?`
+              : 'o 1º luta; se desmaiar, entra o próximo'}
+          </small>
         </h3>
         {team.map((p, i) => (
           <div
             key={p.uid}
             data-flip={p.uid}
-            className={`team-row ${i === 0 ? 'lead' : ''}`}
+            className={`team-row ${i === 0 ? 'lead' : ''} ${swapFrom !== null ? (swapFrom === p.uid ? 'swap-from' : 'swap-target') : ''}`}
             {...teamDropProps((uid) => {
               let placed = false;
               engine.dispatch((s) => void (placed = placeInTeam(s, uid, p.uid)));
@@ -304,44 +317,58 @@ export function PartyScreen({
             <PartySlot
               p={p}
               lead={i === 0}
-              selected={openMon === p.uid}
+              selected={openMon === p.uid || menuFor === p.uid || swapFrom === p.uid}
               bonus={bonusOf.get(p.uid)}
               mega={i === 0 ? megaActive(state, p)?.form : undefined}
-              onClick={() => onOpenMon?.(p.uid)}
+              onClick={() => tap(p.uid)}
             />
-            <div className="team-row-tools">
-              <button
-                className="pbtn tiny"
-                disabled={i === 0}
-                title={i === 1 ? 'Pôr para lutar' : 'Subir na ordem'}
-                aria-label={`Subir ${pokemonName(p)}`}
-                onClick={() => engine.dispatch((s) => void moveInTeam(s, p.uid, -1))}
-              >
-                ▲
-              </button>
-              <button
-                className="pbtn tiny"
-                disabled={i === team.length - 1}
-                title="Descer na ordem"
-                aria-label={`Descer ${pokemonName(p)}`}
-                onClick={() => engine.dispatch((s) => void moveInTeam(s, p.uid, 1))}
-              >
-                ▼
-              </button>
-              <button
-                className="pbtn tiny"
-                disabled={team.length < 2}
-                title={
-                  team.length < 2
-                    ? 'A equipe precisa de pelo menos um Pokémon'
-                    : 'Tirar da equipe (volta para o PC)'
-                }
-                aria-label={`Tirar ${pokemonName(p)} da equipe`}
-                onClick={() => engine.dispatch((s) => void removeFromTeam(s, p.uid))}
-              >
-                ✕
-              </button>
-            </div>
+            {menuFor === p.uid && swapFrom === null && (
+              <div className="party-menu frame frame-menu" role="menu">
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuFor(null);
+                    onOpenMon?.(p.uid);
+                  }}
+                >
+                  FICHA
+                </button>
+                <button
+                  role="menuitem"
+                  disabled={team.length < 2}
+                  onClick={() => {
+                    setMenuFor(null);
+                    setSwapFrom(p.uid);
+                  }}
+                >
+                  TROCAR
+                </button>
+                <button
+                  role="menuitem"
+                  disabled={i === 0}
+                  onClick={() => {
+                    engine.dispatch((s) => void swapInTeam(s, p.uid, team[0].uid));
+                    setMenuFor(null);
+                  }}
+                >
+                  LUTAR
+                </button>
+                <button
+                  role="menuitem"
+                  disabled={team.length < 2}
+                  title={team.length < 2 ? 'A equipe precisa de pelo menos um Pokémon' : 'Volta para o PC'}
+                  onClick={() => {
+                    engine.dispatch((s) => void removeFromTeam(s, p.uid));
+                    setMenuFor(null);
+                  }}
+                >
+                  TIRAR
+                </button>
+                <button role="menuitem" onClick={() => setMenuFor(null)}>
+                  CANCELAR
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {free > 0 &&
@@ -544,6 +571,15 @@ function bestIvs(ivs: PokemonInstance['ivs']): (keyof PokemonInstance['ivs'])[] 
   return (Object.keys(ivs) as (keyof PokemonInstance['ivs'])[]).filter((k) => ivs[k] === max);
 }
 
+/** Páginas da ficha, como o Resumo dos portáteis. */
+type SummaryPage = 'info' | 'stats' | 'moves' | 'extra';
+const SUMMARY_PAGES: { id: SummaryPage; label: string }[] = [
+  { id: 'info', label: 'INFO' },
+  { id: 'stats', label: 'ATRIBUTOS' },
+  { id: 'moves', label: 'GOLPES' },
+  { id: 'extra', label: 'HABILIDADE' },
+];
+
 export function Summary({ state, p: real }: { state: GameState; p: PokemonInstance }) {
   const p = useShownPokemon(real);
   const mvp = weeklyMvp(state, state.lastTimerAt);
@@ -562,6 +598,11 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
   const itemEvos = species.evolutions.filter((e) => e.trigger === 'item');
   const hint = evolutionHint(state, p.uid);
   const evs = evsOf(p);
+  const [page, setPage] = useState<SummaryPage>('info');
+  const turn = (d: 1 | -1) => {
+    const i = SUMMARY_PAGES.findIndex((x) => x.id === page);
+    setPage(SUMMARY_PAGES[(i + d + SUMMARY_PAGES.length) % SUMMARY_PAGES.length].id);
+  };
 
   return (
     <Window
@@ -588,189 +629,244 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
           {mvp?.uid === p.uid && <span className="mvp-tag">MVP DA SEMANA</span>}
           {state.companion?.uid === p.uid && <span className="companion-tag">ACOMPANHANTE</span>}
         </div>
-        <dl className="summary-info">
-          <dt>TIPO</dt>
-          <dd className="types">
+        <div className="summary-headinfo">
+          <span className="summary-types">
             {species.types.map((t) => (
               <TypeBadge key={t} type={t} />
             ))}
-          </dd>
-          <dt>ESPÉCIE</dt>
-          <dd>
-            {genusName(species.genus)}
-            {p.nickname && <small className="nature-mods">{species.name}</small>}
-          </dd>
-          <dt>APELIDO</dt>
-          <dd>
-            <NicknameField key={p.uid} p={p} />
-          </dd>
-          <dt>POTENCIAL</dt>
-          <dd>
-            {potential(p.ivs)}% {isPerfect(p.ivs) && <span className="tag tag-active">PERFEITO</span>}
-          </dd>
-          <dt>NATUREZA</dt>
-          <dd>
-            {nature?.name ?? 'Neutra'}
-            {nature?.up && nature.down && (
-              <small className="nature-mods">
-                +{STAT_NAMES[nature.up]} · −{STAT_NAMES[nature.down]}
-              </small>
-            )}
-          </dd>
-          {formName(p.speciesId, p.form) && p.form !== 'normal' && (
-            <>
-              <dt>FORMA</dt>
-              <dd>{formName(p.speciesId, p.form)}</dd>
-            </>
-          )}
-          <dt>ORIGEM</dt>
-          <dd>
-            {p.caughtOn}
-            {p.fromModified && (
-              <span className="tag tag-modified" title="Chegou de uma troca com um save editado fora do jogo.">
-                SAVE MODIFICADO
-              </span>
-            )}
-          </dd>
-          {p.ball && (
-            <>
-              <dt>BOLA</dt>
-              <dd className="summary-ball">
-                <ItemIcon id={p.ball} size={20} /> {itemName(p.ball)}
-              </dd>
-            </>
-          )}
-          <dt>MAESTRIA</dt>
-          <dd
-            title={
-              mastery.level > 0
-                ? `Maestria ${mastery.level}: +${formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano e −${formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano recebido quando ativo.`
-                : undefined
-            }
-          >
-            {mastery.level}
-            {mastery.next ? <Bar value={mastery.points} max={mastery.next} tone="gold" /> : ' (máx.)'}
-          </dd>
-        </dl>
+          </span>
+          <span className="summary-hp">
+            <HpBar value={p.currentHp} max={stats.hp} />
+            <small>
+              {p.currentHp}/{stats.hp}
+            </small>
+          </span>
+          <ExpBar progress={levelProgress(p)} />
+        </div>
       </div>
-      <HpBar value={p.currentHp} max={stats.hp} />
-      <ExpBar progress={levelProgress(p)} />
       {hint && <p className={`evo-hint ${p.pendingEvolution ? 'ready' : ''}`}>{hint}</p>}
 
-      <div className="summary-cols">
-        <table className="stat-table">
-          <tbody>
-            {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k, i) => (
-              <tr
-                key={k}
-                style={{
-                  ['--i' as string]: i,
-                  ['--w' as string]: `${Math.round((stats[k] / Math.max(...Object.values(stats))) * 100)}%`,
-                }}
-                className={k === nature?.up ? 'nat-up' : k === nature?.down ? 'nat-down' : ''}
-                title={
-                  k === nature?.up
-                    ? '+10% pela natureza'
-                    : k === nature?.down
-                      ? '−10% pela natureza'
-                      : undefined
-                }
-              >
-                <th>{STAT_NAMES[k].toUpperCase()}</th>
-                <td>
-                  {k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}
-                  <span className="stat-grow" aria-hidden />
-                </td>
-                <td className="iv" title={`Juiz: ${ivJudge(p.ivs[k])}`}>
-                  <span className={p.ivs[k] === 31 ? 'iv-max' : ''}>
-                    IV{p.ivs[k]}
-                    {p.ivs[k] === 31 && <PixelIcon name="star" scale={1} />}
-                  </span>{' '}
-                  · EV{evs[k]}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="iv-judge">
-              <td colSpan={3}>
-                <strong>JUIZ:</strong> {ivTotalJudge(p.ivs)}{' '}
-                {bestIvs(p.ivs).length > 0 && (
-                  <>
-                    O melhor é {bestIvs(p.ivs).map((k) => STAT_NAMES[k]).join(' e ')}: {ivJudge(Math.max(...Object.values(p.ivs)))}
-                  </>
-                )}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-        <ul className="move-list">
-          <li className="move-list-head">
-            <span>{p.moveset?.length ? 'GOLPES ESCOLHIDOS' : 'GOLPES (AUTOMÁTICO)'}</span>
-            <button className="pbtn small" onClick={() => setEditing((v) => !v)}>
-              {editing ? 'Fechar' : 'Editar'}
-            </button>
-          </li>
-          {moves.map((m) => {
-            const mv = getMove(m);
-            return (
-              <li key={m} className={`move type-bg-${mv.type}`}>
-                <span className="move-name">{moveName(m).toUpperCase()}</span>
-                <span className="move-meta">
-                  <TypeBadge type={mv.type} /> POD {mv.power}
-                  {mv.ailment && (
-                    <span
-                      className="move-ailment"
-                      title={`${STATUS_TEXT[mv.ailment].name}: ${mv.ailmentChance}%`}
-                    >
-                      {' '}
-                      {STATUS_TEXT[mv.ailment].short} {mv.ailmentChance}%
-                    </span>
-                  )}
-                </span>
-              </li>
-            );
-          })}
-          {support && (
-            <li className={`move type-bg-${support.type}`}>
-              <span className="move-name">{support.name.toUpperCase()}</span>
-              <span className="move-meta">
-                <TypeBadge type={support.type} /> APOIO · 1 vez por luta ·{' '}
-                {describeSupport(support)}
-              </span>
-            </li>
-          )}
-        </ul>
+      <div className="summary-pages" role="tablist" aria-label="Páginas da ficha">
+        <button className="summary-page-arrow" aria-label="Página anterior" onClick={() => turn(-1)}>
+          ◀
+        </button>
+        {SUMMARY_PAGES.map((pg) => (
+          <button
+            key={pg.id}
+            role="tab"
+            aria-selected={page === pg.id}
+            className={`summary-page-tab page-${pg.id} ${page === pg.id ? 'active' : ''}`}
+            onClick={() => setPage(pg.id)}
+          >
+            {pg.label}
+          </button>
+        ))}
+        <button className="summary-page-arrow" aria-label="Próxima página" onClick={() => turn(1)}>
+          ▶
+        </button>
       </div>
 
-      {editing && <MoveEditor state={state} p={p} />}
-
-      {p.parents?.length ? (
-        <div className="lineage">
-          <strong>ÁRVORE DE CRIAÇÃO</strong>
-          <ul>
-            {p.parents.map((par, i) => (
-              <li key={i}>
-                <PokemonSprite speciesId={par.s} kind="icon" shiny={par.shiny} />
-                <span>
-                  {i === 0 ? '1º' : '2º'} pai: {speciesName(par.s)}
-                  {par.shiny ? ' ✦' : ''}
-                  {par.p?.length ? (
-                    <small> (filho de {par.p.map((g) => speciesName(g.s) + (g.shiny ? ' ✦' : '')).join(' × ')})</small>
-                  ) : null}
-                </span>
+      <div key={page} className={`summary-page page-${page}`} role="tabpanel">
+        {page === 'info' && (
+          <>
+            <dl className="summary-info">
+              <dt>ESPÉCIE</dt>
+              <dd>
+                {genusName(species.genus)}
+                {p.nickname && <small className="nature-mods">{species.name}</small>}
+              </dd>
+              <dt>APELIDO</dt>
+              <dd>
+                <NicknameField key={p.uid} p={p} />
+              </dd>
+              <dt>POTENCIAL</dt>
+              <dd>
+                {potential(p.ivs)}% {isPerfect(p.ivs) && <span className="tag tag-active">PERFEITO</span>}
+              </dd>
+              <dt>NATUREZA</dt>
+              <dd>
+                {nature?.name ?? 'Neutra'}
+                {nature?.up && nature.down && (
+                  <small className="nature-mods">
+                    +{STAT_NAMES[nature.up]} · −{STAT_NAMES[nature.down]}
+                  </small>
+                )}
+              </dd>
+              {formName(p.speciesId, p.form) && p.form !== 'normal' && (
+                <>
+                  <dt>FORMA</dt>
+                  <dd>{formName(p.speciesId, p.form)}</dd>
+                </>
+              )}
+              <dt>ORIGEM</dt>
+              <dd>
+                {p.caughtOn}
+                {p.fromModified && (
+                  <span
+                    className="tag tag-modified"
+                    title="Chegou de uma troca com um save editado fora do jogo."
+                  >
+                    SAVE MODIFICADO
+                  </span>
+                )}
+              </dd>
+              {p.ball && (
+                <>
+                  <dt>BOLA</dt>
+                  <dd className="summary-ball">
+                    <ItemIcon id={p.ball} size={20} /> {itemName(p.ball)}
+                  </dd>
+                </>
+              )}
+              <dt>MAESTRIA</dt>
+              <dd
+                title={
+                  mastery.level > 0
+                    ? `Maestria ${mastery.level}: +${formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano e −${formatPercent(mastery.level * MASTERY_BONUS_PER_LEVEL)} de dano recebido quando ativo.`
+                    : undefined
+                }
+              >
+                {mastery.level}
+                {mastery.next ? <Bar value={mastery.points} max={mastery.next} tone="gold" /> : ' (máx.)'}
+              </dd>
+            </dl>
+            {p.parents?.length ? (
+              <div className="lineage">
+                <strong>ÁRVORE DE CRIAÇÃO</strong>
+                <ul>
+                  {p.parents.map((par, i) => (
+                    <li key={i}>
+                      <PokemonSprite speciesId={par.s} kind="icon" shiny={par.shiny} />
+                      <span>
+                        {i === 0 ? '1º' : '2º'} pai: {speciesName(par.s)}
+                        {par.shiny ? ' ✦' : ''}
+                        {par.p?.length ? (
+                          <small>
+                            {' '}
+                            (filho de {par.p.map((g) => speciesName(g.s) + (g.shiny ? ' ✦' : '')).join(' × ')}
+                            )
+                          </small>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <BattleRecordRow
+              p={p}
+              weekWins={state.mvp.week === weekOf(state.lastTimerAt) ? (state.mvp.wins[p.uid] ?? 0) : 0}
+            />
+            {itemEvos.length > 0 && (
+              <p className="hint">
+                Evolui com{' '}
+                {itemEvos
+                  .map((e) =>
+                    e.trigger === 'item'
+                      ? `${itemName(e.item)}${e.time ? (e.time === 'day' ? ' (de dia)' : ' (à noite)') : ''}`
+                      : '',
+                  )
+                  .join(', ')}{' '}
+                (Mochila → Loja).
+              </p>
+            )}
+          </>
+        )}
+        {page === 'stats' && (
+          <table className="stat-table">
+            <tbody>
+              {(Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k, i) => (
+                <tr
+                  key={k}
+                  style={{
+                    ['--i' as string]: i,
+                    ['--w' as string]: `${Math.round((stats[k] / Math.max(...Object.values(stats))) * 100)}%`,
+                  }}
+                  className={k === nature?.up ? 'nat-up' : k === nature?.down ? 'nat-down' : ''}
+                  title={
+                    k === nature?.up
+                      ? '+10% pela natureza'
+                      : k === nature?.down
+                        ? '−10% pela natureza'
+                        : undefined
+                  }
+                >
+                  <th>{STAT_NAMES[k].toUpperCase()}</th>
+                  <td>
+                    {k === 'hp' ? `${p.currentHp}/${stats.hp}` : stats[k]}
+                    <span className="stat-grow" aria-hidden />
+                  </td>
+                  <td className="iv" title={`Juiz: ${ivJudge(p.ivs[k])}`}>
+                    <span className={p.ivs[k] === 31 ? 'iv-max' : ''}>
+                      IV{p.ivs[k]}
+                      {p.ivs[k] === 31 && <PixelIcon name="star" scale={1} />}
+                    </span>{' '}
+                    · EV{evs[k]}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="iv-judge">
+                <td colSpan={3}>
+                  <strong>JUIZ:</strong> {ivTotalJudge(p.ivs)}{' '}
+                  {bestIvs(p.ivs).length > 0 && (
+                    <>
+                      O melhor é{' '}
+                      {bestIvs(p.ivs)
+                        .map((k) => STAT_NAMES[k])
+                        .join(' e ')}
+                      : {ivJudge(Math.max(...Object.values(p.ivs)))}
+                    </>
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+        {page === 'moves' && (
+          <>
+            <ul className="move-list">
+              <li className="move-list-head">
+                <span>{p.moveset?.length ? 'GOLPES ESCOLHIDOS' : 'GOLPES (AUTOMÁTICO)'}</span>
+                <button className="pbtn small" onClick={() => setEditing((v) => !v)}>
+                  {editing ? 'Fechar' : 'Editar'}
+                </button>
               </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <Depth state={state} p={p} />
-
-      <BattleRecordRow
-        p={p}
-        weekWins={state.mvp.week === weekOf(state.lastTimerAt) ? (state.mvp.wins[p.uid] ?? 0) : 0}
-      />
+              {moves.map((m) => {
+                const mv = getMove(m);
+                return (
+                  <li key={m} className={`move type-bg-${mv.type}`}>
+                    <span className="move-name">{moveName(m).toUpperCase()}</span>
+                    <span className="move-meta">
+                      <TypeBadge type={mv.type} /> POD {mv.power}
+                      {mv.ailment && (
+                        <span
+                          className="move-ailment"
+                          title={`${STATUS_TEXT[mv.ailment].name}: ${mv.ailmentChance}%`}
+                        >
+                          {' '}
+                          {STATUS_TEXT[mv.ailment].short} {mv.ailmentChance}%
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+              {support && (
+                <li className={`move type-bg-${support.type}`}>
+                  <span className="move-name">{support.name.toUpperCase()}</span>
+                  <span className="move-meta">
+                    <TypeBadge type={support.type} /> APOIO · 1 vez por luta · {describeSupport(support)}
+                  </span>
+                </li>
+              )}
+            </ul>
+            {editing && <MoveEditor state={state} p={p} />}
+          </>
+        )}
+        {page === 'extra' && <Depth state={state} p={p} />}
+      </div>
 
       <div className="summary-actions">
         {isActive ? (
@@ -884,19 +980,6 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
           )}
         </div>
       </details>
-      {itemEvos.length > 0 && (
-        <p className="hint">
-          Evolui com{' '}
-          {itemEvos
-            .map((e) =>
-              e.trigger === 'item'
-                ? `${itemName(e.item)}${e.time ? (e.time === 'day' ? ' (de dia)' : ' (à noite)') : ''}`
-                : '',
-            )
-            .join(', ')}{' '}
-          (Mochila → Loja).
-        </p>
-      )}
     </Window>
   );
 }
@@ -918,8 +1001,9 @@ function MoveEditor({ state, p }: { state: GameState; p: PokemonInstance }) {
   return (
     <div className="move-editor frame frame-dialog">
       <p className="hint">
-        Escolha até 4 golpes; um deles pode ser de apoio (usado 1 vez por luta). Golpes de TM vêm dos líderes de ginásio, da Torre, do Game Corner, das
-        expedições e da Loja de Departamentos ({state.tms.length} TMs; veja o estojo na MOCHILA).
+        Escolha até 4 golpes; um deles pode ser de apoio (usado 1 vez por luta). Golpes de TM vêm dos líderes
+        de ginásio, da Torre, do Game Corner, das expedições e da Loja de Departamentos ({state.tms.length}{' '}
+        TMs; veja o estojo na MOCHILA).
       </p>
       <ul className="move-options">
         {options.map(({ move, source }) => {

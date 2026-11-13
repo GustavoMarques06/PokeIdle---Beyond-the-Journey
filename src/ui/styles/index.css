@@ -28,6 +28,9 @@
 @import './motion.css'; /* batalha em movimento: energia dos golpes, arremesso da bola, cenário vivo, ícones */
 @import './dynamic.css'; /* textos da batalha com destaque, parceiro, telas vazias, abas deslizando, explicações dobradas */
 @import './app.css'; /* jogo, não site: sem seleção nem arrastar, cursor e rolagem em pixel art, dicas, SIM/NÃO */
+@import './bag.css'; /* mochila como nos portáteis: bolsos, mochila em pixel art, menu de ação */
+@import './party-trainer.css'; /* equipe, ficha em páginas e treinador como nos portáteis */
+@import './missions.css'; /* missões: quadro de avisos do Centro Pokémon */
 @import './compact.css'; /* telas de 1280 px */
 @import './mobile.css'; /* celulares e janelas estreitas */
 @import './help.css'; /* página de ajuda (ajuda.html) */

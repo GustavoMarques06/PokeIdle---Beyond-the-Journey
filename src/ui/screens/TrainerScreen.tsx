@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
+  BADGES,
   LEGENDARIES,
   ACHIEVEMENTS,
   CARD_FRAMES,
@@ -44,7 +45,8 @@ import { StatsPanel } from '../components/StatsPanel';
 import { Automation } from './trainer/Automation';
 import { HOTKEY_HELP } from '../hotkeys';
 import { NOTIFY_CATEGORIES, requestNotificationPermission } from '../notify';
-import { REGION_NAMES, T, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
+import { REGION_NAMES, T, badgeWord, formatDuration, formatNumber, speciesName } from '../i18n/pt-BR';
+import { audio } from '../audio';
 import { downloadBackup } from '../backup';
 import {
   autoBackupStatus,
@@ -102,25 +104,64 @@ export function Medal({ def, earned, scale = 3 }: { def: AchievementDef; earned:
   );
 }
 
+/** Opção como no menu dos portáteis: ◀ VALOR ▶ (as setas do teclado e do controle também trocam). */
+function OptionCycler<T extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: [T, string][];
+  onChange: (v: T) => void;
+}) {
+  const i = Math.max(
+    0,
+    options.findIndex(([v]) => v === value),
+  );
+  const go = (d: number) => {
+    onChange(options[(i + d + options.length) % options.length][0]);
+    audio.sfx('cursor');
+  };
+  return (
+    <div className="option-row option-cycler">
+      <span>{label}</span>
+      <span className="cycler">
+        <button aria-label={`${label}: anterior`} onClick={() => go(-1)}>
+          ◀
+        </button>
+        <b>{options[i][1]}</b>
+        <button aria-label={`${label}: próximo`} onClick={() => go(1)}>
+          ▶
+        </button>
+      </span>
+    </div>
+  );
+}
+
 function formatBytes(n: number): string {
   return n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
 /** A tela é longa demais para uma rolagem só: cada assunto na sua aba. */
 const TRAINER_TABS = [
-  { id: 'card', label: 'CARTÃO' },
-  { id: 'story', label: 'JORNADA' },
-  { id: 'records', label: 'CONQUISTAS' },
-  { id: 'automation', label: 'AUTOMAÇÃO' },
-  { id: 'options', label: 'OPÇÕES' },
-  { id: 'data', label: 'DADOS' },
-  { id: 'news', label: 'NOVIDADES' },
+  { id: 'card', label: 'CARTÃO', item: 'fame-checker' },
+  { id: 'story', label: 'JORNADA', item: 'town-map' },
+  { id: 'records', label: 'CONQUISTAS', item: 'relic-crown' },
+  { id: 'automation', label: 'AUTOMAÇÃO', item: 'auto-capture' },
+  { id: 'options', label: 'OPÇÕES', item: 'vs-seeker' },
+  { id: 'data', label: 'DADOS', item: 'pokemon-box' },
+  { id: 'news', label: 'NOVIDADES', item: 'teachy-tv' },
 ] as const;
 
 /** Título pela coleção de lendários (ver i18n/legends.ts). */
 function legendCardTitle(state: GameState): string | undefined {
   const all = LEGENDARIES.filter((l) => l.tier !== 'pseudo');
-  const legend = legendTitle(all.filter((l) => state.legends.caught.includes(l.speciesId)).length, all.length);
+  const legend = legendTitle(
+    all.filter((l) => state.legends.caught.includes(l.speciesId)).length,
+    all.length,
+  );
   const story = finaleTitle(state);
   return [story, legend].filter(Boolean).join(' · ') || undefined;
 }
@@ -135,6 +176,53 @@ function cardStars(state: GameState, caught: number, medals: number) {
     { label: 'Metade das medalhas', on: medals >= ACHIEVEMENTS.length / 2 },
     { label: 'Campeão de todas as regiões', on: champions.size >= REGIONS.length },
   ];
+}
+
+/**
+ * Estojo de insígnias, como nos portáteis: uma região por vez, numa caixa forrada de veludo com os 8 lugares
+ * (os que faltam em silhueta), e ◀ ▶ para passar de região. Abre na região mais avançada.
+ */
+function BadgeCase({ state }: { state: GameState }) {
+  const open = REGIONS.filter((r) => r.routes.some((id) => state.routes[id]?.unlocked));
+  const [at, setAt] = useState(Math.max(0, open.length - 1));
+  const region = open[Math.min(at, open.length - 1)];
+  if (!region) return null;
+  const earned = BADGES.filter(
+    (b) => b.regionId === region.id && state.routes[b.routeId]?.bossDefeated,
+  ).length;
+  const total = BADGES.filter((b) => b.regionId === region.id).length;
+  const step = (d: number) => setAt((i) => (i + d + open.length) % open.length);
+  return (
+    <div className="badge-case">
+      <div className="badge-case-head">
+        <button
+          className="badge-case-arrow"
+          onClick={() => step(-1)}
+          disabled={open.length < 2}
+          aria-label="Região anterior"
+        >
+          ◀
+        </button>
+        <strong>
+          {badgeWord(region.id, true).toUpperCase()} DE {region.name.toUpperCase()}
+        </strong>
+        <small>
+          {earned}/{total}
+        </small>
+        <button
+          className="badge-case-arrow"
+          onClick={() => step(1)}
+          disabled={open.length < 2}
+          aria-label="Próxima região"
+        >
+          ▶
+        </button>
+      </div>
+      <div key={region.id} className={`badge-case-box region-${region.id}`}>
+        <Badges state={state} regionId={region.id} size={40} />
+      </div>
+    </div>
+  );
 }
 
 /** O cartão inclina um pouco seguindo o mouse (só com mouse e sem movimento reduzido). */
@@ -221,9 +309,10 @@ export function TrainerScreen({ state }: { state: GameState }) {
             key={t.id}
             role="tab"
             aria-selected={tab === t.id}
-            className={`activity-tab ${tab === t.id ? 'active' : ''}`}
+            className={`activity-tab trainer-tab ${tab === t.id ? 'active' : ''}`}
             onClick={() => setTab(t.id)}
           >
+            <ItemIcon id={t.item} size={26} />
             <span>{t.label}</span>
           </button>
         ))}
@@ -258,7 +347,11 @@ export function TrainerScreen({ state }: { state: GameState }) {
               <span>CARTÃO DE TREINADOR</span>
               <span className="card-stars">
                 {stars.map((st) => (
-                  <span key={st.label} className={st.on ? 'on' : ''} title={`${st.label}${st.on ? ' ✓' : ''}`}>
+                  <span
+                    key={st.label}
+                    className={st.on ? 'on' : ''}
+                    title={`${st.label}${st.on ? ' ✓' : ''}`}
+                  >
                     <PixelIcon name="star" scale={2} />
                   </span>
                 ))}
@@ -271,118 +364,110 @@ export function TrainerScreen({ state }: { state: GameState }) {
             {back ? (
               <CardBack state={state} stars={stars} />
             ) : (
-            <>
-            <div className="card-body">
-              <dl className="card-grid">
-                <dt>NOME</dt>
-                <dd>
-                  <input
-                    className="name-input"
-                    value={name}
-                    maxLength={12}
-                    onChange={(e) => setName(e.target.value)}
-                    onBlur={() => engine.dispatch((s) => setTrainerName(s, name))}
-                    aria-label="Nome do treinador"
-                  />
-                </dd>
-                {state.flags.includes(MODIFIED_FLAG) && (
-                  <>
-                    <dt>SAVE</dt>
+              <>
+                <div className="card-body">
+                  <dl className="card-grid">
+                    <dt>NOME</dt>
                     <dd>
-                      <span
-                        className="tag tag-modified"
-                        title="Este save foi editado fora do jogo. Trocas e equipes de duelo levam o aviso."
-                      >
-                        MODIFICADO
-                      </span>
-                    </dd>
-                  </>
-                )}
-                {legendCardTitle(state) && (
-                  <>
-                    <dt>TÍTULO</dt>
-                    <dd className="card-title-legend">{legendCardTitle(state)!.toUpperCase()}</dd>
-                  </>
-                )}
-                <dt>DINHEIRO</dt>
-                <dd>
-                  <Money value={state.coins} />
-                </dd>
-                <dt>POKéDEX</dt>
-                <dd>{caught}</dd>
-                <dt>TEMPO</dt>
-                <dd>{formatDuration(state.stats.playTimeMs)}</dd>
-                <dt>NÍVEL</dt>
-                <dd>
-                  {trainer.level} <Bar value={trainer.progress} max={1} tone="exp" />
-                </dd>
-                <dt>VITÓRIAS</dt>
-                <dd>{formatNumber(state.stats.totalKills)}</dd>
-                <dt>CAPTURAS</dt>
-                <dd>{formatNumber(state.stats.totalCaptures)}</dd>
-                <dt>JORNADAS</dt>
-                <dd>{state.prestige.count}</dd>
-                <dt>MVP</dt>
-                <dd>
-                  {mvpMon ? (
-                    <>
-                      <PokemonSprite speciesId={mvpMon.speciesId} kind="icon" />{' '}
-                      {speciesName(mvpMon.speciesId)} · {mvp!.wins} vitórias na semana
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </dd>
-              </dl>
-              <div className="card-portrait">
-                <div className="card-trainer">
-                  <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={128} />
-                  {companion && (
-                    <span
-                      className="card-companion"
-                      title={`${speciesName(companion.speciesId)} acompanha você`}
-                    >
-                      <PokemonSprite
-                        speciesId={companion.speciesId}
-                        kind="front"
-                        shiny={companion.shiny}
-                        form={companion.form}
+                      <input
+                        className="name-input"
+                        value={name}
+                        maxLength={12}
+                        onChange={(e) => setName(e.target.value)}
+                        onBlur={() => engine.dispatch((s) => setTrainerName(s, name))}
+                        aria-label="Nome do treinador"
                       />
-                    </span>
+                    </dd>
+                    {state.flags.includes(MODIFIED_FLAG) && (
+                      <>
+                        <dt>SAVE</dt>
+                        <dd>
+                          <span
+                            className="tag tag-modified"
+                            title="Este save foi editado fora do jogo. Trocas e equipes de duelo levam o aviso."
+                          >
+                            MODIFICADO
+                          </span>
+                        </dd>
+                      </>
+                    )}
+                    {legendCardTitle(state) && (
+                      <>
+                        <dt>TÍTULO</dt>
+                        <dd className="card-title-legend">{legendCardTitle(state)!.toUpperCase()}</dd>
+                      </>
+                    )}
+                    <dt>DINHEIRO</dt>
+                    <dd>
+                      <Money value={state.coins} />
+                    </dd>
+                    <dt>POKéDEX</dt>
+                    <dd>{caught}</dd>
+                    <dt>TEMPO</dt>
+                    <dd>{formatDuration(state.stats.playTimeMs)}</dd>
+                    <dt>NÍVEL</dt>
+                    <dd>
+                      {trainer.level} <Bar value={trainer.progress} max={1} tone="exp" />
+                    </dd>
+                    <dt>VITÓRIAS</dt>
+                    <dd>{formatNumber(state.stats.totalKills)}</dd>
+                    <dt>CAPTURAS</dt>
+                    <dd>{formatNumber(state.stats.totalCaptures)}</dd>
+                    <dt>JORNADAS</dt>
+                    <dd>{state.prestige.count}</dd>
+                    <dt>MVP</dt>
+                    <dd>
+                      {mvpMon ? (
+                        <>
+                          <PokemonSprite speciesId={mvpMon.speciesId} kind="icon" />{' '}
+                          {speciesName(mvpMon.speciesId)} · {mvp!.wins} vitórias na semana
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </dd>
+                  </dl>
+                  <div className="card-portrait">
+                    <div className="card-trainer">
+                      <TrainerSprite id={state.trainerAvatar} outfit={state.trainerOutfit} size={128} />
+                      {companion && (
+                        <span
+                          className="card-companion"
+                          title={`${speciesName(companion.speciesId)} acompanha você`}
+                        >
+                          <PokemonSprite
+                            speciesId={companion.speciesId}
+                            kind="front"
+                            shiny={companion.shiny}
+                            form={companion.form}
+                          />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="card-showcase" aria-label="Vitrine de medalhas">
+                  <span>MEDALHAS · {points} pts</span>
+                  {Array.from({ length: SHOWCASE_SLOTS }, (_, i) => showcase[i]).map((a, i) =>
+                    a ? (
+                      <span key={a.id} className="showcase-slot filled" title={`${a.name}: ${a.description}`}>
+                        <Medal def={a} earned scale={3} />
+                        <small>{a.name}</small>
+                      </span>
+                    ) : (
+                      <span
+                        key={`empty-${i}`}
+                        className="showcase-slot"
+                        title="Escolha uma medalha abaixo para expor aqui"
+                      >
+                        <PixelIcon name="trophyEmpty" scale={3} />
+                        <small>vazio</small>
+                      </span>
+                    ),
                   )}
                 </div>
-              </div>
-            </div>
-            <div className="card-showcase" aria-label="Vitrine de medalhas">
-              <span>MEDALHAS · {points} pts</span>
-              {Array.from({ length: SHOWCASE_SLOTS }, (_, i) => showcase[i]).map((a, i) =>
-                a ? (
-                  <span key={a.id} className="showcase-slot filled" title={`${a.name}: ${a.description}`}>
-                    <Medal def={a} earned scale={3} />
-                    <small>{a.name}</small>
-                  </span>
-                ) : (
-                  <span
-                    key={`empty-${i}`}
-                    className="showcase-slot"
-                    title="Escolha uma medalha abaixo para expor aqui"
-                  >
-                    <PixelIcon name="trophyEmpty" scale={3} />
-                    <small>vazio</small>
-                  </span>
-                ),
-              )}
-            </div>
-            <div className="card-badges">
-              <span>INSÍGNIAS</span>
-              {REGIONS.filter((r) => r.routes.some((id) => state.routes[id]?.unlocked)).map((r) => (
-                <span key={r.id} className="badge-row">
-                  <small>{r.name.toUpperCase()}</small>
-                  <Badges state={state} regionId={r.id} size={30} />
-                </span>
-              ))}
-            </div>
-            </>
+                <BadgeCase state={state} />
+              </>
             )}
           </div>
 
@@ -579,36 +664,34 @@ export function TrainerScreen({ state }: { state: GameState }) {
                   ))}
                 </fieldset>
               )}
-              <label className="option-row">
-                <span>Velocidade das animações</span>
-                <select
-                  value={state.settings.animSpeed}
-                  onChange={(e) =>
-                    engine.dispatch((s) => {
-                      s.settings.animSpeed = Number(e.target.value);
-                    })
-                  }
-                >
-                  <option value={0.75}>Lenta (0,75×)</option>
-                  <option value={1}>Normal (1×)</option>
-                  <option value={1.5}>Rápida (1,5×)</option>
-                  <option value={2}>Muito rápida (2×)</option>
-                </select>
-              </label>
-              <label className="option-row">
-                <span>Gráficos</span>
-                <select
-                  value={state.settings.graphics}
-                  onChange={(e) =>
-                    engine.dispatch((s) => {
-                      s.settings.graphics = e.target.value as typeof s.settings.graphics;
-                    })
-                  }
-                >
-                  <option value="performance">Desempenho (mais leve)</option>
-                  <option value="normal">Normal (pixel art)</option>
-                </select>
-              </label>
+              <OptionCycler
+                label="Velocidade das animações"
+                value={state.settings.animSpeed}
+                options={[
+                  [0.75, 'LENTA'],
+                  [1, 'NORMAL'],
+                  [1.5, 'RÁPIDA'],
+                  [2, 'MUITO RÁPIDA'],
+                ]}
+                onChange={(v) =>
+                  engine.dispatch((s) => {
+                    s.settings.animSpeed = v;
+                  })
+                }
+              />
+              <OptionCycler
+                label="Gráficos"
+                value={state.settings.graphics}
+                options={[
+                  ['normal', 'NORMAL'],
+                  ['performance', 'DESEMPENHO'],
+                ]}
+                onChange={(v) =>
+                  engine.dispatch((s) => {
+                    s.settings.graphics = v;
+                  })
+                }
+              />
               <p className="hint">
                 {state.settings.graphics === 'performance'
                   ? 'Desempenho: Pokémon parados, sem clima, efeitos, números de dano nem animações. O progresso é o mesmo. Para aparelhos mais fracos.'

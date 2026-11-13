@@ -1,0 +1,438 @@
+/* =============================================================================
+   MOCHILA COMO NOS PORTÁTEIS (13/11)
+   A mochila em pixel art à esquerda (balança ao trocar de bolso), os bolsos em abas coloridas, a lista com setas
+   de rolagem e a etiqueta NOVO, a caixa de texto fixa embaixo com o menu USAR / DAR / VENDER / CANCELAR e a escolha
+   do Pokémon (PODE / NÃO PODE).
+   ============================================================================= */
+
+.bag2 {
+  /* Cores dos bolsos, na ordem de POCKETS (as mesmas da mochila em scripts/build-bag.py). */
+  --pocket-0: #e05040;
+  --pocket-1: #4878d0;
+  --pocket-2: #58b048;
+  --pocket-3: #9060c8;
+  --pocket-4: #e89030;
+  --pocket-5: #38a8a8;
+  --pocket-6: #c8a040;
+  display: grid;
+  grid-template-columns: 188px minmax(0, 1fr);
+  grid-template-areas:
+    'side main'
+    'desc desc';
+  align-items: start;
+}
+
+/* --- A mochila e os bolsos ------------------------------------------------------------------ */
+.bag-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bag-figure {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bag-sprite {
+  width: 80px;
+  height: 88px;
+  background-repeat: no-repeat;
+  background-size: 560px 88px;
+  background-position: calc(var(--f) * -80px) 0;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(3px 3px 0 rgb(0 0 0 / 0.25));
+  animation: bag-wobble 0.5s steps(4, end);
+}
+
+.bag-arrow {
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff8e0;
+  color: var(--ink);
+  font: 700 12px var(--font-label);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+.bag-arrow:active {
+  translate: 0 2px;
+  box-shadow: none;
+}
+
+.bag-pocket-name {
+  margin: 0;
+  padding: 2px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff8e0;
+  color: var(--ink);
+  font: 700 12px var(--font-label);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.bag-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 38px);
+  gap: 4px;
+}
+
+.bag-tab {
+  --pc: var(--pocket-0);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 2px solid color-mix(in srgb, var(--pc) 60%, var(--ink));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pc) 22%, #fff8e0);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--pc) 50%, var(--ink));
+}
+
+.bag-tab:nth-child(2) {
+  --pc: var(--pocket-1);
+}
+.bag-tab:nth-child(3) {
+  --pc: var(--pocket-2);
+}
+.bag-tab:nth-child(4) {
+  --pc: var(--pocket-3);
+}
+.bag-tab:nth-child(5) {
+  --pc: var(--pocket-4);
+}
+.bag-tab:nth-child(6) {
+  --pc: var(--pocket-5);
+}
+.bag-tab:nth-child(7) {
+  --pc: var(--pocket-6);
+}
+
+.bag-tab.active {
+  border-color: var(--ink);
+  background: var(--pc);
+  translate: 0 -2px;
+  box-shadow: 0 4px 0 var(--ink);
+}
+
+/* Bolso com item novo: uma bolinha vermelha no canto. */
+.bag-tab-new {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  background: #e83838;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+
+.bag2 .bag-money {
+  margin: 0;
+}
+
+/* --- A lista -------------------------------------------------------------------------------- */
+.bag-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.bag-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+  color: #6a4a20;
+  font: 700 12px var(--font-label);
+}
+
+.bag-list-wrap {
+  position: relative;
+  padding: 4px;
+}
+
+.bag2 .bag-list {
+  max-height: 340px;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+}
+
+.bag2 .item-row {
+  min-height: 34px;
+}
+
+.bag2 .bag-list > li:nth-child(even) .item-row:not(.selected) {
+  background: rgb(72 96 160 / 0.05);
+}
+
+.bag2 .item-qty {
+  min-width: 46px;
+  text-align: right;
+}
+
+/* Setas de rolagem piscando, como nos portáteis. */
+.bag-scroll {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  translate: -50% 0;
+  color: #e83838;
+  font: 700 14px var(--font-label);
+  text-shadow: 1px 1px 0 #fff;
+  pointer-events: none;
+  animation: blink 0.8s steps(1, end) infinite;
+}
+
+.bag-scroll.up {
+  top: -2px;
+}
+
+.bag-scroll.down {
+  bottom: -4px;
+}
+
+.bag-new {
+  padding: 0 5px;
+  background: #e83838;
+  border-radius: 4px;
+  color: #fff;
+  font: 700 10px/16px var(--font-label);
+}
+
+/* --- A caixa de texto, o menu e a escolha do Pokémon ----------------------------------------- */
+.bag-desc {
+  grid-area: desc;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 96px;
+  font-size: 15px;
+  animation: say-pop 0.22s steps(3, end);
+}
+
+.bag-desc-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bag-desc-text > p {
+  margin: 2px 0 4px;
+}
+
+.bag-menu {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-width: 118px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  animation: say-pop 0.18s steps(3, end);
+}
+
+.bag-menu button {
+  position: relative;
+  width: 100%;
+  padding: 4px 8px 4px 20px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--ink);
+  font: 700 13px var(--font-label);
+  text-align: left;
+}
+
+.bag-menu button:hover:not(:disabled),
+.bag-menu button:focus-visible {
+  background: var(--menu-select);
+}
+
+.bag-menu button:hover:not(:disabled)::before,
+.bag-menu button:focus-visible::before {
+  content: '▶';
+  position: absolute;
+  left: 6px;
+  font-size: 10px;
+}
+
+.bag-menu button:disabled {
+  color: var(--ink-muted);
+  opacity: 0.55;
+}
+
+.bag-picker-title {
+  margin: 0 0 4px;
+  font: 700 13px var(--font-label);
+}
+
+.bag-picker ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.bag-pick {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 4px;
+  width: 100%;
+  padding: 2px 6px 2px 2px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+}
+
+.bag-pick .sprite {
+  grid-row: span 2;
+  width: 34px;
+  height: 34px;
+}
+
+.bag-pick-name {
+  overflow: hidden;
+  font: 700 12px var(--font-label);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bag-pick-name small {
+  color: var(--ink-muted);
+}
+
+.bag-pick-tag {
+  font: 700 10px var(--font-label);
+}
+
+.bag-pick.can .bag-pick-tag {
+  color: #208040;
+}
+
+.bag-pick.cannot {
+  background: #f0ece0;
+  opacity: 0.7;
+}
+
+.bag-pick.cannot .bag-pick-tag {
+  color: #b03030;
+}
+
+.bag-pick.can:hover {
+  background: var(--menu-select);
+}
+
+.bag-pick-note {
+  grid-column: 2;
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+/* --- Telas estreitas: a mochila e os bolsos numa faixa em cima -------------------------------- */
+@media (max-width: 900px), (max-height: 520px) {
+  .bag2 {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'side'
+      'main'
+      'desc';
+  }
+
+  .bag-side {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'fig name'
+      'fig tabs';
+    align-items: center;
+    justify-items: start;
+    column-gap: 8px;
+  }
+
+  .bag-figure {
+    grid-area: fig;
+  }
+
+  .bag-sprite {
+    width: 60px;
+    height: 66px;
+    background-size: 420px 66px;
+    background-position: calc(var(--f) * -60px) 0;
+  }
+
+  .bag-pocket-name {
+    grid-area: name;
+  }
+
+  .bag-tabs {
+    grid-area: tabs;
+    grid-template-columns: repeat(7, minmax(0, 34px));
+  }
+
+  .bag-tab {
+    width: 34px;
+    height: 34px;
+  }
+
+  .bag2 .bag-money {
+    display: none;
+  }
+
+  /* Lista mais baixa: a caixa de texto do item fica à vista sem rolar a janela. */
+  .bag2 .bag-list {
+    max-height: min(220px, 26vh);
+  }
+
+  .bag-desc {
+    flex-wrap: wrap;
+  }
+
+  .bag-menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .bag-menu li {
+    flex: 1 1 0;
+  }
+
+  .bag-menu button {
+    padding: 6px 2px;
+    text-align: center;
+  }
+
+  .bag-menu button:hover:not(:disabled)::before,
+  .bag-menu button:focus-visible::before {
+    content: none;
+  }
+}
+
+/* Celular estreito: as abas dos bolsos já trocam de bolso; as setas saem para caber. */
+@media (max-width: 480px) {
+  .bag-arrow {
+    display: none;
+  }
+}
+
+html.reduced-motion :is(.bag-sprite, .bag-scroll, .bag-new, .bag-menu, .bag-desc) {
+  animation: none;
+}

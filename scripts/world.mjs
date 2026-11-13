@@ -70,7 +70,7 @@ const kanto = {
       'Um caminho tranquilo saindo de Pallet.',
       20,
       'meadow',
-      [24, 58.7],
+      [41, 56],
       [
         ['pidgey', 50, 2, 3, 'day'],
         ['rattata', 50, 2, 3],
@@ -83,7 +83,7 @@ const kanto = {
       'Gramado alto ao norte de Viridian.',
       30,
       'route',
-      [23.6, 42.4],
+      [40, 44],
       [
         ['pidgey', 35, 3, 5, 'day'],
         ['rattata', 35, 3, 5],
@@ -99,7 +99,7 @@ const kanto = {
       'Mata fechada cheia de insetos. Brock espera em Pewter.',
       45,
       'forest',
-      [22, 33.3],
+      [44, 31],
       [
         ['caterpie', 25, 4, 6],
         ['metapod', 15, 5, 7],
@@ -132,7 +132,7 @@ const kanto = {
       'Trilha pedregosa rumo ao Mt. Moon.',
       55,
       'mountain',
-      [31, 24.7],
+      [37, 32],
       [
         ['spearow', 30, 8, 11],
         ['jigglypuff', 15, 8, 11],
@@ -149,7 +149,7 @@ const kanto = {
       'Cavernas escuras onde a Equipe Rocket procura fósseis.',
       65,
       'cave',
-      [40.5, 17.1],
+      [23, 17],
       [
         ['zubat', 50, 9, 13],
         ['geodude', 30, 9, 13],
@@ -180,7 +180,7 @@ const kanto = {
       'Saída do Mt. Moon em direção a Cerulean.',
       75,
       'route',
-      [54.5, 19.3],
+      [30, 21],
       [
         ['rattata', 20, 12, 16],
         ['spearow', 25, 12, 16],
@@ -211,7 +211,7 @@ const kanto = {
       'Dizem que Pokémon iniciais raros aparecem por aqui.',
       100,
       'river',
-      [74.5, 6],
+      [37, 14],
       [
         ['oddish', 25, 14, 19],
         ['bellsprout', 20, 14, 19],
@@ -245,7 +245,7 @@ const kanto = {
       'O porto de Vermilion e o ginásio elétrico do Lt. Surge.',
       60,
       'route',
-      [67.6, 44],
+      [40, 25],
       [
         ['oddish', 20, 16, 22],
         ['bellsprout', 20, 16, 22],
@@ -279,7 +279,7 @@ const kanto = {
       'Um túnel escuro e sem iluminação até Lavender.',
       70,
       'cave',
-      [83.6, 19.3],
+      [54, 26],
       [
         ['zubat', 35, 22, 27],
         ['geodude', 30, 22, 27],
@@ -294,7 +294,7 @@ const kanto = {
       'O cemitério de Lavender. Fantasmas aparecem à noite.',
       70,
       'dampcave',
-      [86.6, 33.1],
+      [71, 14],
       [
         ['gastly', 50, 24, 30],
         ['gastly', 40, 24, 30, 'night'],
@@ -324,7 +324,7 @@ const kanto = {
       'A maior cidade de Kanto, com a loja de departamentos e o Game Corner.',
       80,
       'meadow',
-      [48, 34.9],
+      [60, 30],
       [
         ['growlithe', 15, 26, 32],
         ['vulpix', 15, 26, 32],
@@ -358,7 +358,7 @@ const kanto = {
       'Embaixo do Game Corner, o chefe da Equipe Rocket comanda tudo.',
       80,
       'city',
-      [44.5, 38],
+      [61, 44],
       [
         ['koffing', 25, 28, 34],
         ['grimer', 20, 28, 34],
@@ -390,7 +390,7 @@ const kanto = {
       'Pescadores, a ponte de Silence e o ginásio ninja de Koga.',
       85,
       'river',
-      [86.6, 57.3],
+      [76, 48],
       [
         ['psyduck', 15, 30, 36],
         ['slowpoke', 15, 30, 36],
@@ -426,7 +426,7 @@ const kanto = {
       'Espécies raras e captura facilitada (+50%).',
       70,
       'meadow',
-      [57.5, 70.4],
+      [52, 38],
       [
         ['nidorino', 15, 30, 38],
         ['nidorina', 15, 30, 38],
@@ -448,7 +448,7 @@ const kanto = {
       'Descida da Ciclovia até a cidade de Saffron e a Silph Co.',
       85,
       'city',
-      [37.5, 57.3],
+      [50, 50],
       [
         ['doduo', 20, 33, 39],
         ['spearow', 15, 33, 39],
@@ -483,7 +483,7 @@ const kanto = {
       'Cavernas geladas cercadas pelo mar.',
       90,
       'icecave',
-      [44.5, 90.4],
+      [46, 76],
       [
         ['seel', 20, 36, 44],
         ['shellder', 15, 36, 44],
@@ -502,7 +502,7 @@ const kanto = {
       'Ruínas de um laboratório na ilha vulcânica.',
       90,
       'volcano',
-      [23.2, 86.9],
+      [85, 40],
       [
         ['growlithe', 15, 38, 46],
         ['ponyta', 15, 38, 46],
@@ -538,7 +538,7 @@ const kanto = {
       'O ginásio de Viridian finalmente abriu as portas.',
       95,
       'route',
-      [11, 48.3],
+      [30, 58],
       [
         ['nidorino', 15, 42, 48],
         ['nidorina', 15, 42, 48],
@@ -575,7 +575,7 @@ const kanto = {
       'A caverna final antes do Platô Índigo.',
       100,
       'cave',
-      [7.2, 27.3],
+      [68, 33],
       [
         ['machoke', 20, 44, 50],
         ['graveler', 20, 44, 50],
@@ -606,7 +606,7 @@ const kanto = {
       'liga-lorelei',
       'Liga — Lorelei',
       'estrada-vitoria',
-      [4.8, 20],
+      [60, 62],
       boss(
         'Lorelei',
         'Elite dos Quatro',
@@ -625,7 +625,7 @@ const kanto = {
       'liga-bruno',
       'Liga — Bruno',
       'estrada-vitoria',
-      [3, 15.5],
+      [62, 58],
       boss(
         'Bruno',
         'Elite dos Quatro',
@@ -644,7 +644,7 @@ const kanto = {
       'liga-agatha',
       'Liga — Agatha',
       'estrada-vitoria',
-      [5.2, 12.8],
+      [68, 58],
       boss(
         'Agatha',
         'Elite dos Quatro',
@@ -663,7 +663,7 @@ const kanto = {
       'liga-lance',
       'Liga — Lance',
       'estrada-vitoria',
-      [10, 14.4],
+      [70, 62],
       boss(
         'Lance',
         'Elite dos Quatro',
@@ -682,7 +682,7 @@ const kanto = {
       'liga-campeao',
       'Liga — Campeão',
       'estrada-vitoria',
-      [7.4, 9.3],
+      [65, 61],
       boss(
         'Blue',
         'Campeão da Liga Pokémon',
@@ -716,7 +716,7 @@ const johto = {
       'De New Bark até Violet, a cidade da torre Sprout.',
       60,
       'meadow',
-      [58.1, 63.8],
+      [81, 61],
       [
         ['aipom', 8, 56, 60],
         ['sunkern', 10, 56, 60, 'day'],
@@ -754,7 +754,7 @@ const johto = {
       'O poço onde os Slowpoke são caçados e a floresta sagrada.',
       65,
       'forest',
-      [42.3, 79],
+      [57, 62],
       [
         ['slowpoke', 20, 58, 61],
         ['zubat', 15, 58, 61],
@@ -790,7 +790,7 @@ const johto = {
       'A metrópole de Johto, com a creche e a torre de rádio.',
       70,
       'city',
-      [36.7, 60],
+      [70, 62],
       [
         ['stantler', 8, 60, 63],
         ['sudowoodo', 5, 60, 63],
@@ -827,7 +827,7 @@ const johto = {
       'A torre onde as três feras lendárias despertaram.',
       70,
       'dampcave',
-      [40.8, 29.5],
+      [52, 37],
       [
         ['rattata', 15, 62, 65],
         ['raticate', 10, 62, 65],
@@ -863,7 +863,7 @@ const johto = {
       'Fazendas de Miltank e a ilha de Cianwood do outro lado do mar.',
       75,
       'beach',
-      [19.9, 62.9],
+      [17, 53],
       [
         ['miltank', 10, 64, 67],
         ['tauros', 10, 64, 67],
@@ -897,7 +897,7 @@ const johto = {
       'O farol cuja luz é mantida por uma Ampharos doente.',
       75,
       'beach',
-      [23.4, 31],
+      [86, 84],
       [
         ['mantine', 5, 66, 69],
         ['remoraid', 10, 66, 69],
@@ -935,7 +935,7 @@ const johto = {
       'Um lago onde Gyarados furiosos são forçados a evoluir.',
       80,
       'river',
-      [54.6, 9.5],
+      [54, 27],
       [
         ['magikarp', 25, 68, 71],
         ['gyarados', 5, 69, 71],
@@ -970,7 +970,7 @@ const johto = {
       'Um caminho escorregadio até a cidade dos domadores de dragão.',
       85,
       'icecave',
-      [61.7, 27.6],
+      [31, 19],
       [
         ['snorunt', 12, 70, 73],
         ['swinub', 20, 70, 73],
@@ -1006,7 +1006,7 @@ const johto = {
       'O caminho de volta para o Platô Índigo, agora pelo lado de Johto.',
       100,
       'cave',
-      [92, 55.2],
+      [80, 22],
       [
         ['dunsparce', 8, 72, 76],
         ['wobbuffet', 6, 72, 76],
@@ -1043,7 +1043,7 @@ const johto = {
       'johto-liga-will',
       'Liga de Johto — Will',
       'johto-estrada-vitoria',
-      [94.3, 49.5],
+      [85, 42],
       boss(
         'Will',
         'Elite dos Quatro',
@@ -1062,7 +1062,7 @@ const johto = {
       'johto-liga-koga',
       'Liga de Johto — Koga',
       'johto-estrada-vitoria',
-      [95.9, 45.9],
+      [87, 38],
       boss(
         'Koga',
         'Elite dos Quatro',
@@ -1081,7 +1081,7 @@ const johto = {
       'johto-liga-bruno',
       'Liga de Johto — Bruno',
       'johto-estrada-vitoria',
-      [97.7, 48.6],
+      [91, 38],
       boss(
         'Bruno',
         'Elite dos Quatro',
@@ -1100,7 +1100,7 @@ const johto = {
       'johto-liga-karen',
       'Liga de Johto — Karen',
       'johto-estrada-vitoria',
-      [98.9, 44.8],
+      [93, 42],
       boss(
         'Karen',
         'Elite dos Quatro',
@@ -1119,7 +1119,7 @@ const johto = {
       'johto-liga-campeao',
       'Liga de Johto — Campeão',
       'johto-estrada-vitoria',
-      [97.1, 42.4],
+      [89, 40],
       boss(
         'Lance',
         'Campeão da Liga de Johto',
@@ -1153,7 +1153,7 @@ const hoenn = {
       'Do laboratório do Prof. Birch até a cidade de Rustboro.',
       60,
       'forest',
-      [12, 58.8],
+      [13, 47],
       [
         ['illumise', 6, 66, 69, 'night'],
         ['volbeat', 6, 66, 69, 'night'],
@@ -1195,7 +1195,7 @@ const hoenn = {
       'Uma caverna com pinturas antigas numa ilha pequena.',
       65,
       'cave',
-      [6.4, 86],
+      [29, 52],
       [
         ['shedinja', 3, 68, 71, 'night'],
         ['zubat', 20, 68, 71],
@@ -1230,7 +1230,7 @@ const hoenn = {
       'A ponte de ciclismo sobre o mar até a cidade coberta.',
       70,
       'plains',
-      [32, 37.3],
+      [37, 43],
       [
         ['electrike', 20, 70, 73],
         ['plusle', 10, 70, 73],
@@ -1265,7 +1265,7 @@ const hoenn = {
       'Cinzas caem sobre a rota 113 a caminho do vulcão.',
       75,
       'volcano',
-      [24, 10.7],
+      [24, 8],
       [
         ['spoink', 8, 72, 75],
         ['numel', 20, 72, 75],
@@ -1300,7 +1300,7 @@ const hoenn = {
       'Uma tempestade de areia constante esconde ruínas antigas.',
       80,
       'desert',
-      [35.2, 22.6],
+      [66, 15],
       [
         ['seviper', 6, 74, 77],
         ['zangoose', 6, 74, 77],
@@ -1336,7 +1336,7 @@ const hoenn = {
       'Uma floresta chuvosa e a cidade nas copas das árvores.',
       85,
       'forest',
-      [49.6, 19.2],
+      [14, 63],
       [
         ['absol', 6, 76, 79],
         ['swablu', 10, 76, 79],
@@ -1374,7 +1374,7 @@ const hoenn = {
       'Mar aberto até a ilha do centro espacial.',
       85,
       'beach',
-      [88, 24.9],
+      [71, 52],
       [
         ['luvdisc', 8, 78, 81],
         ['clamperl', 8, 78, 81],
@@ -1413,7 +1413,7 @@ const hoenn = {
       'Uma cratera submersa e a cidade escondida dentro dela.',
       90,
       'sea',
-      [83.2, 53.2],
+      [48, 67],
       [
         ['zubat', 15, 80, 83],
         ['golbat', 15, 80, 83],
@@ -1450,7 +1450,7 @@ const hoenn = {
       'A caverna mais longa de Hoenn, antes de Ever Grande.',
       100,
       'cave',
-      [93.2, 50.3],
+      [77, 24],
       [
         ['golbat', 15, 82, 85],
         ['hariyama', 15, 82, 85],
@@ -1482,7 +1482,7 @@ const hoenn = {
       'hoenn-liga-sidney',
       'Liga de Hoenn — Sidney',
       'hoenn-estrada-vitoria',
-      [92, 37.9],
+      [81, 21],
       boss(
         'Sidney',
         'Elite dos Quatro',
@@ -1501,7 +1501,7 @@ const hoenn = {
       'hoenn-liga-phoebe',
       'Liga de Hoenn — Phoebe',
       'hoenn-estrada-vitoria',
-      [95.2, 39.6],
+      [83, 18],
       boss(
         'Phoebe',
         'Elite dos Quatro',
@@ -1520,7 +1520,7 @@ const hoenn = {
       'hoenn-liga-glacia',
       'Liga de Hoenn — Glacia',
       'hoenn-estrada-vitoria',
-      [92.4, 42.4],
+      [86, 18],
       boss(
         'Glacia',
         'Elite dos Quatro',
@@ -1539,7 +1539,7 @@ const hoenn = {
       'hoenn-liga-drake',
       'Liga de Hoenn — Drake',
       'hoenn-estrada-vitoria',
-      [95.6, 44.1],
+      [88, 21],
       boss(
         'Drake',
         'Elite dos Quatro',
@@ -1558,7 +1558,7 @@ const hoenn = {
       'hoenn-liga-campeao',
       'Liga de Hoenn — Campeão',
       'hoenn-estrada-vitoria',
-      [94, 34.5],
+      [84.5, 23],
       boss(
         'Steven',
         'Campeão da Liga de Hoenn',
@@ -1592,7 +1592,7 @@ const sinnoh = {
       'De Twinleaf até a cidade mineira de Oreburgh.',
       60,
       'meadow',
-      [23.4, 69.1],
+      [27, 61],
       [
         ['pachirisu', 6, 74, 77],
         ['burmy', 8, 74, 77],
@@ -1629,7 +1629,7 @@ const sinnoh = {
       'Uma floresta antiga com uma mansão abandonada.',
       65,
       'forest',
-      [27.3, 52.5],
+      [32, 52],
       [
         ['rotom', 3, 76, 79, 'night'],
         ['combee', 10, 76, 79],
@@ -1668,7 +1668,7 @@ const sinnoh = {
       'A cidade dos concursos e a torre perdida do cemitério.',
       70,
       'meadow',
-      [53.7, 63.5],
+      [52, 47],
       [
         ['drifloon', 8, 78, 81, 'night'],
         ['spiritomb', 4, 78, 81, 'night'],
@@ -1705,7 +1705,7 @@ const sinnoh = {
       'Chuva constante até a cidade esculpida na rocha.',
       75,
       'route',
-      [74.2, 51.1],
+      [82, 43],
       [
         ['stunky', 8, 80, 83],
         ['kadabra', 10, 80, 83],
@@ -1742,7 +1742,7 @@ const sinnoh = {
       'Um pântano enorme com o safári de Sinnoh.',
       80,
       'river',
-      [67.4, 80.1],
+      [60, 68],
       [
         ['croagunk', 15, 82, 85],
         ['skorupi', 15, 82, 85],
@@ -1777,7 +1777,7 @@ const sinnoh = {
       'Uma ilha de mineração e a cidade do canal.',
       85,
       'cave',
-      [22.9, 40.7],
+      [13, 55],
       [
         ['geodude', 15, 84, 87],
         ['graveler', 15, 84, 87],
@@ -1812,7 +1812,7 @@ const sinnoh = {
       'Uma nevasca permanente no norte de Sinnoh.',
       85,
       'icecave',
-      [39.1, 26.2],
+      [72, 22],
       [
         ['snover', 25, 86, 89],
         ['sneasel', 15, 86, 89, 'night'],
@@ -1847,7 +1847,7 @@ const sinnoh = {
       'A cidade solar à beira-mar, cheia de painéis.',
       90,
       'beach',
-      [85.9, 71.8],
+      [92, 45],
       [
         ['finneon', 8, 88, 91],
         ['shellos', 10, 88, 91],
@@ -1885,7 +1885,7 @@ const sinnoh = {
       'Uma caverna enorme na base do Monte Coronet.',
       100,
       'cave',
-      [85.9, 55.2],
+      [81, 29],
       [
         ['golbat', 15, 89, 92],
         ['onix', 10, 89, 92],
@@ -1917,7 +1917,7 @@ const sinnoh = {
       'sinnoh-liga-aaron',
       'Liga de Sinnoh — Aaron',
       'sinnoh-estrada-vitoria',
-      [84, 47],
+      [76, 12],
       boss(
         'Aaron',
         'Elite dos Quatro',
@@ -1936,7 +1936,7 @@ const sinnoh = {
       'sinnoh-liga-bertha',
       'Liga de Sinnoh — Bertha',
       'sinnoh-estrada-vitoria',
-      [87.4, 45.6],
+      [78, 8],
       boss(
         'Bertha',
         'Elite dos Quatro',
@@ -1955,7 +1955,7 @@ const sinnoh = {
       'sinnoh-liga-flint',
       'Liga de Sinnoh — Flint',
       'sinnoh-estrada-vitoria',
-      [85, 42.1],
+      [81, 8],
       boss(
         'Flint',
         'Elite dos Quatro',
@@ -1974,7 +1974,7 @@ const sinnoh = {
       'sinnoh-liga-lucian',
       'Liga de Sinnoh — Lucian',
       'sinnoh-estrada-vitoria',
-      [88.4, 41.4],
+      [83, 12],
       boss(
         'Lucian',
         'Elite dos Quatro',
@@ -1993,7 +1993,7 @@ const sinnoh = {
       'sinnoh-liga-campeao',
       'Liga de Sinnoh — Campeã',
       'sinnoh-estrada-vitoria',
-      [86.4, 38],
+      [79.5, 10.5],
       boss(
         'Cynthia',
         'Campeã da Liga de Sinnoh',
@@ -2027,7 +2027,7 @@ const unova = {
       'De Nuvema até o restaurante-ginásio dos trigêmeos.',
       60,
       'meadow',
-      [88.3, 71.7],
+      [61, 52],
       [
         ['munna', 10, 82, 85],
         ['patrat', 20, 82, 85],
@@ -2063,7 +2063,7 @@ const unova = {
       'Ruínas no deserto e a cidade do museu.',
       65,
       'desert',
-      [77, 66.3],
+      [53, 43],
       [
         ['maractus', 6, 84, 87],
         ['larvesta', 5, 84, 87],
@@ -2099,7 +2099,7 @@ const unova = {
       'Uma floresta densa e a cidade dos arranha-céus.',
       70,
       'forest',
-      [50.8, 82.4],
+      [79, 43],
       [
         ['basculin', 8, 86, 89],
         ['sewaddle', 15, 86, 89],
@@ -2137,7 +2137,7 @@ const unova = {
       'A cidade dos parques de diversão e das luzes.',
       75,
       'plains',
-      [51.6, 53.2],
+      [50, 31],
       [
         ['bouffalant', 6, 88, 91],
         ['emolga', 10, 88, 91],
@@ -2173,7 +2173,7 @@ const unova = {
       'O porto industrial e as estações que mudam a rota.',
       80,
       'route',
-      [28.1, 56.2],
+      [17, 26],
       [
         ['alomomola', 4, 90, 93],
         ['pawniard', 8, 90, 93],
@@ -2210,7 +2210,7 @@ const unova = {
       'Pedras flutuantes carregadas de eletricidade.',
       85,
       'cave',
-      [19.5, 45.4],
+      [26, 48],
       [
         ['elgyem', 8, 92, 95],
         ['joltik', 15, 92, 95],
@@ -2247,7 +2247,7 @@ const unova = {
       'Uma mina gelada no inverno e a cidade dos pântanos.',
       85,
       'icecave',
-      [22.7, 33.5],
+      [60, 10],
       [
         ['cubchoo', 15, 94, 97],
         ['beartic', 5, 96, 97],
@@ -2282,7 +2282,7 @@ const unova = {
       'A torre mais antiga de Unova, morada de um dragão lendário.',
       90,
       'mountain',
-      [6.2, 16.1],
+      [52, 12],
       [
         ['vullaby', 8, 96, 99],
         ['rufflet', 8, 96, 99],
@@ -2321,7 +2321,7 @@ const unova = {
       'A última subida antes da Liga Pokémon de Unova.',
       100,
       'cave',
-      [50.8, 34.6],
+      [74, 22],
       [
         ['boldore', 15, 97, 100],
         ['durant', 15, 97, 100],
@@ -2353,7 +2353,7 @@ const unova = {
       'unova-liga-shauntal',
       'Liga de Unova — Shauntal',
       'unova-estrada-vitoria',
-      [46.9, 41.8],
+      [71, 76],
       boss(
         'Shauntal',
         'Elite dos Quatro',
@@ -2372,7 +2372,7 @@ const unova = {
       'unova-liga-marshal',
       'Liga de Unova — Marshal',
       'unova-estrada-vitoria',
-      [48.8, 38.8],
+      [73, 71],
       boss(
         'Marshal',
         'Elite dos Quatro',
@@ -2391,7 +2391,7 @@ const unova = {
       'unova-liga-grimsley',
       'Liga de Unova — Grimsley',
       'unova-estrada-vitoria',
-      [52.3, 38.8],
+      [77, 71],
       boss(
         'Grimsley',
         'Elite dos Quatro',
@@ -2410,7 +2410,7 @@ const unova = {
       'unova-liga-caitlin',
       'Liga de Unova — Caitlin',
       'unova-estrada-vitoria',
-      [54.3, 41.8],
+      [80, 76],
       boss(
         'Caitlin',
         'Elite dos Quatro',
@@ -2429,7 +2429,7 @@ const unova = {
       'unova-liga-campeao',
       'Liga de Unova — Campeão',
       'unova-estrada-vitoria',
-      [50.4, 43.6],
+      [75, 74],
       boss(
         'Alder',
         'Campeão da Liga de Unova',
@@ -2501,7 +2501,7 @@ const kalos = {
       'Trilhas de patinadores, o castelo do Barão e as colinas de flores.',
       95,
       'route',
-      [44, 54.5],
+      [63, 55],
       [
         ['pancham', 15, 100, 100],
         ['furfrou', 10, 100, 100],
@@ -2535,7 +2535,7 @@ const kalos = {
       'Cristais que brilham no escuro e fósseis antigos.',
       100,
       'cave',
-      [24.7, 71.5],
+      [32, 66],
       [
         ['binacle', 15, 100, 100],
         ['carbink', 10, 100, 100],
@@ -2572,7 +2572,7 @@ const kalos = {
       'Menires misteriosos e a Torre da Maestria.',
       100,
       'mountain',
-      [35.4, 27],
+      [38, 52],
       [
         ['hawlucha', 10, 100, 100],
         ['dedenne', 10, 100, 100],
@@ -2610,7 +2610,7 @@ const kalos = {
       'Praias, o monotrilho e o farol sobre a baía.',
       105,
       'beach',
-      [17, 37],
+      [17, 40],
       [
         ['skrelp', 15, 100, 100],
         ['clauncher', 15, 100, 100],
@@ -2647,7 +2647,7 @@ const kalos = {
       'Turbinas no deserto e a Cidade Luz, com a Torre Prisma.',
       105,
       'desert',
-      [54.7, 36],
+      [50, 35],
       [
         ['helioptile', 20, 100, 100],
         ['trapinch', 15, 100, 100],
@@ -2684,7 +2684,7 @@ const kalos = {
       'Sob o café de Lumiose, a Equipe Flare prepara a arma suprema.',
       100,
       'city',
-      [57.5, 39.5],
+      [62, 44],
       [
         ['klefki', 15, 100, 100],
         ['magneton', 15, 100, 100],
@@ -2721,7 +2721,7 @@ const kalos = {
       'Uma mata nebulosa e a cidade da árvore gigante.',
       110,
       'dampcave',
-      [53.3, 13.5],
+      [33, 24],
       [
         ['goomy', 10, 100, 100],
         ['sliggoo', 3, 100, 100],
@@ -2759,7 +2759,7 @@ const kalos = {
       'Túneis de minério e o relógio de sol de Anistar.',
       110,
       'mountain',
-      [76.6, 39.5],
+      [80, 53],
       [
         ['lairon', 15, 100, 100],
         ['aron', 10, 100, 100],
@@ -2797,7 +2797,7 @@ const kalos = {
       'A trilha gelada dos Mamoswine e a Mata Sinuosa.',
       115,
       'icecave',
-      [86, 31],
+      [66, 22],
       [
         ['bergmite', 15, 100, 100],
         ['avalugg', 3, 100, 100],
@@ -2836,7 +2836,7 @@ const kalos = {
       'Ruínas, pontes e cavernas até a Liga de Kalos.',
       120,
       'cave',
-      [93.5, 21],
+      [88, 37],
       [
         ['noibat', 15, 100, 100],
         ['noivern', 5, 100, 100],
@@ -2871,7 +2871,7 @@ const kalos = {
       'kalos-liga-malva',
       'Liga de Kalos — Malva',
       'kalos-estrada-vitoria',
-      [90, 12],
+      [72, 28],
       boss(
         'Malva',
         'Elite dos Quatro',
@@ -2890,7 +2890,7 @@ const kalos = {
       'kalos-liga-siebold',
       'Liga de Kalos — Siebold',
       'kalos-estrada-vitoria',
-      [93, 9],
+      [74, 24],
       boss(
         'Siebold',
         'Elite dos Quatro',
@@ -2909,7 +2909,7 @@ const kalos = {
       'kalos-liga-wikstrom',
       'Liga de Kalos — Wikstrom',
       'kalos-estrada-vitoria',
-      [96.5, 9],
+      [78, 24],
       boss(
         'Wikstrom',
         'Elite dos Quatro',
@@ -2928,7 +2928,7 @@ const kalos = {
       'kalos-liga-drasna',
       'Liga de Kalos — Drasna',
       'kalos-estrada-vitoria',
-      [99, 12],
+      [80, 28],
       boss(
         'Drasna',
         'Elite dos Quatro',
@@ -2947,7 +2947,7 @@ const kalos = {
       'kalos-liga-campeao',
       'Liga de Kalos — Campeã',
       'kalos-estrada-vitoria',
-      [95, 4],
+      [76, 26],
       boss(
         'Diantha',
         'Campeã da Liga de Kalos',
@@ -2983,7 +2983,7 @@ const alola = {
       'A vila do kahuna de Melemele, no alto da ilha. Todo mundo aqui recebe um inicial e um colar de flores.',
       120,
       'meadow',
-      [28, 21],
+      [31, 21],
       [
         ['rattata', 10, 100, 100],
         ['pikachu', 5, 100, 100],
@@ -3019,7 +3019,7 @@ const alola = {
       'A primeira prova da ilha: uma gruta cheia de tocas, com um Pokémon dominante lá no fundo.',
       120,
       'cave',
-      [22, 25],
+      [26, 13],
       [
         ['yungoos', 15, 100, 100],
         ['zubat', 15, 100, 100],
@@ -3053,7 +3053,7 @@ const alola = {
       'Uma cratera de pedras brilhantes. Na volta, o kahuna Hala espera na arena de Iki Town.',
       125,
       'route',
-      [38, 29],
+      [39, 23],
       [
         ['geodude', 10, 100, 100],
         ['rockruff', 15, 100, 100],
@@ -3093,7 +3093,7 @@ const alola = {
       'Riachos, cachoeiras e um lago onde um cardume inteiro vira um Pokémon só.',
       125,
       'river',
-      [70, 25],
+      [56, 19],
       [
         ['dewpider', 15, 100, 100],
         ['wishiwashi', 15, 100, 100],
@@ -3132,7 +3132,7 @@ const alola = {
       'Lava, fumaça e a trilha até a cratera onde Kiawe treina para a dança do fogo.',
       130,
       'volcano',
-      [63, 22],
+      [68, 19],
       [
         ['marowak', 3, 100, 100, 'night'],
         ['salandit', 15, 100, 100],
@@ -3172,7 +3172,7 @@ const alola = {
       'Árvores enormes, frutas por todo lado e ingredientes raros para a receita de Mallow.',
       130,
       'jungle',
-      [57, 28],
+      [80, 27],
       [
         ['fomantis', 15, 100, 100],
         ['morelull', 15, 100, 100, 'night'],
@@ -3212,7 +3212,7 @@ const alola = {
       'A cidade dos mercados e das joias. Na praia, Pokémon que parecem areia… e areia que parece Pokémon.',
       135,
       'beach',
-      [59, 43],
+      [64, 38],
       [
         ['pyukumuku', 15, 100, 100],
         ['sandygast', 15, 100, 100],
@@ -3252,7 +3252,7 @@ const alola = {
       'Uma ilha artificial, branca e silenciosa, que cuida de Pokémon… e esconde um laboratório no subsolo.',
       135,
       'lab',
-      [44, 46],
+      [48, 33],
       [
         ['eevee', 10, 100, 100],
         ['porygon', 10, 100, 100],
@@ -3288,7 +3288,7 @@ const alola = {
       'A estrada sobe até o observatório, onde as noites são tão claras que dá para ver meteoros caindo.',
       135,
       'mountain',
-      [91, 62],
+      [33, 61],
       [
         ['magnemite', 15, 100, 100],
         ['togedemaru', 15, 100, 100],
@@ -3328,7 +3328,7 @@ const alola = {
       'A cidade murada da Equipe Skull. Chove sem parar, e as pichações cobrem até a mansão do chefe.',
       140,
       'street',
-      [74, 46],
+      [8, 63],
       [
         ['muk', 3, 100, 100],
         ['gastly', 10, 100, 100, 'night'],
@@ -3366,7 +3366,7 @@ const alola = {
       'O jardim de Malie, a biblioteca e, na Rota 16, a delegacia onde mora o kahuna mais preguiçoso de Alola.',
       140,
       'city',
-      [88, 55],
+      [40, 52],
       [
         ['meowth', 10, 100, 100],
         ['persian', 5, 100, 100],
@@ -3407,7 +3407,7 @@ const alola = {
       'A ilha mais selvagem: planícies, ruínas antigas e um cânion onde dragões se escondem nas paredes.',
       145,
       'ruins',
-      [15, 50],
+      [80, 57],
       [
         ['exeggutor', 3, 100, 100],
         ['jangmo-o', 10, 100, 100],
@@ -3450,7 +3450,7 @@ const alola = {
       'A montanha mais alta de Alola, coberta de neve. Lá em cima, a Liga Pokémon mais nova do mundo.',
       150,
       'snowfield',
-      [82, 59],
+      [22, 56],
       [
         ['sandshrew', 10, 100, 100],
         ['vulpix', 10, 100, 100],
@@ -3486,7 +3486,7 @@ const alola = {
       'alola-liga-molayne',
       'Liga de Alola — Molayne',
       'alola-lanakila',
-      [77, 50],
+      [19, 48],
       boss(
         'Molayne',
         'Elite dos Quatro',
@@ -3506,7 +3506,7 @@ const alola = {
       'alola-liga-olivia',
       'Liga de Alola — Olivia',
       'alola-lanakila',
-      [79.5, 46.5],
+      [22, 43],
       boss(
         'Olivia',
         'Elite dos Quatro',
@@ -3526,7 +3526,7 @@ const alola = {
       'alola-liga-acerola',
       'Liga de Alola — Acerola',
       'alola-lanakila',
-      [83, 46.5],
+      [27, 43],
       boss(
         'Acerola',
         'Elite dos Quatro',
@@ -3546,7 +3546,7 @@ const alola = {
       'alola-liga-kahili',
       'Liga de Alola — Kahili',
       'alola-lanakila',
-      [85.5, 50],
+      [30, 48],
       boss(
         'Kahili',
         'Elite dos Quatro',
@@ -3566,7 +3566,7 @@ const alola = {
       'alola-liga-campeao',
       'Liga de Alola — Campeão',
       'alola-lanakila',
-      [81.3, 43],
+      [24.5, 40],
       boss(
         'Kukui',
         'Professor e desafiante final de Alola',

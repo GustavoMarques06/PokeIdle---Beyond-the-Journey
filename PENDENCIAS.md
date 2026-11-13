@@ -168,8 +168,8 @@ lotes 5…10. Cortados em `art/maps/novos/cortes/` e comparados com os atuais nu
 ## Outros
 
 - **Alola / 7ª geração (13/11):** região depois de Kalos (`alola` em `scripts/world.mjs`), 88 espécies (MAX_ID 809),
-  lendários em `game-data/activities.ts`, capítulos `alola-mid` e `alola-end`. **Mapa:** arte oficial de Ultra Sun/Ultra Moon
-  (Bulbapedia, 1280 × 905). **Formas de Alola** (`game-data/regional.ts`, `speciesOf`): 18,
+  lendários em `game-data/activities.ts`, capítulos `alola-mid` e `alola-end`. **Mapa:** desenhado para o jogo
+  (art/maps/novos/alola.png). **Formas de Alola** (`game-data/regional.ts`, `speciesOf`): 18,
   com tipos, atributos, golpes, habilidades e sprites animados próprios; aparecem nas rotas de Alola (`rollForm` com a
   região), passam pelo ovo e pela evolução. **Habilidades da 7ª geração:** as que o combate consegue fazer entraram
   (`abilities.ts`); as sem equivalente usam a mais próxima (`ABILITY_STAND_IN`). **Falta:** golpes Z (fora de propósito

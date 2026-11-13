@@ -92,6 +92,7 @@ export const ENCOUNTER_MODE_NAMES: Record<string, string> = {
 };
 
 export const ITEM_DESCRIPTIONS: Record<string, string> = {
+  'tm-case': 'Guarda os TMs que você já liberou. Abra o bolso ESTOJO DE TMs para ensinar um golpe.',
   'rainbow-wing': 'Uma pena que brilha com as sete cores. Com ela, Ho-Oh aparece (depois das três feras lendárias).',
   'silver-wing': 'Uma pena prateada que vem do mar. Com ela, Lugia aparece.',
   'rare-egg': 'Um ovo raro (bebês e espécies difíceis, 3 IVs perfeitos). Vai sozinho para o ninho da Creche.',
@@ -140,7 +141,11 @@ export const ITEM_DESCRIPTIONS: Record<string, string> = {
 
 /** Descrição de um item: textos próprios, itens seguráveis ou de treino. */
 export const itemDescription = (id: string): string =>
-  ITEM_DESCRIPTIONS[id] ?? getHeldItem(id)?.description ?? getTrainingItem(id)?.description ?? '';
+  ITEM_DESCRIPTIONS[id] ??
+  UPGRADE_TEXT[id]?.description ??
+  getHeldItem(id)?.description ??
+  getTrainingItem(id)?.description ??
+  '';
 
 export const T = {
   appTitle: 'PokéIdle',
