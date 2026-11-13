@@ -1,6 +1,7 @@
 // Tela POKéMON: a equipe (até 6, em ordem: o 1º luta) no estilo FRLG e a ficha de resumo. A
 // coleção fica no PC (PcScreen), que reaproveita a ficha daqui.
 
+import { genusName } from '../i18n/genus';
 import { teamDropProps } from './teamDrag';
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio';
@@ -596,7 +597,7 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
           </dd>
           <dt>ESPÉCIE</dt>
           <dd>
-            {species.genus}
+            {genusName(species.genus)}
             {p.nickname && <small className="nature-mods">{species.name}</small>}
           </dd>
           <dt>APELIDO</dt>

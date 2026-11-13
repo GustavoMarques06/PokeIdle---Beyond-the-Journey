@@ -460,6 +460,21 @@ export const LEGEND_NEEDS: Record<number, { items?: string[]; team?: number[]; c
   645: { caught: [641, 642] }, // Landorus: Tornadus e Thundurus
   646: { caught: [643] }, // Kyurem: depois do Reshiram (ou do Zekrom, ver legendary.ts)
   718: { caught: [716, 717] }, // Zygarde: Xerneas e Yveltal
+  // Alola: o Cosmog chega por uma fenda; dele vêm Solgaleo e Lunala, e as fendas se abrem para as Ultra Bestas. O
+  // Necrozma só aparece com o sol e a lua juntos, e as duas últimas Ultra Bestas vêm atrás dele (como em Ultra Sun/Moon).
+  791: { caught: [789] }, // Solgaleo depois do Cosmog
+  792: { caught: [789] }, // Lunala depois do Cosmog
+  800: { caught: [791, 792] }, // Necrozma: Solgaleo e Lunala
+  793: { caught: [789] }, // Nihilego
+  794: { caught: [789] }, // Buzzwole
+  795: { caught: [789] }, // Pheromosa
+  796: { caught: [789] }, // Xurkitree
+  797: { caught: [789] }, // Celesteela
+  798: { caught: [789] }, // Kartana
+  799: { caught: [789] }, // Guzzlord
+  803: { caught: [789] }, // Poipole
+  805: { caught: [800] }, // Stakataka depois do Necrozma
+  806: { caught: [800] }, // Blacephalon depois do Necrozma
 };
 
 /** Clima que o lendário traz quando se enfurece (abaixo de metade do HP). */

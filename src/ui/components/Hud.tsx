@@ -8,6 +8,7 @@ import { routeCleared, type GameState } from '../../core/game';
 import { trainerLevel } from '../../core/meta';
 import {
   REGION_NAMES,
+  badgeWord,
   SKY_TEXT,
   WEATHER_EFFECTS,
   WEATHER_NAMES,
@@ -28,7 +29,7 @@ export function Badges({
 }) {
   const region = regionId ?? getRoute(state.currentRouteId).regionId;
   return (
-    <span className="badges" aria-label={`Insígnias de ${REGION_NAMES[region] ?? region}`}>
+    <span className="badges" aria-label={`${badgeWord(region, true)} de ${REGION_NAMES[region] ?? region}`}>
       {BADGES.filter((b) => b.regionId === region).map((b) => (
         <BadgeIcon
           key={b.id}
@@ -195,14 +196,17 @@ export function Hud({ state, onOpenMap }: { state: GameState; onOpenMap?: () => 
       <div
         className="hud-seg hud-pop"
         tabIndex={0}
-        aria-label={`Insígnias: ${earned} de ${regionBadges.length}`}
+        aria-label={`${badgeWord(route.regionId, true)}: ${earned} de ${regionBadges.length}`}
       >
         <span className="hud-badge-count">
           <PixelIcon name="medal" scale={2} />
           {earned}/{regionBadges.length}
         </span>
         <div className="hud-panel frame frame-menu" role="tooltip">
-          <small>INSÍGNIAS DE {(REGION_NAMES[route.regionId] ?? route.region).toUpperCase()}</small>
+          <small>
+            {badgeWord(route.regionId, true).toUpperCase()} DE{' '}
+            {(REGION_NAMES[route.regionId] ?? route.region).toUpperCase()}
+          </small>
           <Badges state={state} />
           <small>JORNADA · {journey}%</small>
           <Bar value={cleared} max={ROUTES.length} tone="gold" />

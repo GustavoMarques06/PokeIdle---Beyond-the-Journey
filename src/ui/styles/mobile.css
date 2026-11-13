@@ -146,8 +146,17 @@ html {
     min-height: 58px;
   }
 
+  /* A dica embaixo do nome muda a cada encontro ("sem captura aqui", "capturar com Poké Ball"…): ocupa sempre duas
+     linhas, para o botão não crescer e encolher e empurrar a tela. */
   .bc-big small {
+    display: -webkit-box;
+    height: 2.5em;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.25;
     white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   /* Botões sobre a cena (grama/pesca, foto): maiores, sem a dica de tecla. */
@@ -179,8 +188,23 @@ html {
     display: none;
   }
 
+  /* Altura fixa: a linha anterior tem o lugar dela mesmo vazia, e a atual ocupa sempre duas linhas (a que passa disso
+     termina em "…"; o texto inteiro fica no REGISTRO). Sem isto a caixa crescia e encolhia a cada golpe e empurrava a
+     tela inteira para cima e para baixo. */
+  .dialog-history {
+    flex: none;
+    height: 1.35em;
+    overflow: hidden;
+  }
+
   .dialog-text {
+    display: -webkit-box;
+    flex: none;
+    height: 2.8em;
+    overflow: hidden;
     font-size: 15px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .dialog-speech p {
@@ -540,6 +564,28 @@ html {
 }
 
 /* --- 5. Em pé ----------------------------------------------------------------------------------- */
+
+/* Celular estreito: três comandos de ~110 px. O disco do ícone encolhe para o nome e a dica caberem. */
+@media (max-width: 480px) and (orientation: portrait) {
+  .bc-big {
+    column-gap: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .bc-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .bc-icon .pixel-icon {
+    scale: 0.7;
+  }
+
+  .bc-big strong {
+    font-size: 14px;
+  }
+}
 
 /* A faixa da cena cobre o topo inteiro, inclusive o recorte da câmera (nada aparece atrás dela). */
 @media (max-width: 900px) and (orientation: portrait) {

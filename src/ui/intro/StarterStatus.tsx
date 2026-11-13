@@ -1,6 +1,7 @@
 // Janela de status do inicial: tipos, atributos-base, linha evolutiva e vantagens de tipo,
 // tudo calculado a partir dos dados do jogo.
 
+import { genusName } from '../i18n/genus';
 import { getSpecies, superEffectiveAgainst, typeEffectiveness } from '../../game-data';
 import type { Species } from '../../game-data';
 import { Bar, PokemonSprite, TypeBadge, Window } from '../components/common';
@@ -72,7 +73,7 @@ export function StarterStatus({ speciesId }: { speciesId: number }) {
             <TypeBadge key={t} type={t} />
           ))}
         </span>
-        <span className="status-genus">{species.genus}</span>
+        <span className="status-genus">{genusName(species.genus)}</span>
       </div>
 
       <dl className="status-stats">

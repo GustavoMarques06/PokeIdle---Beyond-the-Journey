@@ -633,6 +633,13 @@ export function effectText(e: Extract<GameEvent, { type: 'effect' }>): string {
   }
 }
 
+/** Alola não tem ginásios: as provas dão selos, não insígnias. */
+export const badgeWord = (regionId: string, plural = false) =>
+  regionId === 'alola' ? (plural ? 'selos' : 'selo') : plural ? 'insígnias' : 'insígnia';
+
+/** "a Insígnia do Trovão", "o Selo de Poni": o artigo certo para o nome da insígnia. */
+export const withBadgeArticle = (name: string) => `${name.toLowerCase().startsWith('selo ') ? 'o' : 'a'} ${name}`;
+
 export const REGION_NAMES: Record<string, string> = {
   kanto: 'Kanto',
   johto: 'Johto',

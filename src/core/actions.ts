@@ -327,7 +327,7 @@ export function giveRareCandy(state: GameState, uid: number): GameEvent[] {
     state,
     p,
     before,
-    setLevel(p, p.level + 1, state.settings.autoEvolve, state.env.period),
+    setLevel(p, p.level + 1, state.settings.autoEvolve, state.env.period, getRoute(state.currentRouteId).regionId),
     events,
   );
   return events;

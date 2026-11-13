@@ -1,6 +1,7 @@
 // Progresso offline: cálculo puro e determinístico, separado do loop visual.
 
-import { BALANCE, getMove, megaFor } from '../game-data';
+import { BALANCE, getMove, getRoute, megaFor } from '../game-data';
+import { recordForm } from './forms';
 import { SUPPORT_RULES, blockedBy, supportMoveFor, type SupportMove } from '../game-data/supportMoves';
 import { combatScales, computeModifiers } from './bonuses';
 import {
@@ -222,10 +223,11 @@ export function applyOffline(state: GameState, window: OfflineWindow): OfflineRe
     const exp = Math.floor(whole * est.expPerWin);
     const coins = Math.floor(whole * est.coinsPerWin);
     const before = player.speciesId;
-    const res = grantExp(player, exp, state.settings.autoEvolve, state.env.period);
+    const res = grantExp(player, exp, state.settings.autoEvolve, state.env.period, getRoute(state.currentRouteId).regionId);
     if (res.evolvedTo) {
       report.evolutions.push({ uid: player.uid, from: before, to: res.evolvedTo });
       markCaught(state, res.evolvedTo, player.shiny);
+      recordForm(state, res.evolvedTo, player.form);
       state.stats.evolutions++;
       progressMission(state, 'evolutions', 1);
     }

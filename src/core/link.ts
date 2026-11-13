@@ -21,7 +21,9 @@ import {
   cleanOutfit,
   type PlayerAvatar,
   type TrainerOutfit,
+  getRoute,
 } from '../game-data';
+import { recordForm } from './forms';
 import { addToCollection, busyUids, findPokemon, routeDone } from './collection';
 import { localDay } from './missions';
 import { randInt, rngFrom } from './rng';
@@ -487,8 +489,9 @@ export function receiveTrade(
   if (evo) {
     if (evo.usesItem) p.held = undefined;
     if (state.settings.autoEvolve) {
-      evolve(p, evo.to);
+      evolve(p, evo.to, getRoute(state.currentRouteId).regionId);
       recordEvolution(state, evo.to, p.shiny, events);
+      recordForm(state, evo.to, p.form);
       evolvedTo = evo.to;
     } else p.pendingEvolution = evo.to;
   }
@@ -844,8 +847,9 @@ export function surpriseTrade(state: GameState, uid: number, now: number, events
   let evolvedTo: number | undefined;
   if (evo && state.settings.autoEvolve) {
     if (evo.usesItem) q.held = undefined;
-    evolve(q, evo.to);
+    evolve(q, evo.to, getRoute(state.currentRouteId).regionId);
     recordEvolution(state, evo.to, q.shiny, events);
+    recordForm(state, evo.to, q.form);
     evolvedTo = evo.to;
   }
   const record: SurpriseRecord = {

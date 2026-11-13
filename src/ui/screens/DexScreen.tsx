@@ -1,6 +1,7 @@
 // POKéDEX: o aparelho vermelho. Lente e LEDs na tampa, tela principal com a espécie, botão do
 // grito, direcional (↑↓ espécie, ←→ aba), tela de abas e a lista no visor escuro.
 
+import { genusName } from '../i18n/genus';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import {
   DEX_MILESTONES,
@@ -183,7 +184,7 @@ export function DexScreen({ state }: { state: GameState }) {
                   {known ? sp.name.toUpperCase() : '?????'}
                   {entry?.shinyCaught && <Shiny />}
                 </strong>
-                <span className="dex-genus">{known ? sp.genus : 'Pokémon desconhecido'}</span>
+                <span className="dex-genus">{known ? genusName(sp.genus) : 'Pokémon desconhecido'}</span>
                 {known && (
                   <span className="types">
                     {sp.types.map((t) => (

@@ -93,6 +93,7 @@ export function checkEvolution(
   p: PokemonInstance,
   autoEvolve: boolean,
   period: TimeOfDay = 'day',
+  regionId?: string,
 ): Pick<ExpResult, 'evolvedFrom' | 'evolvedTo'> {
   const evo = levelEvolution(p, period) ?? friendshipEvolution(p, period);
   if (!evo) return {};
@@ -101,7 +102,7 @@ export function checkEvolution(
     return {};
   }
   const evolvedFrom = p.speciesId;
-  evolve(p, evo.to);
+  evolve(p, evo.to, regionId);
   return { evolvedFrom, evolvedTo: evo.to };
 }
 
@@ -146,6 +147,8 @@ export function grantExp(
   amount: number,
   autoEvolve: boolean,
   period: TimeOfDay = 'day',
+  /** Região onde o jogador está: quem evolui lá pega a forma regional de lá (Cubone vira Marowak de Alola). */
+  regionId?: string,
 ): ExpResult {
   const result: ExpResult = { levelsGained: 0, learnedMoves: [] };
   if (p.level >= BALANCE.maxLevel || amount <= 0) return result;
@@ -163,7 +166,7 @@ export function grantExp(
     result.learnedMoves = knownMoves(species, p.level).filter((m) => !movesBefore.includes(m));
   }
 
-  return { ...result, ...checkEvolution(p, autoEvolve, period) };
+  return { ...result, ...checkEvolution(p, autoEvolve, period, regionId) };
 }
 
 /** Sobe o Pokémon direto para o nível `level` (Rare Candy, creche, expedições). */
@@ -172,11 +175,12 @@ export function setLevel(
   level: number,
   autoEvolve = false,
   period: TimeOfDay = 'day',
+  regionId?: string,
 ): ExpResult {
   const target = Math.min(BALANCE.maxLevel, level);
   if (target <= p.level) return { levelsGained: 0, learnedMoves: [] };
   const needed = expForLevel(getSpecies(p.speciesId).growthRate, target) - p.exp;
-  return grantExp(p, Math.max(1, needed), autoEvolve, period);
+  return grantExp(p, Math.max(1, needed), autoEvolve, period, regionId);
 }
 
 /** Progresso (0–1) dentro do nível atual. */

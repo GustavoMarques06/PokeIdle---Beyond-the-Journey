@@ -9,7 +9,9 @@ import { combatantOf } from './combat';
 import { eggFormOf, hatchEgg } from './daycare';
 import { rollForm } from './forms';
 import { newGame } from './game';
+import { legendaryMissing } from './legendary';
 import { movesOf } from './pokemon';
+import { setLevel } from './progression';
 import { seededRng } from './rng';
 
 const IVS = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
@@ -78,5 +80,24 @@ describe('formas de Alola', () => {
     });
     hatchEgg(s, 999, 0, []);
     expect(s.collection.at(-1)!.form).toBe('alola');
+  });
+
+  it('Cubone que evolui sozinho em Alola vira Marowak de Alola e entra na coleção', () => {
+    const s = newGame(1, 0, 1);
+    const c = addToCollection(s, id('cubone'), 27, IVS, false, 0, 't');
+    setLevel(c, 28, true, 'night', 'alola');
+    expect(c.speciesId).toBe(id('marowak'));
+    expect(c.form).toBe('alola');
+    const k = addToCollection(s, id('cubone'), 27, IVS, false, 0, 't');
+    setLevel(k, 28, true, 'night', 'kanto');
+    expect(k.form).toBe('normal');
+  });
+
+  it('Necrozma pede Solgaleo e Lunala; as Ultra Bestas, o Cosmog', () => {
+    const s = newGame(1, 0, 1);
+    expect(legendaryMissing(s, 800).caught).toEqual([791, 792]);
+    expect(legendaryMissing(s, 794).caught).toEqual([789]);
+    s.legends.caught.push(789);
+    expect(legendaryMissing(s, 794).caught).toEqual([]);
   });
 });

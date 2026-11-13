@@ -1004,6 +1004,7 @@ export function pushExpEvents(
     events.push({ type: 'learnedMove', uid: p.uid, speciesId: before, move });
   if (res.evolvedTo) {
     recordEvolution(state, res.evolvedTo, p.shiny, events);
+    recordForm(state, res.evolvedTo, p.form);
     events.push({ type: 'evolved', uid: p.uid, from: before, to: res.evolvedTo });
   }
   if (p.pendingEvolution && !res.evolvedTo) {
@@ -1060,7 +1061,7 @@ function onEnemyFainted(state: GameState, events: GameEvent[], mods: Modifiers, 
     state,
     player,
     before,
-    grantExp(player, exp, state.settings.autoEvolve, state.env.period),
+    grantExp(player, exp, state.settings.autoEvolve, state.env.period, getRoute(state.currentRouteId).regionId),
     events,
   );
   shareExp(state, exp, events);
@@ -1102,7 +1103,8 @@ export function shareExp(state: GameState, exp: number, events: GameEvent[]): vo
   for (const r of reservePokemon(state)) {
     if (r.level >= BALANCE.maxLevel) continue;
     const before = r.speciesId;
-    pushExpEvents(state, r, before, grantExp(r, share, state.settings.autoEvolve, state.env.period), events);
+    const region = getRoute(state.currentRouteId).regionId;
+    pushExpEvents(state, r, before, grantExp(r, share, state.settings.autoEvolve, state.env.period, region), events);
   }
 }
 
@@ -1129,7 +1131,7 @@ export function friendshipTick(state: GameState, kills: number, events: GameEven
         {
           levelsGained: 0,
           learnedMoves: [],
-          ...checkEvolution(p, state.settings.autoEvolve, state.env.period),
+          ...checkEvolution(p, state.settings.autoEvolve, state.env.period, getRoute(state.currentRouteId).regionId),
         },
         events,
       );

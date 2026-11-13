@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-13-ajustes-alola',
+    date: '13/11/2026',
+    title: 'Ajustes de Alola e do celular',
+    items: [
+      { tag: 'correção', text: 'Celular: a caixa de texto da batalha e os botões MOCHILA, POKéMON e FUGIR não mudam mais de tamanho a cada golpe (a tela parava de pular).' },
+      { tag: 'correção', text: 'Cubone que evolui sozinho em Alola vira o Marowak de Alola, e toda forma nova entra na coleção da Pokédex.' },
+      { tag: 'correção', text: 'O capítulo da história depois de vencer um Campeão espera o Hall da Fama acabar (antes ele abria por cima).' },
+      { tag: 'melhoria', text: 'Lendários de Alola com condições, como nos jogos: Solgaleo e Lunala depois do Cosmog, Necrozma depois dos dois, e as Ultra Bestas quando as fendas se abrem.' },
+      { tag: 'melhoria', text: 'Em Alola o HUD e a cerimônia falam de selos, e "o Selo de Poni" sai com o artigo certo. A espécie de cada Pokémon agora aparece em português (Pokémon Lagarto).' },
+    ],
+  },
+  {
     id: '2026-11-13-alola',
     date: '13/11/2026',
     title: 'Alola: a 7ª geração chegou',

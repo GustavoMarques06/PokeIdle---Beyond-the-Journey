@@ -2,7 +2,7 @@
 
 import { ACHIEVEMENTS, SUPPORT_MOVES, getRoute } from '../../game-data';
 import type { GameEvent } from '../../core/game';
-import { STATUS_TEXT, effectText, itemName, moveName, speciesName } from './pt-BR';
+import { STATUS_TEXT, effectText, itemName, moveName, speciesName, withBadgeArticle } from './pt-BR';
 
 export interface BattleLine {
   text: string;
@@ -224,7 +224,7 @@ export function battleText(e: GameEvent, ctx: BattleTextContext): BattleLine | n
           `Você derrotou ${b?.name}! Recebeu ${e.coins} moedas` +
           (items ? ` e ${items}` : '') +
           '.' +
-          (b?.badge ? ` Ganhou a ${b.badge.name}!` : '') +
+          (b?.badge ? ` Ganhou ${withBadgeArticle(b.badge.name)}!` : '') +
           (e.tm ? ` Recebeu o TM de ${moveName(e.tm)}!` : ''),
         important: true,
       };

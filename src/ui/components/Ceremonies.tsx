@@ -4,11 +4,11 @@
 // - Faixas no alto (não travam o jogo): medalha conquistada, nível de treinador e "dados registrados" na Pokédex.
 // Fecham com um toque (as faixas somem sozinhas). Várias de uma vez entram em fila.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ACHIEVEMENTS, BADGES, getRoute, type MedalTier } from '../../game-data';
 import type { GameEvent, GameState } from '../../core/game';
 import { trainerLevel } from '../../core/meta';
-import { REGION_NAMES, formatNumber, speciesName } from '../i18n/pt-BR';
+import { REGION_NAMES, badgeWord, formatNumber, speciesName, withBadgeArticle } from '../i18n/pt-BR';
 import { audio } from '../audio';
 import { useGameEvents } from '../useGame';
 import { BadgeIcon, PixelIcon, PokemonSprite, TrainerSprite } from './common';
@@ -27,9 +27,33 @@ const METAL: Record<MedalTier, 'bronze' | 'silver' | 'gold'> = {
   gold: 'gold',
   platinum: 'gold',
 };
-const TIER_NAME: Record<MedalTier, string> = { bronze: 'BRONZE', silver: 'PRATA', gold: 'OURO', platinum: 'PLATINA' };
+const TIER_NAME: Record<MedalTier, string> = {
+  bronze: 'BRONZE',
+  silver: 'PRATA',
+  gold: 'OURO',
+  platinum: 'PLATINA',
+};
 
 const BANNER_MS = 2800;
+
+// Cerimônia na tela (insígnia, Hall da Fama): a história espera ela acabar para abrir o capítulo (senão o capítulo
+// do Campeão cobria o Hall da Fama). Marcado já ao chegar o evento, para o capítulo não piscar antes.
+let ceremonyOpen = false;
+const listeners = new Set<() => void>();
+function setCeremonyOpen(open: boolean): void {
+  if (open === ceremonyOpen) return;
+  ceremonyOpen = open;
+  for (const l of listeners) l();
+}
+export function useCeremonyOpen(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => ceremonyOpen,
+  );
+}
 
 export function Ceremonies({ state }: { state: GameState }) {
   const [modals, setModals] = useState<(Modal & { n: number })[]>([]);
@@ -41,12 +65,16 @@ export function Ceremonies({ state }: { state: GameState }) {
     const b: (Banner & { n: number })[] = [];
     for (const e of events) {
       if (e.type === 'bossDefeated' && e.badge) m.push({ kind: 'badge', routeId: e.routeId, n: ++n.current });
-      else if (e.type === 'hallOfFame') m.push({ kind: 'hof', regionId: e.regionId, at: Date.now(), n: ++n.current });
+      else if (e.type === 'hallOfFame')
+        m.push({ kind: 'hof', regionId: e.regionId, at: Date.now(), n: ++n.current });
       else if (e.type === 'achievement') b.push({ kind: 'medal', id: e.id, n: ++n.current });
       else if (e.type === 'captured' && e.isNew)
         b.push({ kind: 'dex', speciesId: e.speciesId, shiny: e.shiny, n: ++n.current });
     }
-    if (m.length) setModals((q) => [...q, ...m].slice(0, 4));
+    if (m.length) {
+      setCeremonyOpen(true);
+      setModals((q) => [...q, ...m].slice(0, 4));
+    }
     // Muitas de uma vez (ao voltar de longe, por exemplo): só as primeiras viram faixa.
     if (b.length) setBanners((q) => [...q, ...b].slice(0, 4));
   }, []);
@@ -56,7 +84,8 @@ export function Ceremonies({ state }: { state: GameState }) {
   const level = trainerLevel(state).level;
   const lastLevel = useRef(level);
   useEffect(() => {
-    if (level > lastLevel.current) setBanners((q) => [...q, { kind: 'trainer' as const, level, n: ++n.current }].slice(0, 4));
+    if (level > lastLevel.current)
+      setBanners((q) => [...q, { kind: 'trainer' as const, level, n: ++n.current }].slice(0, 4));
     lastLevel.current = level;
   }, [level]);
 
@@ -65,9 +94,11 @@ export function Ceremonies({ state }: { state: GameState }) {
   const closeModal = useCallback(() => setModals((q) => q.slice(1)), []);
 
   useEffect(() => {
+    setCeremonyOpen(!!modal);
     if (!modal) return;
     audio.sfx('fanfare');
   }, [modal]);
+  useEffect(() => () => setCeremonyOpen(false), []);
 
   useEffect(() => {
     if (!banner) return;
@@ -82,19 +113,29 @@ export function Ceremonies({ state }: { state: GameState }) {
       {modal?.kind === 'badge' && (
         <BadgeCeremony key={modal.n} state={state} routeId={modal.routeId} onClose={closeModal} />
       )}
-      {modal?.kind === 'hof' && <HallOfFame key={modal.n} state={state} regionId={modal.regionId} onClose={closeModal} />}
+      {modal?.kind === 'hof' && (
+        <HallOfFame key={modal.n} state={state} regionId={modal.regionId} onClose={closeModal} />
+      )}
     </>
   );
 }
 
 /** Insígnia: o líder, a insígnia girando grande e o estojo da região acendendo o lugar dela. */
-function BadgeCeremony({ state, routeId, onClose }: { state: GameState; routeId: string; onClose: () => void }) {
+function BadgeCeremony({
+  state,
+  routeId,
+  onClose,
+}: {
+  state: GameState;
+  routeId: string;
+  onClose: () => void;
+}) {
   const route = getRoute(routeId);
   const boss = route.boss!;
   const badge = boss.badge!;
   const region = BADGES.filter((b) => b.regionId === route.regionId);
   return (
-    <div className="cer-backdrop" role="dialog" aria-modal="true" aria-label={`Insígnia ${badge.name}`} onClick={onClose}>
+    <div className="cer-backdrop" role="dialog" aria-modal="true" aria-label={badge.name} onClick={onClose}>
       <div className="cer-badge">
         <span className="cer-rays" aria-hidden />
         <div className="cer-leader">
@@ -103,7 +144,7 @@ function BadgeCeremony({ state, routeId, onClose }: { state: GameState; routeId:
           </span>
           <p className="cer-quote">
             <b>{boss.name.toUpperCase()}</b>
-            Você venceu! Esta é a prova da sua força: a {badge.name}.
+            Você venceu! Esta é a prova da sua força: {withBadgeArticle(badge.name)}.
           </p>
         </div>
         <span className="cer-big-badge" aria-hidden>
@@ -111,7 +152,10 @@ function BadgeCeremony({ state, routeId, onClose }: { state: GameState; routeId:
           <PixelFx fx="stars" scale={2} x="50%" y="50%" />
         </span>
         <h2 className="cer-title">{badge.name.toUpperCase()}!</h2>
-        <div className="cer-case" aria-label={`Estojo de ${REGION_NAMES[route.regionId] ?? route.region}`}>
+        <div
+          className="cer-case"
+          aria-label={`${badgeWord(route.regionId, true)} de ${REGION_NAMES[route.regionId] ?? route.region}`}
+        >
           {region.map((b, i) => (
             <span
               key={b.id}
@@ -129,11 +173,25 @@ function BadgeCeremony({ state, routeId, onClose }: { state: GameState; routeId:
 }
 
 /** Hall da Fama: a equipe campeã desfila um por um, com luz e fogos. */
-function HallOfFame({ state, regionId, onClose }: { state: GameState; regionId: string; onClose: () => void }) {
+function HallOfFame({
+  state,
+  regionId,
+  onClose,
+}: {
+  state: GameState;
+  regionId: string;
+  onClose: () => void;
+}) {
   const entry = [...state.hallOfFame].reverse().find((h) => h.regionId === regionId);
   if (!entry) return null;
   return (
-    <div className="cer-backdrop hof" role="dialog" aria-modal="true" aria-label="Hall da Fama" onClick={onClose}>
+    <div
+      className="cer-backdrop hof"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Hall da Fama"
+      onClick={onClose}
+    >
       <div className="cer-hof">
         <span className="cer-rays" aria-hidden />
         <span className="cer-fireworks" aria-hidden>

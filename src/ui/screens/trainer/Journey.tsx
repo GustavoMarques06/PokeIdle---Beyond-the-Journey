@@ -6,7 +6,7 @@ import type { GameState } from '../../../core/game';
 import { CHAPTERS, chapterSeen, finaleChoice, nextChapter } from '../../../core/story';
 import { Window } from '../../components/common';
 import { StoryScene, partnerOf } from '../../components/StoryScene';
-import { PokemonSprite } from '../../components/common';
+import { PixelIcon, PokemonSprite } from '../../components/common';
 import { CHAPTER_TITLES, FINALE_CHOICES } from '../../i18n/story';
 
 export function Journey({ state }: { state: GameState }) {
@@ -58,7 +58,9 @@ export function Journey({ state }: { state: GameState }) {
           const seen = chapterSeen(state, c.id);
           return (
             <li key={c.id} className={seen ? 'seen' : 'locked'}>
-              <span className="journey-no">✎</span>
+              <span className="journey-no">
+                <PixelIcon name="star" scale={1} />
+              </span>
               <span className="journey-title">{seen ? CHAPTER_TITLES[c.id] : '???'}</span>
               {seen ? (
                 <button className="pbtn small" onClick={() => setReplay(c.id)}>

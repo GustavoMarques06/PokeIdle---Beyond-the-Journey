@@ -2,6 +2,7 @@
 // o Professor, o Viajante em silhueta azulada, Vesper da Equipe Eclipse). O capítulo novo abre sozinho; os vistos
 // podem ser revistos no Diário da Jornada. No final, a escolha entre quebrar o laço e seguir viajando.
 
+import { useCeremonyOpen } from './Ceremonies';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { assetUrl, trainerSprite } from '../../game-data';
@@ -150,8 +151,9 @@ export function StoryHost({ state }: { state: GameState }) {
   useEffect(() => {
     if (!migrated) engine.dispatch((s) => migrateStory(s));
   }, [engine, migrated]);
+  const ceremony = useCeremonyOpen();
   const chapter = pendingChapter(state);
-  if (!chapter) return null;
+  if (!chapter || ceremony) return null;
   return (
     <StoryScene
       key={chapter.id}
