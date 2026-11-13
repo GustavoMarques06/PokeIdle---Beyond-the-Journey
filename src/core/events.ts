@@ -125,6 +125,7 @@ const ROCKET_POOLS: Record<string, string[]> = {
   sinnoh: ['stunky', 'glameow', 'zubat', 'croagunk', 'skuntank', 'purugly', 'toxicroak', 'golbat'],
   unova: ['patrat', 'purrloin', 'trubbish', 'sandile', 'watchog', 'liepard', 'garbodor', 'krookodile'],
   kalos: ['houndour', 'croagunk', 'liepard', 'mightyena', 'golbat', 'houndoom', 'toxicroak', 'pyroar'],
+  alola: ['yungoos', 'zubat', 'grimer', 'salandit', 'mareanie', 'gumshoos', 'golbat', 'salazzle'],
 };
 
 const rocketPool = (regionId: string): number[] =>

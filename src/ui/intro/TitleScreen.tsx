@@ -154,7 +154,7 @@ export function TitleScreen({
             />
           </div>
           {message && (
-            <p className="hint" role="status">
+            <p className="hint alert" role="status">
               {message}
             </p>
           )}

@@ -13,6 +13,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-11-13-alola',
+    date: '13/11/2026',
+    title: 'Alola: a 7ª geração chegou',
+    items: [
+      { tag: 'novo', text: 'Região de Alola depois de Kalos: 13 lugares nas quatro ilhas (e o Paraíso Aether), provas dos capitães e grandes provas dos kahunas, com 8 selos no lugar das insígnias, a Liga no alto do Monte Lanakila e o Prof. Kukui como desafio final.' },
+      { tag: 'novo', text: 'Os 88 Pokémon da 7ª geração na Pokédex (Rowlet até Melmetal), com Rowlet, Litten e Popplio como iniciais de uma nova jornada.' },
+      { tag: 'novo', text: 'Lendários de Alola: os quatro Tapus, Cosmog (que evolui até Solgaleo ou Lunala), Necrozma, as Ultra Bestas, Magearna, Marshadow, Zeraora, Meltan e o Type: Null.' },
+      { tag: 'novo', text: 'Formas de Alola: Rattata, Raichu, Sandshrew, Vulpix, Diglett, Meowth, Geodude, Grimer, Exeggutor, Marowak e as evoluções (18) aparecem em Alola com outros tipos, golpes e habilidades. Evoluem mantendo a forma, nascem de ovos de mães de Alola, e Pikachu, Exeggcute e Cubone que evoluem lá viram a forma de Alola. Vulpix e Sandshrew de Alola evoluem com a Pedra do Gelo.' },
+      { tag: 'novo', text: 'Habilidades da 7ª geração: Disfarce (Mimikyu), Cardume (Wishiwashi), Fera Ascendente (Ultra Bestas), as Ondas dos Tapus, Bolha de Água, Fofura, Galvanizar e outras.' },
+      { tag: 'novo', text: 'Alola nas atividades: pesca e surf na Colina Brooklet, em Konikoni e em Poni; a zona do Safari das Planícies de Poni; e as expedições Navegar pelas ilhas e Espiar as Ultra Fendas.' },
+      { tag: 'novo', text: 'História: Fendas no céu e A luz que faltava em Alola, um capítulo de chegada a cada região, a terceira volta do laço, falas que mudam com a escolha do final e páginas do diário do parceiro nos marcos (primeira evolução, primeiro ovo, primeiro shiny, primeiro lendário, 100 na Pokédex). E a conquista Lenda de Alola.' },
+      { tag: 'melhoria', text: 'Os Pokémon que só têm sprite parado (parte da 6ª e da 7ª geração, como Chespin, Delphox e Decidueye) ganharam uma animação feita pelo jogo: respiram e balançam em vez de ficarem congelados.' },
+      { tag: 'melhoria', text: 'Maior ou Menor: o pote cresce ×1,3 por acerto (era ×1,7, que dava fichas sem fim). Parar na hora certa ainda compensa.' },
+      { tag: 'melhoria', text: 'Celular: a equipe não treme mais ao rolar a tela, e as partículas do fundo ficam desligadas na tela pequena. Na Loja, as três lojas cabem numa linha.' },
+      { tag: 'melhoria', text: 'Avisos importantes (regras de desafio, bloqueios, respostas dos botões) ficam sempre abertos, com uma faixa amarela.' },
+    ],
+  },
+  {
     id: '2026-11-12-controle',
     date: '12/11/2026',
     title: 'Jogue com o teclado ou com um controle',

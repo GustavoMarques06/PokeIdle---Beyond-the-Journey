@@ -2,11 +2,20 @@
 // levados na equipe) com vitórias e com o tempo real, e chocam quando o jogador toca neles (ou sozinhos, nas Opções).
 // Itens dos pais mudam a herança (Destiny Knot, Power Items, Everstone), e o Diário libera mais chocadeiras.
 
-import { BALANCE, abilitiesOf, getSpecies, hasMove, lineRoot, speciesId, supportMoveFor } from '../game-data';
+import {
+  BALANCE,
+  abilitiesOf,
+  getSpecies,
+  hasMove,
+  lineRoot,
+  regionalOf,
+  speciesId,
+  supportMoveFor,
+} from '../game-data';
 import { computeModifiers } from './bonuses';
 import { activityUnlocked, addToCollection, busyUids, findPokemon } from './collection';
 import type { GameEvent, GameState } from './game';
-import { giveForm } from './forms';
+import { giveForm, recordForm } from './forms';
 import { genderOf } from './gender';
 import { progressMission } from './missions';
 import {
@@ -40,6 +49,8 @@ export interface Egg {
   nature?: string;
   /** Nasce com a habilidade oculta. */
   hidden?: boolean;
+  /** Forma regional herdada da mãe (ou do pai com Ditto): Vulpix de Alola bota ovo de Vulpix de Alola. */
+  form?: string;
   /** Pais (e avós) do filhote, para a árvore de criação. */
   parents?: EggParent[];
   /** De onde veio, se não foi da Creche (ovo de presente). */
@@ -93,9 +104,17 @@ export function daycarePokemon(state: GameState): PokemonInstance[] {
 
 /** Espécie que sai do ovo: a primeira da linha do pai que não é Ditto. */
 /** O ovo é da linha da mãe (ou do pai que não é Ditto). */
+const eggParent = (a: Parent, b: Parent) =>
+  a.speciesId === DITTO ? b : b.speciesId === DITTO ? a : genderOf(b) === 'f' ? b : a;
+
 export function eggSpeciesOf(a: Parent, b: Parent): number {
-  const parent = a.speciesId === DITTO ? b : b.speciesId === DITTO ? a : genderOf(b) === 'f' ? b : a;
-  return lineRoot(parent.speciesId);
+  return lineRoot(eggParent(a, b).speciesId);
+}
+
+/** Forma regional do filhote: a do pai que passa a espécie, se a primeira forma da linha também a tiver. */
+export function eggFormOf(a: Parent & { form?: string }, b: Parent & { form?: string }): string | undefined {
+  const parent = eggParent(a, b) as Parent & { form?: string };
+  return regionalOf(lineRoot(parent.speciesId), parent.form) ? parent.form : undefined;
 }
 
 /** Golpes de ovo da espécie que algum dos pais conhece. */
@@ -186,7 +205,8 @@ function makeEgg(state: GameState): Egg {
   const eggMoves = inheritedEggMoves(species, a, b);
   const stone = fx.everstone;
   const nature = stone ? (stone.nature ?? natureFor(stone.uid, stone.ivs)) : undefined;
-  const hidden = fx.hidden && !!abilitiesOf(species)[2] && rng.next() < d.hiddenInherit;
+  const form = eggFormOf(a, b);
+  const hidden = fx.hidden && !!abilitiesOf(species, form)[2] && rng.next() < d.hiddenInherit;
   return {
     id: state.nextUid++,
     speciesId: species,
@@ -199,6 +219,7 @@ function makeEgg(state: GameState): Egg {
     ...(eggMoves.length ? { eggMoves } : {}),
     ...(nature ? { nature } : {}),
     ...(hidden ? { hidden: true } : {}),
+    ...(form ? { form } : {}),
   };
 }
 
@@ -380,6 +401,10 @@ export function hatchEgg(state: GameState, id: number, now: number, events: Game
   if (egg.nature) p.nature = egg.nature;
   if (egg.hidden) p.abilitySlot = 2;
   if (egg.parents?.length) p.parents = egg.parents;
+  if (egg.form) {
+    p.form = egg.form;
+    recordForm(state, p.speciesId, p.form);
+  }
   giveForm(state, p, rng, now);
   // Nasce sabendo os golpes de ovo (o resto da lista vem dos golpes de nível).
   const teach = (moves: string[]) => {

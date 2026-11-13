@@ -380,7 +380,7 @@ function spawn(state: GameState, path: SafariPath, rng: Rng, now: number, forced
     ),
     ivs: randomIvs(rng),
     shiny: rollShiny(rng, shinyMult),
-    form: rollForm(id, rng, now),
+    form: rollForm(id, rng, now, zone.region),
     path,
     mood: 'watching',
     moodTurns: 0,
@@ -744,7 +744,7 @@ export function claimSafariGuide(state: GameState, now: number, events: GameEven
       level: randInt(rng, zone.levels[0], zone.levels[1]) + (path === 'tall' ? 4 : 0),
       ivs: randomIvs(rng),
       shiny: rollShiny(rng, computeModifiers(state).shiny),
-      form: rollForm(id, rng, now),
+      form: rollForm(id, rng, now, zone.region),
     };
     catchIt(state, zone, enemy, now, events, `Guia do Safari · ${zone.name}`, false, 0.5);
     caught.push(id);

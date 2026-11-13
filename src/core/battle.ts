@@ -15,6 +15,7 @@ import {
   getMove,
   getRoute,
   getSpecies,
+  speciesOf,
   lineRoot,
   megaFor,
   blockedBy,
@@ -896,7 +897,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
     if (mode !== 'land') water = mode;
     speciesId = enc.speciesId;
     boost = encounterRoute(route).boost;
-    form = rollForm(speciesId, rng, now);
+    form = rollForm(speciesId, rng, now, encounterRoute(route).regionId);
     level = repelActive(state) ? enc.maxLevel : randInt(rng, enc.minLevel, enc.maxLevel);
     ivs = randomIvs(rng);
     // Uma frente sobre a rota, a aurora e o arco-íris deixam o shiny mais provável.
@@ -906,7 +907,7 @@ function spawnEnemy(state: GameState, rng: Rng, now: number, events: GameEvent[]
       (frontOn(state.env, wildRoute.id) ? FRONT_SHINY : 1) * (sky === 'aurora' || sky === 'rainbow' ? SKY_SHINY : 1);
     shiny = rollShiny(rng, mods.shiny * huntShinyMultiplier(state, speciesId) * skyShiny);
     recordEncounter(state, speciesId, shiny, now);
-    if (abilitiesOf(speciesId)[1] && rng.next() < 0.25) abilitySlot = 1;
+    if (abilitiesOf(speciesId, form)[1] && rng.next() < 0.25) abilitySlot = 1;
     if (rng.next() < BALANCE.heldDropChance) held = pickWeighted(rng, FOUND_ITEMS).id;
     // Chuva de meteoros: alguns selvagens aparecem segurando um Star Piece.
     if (sky === 'meteors' && rng.next() < METEOR_ITEM_CHANCE) held = 'star-piece';
@@ -1368,7 +1369,7 @@ export function ballContext(state: GameState): BallContext | null {
   const enemy = state.battle.enemy;
   if (!enemy) return null;
   return {
-    types: getSpecies(enemy.speciesId).types,
+    types: speciesOf(enemy.speciesId, enemy.form).types,
     level: enemy.level,
     dark: state.env.period === 'night' || DARK_SCENES.has(getRoute(state.battle.routeId).scene),
     caught: !!state.pokedex[enemy.speciesId]?.caught,
@@ -1559,6 +1560,7 @@ export const TOWER_BRAINS: { sprite: string; name: string; line: string }[] = [
   { sprite: 'sinnoh-cynthia', name: 'Cynthia', line: 'Quero ver até onde vai o laço entre você e o seu Pokémon.' },
   { sprite: 'unova-alder', name: 'Alder', line: 'Batalhar é conhecer o coração do outro. Vamos lá!' },
   { sprite: 'kalos-diantha', name: 'Diantha', line: 'Toda subida merece um grande final. Que seja este!' },
+  { sprite: 'alola-kukui', name: 'Kukui', line: 'Woo! Essa é a energia que eu queria ver. Golpe a golpe, até o topo!' },
 ];
 
 /** Batalha de um andar. Com `weeklyAt`, usa a regra e a semente da semana desse instante. */

@@ -20,7 +20,7 @@ export const START: Section = {
             'Seu Pokémon luta contra Pokémon selvagens da **área** (rota) onde você está, um depois do outro.',
             'Cada vitória dá **EXP** (ele sobe de nível), **moedas** e, às vezes, itens.',
             'Cada vitória também enche a **barra verde** lá em cima. Quando ela completa, você pode desafiar o **líder do ginásio** daquela área.',
-            'Ganhando do líder, você recebe uma **insígnia** e a próxima área é liberada. E assim por diante, por 6 regiões.',
+            'Ganhando do líder, você recebe uma **insígnia** e a próxima área é liberada. E assim por diante, por 7 regiões.',
             'No meio do caminho você **captura** Pokémon novos, monta uma equipe, evolui e compra coisas.',
           ],
         },

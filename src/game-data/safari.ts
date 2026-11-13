@@ -47,7 +47,7 @@ export const SAFARI_ITEMS: Record<string, ItemData> = {
 
 // --- Zonas do Safari -----------------------------------------------------------------------------
 
-export type SafariZoneId = 'plains' | 'forest' | 'mountain' | 'marsh' | 'lake' | 'pinwheel' | 'flowers';
+export type SafariZoneId = 'plains' | 'forest' | 'mountain' | 'marsh' | 'lake' | 'pinwheel' | 'flowers' | 'alola';
 export type SafariPath = 'grass' | 'tall' | 'water';
 
 export interface SafariZone {
@@ -57,6 +57,8 @@ export interface SafariZone {
   unlock: string;
   /** Cenário de batalha usado de fundo (public/sprites/backgrounds). */
   scene: string;
+  /** Região da zona: as espécies com forma regional aparecem na forma de lá (Rattata de Alola). */
+  region?: string;
   levels: [number, number];
   /** [espécie, peso] em cada caminho: grama baixa, grama alta (os raros) e água (pesca). */
   grass: [string, number][];
@@ -291,6 +293,45 @@ export const SAFARI_ZONES: SafariZone[] = [
       ['magikarp', 12],
       ['clawitzer', 3],
       ['dragalge', 2],
+    ],
+  },
+  {
+    id: 'alola',
+    name: 'Planícies de Poni (Alola)',
+    unlock: 'alola-rota-1',
+    scene: 'beach',
+    region: 'alola',
+    levels: [60, 72],
+    grass: [
+      ['pikipek', 12],
+      ['yungoos', 12],
+      ['rattata', 10],
+      ['grubbin', 10],
+      ['cutiefly', 10],
+      ['rockruff', 10],
+      ['mudbray', 10],
+      ['bounsweet', 10],
+    ],
+    tall: [
+      ['oricorio', 10],
+      ['togedemaru', 8],
+      ['salandit', 8],
+      ['minior', 6],
+      ['komala', 4],
+      ['turtonator', 4],
+      ['drampa', 4],
+      ['mimikyu', 3],
+      ['jangmo-o', 3],
+    ],
+    water: [
+      ['magikarp', 12],
+      ['wishiwashi', 12],
+      ['mareanie', 12],
+      ['pyukumuku', 12],
+      ['dewpider', 10],
+      ['wimpod', 8],
+      ['bruxish', 6],
+      ['dhelmise', 2],
     ],
   },
 ];

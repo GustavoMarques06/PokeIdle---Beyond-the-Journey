@@ -2,7 +2,7 @@
 // aprendeu por nível, dos TMs liberados que a espécie consegue aprender, dos golpes de ovo
 // herdados e dos golpes da pré-evolução lembrados no Relembrador.
 
-import { BALANCE, SPECIES, getSpecies, hasMove, isSupportMove, learnedSupportMoves } from '../game-data';
+import { BALANCE, SPECIES, getSpecies, hasMove, speciesOf, isSupportMove, learnedSupportMoves } from '../game-data';
 import { findPokemon } from './collection';
 import type { GameState } from './game';
 import { levelUpMoves, type PokemonInstance } from './pokemon';
@@ -49,7 +49,7 @@ export function relearnMove(state: GameState, uid: number, move: string): boolea
 }
 
 export function learnableMoves(state: GameState, p: PokemonInstance): LearnableMove[] {
-  const species = getSpecies(p.speciesId);
+  const species = speciesOf(p.speciesId, p.form);
   const out: LearnableMove[] = levelUpMoves(species, p.level).map((move) => ({ move, source: 'level' }));
   const known = new Set(out.map((m) => m.move));
   for (const move of species.tmMoves) {

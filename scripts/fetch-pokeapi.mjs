@@ -10,7 +10,7 @@
 //   public/audio/cries/<id>.ogg
 //
 // Fontes:
-//   Pokémon: Black/White animado (PokéAPI) até a Geração V; a Geração VI usa os sprites
+//   Pokémon: Black/White animado (PokéAPI) até a Geração V; as Gerações VI e VII usam os sprites
 //   estáticos no estilo Black/White do Showdown. Ícones Gen VII; gritos "legacy".
 //   Treinadores e fundos: Pokémon Showdown. Insígnias: repositório da PokéAPI.
 
@@ -28,7 +28,7 @@ const SPRITE_OUT = path.join(PUBLIC, 'sprites');
 const API = 'https://pokeapi.co/api/v2';
 const SHOWDOWN = 'https://play.pokemonshowdown.com';
 const FRESH = process.argv.includes('--fresh');
-const MAX_ID = 721; // Gerações I–VI (a VI sem animação: não há sprites animados no estilo Black/White).
+const MAX_ID = 809; // Gerações I–VII (VI e VII sem animação: não há sprites animados no estilo Black/White).
 
 const LEARNSET_VERSION_GROUPS = [
   'firered-leafgreen',
@@ -38,9 +38,12 @@ const LEARNSET_VERSION_GROUPS = [
   'black-2-white-2',
   'x-y',
   'omega-ruby-alpha-sapphire',
+  // Geração VII: só quem não existia antes cai aqui (a primeira versão com golpes vence).
+  'sun-moon',
+  'ultra-sun-ultra-moon',
 ];
-/** Máquinas e tutores: Black 2/White 2; quem não existia lá (Geração VI) usa X/Y. */
-const TM_VERSION_GROUPS = ['black-2-white-2', 'x-y'];
+/** Máquinas e tutores: Black 2/White 2; quem não existia lá usa X/Y (Geração VI) ou Ultra Sun/Moon (VII). */
+const TM_VERSION_GROUPS = ['black-2-white-2', 'x-y', 'ultra-sun-ultra-moon'];
 const FALLBACK_MOVE = 'tackle';
 // Golpes de tutor que marcam a espécie e não vêm por nível na PokéAPI: entram no aprendizado por nível aqui.
 // Dragon Ascent: em ORAS a Zinnia ensina ao Rayquaza (é o golpe da Mega Rayquaza).
@@ -280,6 +283,13 @@ const CAPTURE_ITEMS = [
   'rock-incense',
   'odd-incense',
 ];
+// Formas regionais (Alola): mesma espécie, com outros tipos, atributos, habilidades e golpes. Vão para
+// generated/regional.json e os sprites para sprites/pokemon/forms/<pasta>/<id>-alola.png (Showdown, estilo Black/White).
+const REGIONAL_FORMS = [
+  'rattata', 'raticate', 'raichu', 'sandshrew', 'sandslash', 'vulpix', 'ninetales', 'diglett', 'dugtrio',
+  'meowth', 'persian', 'geodude', 'graveler', 'golem', 'grimer', 'muk', 'exeggutor', 'marowak',
+].map((slug) => ({ slug, form: 'alola' }));
+
 const ICON_SHEET = { url: `${SHOWDOWN}/sprites/pokemonicons-sheet.png`, cols: 12, w: 40, h: 30 };
 
 // --- utilidades ------------------------------------------------------------------
@@ -395,6 +405,7 @@ const GENERATION_NUMBERS = {
   'generation-iv': 4,
   'generation-v': 5,
   'generation-vi': 6,
+  'generation-vii': 7,
 };
 /** Evolução por saber um golpe de certo tipo (Sylveon) vira uma pedra. */
 const MOVE_TYPE_ITEM = { fairy: 'shiny-stone' };
@@ -461,6 +472,7 @@ async function main() {
     for (const [s] of rt.boss?.team ?? []) if (!s.startsWith('$')) slugs.add(s);
   }
   for (const x of WORLD.ROAMERS) slugs.add(x.species);
+  for (const { slug } of REGIONAL_FORMS) slugs.add(slug);
   for (const f of WORLD.FOSSILS) slugs.add(f.species);
   for (const e of WORLD.EXPEDITIONS) for (const rw of e.rewards) if (rw.species) slugs.add(rw.species);
   for (const p of WORLD.GAME_CORNER_PRIZES) if (p.species) slugs.add(p.species);
@@ -551,6 +563,35 @@ async function main() {
     const egg = LEARNSET_VERSION_GROUPS.map(bred).find((list) => list.length > 0) ?? [];
     for (const m of egg) moveNames.add(m);
     eggMovesById.set(id, egg);
+  }
+
+  // Formas regionais: os golpes delas também entram na lista de golpes.
+  console.log(`Buscando ${REGIONAL_FORMS.length} formas regionais...`);
+  const regionalRaw = await mapLimit(REGIONAL_FORMS, 6, async ({ slug, form }) => ({
+    slug,
+    form,
+    pokemon: await getJson(`${API}/pokemon/${slug}-${form}`),
+  }));
+  const regionalMoves = new Map();
+  for (const { slug, form, pokemon } of regionalRaw) {
+    const levelUp = (group) =>
+      pokemon.moves.flatMap((m) =>
+        m.version_group_details
+          .filter((v) => v.version_group.name === group && v.move_learn_method.name === 'level-up')
+          .map((v) => ({ level: Math.max(1, v.level_learned_at), move: m.move.name })),
+      );
+    const group = LEARNSET_VERSION_GROUPS.find((g) => levelUp(g).length > 0);
+    const learnset = (group ? levelUp(group) : []).sort((a, b) => a.level - b.level);
+    const tm = pokemon.moves
+      .filter((m) =>
+        m.version_group_details.some(
+          (v) => v.version_group.name === 'ultra-sun-ultra-moon' && ['machine', 'tutor'].includes(v.move_learn_method.name),
+        ),
+      )
+      .map((m) => m.move.name);
+    for (const l of learnset) moveNames.add(l.move);
+    for (const m of tm) moveNames.add(m);
+    regionalMoves.set(`${slug}-${form}`, { learnset, tm });
   }
 
   console.log(`Buscando ${moveNames.size} golpes...`);
@@ -724,6 +765,49 @@ async function main() {
     if (!(await download(url, dest))) missing++;
   });
 
+  // Formas regionais: dados e sprites.
+  const regional = [];
+  await mapLimit(regionalRaw, 6, async ({ slug, form, pokemon }) => {
+    const speciesId = idOf(slug);
+    const { learnset, tm } = regionalMoves.get(`${slug}-${form}`);
+    const abilities = [1, 2, 3].map((slot) => pokemon.abilities.find((a) => a.slot === slot)?.ability.name ?? null);
+    const baseStats = {};
+    for (const st of pokemon.stats) baseStats[STAT_KEYS[st.stat.name]] = st.base_stat;
+    const entry = {
+      speciesId,
+      form,
+      types: [...pokemon.types].sort((a, b) => a.slot - b.slot).map((t) => t.type.name),
+      baseStats,
+      abilities,
+      learnset: learnset.filter((l) => moves[l.move]),
+      tmMoves: [...new Set(tm.filter((m) => moves[m]))].sort(),
+      sprites: {},
+    };
+    if (!entry.learnset.some((l) => l.level <= 1)) entry.learnset.unshift({ level: 1, move: FALLBACK_MOVE });
+    const sd = `${slug}-${form}`;
+    const bw = pokemon.sprites.versions['generation-v']['black-white'];
+    for (const [key, folder, sdFolder, field] of [
+      ['front_default', 'front', 'gen5', 'front'],
+      ['back_default', 'back', 'gen5-back', 'back'],
+      ['front_shiny', 'front-shiny', 'gen5-shiny', 'frontShiny'],
+      ['back_shiny', 'back-shiny', 'gen5-back-shiny', 'backShiny'],
+    ]) {
+      // Animado no estilo Black/White (PokéAPI) quando há; senão o estático do Showdown.
+      const dest = await downloadFirst(
+        [bw.animated?.[key], `${SHOWDOWN}/sprites/${sdFolder}/${sd}.png`],
+        path.join(SPRITE_OUT, 'pokemon', 'forms', folder, `${speciesId}-${form}`),
+      );
+      if (dest) {
+        entry.sprites[field] = publicPath(dest);
+        if (field === 'front' || field === 'back') {
+          const size = await imageSize(dest);
+          if (size) (entry.spriteSize ??= {})[field] = size;
+        }
+      } else missing++;
+    }
+    regional.push(entry);
+  });
+
   // 5. Itens: básicos, interface, evoluções, recompensas, fósseis e berries.
   const itemNames = new Set([
     ...WORLD.EXTRA_ITEMS,
@@ -740,7 +824,12 @@ async function main() {
   console.log(`Baixando ${itemNames.size} itens...`);
   const items = {};
   await mapLimit([...itemNames], 8, async (name) => {
-    const item = await getJson(`${API}/item/${name}`);
+    // Itens do próprio jogo (Ovo Raro…) não existem na PokéAPI: game-data/helditems.ts os define.
+    const item = await getJson(`${API}/item/${name}`).catch((err) => {
+      if (err.cause?.notFound) return null;
+      throw err;
+    });
+    if (!item) return;
     if (await download(item.sprites.default, path.join(SPRITE_OUT, 'items', `${name}.png`))) {
       items[name] = { id: name, name: englishName(item.names, name), sprite: `sprites/items/${name}.png` };
     } else missing++;
@@ -882,6 +971,7 @@ async function main() {
   await write('type-chart.json', typeChart);
   await write('items.json', items);
   await write('world.json', world);
+  await write('regional.json', regional.sort((a, b) => a.speciesId - b.speciesId));
 
   console.log(
     `Pronto: ${species.length} espécies, ${Object.keys(moves).length} golpes, ${Object.keys(items).length} itens, ` +

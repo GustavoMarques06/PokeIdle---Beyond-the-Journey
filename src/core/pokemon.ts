@@ -9,6 +9,7 @@ import {
   hasMove,
   isSupportMove,
   preEvolutionOf,
+  speciesOf,
   supportMoveFor,
   type AbilityDef,
   type HeldItemDef,
@@ -143,20 +144,26 @@ function personality(uid: number, ivs: Ivs): number {
 }
 
 /** Habilidade sorteada pelo uid: ~4% de chance da oculta (se a espécie tiver) e 50/50 entre as comuns. */
-export function defaultAbilitySlot(uid: number, ivs: Ivs, speciesId: number): 0 | 1 | 2 {
-  const [, second, hidden] = abilitiesOf(speciesId);
+export function defaultAbilitySlot(uid: number, ivs: Ivs, speciesId: number, form?: string): 0 | 1 | 2 {
+  const [, second, hidden] = abilitiesOf(speciesId, form);
   const h = personality(uid, ivs);
   if (hidden && (h >>> 7) % 24 === 0) return 2;
   return second && (h >>> 3) % 2 === 1 ? 1 : 0;
 }
 
-export function abilitySlotOf(p: { uid: number; ivs: Ivs; speciesId: number; abilitySlot?: 0 | 1 | 2 }) {
-  return p.abilitySlot ?? defaultAbilitySlot(p.uid, p.ivs, p.speciesId);
+export function abilitySlotOf(p: {
+  uid: number;
+  ivs: Ivs;
+  speciesId: number;
+  form?: string;
+  abilitySlot?: 0 | 1 | 2;
+}) {
+  return p.abilitySlot ?? defaultAbilitySlot(p.uid, p.ivs, p.speciesId, p.form);
 }
 
 /** Habilidade de uma espécie num slot (cai para a primeira se o slot não existe). */
-export function abilityInSlot(speciesId: number, slot: number): AbilityDef {
-  const list = abilitiesOf(speciesId);
+export function abilityInSlot(speciesId: number, slot: number, form?: string): AbilityDef {
+  const list = abilitiesOf(speciesId, form);
   return getAbility(list[slot] ?? list[0]!);
 }
 
@@ -164,9 +171,10 @@ export function abilityOf(p: {
   uid: number;
   ivs: Ivs;
   speciesId: number;
+  form?: string;
   abilitySlot?: 0 | 1 | 2;
 }): AbilityDef {
-  return abilityInSlot(p.speciesId, abilitySlotOf(p));
+  return abilityInSlot(p.speciesId, abilitySlotOf(p), p.form);
 }
 
 export function heldOf(p: { held?: string }): HeldItemDef | undefined {
@@ -234,12 +242,13 @@ export function createPokemon(
 
 export function statsOf(p: {
   speciesId: number;
+  form?: string;
   level: number;
   ivs: Ivs;
   nature?: string;
   evs?: Evs;
 }): Stats {
-  return calcStats(getSpecies(p.speciesId), p.level, p.ivs, p.nature, p.evs);
+  return calcStats(speciesOf(p.speciesId, p.form), p.level, p.ivs, p.nature, p.evs);
 }
 
 /** Golpes de dano aprendidos por nível até `level`, do mais antigo ao mais recente. */
@@ -270,7 +279,7 @@ const knownCache = new Map<string, string[]>();
  * Espécies que não têm quatro golpes de dano possíveis (Magikarp, Ditto…) ficam com os que há.
  */
 export function knownMoves(species: Species, level: number): string[] {
-  const key = `${species.id}:${level}`;
+  const key = `${species.id}${species.regionalForm ?? ''}:${level}`;
   const hit = knownCache.get(key);
   if (hit) return [...hit];
   const max = BALANCE.maxMoves;
@@ -310,12 +319,18 @@ export function knownMoves(species: Species, level: number): string[] {
  * Golpes de ataque do Pokémon. O apoio ocupa uma das 4 vagas: com ele, o automático leva só os 3 ataques mais
  * recentes. Os escolhidos à mão já trazem o apoio entre os 4 (fica fora daqui, ver `supportMoveFor`).
  */
-export function movesOf(p: { speciesId: number; level: number; moveset?: string[]; support?: string }): string[] {
+export function movesOf(p: {
+  speciesId: number;
+  form?: string;
+  level: number;
+  moveset?: string[];
+  support?: string;
+}): string[] {
   if (p.moveset?.length) {
     const attacks = p.moveset.filter((m) => !isSupportMove(m));
     if (attacks.length) return attacks;
   }
-  const known = knownMoves(getSpecies(p.speciesId), p.level);
+  const known = knownMoves(speciesOf(p.speciesId, p.form), p.level);
   return supportMoveFor(p) ? known.slice(-(BALANCE.maxMoves - 1)) : known;
 }
 

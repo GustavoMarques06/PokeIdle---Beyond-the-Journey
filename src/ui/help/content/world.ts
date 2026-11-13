@@ -74,10 +74,10 @@ export const WORLD: Section = {
     {
       id: 'regioes',
       q: 'Quantas regiões existem? O que muda em cada uma?',
-      keywords: 'kanto johto hoenn sinnoh unova kalos regiao fim pos jogo',
+      keywords: 'kanto johto hoenn sinnoh unova kalos alola regiao fim pos jogo ilhas provas',
       a: [
         {
-          p: 'São **6 regiões**, na ordem: **Kanto**, **Johto**, **Hoenn**, **Sinnoh**, **Unova** e **Kalos**. Cada uma tem as suas espécies, os seus 8 ginásios, a sua Liga e o seu Campeão. **Kalos é o pós-jogo**: tudo lá tem nível 100 e os chefes são reforçados.',
+          p: 'São **7 regiões**, na ordem: **Kanto**, **Johto**, **Hoenn**, **Sinnoh**, **Unova**, **Kalos** e **Alola**. Cada uma tem as suas espécies, os seus 8 ginásios, a sua Liga e o seu Campeão. **Kalos e Alola são o pós-jogo**: tudo lá tem nível 100 e os chefes são reforçados. Alola não tem ginásios: são **provas** dos capitães e dos kahunas, e cada kahuna ou capitã de prova dá um **selo** no lugar da insígnia.',
         },
         {
           p: 'Ao liberar uma região nova, o Prof. Carvalho aparece falando sobre ela, com o Pokémon lendário daquela região em silhueta.',

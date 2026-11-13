@@ -1,5 +1,6 @@
 // Ações do jogador: trocar de rota, desafiar treinadores, trocar o ativo, comprar e evoluir.
 
+import { recordForm } from './forms';
 import {
   BALANCE,
   DEPT_STORE,
@@ -294,7 +295,8 @@ export function applyEvolutionItem(state: GameState, uid: number, item: string):
   if (!to) return [];
   state.items[item]--;
   const from = p.speciesId;
-  evolve(p, to);
+  evolve(p, to, getRoute(state.currentRouteId).regionId);
+  recordForm(state, to, p.form);
   const events: GameEvent[] = [];
   recordEvolution(state, to, p.shiny, events);
   events.push({ type: 'evolved', uid, from, to });
@@ -306,7 +308,8 @@ export function confirmEvolution(state: GameState, uid: number): GameEvent[] {
   if (!p?.pendingEvolution) return [];
   const from = p.speciesId;
   const to = p.pendingEvolution;
-  evolve(p, to);
+  evolve(p, to, getRoute(state.currentRouteId).regionId);
+  recordForm(state, to, p.form);
   const events: GameEvent[] = [];
   recordEvolution(state, to, p.shiny, events);
   events.push({ type: 'evolved', uid, from, to });

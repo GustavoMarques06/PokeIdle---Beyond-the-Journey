@@ -278,6 +278,14 @@
 }
 
 /* --- 5. Explicações dobradas e resumo no título --------------------------------------------- */
+/* Avisos (regra de desafio, bloqueio, resposta de um botão): nunca dobram e ganham a faixa amarela. */
+.hint.alert {
+  padding: 3px 8px;
+  background: #fff6c8;
+  border-left: 4px solid #d8a020;
+  color: var(--ink);
+}
+
 .hint.hint-fold {
   display: -webkit-box;
   overflow: hidden;

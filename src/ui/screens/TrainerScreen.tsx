@@ -631,7 +631,7 @@ export function TrainerScreen({ state }: { state: GameState }) {
               </label>
             </div>
             {message && (
-              <p className="hint" role="status">
+              <p className="hint alert" role="status">
                 {message}
               </p>
             )}
@@ -764,7 +764,7 @@ O jogo atual neste aparelho será substituído.`))
             />
           </div>
           {message && (
-            <p className="hint" role="status">
+            <p className="hint alert" role="status">
               {message}
             </p>
           )}
@@ -944,7 +944,7 @@ function AutoBackup({ state }: { state: GameState }) {
         )}
       </div>
       {message && (
-        <p className="hint" role="status">
+        <p className="hint alert" role="status">
           {message}
         </p>
       )}

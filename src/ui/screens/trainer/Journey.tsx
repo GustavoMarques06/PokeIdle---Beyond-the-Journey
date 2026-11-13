@@ -35,11 +35,30 @@ export function Journey({ state }: { state: GameState }) {
         </p>
       )}
       <ol className="journey-list">
-        {CHAPTERS.map((c) => {
+        {CHAPTERS.filter((c) => !c.side).map((c) => {
           const seen = chapterSeen(state, c.id);
           return (
             <li key={c.id} className={seen ? 'seen' : 'locked'}>
               <span className="journey-no">{c.no}</span>
+              <span className="journey-title">{seen ? CHAPTER_TITLES[c.id] : '???'}</span>
+              {seen ? (
+                <button className="pbtn small" onClick={() => setReplay(c.id)}>
+                  Rever
+                </button>
+              ) : (
+                <small>{c.goal}</small>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      <h3 className="journey-pages-title">PÁGINAS DO DIÁRIO</h3>
+      <ol className="journey-list journey-pages">
+        {CHAPTERS.filter((c) => c.side).map((c) => {
+          const seen = chapterSeen(state, c.id);
+          return (
+            <li key={c.id} className={seen ? 'seen' : 'locked'}>
+              <span className="journey-no">✎</span>
               <span className="journey-title">{seen ? CHAPTER_TITLES[c.id] : '???'}</span>
               {seen ? (
                 <button className="pbtn small" onClick={() => setReplay(c.id)}>

@@ -48,6 +48,12 @@ html {
     gap: 6px;
   }
 
+  /* Sem as partículas do fundo: aqui a página inteira rola, e camadas animadas fixas atrás dela faziam a cena e
+     os cartões tremerem na rolagem. O fundo quase não aparece entre os painéis. */
+  .world-ambient {
+    display: none;
+  }
+
   /* A janela rola sozinha: a página de trás não acompanha nem puxa a barra do navegador. */
   html:has(.game.window-open),
   body:has(.game.window-open) {
@@ -537,6 +543,26 @@ html {
 
 /* A faixa da cena cobre o topo inteiro, inclusive o recorte da câmera (nada aparece atrás dela). */
 @media (max-width: 900px) and (orientation: portrait) {
+  /* Loja: as três lojas cabem numa linha. */
+  .shop-screen > .bag-pockets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .shop-screen > .bag-pockets .pocket {
+    justify-content: center;
+    min-width: 0;
+    padding: 4px 2px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .shop-screen > .bag-pockets .pocket img {
+    width: 22px;
+    height: 22px;
+  }
+
   .game.window-open .battle-column {
     inset: 0 0 auto;
     height: calc(var(--mini-h) + env(safe-area-inset-top) + 8px);

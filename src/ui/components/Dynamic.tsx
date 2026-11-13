@@ -46,18 +46,28 @@ export function Loading() {
 
 /** Os filhos com `data-flip` deslizam do lugar antigo até o novo quando a lista muda de ordem. */
 export function useFlip(ref: RefObject<HTMLElement | null>) {
-  const last = useRef(new Map<string, DOMRect>());
+  const last = useRef(new Map<string, { left: number; top: number }>());
+  const lastOrder = useRef('');
   useLayoutEffect(() => {
     const box = ref.current;
     if (!box) return;
+    const items = [...box.querySelectorAll<HTMLElement>('[data-flip]')];
+    // Só quando a ordem muda: o jogo redesenha a lista várias vezes por segundo, e sem isto qualquer mudança de
+    // tamanho em volta (ou a rolagem) virava um "deslize" dos cartões.
+    const order = items.map((el) => el.dataset.flip).join('|');
+    const moved = !!lastOrder.current && order !== lastOrder.current;
+    lastOrder.current = order;
+    // A posição é medida em relação à própria lista, não à tela: rolar a página não move nada aqui dentro.
+    const origin = box.getBoundingClientRect();
     const reduced = document.documentElement.classList.contains('reduced-motion');
-    const now = new Map<string, DOMRect>();
-    for (const el of box.querySelectorAll<HTMLElement>('[data-flip]')) {
+    const now = new Map<string, { left: number; top: number }>();
+    for (const el of items) {
       const key = el.dataset.flip!;
-      const r = el.getBoundingClientRect();
+      const b = el.getBoundingClientRect();
+      const r = { left: b.left - origin.left, top: b.top - origin.top };
       now.set(key, r);
       const before = last.current.get(key);
-      if (!before || reduced) continue;
+      if (!moved || !before || reduced) continue;
       const dx = before.left - r.left;
       const dy = before.top - r.top;
       if (Math.abs(dx) < 2 && Math.abs(dy) < 2) continue;
@@ -85,7 +95,8 @@ export function useHintFold(ref: RefObject<HTMLElement | null>) {
       raf = requestAnimationFrame(() => {
         // Só as novas (o jogo atualiza a tela várias vezes por segundo: medir todas a cada vez pesaria).
         for (const el of box.querySelectorAll<HTMLElement>('p.hint:not(.hint-fold):not(.hint-open), li.hint:not(.hint-fold):not(.hint-open)')) {
-          if (el.closest('.empty-state')) continue;
+          // Avisos e respostas (regra de desafio, bloqueio, "salvo!") ficam sempre abertos: dobrar esconderia o recado.
+          if (el.closest('.empty-state') || el.matches('.alert, [role="status"]')) continue;
           el.classList.add('hint-fold');
           el.toggleAttribute('data-more', el.scrollHeight > el.clientHeight + 2);
         }

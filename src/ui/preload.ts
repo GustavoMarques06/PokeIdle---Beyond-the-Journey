@@ -25,7 +25,7 @@ function groupOf(path: string): Group {
   if (path.startsWith('assets/')) return 'app';
   // Animações pesadas (até 2,7 MB) e só de enfeite: por último, e nunca como "essencial".
   if (path.startsWith('sprites/weather/')) return 'weather';
-  // 721 gritos (7,6 MB): no celular ficam para quando tocarem, sem disputar a internet com os sprites da batalha.
+  // 809 gritos (~8,5 MB): no celular ficam para quando tocarem, sem disputar a internet com os sprites da batalha.
   if (path.startsWith('audio/cries/')) return 'cries';
   if (/^sprites\/pokemon\/(front-shiny|back-shiny)\//.test(path)) return 'shiny';
   if (/^sprites\/pokemon\/back\//.test(path)) return 'back';

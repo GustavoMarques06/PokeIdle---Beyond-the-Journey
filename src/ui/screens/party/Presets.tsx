@@ -97,7 +97,7 @@ function PresetRow({ state, preset }: { state: GameState; preset: TeamPreset }) 
         })}
       </ul>
       {missing > 0 && (
-        <p className="hint">
+        <p className="hint alert">
           {missing === 1
             ? 'Um membro está ocupado ou saiu da coleção e fica de fora.'
             : `${missing} membros estão ocupados ou saíram da coleção e ficam de fora.`}
@@ -192,7 +192,7 @@ export function Presets({ state }: { state: GameState }) {
         </button>
       </form>
       {state.presetReturn && (
-        <p className="hint">A equipe de antes volta a campo quando o desafio atual terminar.</p>
+        <p className="hint alert">A equipe de antes volta a campo quando o desafio atual terminar.</p>
       )}
     </Window>
   );

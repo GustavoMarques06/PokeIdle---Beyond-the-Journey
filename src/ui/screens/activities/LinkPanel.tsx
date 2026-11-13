@@ -226,7 +226,7 @@ function Receive({ expect }: { expect: LinkPacket['kind'] }) {
         </div>
       )}
       {message && (
-        <p className="hint" role="status">
+        <p className="hint alert" role="status">
           {message}
         </p>
       )}
@@ -466,7 +466,7 @@ export function TradePanel({ state }: { state: GameState }) {
           </div>
         )}
         {message && (
-          <p className="hint" role="status">
+          <p className="hint alert" role="status">
             {message}
           </p>
         )}

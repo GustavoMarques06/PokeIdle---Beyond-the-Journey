@@ -151,6 +151,7 @@ function installTooltips(): void {
   tip.hidden = true;
   document.body.appendChild(tip);
   let current: HTMLElement | null = null;
+  let held = ''; // o `title` tirado do elemento enquanto o mouse está em cima (volta ao sair)
   let timer = 0;
 
   const place = (x: number, y: number) => {
@@ -160,33 +161,44 @@ function installTooltips(): void {
     const top = y + h + 26 > window.innerHeight ? y - h - 10 : y + 20;
     tip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
   };
+  // Se o jogo trocar o texto com o mouse em cima (React grava o `title` de novo), o balão acompanha.
+  const watch = new MutationObserver(() => {
+    const el = current;
+    const title = el?.getAttribute('title');
+    if (!el || title == null) return;
+    held = title;
+    el.removeAttribute('title');
+    tip.textContent = title;
+  });
   const hide = () => {
     clearTimeout(timer);
+    watch.disconnect();
     tip.hidden = true;
+    // O `title` volta ao elemento: o texto nunca fica guardado à parte, então nunca fica velho.
+    if (current && held && !current.hasAttribute('title')) current.setAttribute('title', held);
     current = null;
+    held = '';
   };
 
   document.addEventListener('pointerover', (e) => {
     if (e.pointerType !== 'mouse') return;
-    const el = (e.target as HTMLElement | null)?.closest?.<HTMLElement>('[title], [data-tip]') ?? null;
-    if (el === current) return;
+    // Andar para dentro do próprio elemento (o ícone do botão) não troca o balão: o `title` dele está guardado.
+    if (current && current.contains(e.target as Node)) return;
+    const el = (e.target as HTMLElement | null)?.closest?.<HTMLElement>('[title]') ?? null;
     hide();
     if (!el) return;
-    // O texto sai do `title` (senão o sistema mostra o dele também) e fica guardado no elemento.
-    const title = el.getAttribute('title');
-    if (title) {
-      el.dataset.tip = title;
-      el.removeAttribute('title');
-      if (!el.getAttribute('aria-label') && !el.textContent?.trim()) el.setAttribute('aria-label', title);
-    }
-    const text = el.dataset.tip;
+    // Tirado enquanto o mouse está em cima, senão o sistema mostra o balão dele também.
+    const text = el.getAttribute('title');
     if (!text) return;
+    held = text;
+    el.removeAttribute('title');
     current = el;
+    watch.observe(el, { attributes: true, attributeFilter: ['title'] });
     const x = e.clientX;
     const y = e.clientY;
     timer = window.setTimeout(() => {
       if (current !== el) return;
-      tip.textContent = text;
+      tip.textContent = held;
       tip.hidden = false;
       place(x, y);
     }, 350);

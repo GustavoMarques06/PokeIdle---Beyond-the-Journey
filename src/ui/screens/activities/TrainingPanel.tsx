@@ -300,7 +300,7 @@ export function TrainingPanel({ state }: { state: GameState }) {
           </>
         )}
         {free <= 0 && slots < t.slots.length && (
-          <p className="hint">Mais vagas de treino ao concluir as próximas áreas.</p>
+          <p className="hint alert">Mais vagas de treino ao concluir as próximas áreas.</p>
         )}
       </Window>
 

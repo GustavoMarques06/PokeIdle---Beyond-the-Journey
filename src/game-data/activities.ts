@@ -301,6 +301,7 @@ export const LEGENDARY_REGION_UNLOCK: Record<string, string> = {
   sinnoh: 'sinnoh-liga-campeao',
   unova: 'unova-liga-campeao',
   kalos: 'kalos-liga-campeao',
+  alola: 'alola-liga-campeao',
 };
 
 export const LEGENDARIES: LegendaryDef[] = [
@@ -365,6 +366,32 @@ export const LEGENDARIES: LegendaryDef[] = [
   { speciesId: 719, regionId: 'kalos', level: 100, boost: 1.35 }, // Diancie
   { speciesId: 720, regionId: 'kalos', level: 100, boost: 1.4 }, // Hoopa
   { speciesId: 721, regionId: 'kalos', level: 100, boost: 1.4 }, // Volcanion
+  // Alola: os guardiões das ilhas, a dupla do sol e da lua, as Ultra Bestas e os míticos. Cosmog, Poipole e Meltan
+  // vêm em nível baixo para evoluírem treinando, como nos jogos.
+  { speciesId: 784, regionId: 'alola', level: 100, boost: 1.5, tier: 'pseudo' }, // Kommo-o
+  { speciesId: 772, regionId: 'alola', level: 60, boost: 1.2 }, // Type: Null
+  { speciesId: 785, regionId: 'alola', level: 100, boost: 1.55 }, // Tapu Koko
+  { speciesId: 786, regionId: 'alola', level: 100, boost: 1.55 }, // Tapu Lele
+  { speciesId: 787, regionId: 'alola', level: 100, boost: 1.55 }, // Tapu Bulu
+  { speciesId: 788, regionId: 'alola', level: 100, boost: 1.55 }, // Tapu Fini
+  { speciesId: 789, regionId: 'alola', level: 30, boost: 1 }, // Cosmog
+  { speciesId: 791, regionId: 'alola', level: 100, boost: 1.65 }, // Solgaleo
+  { speciesId: 792, regionId: 'alola', level: 100, boost: 1.65 }, // Lunala
+  { speciesId: 793, regionId: 'alola', level: 100, boost: 1.5 }, // Nihilego
+  { speciesId: 794, regionId: 'alola', level: 100, boost: 1.5 }, // Buzzwole
+  { speciesId: 795, regionId: 'alola', level: 100, boost: 1.5 }, // Pheromosa
+  { speciesId: 796, regionId: 'alola', level: 100, boost: 1.5 }, // Xurkitree
+  { speciesId: 797, regionId: 'alola', level: 100, boost: 1.5 }, // Celesteela
+  { speciesId: 798, regionId: 'alola', level: 100, boost: 1.5 }, // Kartana
+  { speciesId: 799, regionId: 'alola', level: 100, boost: 1.5 }, // Guzzlord
+  { speciesId: 803, regionId: 'alola', level: 30, boost: 1 }, // Poipole
+  { speciesId: 805, regionId: 'alola', level: 100, boost: 1.5 }, // Stakataka
+  { speciesId: 806, regionId: 'alola', level: 100, boost: 1.5 }, // Blacephalon
+  { speciesId: 800, regionId: 'alola', level: 100, boost: 1.7 }, // Necrozma
+  { speciesId: 801, regionId: 'alola', level: 100, boost: 1.5 }, // Magearna
+  { speciesId: 802, regionId: 'alola', level: 100, boost: 1.55 }, // Marshadow
+  { speciesId: 807, regionId: 'alola', level: 100, boost: 1.55 }, // Zeraora
+  { speciesId: 808, regionId: 'alola', level: 25, boost: 1 }, // Meltan
 ];
 
 type LegendWeather = 'clear' | 'sun' | 'rain' | 'sand' | 'fog' | 'hail';
@@ -403,6 +430,15 @@ export const LEGEND_WHEN: Record<number, { weather?: LegendWeather[]; period?: (
   645: { weather: ['sand', 'sun'] }, // Landorus
   717: { period: ['night'] }, // Yveltal
   716: { period: ['day'] }, // Xerneas
+  785: { weather: ['rain', 'clear'] }, // Tapu Koko (campo elétrico)
+  786: { weather: ['fog', 'clear'] }, // Tapu Lele (campo psíquico)
+  787: { weather: ['sun', 'clear'] }, // Tapu Bulu (campo de grama)
+  788: { weather: ['rain', 'fog'] }, // Tapu Fini (campo de névoa)
+  791: { weather: ['sun', 'clear'], period: ['day'] }, // Solgaleo
+  792: { period: ['night'] }, // Lunala
+  800: { weather: ['clear'], period: ['night'] }, // Necrozma: só no céu limpo, quando a luz some
+  802: { period: ['night'] }, // Marshadow, nas sombras
+  807: { weather: ['rain'] }, // Zeraora, nas tempestades
 };
 
 /**

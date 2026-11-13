@@ -6,7 +6,8 @@ import spriteFeetJson from './generated/sprite-feet.json';
 import type { Encounter, Evolution, Gender, ItemData, Move, Region, Route, Species, TypeName } from './types';
 import { BALANCE, DEPT_STORE, EVOLUTION_ITEM_SHOP, SHOP, type ShopEntry } from './balance';
 import { BERRIES } from './activities';
-import { SPECIES_ABILITIES, TYPE_ABILITIES, type AbilityTriple } from './abilities';
+import { ABILITY_STAND_IN, SPECIES_ABILITIES, TYPE_ABILITIES, hasAbility, type AbilityTriple } from './abilities';
+import { REGIONAL_EVOLUTIONS, regionalOf } from './regional';
 import { HELD_ITEMS, TRAINING_ITEMS, extraItemData } from './helditems';
 import { FOSSILS, REGIONS, ROUTES } from './routes';
 import { RODS, WATER_ITEMS, WATER_SPOTS, type Rod, type WaterMode } from './water';
@@ -33,6 +34,7 @@ export {
 export { BALANCE, DEPT_STORE, SHOP, type ShopEntry } from './balance';
 export * from './meta';
 export * from './megas';
+export * from './regional';
 export * from './supportMoves';
 export * from './heights';
 export * from './activities';
@@ -222,8 +224,44 @@ export function lineRoot(speciesId: number): number {
   return id;
 }
 
+const formSpecies = new Map<string, Species>();
+
+/**
+ * A espécie como esta forma é: a forma regional (Raichu de Alola) troca tipos, atributos, golpes e sprites; as outras
+ * formas (Unown, Megas, que valem só em batalha) ficam com a espécie.
+ */
+export function speciesOf(speciesId: number, form?: string): Species {
+  const regional = regionalOf(speciesId, form);
+  if (!regional) return getSpecies(speciesId);
+  const key = `${speciesId}-${regional.form}`;
+  let s = formSpecies.get(key);
+  if (!s) {
+    const base = getSpecies(speciesId);
+    s = {
+      ...base,
+      regionalForm: regional.form,
+      types: regional.types,
+      baseStats: regional.baseStats,
+      learnset: regional.learnset,
+      tmMoves: regional.tmMoves,
+      evolutions: REGIONAL_EVOLUTIONS[key] ?? base.evolutions,
+      sprites: { ...base.sprites, ...regional.sprites },
+      ...(regional.spriteSize ? { spriteSize: regional.spriteSize } : {}),
+    };
+    formSpecies.set(key, s);
+  }
+  return s;
+}
+
 /** Habilidades da espécie: a própria entrada, a da pré-evolução mais próxima ou o padrão do tipo. */
-export function abilitiesOf(speciesId: number): AbilityTriple {
+export function abilitiesOf(speciesId: number, form?: string): AbilityTriple {
+  const regional = regionalOf(speciesId, form);
+  if (regional) {
+    const fix = (a: string | null | undefined) =>
+      a ? (hasAbility(a) ? a : ABILITY_STAND_IN[a]) : undefined;
+    const [first, second, hidden] = regional.abilities.map(fix);
+    return [first ?? TYPE_ABILITIES[regional.types[0]][0], second, hidden];
+  }
   for (let id = speciesId, guard = 0; guard < 4; guard++) {
     const entry = SPECIES_ABILITIES[getSpecies(id).slug];
     if (entry) return entry;

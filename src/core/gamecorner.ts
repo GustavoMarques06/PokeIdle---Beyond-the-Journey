@@ -70,7 +70,11 @@ export function spinSlots(state: GameState, events: GameEvent[] = [], mult = 1):
 /** As 13 cartas, do 1 ao 13, cada uma com um Pokémon. */
 export const HILO_CARDS = [129, 19, 16, 10, 52, 25, 54, 39, 133, 63, 147, 143, 149];
 export const HILO_ENTRY = 5;
-const HILO_GROWTH = 1.7;
+/**
+ * Crescimento do pote por acerto. Medido (13/11) com o palpite certo sempre na carta mais provável: ×1,7 dava +553%
+ * por partida e fichas sem fim; ×1,3 dá uns +10% para quem sabe a hora de parar e −8% para quem para no 3º acerto.
+ */
+const HILO_GROWTH = 1.3;
 /** Sequência máxima: aí o prêmio sai sozinho. */
 export const HILO_MAX = 8;
 

@@ -17,6 +17,7 @@ import {
   assetUrl,
   formSet,
   formSprite,
+  speciesOf,
   getItem,
   getMove,
   getRoute,
@@ -59,6 +60,7 @@ import {
   TrainerImage,
   TrainerSprite,
   TypeBadge,
+  isStillSprite,
 } from '../components/common';
 import { raidAllies, raidBreakers } from '../../core/raids';
 import { genderOf } from '../../core/gender';
@@ -99,8 +101,8 @@ interface Floater {
 
 /** Sigla de status ao lado do nome (QMD, ENV, PAR, DRM, CGL), como nas caixas do GBA. */
 /** Tipos do inimigo e os golpes que o atingem forte: ajuda a escolher o golpe (e o Pokémon) certo. */
-function MatchupRow({ speciesId }: { speciesId: number }) {
-  const types = getSpecies(speciesId).types;
+function MatchupRow({ speciesId, form }: { speciesId: number; form?: string }) {
+  const types = speciesOf(speciesId, form).types;
   const { weak, resist } = matchupOf(types);
   const name = (t: string) => TYPE_NAMES[t] ?? t;
   const text = (list: [string, number][], sign: string) =>
@@ -304,7 +306,7 @@ function BattleSprite({
       >
         {src && settledSrc !== src && <span className="sprite-loading" aria-hidden />}
         <SpriteImage
-          className="sprite"
+          className={`sprite ${isStillSprite(src) ? 'sprite-still' : ''}`}
           src={assetUrl(src)}
           alt={getSpecies(speciesId).name}
           priority="high"
@@ -1151,7 +1153,7 @@ export function BattleScene({ state }: { state: GameState }) {
             )}
             <HpBar value={heldEnemy ?? (enemy ? foe.hp : 0)} max={foe.maxHp} />
           </div>
-          <MatchupRow speciesId={foe.speciesId} />
+          <MatchupRow speciesId={foe.speciesId} form={foe.form} />
         </div>
       )}
 

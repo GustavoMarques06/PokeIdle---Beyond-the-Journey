@@ -1,6 +1,6 @@
 // Formas alternativas: sorteio ao aparecer, forma do Castform pelo clima e a coleção.
 
-import { SEASONS, formSet, type Season } from '../game-data';
+import { SEASONS, formSet, regionalFormIn, type Season } from '../game-data';
 import type { Weather } from './env';
 import type { Rng } from './rng';
 import type { GameState } from './state';
@@ -10,8 +10,11 @@ export function seasonAt(now: number): Season {
   return SEASONS[new Date(now).getMonth() % 4];
 }
 
-/** Forma de um Pokémon que acabou de aparecer ou nascer (undefined = sem formas). */
-export function rollForm(speciesId: number, rng: Rng, now: number): string | undefined {
+/**
+ * Forma de um Pokémon que acabou de aparecer ou nascer (undefined = sem formas). `regionId` é a região onde ele
+ * apareceu: lá, as espécies com forma regional vêm nela (Rattata em Alola é o de Alola).
+ */
+export function rollForm(speciesId: number, rng: Rng, now: number, regionId?: string): string | undefined {
   const set = formSet(speciesId);
   if (!set) return undefined;
   switch (set.rule) {
@@ -22,6 +25,8 @@ export function rollForm(speciesId: number, rng: Rng, now: number): string | und
       return seasonAt(now);
     case 'weather':
       return 'normal';
+    case 'regional':
+      return regionalFormIn(speciesId, regionId) ?? 'normal';
   }
 }
 

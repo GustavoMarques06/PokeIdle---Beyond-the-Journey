@@ -8,6 +8,7 @@ export const REGION_LEGENDS = [
   { regionId: 'sinnoh', id: 483, color: '#4868c0' },
   { regionId: 'unova', id: 643, color: '#e07028' },
   { regionId: 'kalos', id: 716, color: '#2898b0' },
+  { regionId: 'alola', id: 791, color: '#e89020' },
 ] as const;
 
 export const legendOf = (regionId: string) => REGION_LEGENDS.find((l) => l.regionId === regionId);

@@ -11,7 +11,7 @@ import {
   SPECIES,
   TM_POOL,
   getMove,
-  getSpecies,
+  speciesOf,
   hasMove,
   type Route,
 } from '../game-data';
@@ -132,8 +132,8 @@ export function buyTm(state: GameState, move: string): boolean {
 }
 
 /** Pode aprender o TM: a espécie aprende o golpe e o jogador já liberou o TM. */
-export function canLearnTm(state: GameState, speciesId: number, move: string): boolean {
-  return state.tms.includes(move) && getSpecies(speciesId).tmMoves.includes(move);
+export function canLearnTm(state: GameState, speciesId: number, move: string, form?: string): boolean {
+  return state.tms.includes(move) && speciesOf(speciesId, form).tmMoves.includes(move);
 }
 
 /**
@@ -142,7 +142,7 @@ export function canLearnTm(state: GameState, speciesId: number, move: string): b
  */
 export function teachTm(state: GameState, uid: number, move: string, replace?: string): boolean {
   const p = findPokemon(state, uid);
-  if (!p || !canLearnTm(state, p.speciesId, move)) return false;
+  if (!p || !canLearnTm(state, p.speciesId, move, p.form)) return false;
   const current = movesOf(p);
   if (current.includes(move)) return false;
   let next: string[];

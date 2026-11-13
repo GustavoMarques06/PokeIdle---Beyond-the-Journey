@@ -3,8 +3,9 @@
 // Sprites em public/sprites/pokemon/forms/<pasta>/<id>-<forma>.gif (PokéAPI, Black/White).
 
 import { isMegaForm } from './megas';
+import { REGIONAL_FORMS, REGIONAL_FORM_NAMES, regionalOf } from './regional';
 
-export type FormRule = 'random' | 'season' | 'weather' | 'pattern';
+export type FormRule = 'random' | 'season' | 'weather' | 'pattern' | 'regional';
 
 export interface FormSet {
   speciesId: number;
@@ -58,6 +59,17 @@ export const FORM_SETS: FormSet[] = [
   },
 ];
 
+// Formas regionais: a normal e a de cada região (na coleção da Pokédex, como as letras do Unown).
+for (const id of [...new Set(REGIONAL_FORMS.map((r) => r.speciesId))]) {
+  const forms = REGIONAL_FORMS.filter((r) => r.speciesId === id).map((r) => r.form);
+  FORM_SETS.push({
+    speciesId: id,
+    rule: 'regional',
+    forms: ['normal', ...forms],
+    names: { normal: 'Normal', ...Object.fromEntries(forms.map((f) => [f, REGIONAL_FORM_NAMES[f] ?? f])) },
+  });
+}
+
 const bySpecies = new Map(FORM_SETS.map((f) => [f.speciesId, f]));
 
 export function formSet(speciesId: number): FormSet | undefined {
@@ -78,6 +90,11 @@ export function formSprite(
   shiny = false,
 ): string | undefined {
   if (!hasFormSprite(speciesId, form)) return undefined;
+  const regional = regionalOf(speciesId, form);
+  if (regional) {
+    const key = kind === 'front' ? (shiny ? 'frontShiny' : 'front') : shiny ? 'backShiny' : 'back';
+    return regional.sprites[key] ?? regional.sprites[kind];
+  }
   return `sprites/pokemon/forms/${kind}${shiny ? '-shiny' : ''}/${speciesId}-${form}.gif`;
 }
 

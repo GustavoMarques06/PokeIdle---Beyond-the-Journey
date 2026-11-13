@@ -204,7 +204,7 @@ export function UpgradesScreen({ state }: { state: GameState }) {
               jornada: +{formatPercent(challengeBonus(state))} de pontos.
             </p>
             {state.challenge === 'nuzlocke' && state.nuzlocke && (
-              <p className="hint">
+              <p className="hint alert">
                 Áreas com captura usada: {state.nuzlocke.routes.length} · fora da jornada:{' '}
                 {state.nuzlocke.fallen.length}
                 {state.nuzlocke.fallen.length > 0 && (

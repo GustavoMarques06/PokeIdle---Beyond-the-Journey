@@ -78,8 +78,7 @@ amigos), `hunt.ts`/`bonuses.ts` (Amuleto Brilhante), `legendary.ts` (`sightings`
 Menor, mural), `link.ts` (histórico, replay, `state.duelSeason`). Testes em `core/vida.test.ts`; prints conferidas.
 - **Não deu para ver em print:** a entrada do Cérebro da Torre (o jogo reinicia a batalha ao carregar o save; a regra
   está no teste) e a animação de chegada da troca por código.
-- **Falta medir:** Maior ou Menor (pote ×1,7 por acerto, até 8) e os aliados da raide (2,5% do HP do chefe a cada 7 s
-  por amigo, metade com escudo).
+- **Medido em 13/11:** ver Alola / 7ª geração em Outros.
 
 **Arte nova (11/11):** 28 sprites de classe de treinador do Pokémon Showdown em `public/sprites/trainers/class-*.png`
 (estilo da 3ª geração; nadador, ciclista, operário e veterana da 4ª), também listados em `UI_TRAINERS` de
@@ -167,6 +166,19 @@ lotes 5…10. Cortados em `art/maps/novos/cortes/` e comparados com os atuais nu
   Lanczos e reduzidas a 96 cores. Gerar de novo em 2048×1365 deixaria mais nítido.
 
 ## Outros
+
+- **Alola / 7ª geração (13/11):** região depois de Kalos (`alola` em `scripts/world.mjs`), 88 espécies (MAX_ID 809),
+  lendários em `game-data/activities.ts`, capítulos `alola-mid` e `alola-end`. **Mapa:** arte oficial de Ultra Sun/Ultra Moon
+  (Bulbapedia, 1280 × 905). **Formas de Alola** (`game-data/regional.ts`, `speciesOf`): 18,
+  com tipos, atributos, golpes, habilidades e sprites animados próprios; aparecem nas rotas de Alola (`rollForm` com a
+  região), passam pelo ovo e pela evolução. **Habilidades da 7ª geração:** as que o combate consegue fazer entraram
+  (`abilities.ts`); as sem equivalente usam a mais próxima (`ABILITY_STAND_IN`). **Falta:** golpes Z (fora de propósito
+  no combate automático) e as formas de outras gerações (Galar etc., que não estão no jogo).
+- **Medido em 13/11:** Maior ou Menor dava +553% por partida jogando bem (pote ×1,7); com ×1,3 fica +10% (ótimo) e −8%
+  parando no 3º acerto. Aliados da raide: −10 a −28% no tempo, quase sem mudar a chance de vitória (sem ajuste;
+  `raidOutcome(..., allies)` em `core/balance-report.ts`). Alola com um time de nível 100: ~16–21 h (Kalos ~8,5 h), todos
+  os chefes de primeira, menos a Hapu às vezes.
+- **Sprites PNG (6ª e 7ª gerações sem animação):** agora entram em `sprite-feet.json` (antes só GIF).
 
 - **Ícone e logo em baixa resolução:** prompts prontos em `art/maps/PROMPTS-cenarios-v2.md` (logo 2000 × 800 e
   ícone 1024 × 1024). Depois de gerar, trocar em `public/icons/`, `public/brand/logo.png` e `src-tauri/icons/`.

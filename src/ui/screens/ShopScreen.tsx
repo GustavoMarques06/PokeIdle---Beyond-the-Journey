@@ -744,7 +744,7 @@ function Mart({ state, income, query }: { state: GameState; income: number; quer
   return (
     <Window frame="menu" className="shop-window">
       {state.challenge === 'frugal' && (
-        <p className="hint">Desafio “Mochila vazia”: o Poké Mart não vende Poké Balls nesta jornada.</p>
+        <p className="hint alert">Desafio “Mochila vazia”: o Poké Mart não vende Poké Balls nesta jornada.</p>
       )}
       {!searching && aisles.length > 1 && <AisleSigns aisles={aisles} current={current} onPick={setGroup} />}
       {products.length === 0 && lockedShown.length === 0 && (
@@ -845,7 +845,7 @@ function DeptStore({ state, income, query }: { state: GameState; income: number;
         </div>
       ) : null}
       {state.challenge === 'frugal' && (
-        <p className="hint">Desafio “Mochila vazia”: só a Master Ball continua à venda entre as bolas.</p>
+        <p className="hint alert">Desafio “Mochila vazia”: só a Master Ball continua à venda entre as bolas.</p>
       )}
       {!searching && <AisleSigns aisles={aisles} current={openSection} onPick={setSection} />}
       {searching && !items.length && !tms.length && (

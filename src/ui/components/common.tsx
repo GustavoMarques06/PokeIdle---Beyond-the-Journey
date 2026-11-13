@@ -67,12 +67,18 @@ export function PokemonSprite({
   return (
     <SpriteImage
       style={size ? { width: size[0] * pixelScale!, height: size[1] * pixelScale! } : undefined}
-      className={`sprite sprite-${kind} ${size ? 'pixel-scaled' : ''} ${silhouette ? 'silhouette' : ''} ${className}`}
+      className={`sprite sprite-${kind} ${kind !== 'icon' && isStillSprite(path) ? 'sprite-still' : ''} ${size ? 'pixel-scaled' : ''} ${silhouette ? 'silhouette' : ''} ${className}`}
       src={src}
       alt={silhouette ? '???' : getSpecies(speciesId).name}
     />
   );
 }
+
+/**
+ * Sprite sem animação (PNG: parte da 6ª e da 7ª geração não tem versão animada em lugar nenhum). Ganha no CSS uma
+ * animação de 4 quadros feita pelo jogo (respirar e balançar), para não parecer congelado ao lado dos GIFs.
+ */
+export const isStillSprite = (path: string | undefined) => !!path && path.endsWith('.png');
 
 /**
  * Sprite de Pokémon. São GIFs animados, de até 271 quadros, e o navegador decodifica e redesenha cada um o tempo todo; no

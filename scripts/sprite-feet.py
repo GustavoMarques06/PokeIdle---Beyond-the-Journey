@@ -57,7 +57,8 @@ result = {}
 for kind in ('front', 'back'):
     # Espécies (chave "201") e formas alternativas (chave "201-b", em pokemon/forms/).
     for folder in (SPRITES / kind, SPRITES / 'forms' / kind):
-        for f in folder.glob('*.gif'):
+        # GIFs animados e os PNGs estáticos (6ª e 7ª gerações sem animação).
+        for f in [*folder.glob('*.gif'), *folder.glob('*.png')]:
             v = feet(f)
             if v:
                 result.setdefault(f.stem, {})[kind] = v

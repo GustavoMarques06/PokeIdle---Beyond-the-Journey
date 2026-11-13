@@ -265,6 +265,9 @@ export const T = {
     650: 'Chespin é curioso e corajoso; os espinhos da cabeça endurecem quando ele se defende.',
     653: 'Fennekin mastiga gravetos para ganhar energia, e as orelhas soltam um calor enorme.',
     656: 'Froakie se protege com bolhas que parecem espuma. Está sempre alerta!',
+    722: 'Rowlet voa sem fazer barulho e ataca de surpresa com folhas afiadas.',
+    725: 'Litten é orgulhoso e não gosta de carinho, mas protege quem conquista a sua confiança.',
+    728: 'Popplio faz bolhas de água com o nariz e treina acrobacias até acertar.',
   } as Record<number, string>,
   /** Falas do Prof. Carvalho ao chegar a cada região (Kanto é o prólogo). */
   professor: {
@@ -279,9 +282,11 @@ export const T = {
         `${n}, Unova fica longe daqui: cidades enormes, pontes gigantes e espécies completamente diferentes. É quase como começar de novo, mas desta vez com toda a sua experiência.`,
       kalos: (n: string) =>
         `${n}… você foi mais longe do que qualquer treinador que conheci. Kalos é o maior desafio de todos: selvagens no nível 100 e líderes reforçados. Daqui para a frente, é além da jornada!`,
+      alola: (n: string) =>
+        `${n}, um velho amigo meu, o Prof. Kukui, chamou você para Alola: quatro ilhas, provas no lugar de ginásios e Pokémon que só existem lá. E o céu de lá anda se abrindo em fendas… Leve protetor solar!`,
     } as Record<string, (name: string) => string>,
     finale: (n: string) =>
-      `A Liga de Kalos é sua! ${n}, você viu o mundo inteiro ao lado dos seus Pokémon. Mas uma jornada assim não termina: há uma Pokédex para completar, shinies para encontrar e uma nova jornada esperando quando você quiser recomeçar.`,
+      `A Liga de Alola é sua! ${n}, você viu o mundo inteiro ao lado dos seus Pokémon. Mas uma jornada assim não termina: há uma Pokédex para completar, shinies para encontrar e uma nova jornada esperando quando você quiser recomeçar.`,
   },
   offline: {
     title: 'Bem-vindo de volta!',
@@ -635,6 +640,7 @@ export const REGION_NAMES: Record<string, string> = {
   sinnoh: 'Sinnoh',
   unova: 'Unova',
   kalos: 'Kalos',
+  alola: 'Alola',
 };
 
 export const WEATHER_NAMES: Record<string, string> = {

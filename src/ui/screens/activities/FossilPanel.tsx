@@ -351,7 +351,7 @@ function DigSite({ state }: { state: GameState }) {
                 <p>Nada inteiro dessa vez… Os tesouros precisam estar totalmente descobertos.</p>
               )}
               {result.missed > 0 && (
-                <p className="hint">{result.missed} tesouro(s) ficaram presos na rocha.</p>
+                <p className="hint alert">{result.missed} tesouro(s) ficaram presos na rocha.</p>
               )}
               <button className="pbtn primary" onClick={() => setResult(null)} autoFocus>
                 OK

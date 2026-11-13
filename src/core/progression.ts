@@ -1,4 +1,13 @@
-import { BALANCE, getSpecies, type Evolution, type TimeOfDay } from '../game-data';
+import {
+  BALANCE,
+  getSpecies,
+  hasRegionalForms,
+  regionalFormIn,
+  regionalOf,
+  speciesOf,
+  type Evolution,
+  type TimeOfDay,
+} from '../game-data';
 import { genderOf } from './gender';
 import { friendshipOf, heldOf, knownMoves, statsOf, type PokemonInstance } from './pokemon';
 import { expForLevel, levelFromExp } from './stats';
@@ -54,7 +63,7 @@ export function levelEvolution(
   period: TimeOfDay = 'day',
 ): Extract<Evolution, { trigger: 'level' }> | undefined {
   if (evolutionBlocked(p)) return undefined;
-  return getSpecies(p.speciesId).evolutions.find(
+  return speciesOf(p.speciesId, p.form).evolutions.find(
     (e): e is Extract<Evolution, { trigger: 'level' }> =>
       e.trigger === 'level' &&
       p.level >= e.minLevel &&
@@ -70,7 +79,7 @@ export function friendshipEvolution(
 ): Extract<Evolution, { trigger: 'friendship' }> | undefined {
   if (evolutionBlocked(p)) return undefined;
   const friendship = friendshipOf(p);
-  return getSpecies(p.speciesId).evolutions.find(
+  return speciesOf(p.speciesId, p.form).evolutions.find(
     (e): e is Extract<Evolution, { trigger: 'friendship' }> =>
       e.trigger === 'friendship' &&
       friendship >= e.minFriendship &&
@@ -101,23 +110,30 @@ export function itemEvolution(
   item: string,
   period: TimeOfDay = 'day',
 ): number | undefined {
-  return getSpecies(p.speciesId).evolutions.find(
+  return speciesOf(p.speciesId, p.form).evolutions.find(
     (e) => e.trigger === 'item' && e.item === item && timeMatches(e, period) && genderMatches(e, p),
   )?.to;
 }
 
 /** Itens que fazem a espécie evoluir (em qualquer período), para a Mochila. */
-export function evolutionItemsOf(speciesId: number): { item: string; time?: TimeOfDay }[] {
-  return getSpecies(speciesId).evolutions.flatMap((e) =>
+export function evolutionItemsOf(speciesId: number, form?: string): { item: string; time?: TimeOfDay }[] {
+  return speciesOf(speciesId, form).evolutions.flatMap((e) =>
     e.trigger === 'item' ? [{ item: e.item, time: e.time }] : [],
   );
 }
 
-/** Troca a espécie mantendo nível, IVs e a proporção de HP. */
-export function evolve(p: PokemonInstance, to: number): void {
+/**
+ * Troca a espécie mantendo nível, IVs e a proporção de HP. A forma regional passa adiante (Vulpix de Alola vira
+ * Ninetales de Alola); quem não tem forma e evolui na região dela (`regionId`) pega a de lá, como o Pikachu que
+ * vira Raichu de Alola com a Pedra Trovão em Alola.
+ */
+export function evolve(p: PokemonInstance, to: number, regionId?: string): void {
   const before = statsOf(p).hp;
   const ratio = before > 0 ? p.currentHp / before : 1;
+  const from = p.speciesId;
   p.speciesId = to;
+  if (regionalOf(from, p.form)) p.form = regionalOf(to, p.form) ? p.form : undefined;
+  else if (hasRegionalForms(to)) p.form = regionalFormIn(to, regionId) ?? 'normal';
   p.pendingEvolution = undefined;
   // Curvas de EXP podem mudar entre estágios; recalcula o mínimo do nível atual.
   p.exp = Math.max(p.exp, expForLevel(getSpecies(to).growthRate, p.level));

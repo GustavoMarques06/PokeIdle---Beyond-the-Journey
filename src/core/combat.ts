@@ -3,7 +3,7 @@ import {
   getAbility,
   getHeldItem,
   getMove,
-  getSpecies,
+  speciesOf,
   hasAbility,
   megaOfForm,
   typeEffectiveness,
@@ -56,7 +56,8 @@ export interface CombatantSource {
 }
 
 export function combatantOf(p: CombatantSource, moveBoost?: Record<TypeName, number>): Combatant {
-  const species = getSpecies(p.speciesId);
+  // A forma regional (Raichu de Alola) é outra ficha: tipos, atributos, golpes e habilidades dela.
+  const species = speciesOf(p.speciesId, p.form);
   const mega = megaOfForm(p.speciesId, p.megaForm ?? p.form);
   // A Mega traz a habilidade própria; fora dela vale a da espécie.
   const ability =
@@ -65,6 +66,7 @@ export function combatantOf(p: CombatantSource, moveBoost?: Record<TypeName, num
       : abilityInSlot(
           p.speciesId,
           p.uid !== undefined ? abilitySlotOf({ ...p, uid: p.uid }) : (p.abilitySlot ?? 0),
+          p.form,
         );
   const held = getHeldItem(p.held);
   const base = calcStats(

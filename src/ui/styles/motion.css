@@ -398,3 +398,68 @@ html.gfx-performance :is(.proj, .trainer-throw, .scene-life) {
 html.reduced-motion :is(.party-icon, .pcs-team-mon .sprite, .bc-party-list .sprite) {
   animation: none;
 }
+
+/* --- Sprites sem animação ---------------------------------------------------------------------
+   Parte da 6ª e da 7ª geração só existe em PNG parado. Para não parecer congelado ao lado dos GIFs, o jogo anima:
+   4 quadros (sobe, assenta, achata, estica) com a base fixa nos pés, no lugar do balanço de 1 pixel. Fica de fora
+   no modo Desempenho (lá todo sprite é parado) e com movimento reduzido. */
+@keyframes still-breathe {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(calc(var(--u) * -1));
+  }
+  50% {
+    transform: scale(1.03, 0.97);
+  }
+  75% {
+    transform: scale(0.98, 1.03);
+  }
+}
+
+/* Fora da batalha não há a unidade da cena: o salto é uma fração do próprio sprite. */
+@keyframes still-breathe-ui {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(-2%);
+  }
+  50% {
+    transform: scale(1.03, 0.97);
+  }
+  75% {
+    transform: scale(0.98, 1.03);
+  }
+}
+
+html:not(.gfx-performance):not(.reduced-motion) :where(.sprite-still) {
+  transform-origin: 50% 100%;
+  animation: still-breathe-ui 1.6s steps(1, end) infinite;
+}
+
+html:not(.gfx-performance):not(.reduced-motion) .idle-a .sprite.sprite-still {
+  transform-origin: 50% 100%;
+  animation:
+    enter 0.42s steps(4, end),
+    still-breathe 1.6s steps(1, end) 0.42s infinite;
+}
+
+html:not(.gfx-performance):not(.reduced-motion) .idle-b .sprite.sprite-still {
+  transform-origin: 50% 100%;
+  animation: still-breathe 1.6s steps(1, end) 0.55s infinite;
+}
+
+html:not(.gfx-performance):not(.reduced-motion) .battle-mon.sending-out .sprite.sprite-still {
+  animation:
+    sendout-grow 0.55s steps(6, end) 0.4s both,
+    still-breathe 1.6s steps(1, end) 1s infinite;
+}
+
+/* Desmaio vence o balanço (a regra acima é mais específica que a do desmaio comum). */
+html:not(.gfx-performance):not(.reduced-motion) .battle-mon.fainted .sprite.sprite-still {
+  animation: faint 0.5s steps(5, end) forwards;
+}

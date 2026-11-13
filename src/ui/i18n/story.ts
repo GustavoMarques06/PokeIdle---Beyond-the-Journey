@@ -12,6 +12,8 @@ export interface StoryCtx {
   p: string;
   /** Quantas jornadas já recomeçaram. */
   loops: number;
+  /** A escolha do final, depois de Kalos: quebrar o laço ou seguir viajando. */
+  choice?: 'break' | 'loop';
 }
 
 export interface StoryLine {
@@ -32,6 +34,18 @@ const L = (who: Speaker, text: (c: StoryCtx) => string): StoryLine => ({ who, te
 
 export const CHAPTER_TITLES: Record<string, string> = {
   start: 'O primeiro dia',
+  'johto-arrive': 'Do outro lado das montanhas',
+  'hoenn-arrive': 'Mar e fumaça',
+  'sinnoh-arrive': 'Neve fora de época',
+  'unova-arrive': 'A cidade que não dorme',
+  'kalos-arrive': 'A torre de luz',
+  'alola-arrive': 'Uma rachadura no azul',
+  'loop-3': 'Página em branco',
+  'diary-evolve': 'Mudar sem deixar de ser',
+  'diary-hatch': 'O ovo que se mexia',
+  'diary-shiny': 'Uma cor diferente',
+  'diary-legend': 'Uma lenda na equipe',
+  'diary-dex100': 'Cem nomes',
   'kanto-mid': 'Um bilhete na grama',
   'kanto-end': 'O céu reclama',
   'johto-mid': 'A torre que queimou duas vezes',
@@ -44,6 +58,8 @@ export const CHAPTER_TITLES: Record<string, string> = {
   'unova-end': 'Eu sou você',
   'kalos-mid': 'Vida e destruição',
   finale: 'Além da jornada',
+  'alola-mid': 'Fendas no céu',
+  'alola-end': 'A luz que faltava',
   'loop-1': 'Desta vez, eu lembro',
   'loop-2': 'O laço aperta',
 };
@@ -54,6 +70,43 @@ export const STORY: Record<string, StoryLine[]> = {
     L('diary', () => 'Uma coisa estranha: à tarde caiu granizo. Em pleno verão. O Professor ficou olhando para o céu por um tempão.'),
     L('oak', (c) => `${c.n}, o clima anda esquisito em todo lugar. Chuva que não para, sol que não se põe… Os mais velhos dizem que é o humor dos Pokémon lendários. Fique de olho, está bem?`),
     L('diary', () => 'Vou escrever tudo aqui. Quando você sair para descansar, eu continuo treinando e conto depois.'),
+  ],
+  'johto-arrive': [
+    L('narrator', () => 'O trem atravessa as montanhas. Do outro lado, sinos de templo, folhas vermelhas e um cheiro de incenso no ar.'),
+    L('diary', () => 'Você comprou um mapa novo de Johto e eu sentei em cima dele. Desculpa. Estava quentinho.'),
+    L('vesper', (c) => `Região nova, mesma pergunta, ${c.n}: quem manda no céu? Aqui, as aves lendárias ainda escolhem sozinhas. Por enquanto.`),
+  ],
+  'hoenn-arrive': [
+    L('narrator', () => 'O barco chega a Hoenn com o sol a pino. Ao longe, um vulcão solta fumaça, e o mar está quente demais para a estação.'),
+    L('ghost', (c) => `${c.n}. Da outra vez, eu cheguei atrasado a Hoenn. Desta vez você chegou cedo. Isso faz diferença.`),
+    L('diary', () => 'Ele falou com você como quem fala com um amigo antigo. Eu fiquei com ciúmes. Só um pouquinho.'),
+  ],
+  'sinnoh-arrive': [
+    L('narrator', () => 'Sinnoh recebe vocês com neve. Os três lagos estão quietos, como se escutassem.'),
+    L('vesper', (c) => `Eu nasci numa vila daqui, ${c.n}. Uma nevasca fora de época levou tudo numa noite só. Desde então, eu só quero um céu que avise antes.`),
+    L('oak', () => 'Dizem que o mundo começou em Sinnoh. Se for verdade, deve ser aqui também o jeito de consertá-lo.'),
+    L('diary', () => 'Hoje a Vesper contou da vila dela. Não muda o que ela faz. Mas agora eu entendo um pouco.'),
+  ],
+  'unova-arrive': [
+    L('narrator', () => 'Castelia é tão alta que o céu vira uma faixa estreita entre os prédios. Lá em cima, nuvens giram sem vento nenhum.'),
+    L('ghost', () => 'Foi em Unova que eu desisti, da outra vez. Não sei se tenho coragem de ver o que vem agora.'),
+    L('diary', () => 'Ninguém aqui conhece a gente. É bom: dá para começar de novo sem começar do zero.'),
+  ],
+  'kalos-arrive': [
+    L('narrator', () => 'Lumiose acende as luzes ao anoitecer. A Torre Prisma brilha… e, por um segundo, pisca em sete cores.'),
+    L('oak', (c) => `Selvagens no nível 100, ${c.n}. A partir daqui, nem eu sei o que esperar. E isso me deixa muito animado!`),
+    L('vesper', () => 'Kalos é a última carta da Eclipse. Se eu não posso dar um dono ao céu, que pelo menos ele pare de mudar.'),
+  ],
+  'alola-arrive': [
+    L('narrator', () => 'O avião pousa em Melemele. Colares de flores, cheiro de mar e um céu azul… com uma rachadura fina, como um fio de cabelo num vidro.'),
+    L('oak', () => 'O Prof. Kukui mandou dizer: "Woo! Aqui as provas são das ilhas, não dos ginásios!" Ele ri tão alto que eu tive de afastar o telefone.'),
+    L('diary', (c) =>
+      c.choice === 'break'
+        ? 'Desde que o Viajante descansou, o céu ficou só azul. Então por que tem uma rachadura bem aqui, em cima da gente?'
+        : c.choice === 'loop'
+          ? 'O Viajante veio junto, de capuz e tudo. Ele olha para a rachadura no céu como quem reconhece uma cicatriz antiga.'
+          : 'Tem uma rachadura no céu de Alola. Ninguém mais parece enxergar. Só a gente.',
+    ),
   ],
   'kanto-mid': [
     L('narrator', () => 'Depois da batalha, um papel dobrado aparece preso na grama, como se alguém tivesse deixado ali de propósito.'),
@@ -124,6 +177,23 @@ export const STORY: Record<string, StoryLine[]> = {
     L('ghost', () => 'Se você quebrar o laço, eu descanso, e as jornadas param de dar voltas. Se seguir viajando, eu fico. Cada nova jornada deixa a gente mais forte, mas sempre um pouco mais longe de casa.'),
     L('diary', () => 'Seja qual for a escolha, eu vou estar com você. Na primeira jornada, nesta, e em todas as outras.'),
   ],
+  'alola-mid': [
+    L('narrator', () => 'Em Alola, o céu racha como vidro. Das fendas caem criaturas que não são deste mundo: as Ultra Bestas.'),
+    L('vesper', (c) => `Não me olhe assim, ${c.n}. A Eclipse acabou. Eu vim porque as fendas abrem onde você pisa. Cada jornada que recomeça deixa o céu mais fino.`),
+    L('oak', (c) => `${c.n}, o Prof. Kukui me mandou fotos. As fendas são feitas de luz. Dizem que, do outro lado, vive um Pokémon que come luz: o Necrozma.`),
+    L('diary', () => 'A Vesper ajudou a gente hoje. Eu não sei se confio nela. Mas ela parecia com medo, e eu nunca tinha visto ela com medo.'),
+  ],
+  'alola-end': [
+    L('narrator', () => 'No alto do Monte Lanakila fica a Liga mais nova do mundo. Lá embaixo, as fendas se fecham uma a uma.'),
+    L('ghost', (c) =>
+      c.choice === 'loop'
+        ? `Eu disse que a gente se via na próxima volta, ${c.n}. Foi por uma fenda dessas que eu cheguei até você, na primeira vez.`
+        : `Achou que eu tinha ido embora, ${c.n}? Eu descansei. Mas um pedaço de mim fica onde a luz entra, e foi por uma fenda dessas que eu cheguei até você, na primeira vez.`,
+    ),
+    L('ghost', () => 'Solgaleo e Lunala abrem caminhos entre os mundos. Agora você também sabe o caminho de volta para casa.'),
+    L('vesper', () => 'Sem fendas, sem Ultra Bestas, sem céu domado. Talvez um céu com surpresas não seja tão ruim, afinal. A minha vila ia gostar deste céu.'),
+    L('diary', () => 'Hoje a gente viu o sol nascer do topo de Alola. Sem granizo, sem tempestade. Só sol. Esta página eu guardo para sempre.'),
+  ],
   'loop-1': [
     L('narrator', () => 'O mundo voltou ao começo. Mas alguma coisa ficou.'),
     L('diary', (c) => `${c.n}, eu lembro. Lembro da Torre Queimada, do mar fervendo, de você sem capuz no alto do dragão. Desta vez, a gente sabe o caminho.`),
@@ -132,6 +202,26 @@ export const STORY: Record<string, StoryLine[]> = {
   'loop-2': [
     L('ghost', (c) => `Mais uma volta, ${c.n}. O laço aperta, mas a gente também fica mais forte. ${c.p} já nem estranha o granizo de verão.`),
     L('diary', () => 'Escrevi esta página antes, em outra jornada. Mas a letra está mais firme agora.'),
+  ],
+  'loop-3': [
+    L('ghost', (c) => `Três voltas, ${c.n}. Eu já não sei direito onde termino eu e onde começa você.`),
+    L('vesper', () => 'Eu também lembro, sabia? Um pouco mais a cada volta. Talvez seja por isso que eu parei de querer um céu sem surpresas.'),
+    L('diary', () => 'Comecei um diário novo. As primeiras páginas eu já sei de cor, mas escrevi de novo assim mesmo.'),
+  ],
+  'diary-evolve': [
+    L('diary', () => 'Hoje alguém da equipe evoluiu. Ficou maior, mais forte… e ainda gosta das mesmas frutinhas. Mudar não é deixar de ser.'),
+  ],
+  'diary-hatch': [
+    L('diary', () => 'O ovo tremeu a manhã inteira. Quando rachou, o filhote olhou primeiro para mim, depois para você. Agora somos mais um.'),
+  ],
+  'diary-shiny': [
+    L('diary', () => 'Vimos um Pokémon de uma cor diferente, brilhando no sol. Você gritou tão alto que eu caí da pedra.'),
+  ],
+  'diary-legend': [
+    L('diary', () => 'Hoje uma lenda entrou para a equipe. Ela é enorme e fala pouco. Dei a ela a minha melhor frutinha, só por garantia.'),
+  ],
+  'diary-dex100': [
+    L('diary', () => 'A Pokédex chegou a cem espécies. Eu sei o nome de todas. Bom… de quase todas.'),
   ],
 };
 

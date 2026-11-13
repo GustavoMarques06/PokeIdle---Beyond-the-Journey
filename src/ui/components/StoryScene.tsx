@@ -12,6 +12,7 @@ import {
   chooseFinale,
   finaleChoice,
   markChapterSeen,
+  STORY_MIGRATION_2,
   migrateStory,
   pendingChapter,
   type FinaleChoice,
@@ -34,6 +35,7 @@ export function storyCtx(state: GameState): StoryCtx {
     n: state.trainerName.toUpperCase(),
     p: partner ? pokemonName(partner).toUpperCase() : 'PARCEIRO',
     loops: state.prestige.count,
+    choice: finaleChoice(state),
   };
 }
 
@@ -144,7 +146,7 @@ export function StoryScene({
 /** Abre sozinho o capítulo novo (e migra saves de antes da história). */
 export function StoryHost({ state }: { state: GameState }) {
   const engine = useEngine();
-  const migrated = state.flags.includes('story-v1');
+  const migrated = state.flags.includes(STORY_MIGRATION_2);
   useEffect(() => {
     if (!migrated) engine.dispatch((s) => migrateStory(s));
   }, [engine, migrated]);

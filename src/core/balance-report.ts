@@ -60,7 +60,7 @@ export interface RaidOutcome {
 type RaidEnd = 'win' | 'timeout' | 'faint';
 
 /** Uma raide contra um jogador (ativo + 2 reservas) `offset` níveis acima do máximo da rota. */
-function fightRaid(routeId: string, species: number, offset: number, seed: number) {
+function fightRaid(routeId: string, species: number, offset: number, seed: number, allies = 0) {
   const route = getRoute(routeId);
   const maxLevel = Math.max(...route.encounters.map((e) => e.maxLevel));
   const ivs = { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spe: 15 };
@@ -73,6 +73,15 @@ function fightRaid(routeId: string, species: number, offset: number, seed: numbe
     s.battleTeam.push(addToCollection(s, sp, maxLevel + offset, { ...ivs }, false, 0, 'sim').uid);
   }
   s.routes[routeId].unlocked = true;
+  // Amigos do Cabo Link (times recebidos): até dois ajudam na raide.
+  if (allies > 0)
+    (s as unknown as { link: { ghosts: unknown[] } }).link = {
+      ...s.link,
+      ghosts: Array.from({ length: allies }, (_, i) => ({
+        name: `AMIGO ${i + 1}`,
+        team: [{ speciesId: 25 }],
+      })),
+    };
   s.raid = { speciesId: 6, routeId, level: maxLevel + BALANCE.raid.levelBonus, until: 1e12 };
   challengeRaid(s);
   const rng = rngFrom(s);
@@ -87,11 +96,17 @@ function fightRaid(routeId: string, species: number, offset: number, seed: numbe
   return { end: 'timeout' as RaidEnd, ms: t };
 }
 
-export function raidOutcome(routeId: string, species: number, offset = 0, runs = 10): RaidOutcome {
+export function raidOutcome(
+  routeId: string,
+  species: number,
+  offset = 0,
+  runs = 10,
+  allies = 0,
+): RaidOutcome {
   const out: RaidOutcome = { wins: 0, timeouts: 0, faints: 0, avgSeconds: 0, runs };
   let total = 0;
   for (let seed = 1; seed <= runs; seed++) {
-    const r = fightRaid(routeId, species, offset, seed);
+    const r = fightRaid(routeId, species, offset, seed, allies);
     if (r.end === 'win') out.wins++;
     else if (r.end === 'timeout') out.timeouts++;
     else out.faints++;

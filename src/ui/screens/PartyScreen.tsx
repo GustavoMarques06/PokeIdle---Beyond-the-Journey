@@ -15,6 +15,7 @@ import {
   formName,
   getRoute,
   getSpecies,
+  speciesOf,
   isSupportMove,
   SUPPORT_MOVES,
   describeSupport,
@@ -221,7 +222,7 @@ function TeamPicker({
                   {p.shiny && <Shiny />}
                 </span>
                 <span className="team-picker-types">
-                  {getSpecies(p.speciesId).types.map((t) => (
+                  {speciesOf(p.speciesId, p.form).types.map((t) => (
                     <TypeBadge key={t} type={t} />
                   ))}
                 </span>
@@ -546,7 +547,7 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
   const p = useShownPokemon(real);
   const mvp = weeklyMvp(state, state.lastTimerAt);
   const engine = useEngine();
-  const species = getSpecies(p.speciesId);
+  const species = speciesOf(p.speciesId, p.form);
   const stats = statsOf(p);
   const moves = movesOf(p);
   const support = supportMoveFor(p);
@@ -615,7 +616,7 @@ export function Summary({ state, p: real }: { state: GameState; p: PokemonInstan
               </small>
             )}
           </dd>
-          {formName(p.speciesId, p.form) && (
+          {formName(p.speciesId, p.form) && p.form !== 'normal' && (
             <>
               <dt>FORMA</dt>
               <dd>{formName(p.speciesId, p.form)}</dd>

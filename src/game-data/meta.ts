@@ -561,6 +561,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     reward: { research: 100 },
   },
   {
+    id: 'champion-7',
+    tier: 'platinum',
+    name: 'Lenda de Alola',
+    description: 'Seja campeão nas sete regiões, incluindo Alola.',
+    goal: { kind: 'champions', n: 7 },
+    reward: { research: 140 },
+  },
+  {
     id: 'raids-1',
     tier: 'bronze',
     name: 'Caçador de gigantes',

@@ -217,7 +217,7 @@ function WeeklyTower({ state }: { state: GameState }) {
         )}
       </div>
       {blocker === 'type' && (
-        <p className="hint">
+        <p className="hint alert">
           Toda a equipe precisa ser do tipo {TYPE_NAMES[rule.type] ?? rule.type}. Troque a equipe na tela
           POKéMON.
         </p>

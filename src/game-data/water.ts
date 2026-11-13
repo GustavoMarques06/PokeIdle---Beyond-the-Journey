@@ -349,6 +349,57 @@ export const WATER_SPOTS: Record<string, WaterSpot> = {
       ['goomy', 10],
     ],
   },
+  // --- Alola ---
+  'alola-brooklet': {
+    fish: [
+      ['magikarp', 45, 'old-rod'],
+      ['goldeen', 30, 'old-rod'],
+      ['wishiwashi', 30, 'good-rod'],
+      ['dewpider', 20, 'good-rod'],
+      ['seaking', 10, 'super-rod'],
+      ['araquanid', 4, 'super-rod'],
+    ],
+    surf: [
+      ['psyduck', 40],
+      ['wingull', 30],
+      ['dewpider', 20],
+      ['golduck', 6],
+    ],
+  },
+  'alola-konikoni': {
+    fish: [
+      ['magikarp', 45, 'old-rod'],
+      ['wishiwashi', 30, 'old-rod'],
+      ['mareanie', 25, 'good-rod'],
+      ['bruxish', 15, 'good-rod'],
+      ['wailmer', 15, 'super-rod'],
+      ['dhelmise', 3, 'super-rod'],
+    ],
+    surf: [
+      ['tentacool', 40],
+      ['wingull', 30],
+      ['pelipper', 15],
+      ['mantine', 8],
+      ['lapras', 3],
+    ],
+  },
+  'alola-poni': {
+    fish: [
+      ['magikarp', 40, 'old-rod'],
+      ['luvdisc', 30, 'old-rod'],
+      ['pyukumuku', 25, 'good-rod'],
+      ['corsola', 15, 'good-rod'],
+      ['gyarados', 10, 'super-rod'],
+      ['toxapex', 4, 'super-rod'],
+    ],
+    surf: [
+      ['tentacool', 35],
+      ['finneon', 30],
+      ['wailmer', 20],
+      ['lumineon', 10],
+      ['wailord', 3],
+    ],
+  },
 };
 
 /** Nome e imagem das varas e da HM (as varas e o Surf são melhorias do Poké Mart). */

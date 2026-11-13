@@ -81,6 +81,8 @@ export interface Species {
   spriteSize?: { front?: [number, number]; back?: [number, number] };
   /** Grito da espécie (arquivo .ogg da PokéAPI). */
   cry?: string;
+  /** Forma regional desta variação (só nas espécies montadas por `speciesOf`). */
+  regionalForm?: string;
 }
 
 export type Ailment = 'burn' | 'poison' | 'paralysis' | 'sleep' | 'freeze';
